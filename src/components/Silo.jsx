@@ -1,25 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
-
-export default function Silo() {
-  const [dados, setDados] = useState(null);
+export default function Silo({ dados }) {
   const [modo, setModo] = useState("temperatura");
   const [carregandoModo, setCarregandoModo] = useState(false);
 
-  useEffect(() => {
-    // fetch("http://172.16.1.85:3333/termometria/151/-1") // produza grande
-    fetch("http://172.16.1.85:3333/termometria/101/-1")  // " Global "
-      // fetch("http://172.16.1.85:3333/termometria/140/-1")  // " Produza Silo 4 "
-      // fetch("http://172.16.1.85:3333/termometria/142/-1")  // " Produza Silo 5 "
-      // fetch("http://172.16.1.85:3333/termometria/101/-1") // Silo Local
-      // fetch("http://172.16.1.85:3333/termometria/101/623") // Produza
-      .then((resp) => resp.json())
-      .then((data) => setDados(data))
-      .catch((err) => console.error(err));
-  }, []);
-
-  if (!dados) return <div>  Carregando...</div>;
+  if (!dados) return <div>Carregando...</div>;
 
   const layout = dados.dados_layout;
   const leitura = dados.leitura;
