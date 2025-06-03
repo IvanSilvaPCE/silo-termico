@@ -21,7 +21,11 @@ const App = () => {
       // fetch("http://172.16.1.85:3333/termometria/101/623") // Produza
       .then((resp) => resp.json())
       .then((data) => setDados(data))
-      .catch((err) => console.error(err));
+      .catch((err) => {
+        console.error("Error fetching data:", err);
+        // Fallback to simulated data if fetch fails
+        setDados(dadosSimulados);
+      });
   }, []);
 
   if (!dados) return <div>Carregando...</div>;
@@ -31,7 +35,6 @@ const App = () => {
       <SiloSVG dados={dados} />
       {/* <ArmazemSVG dados={dadosArm}/> */}
     </div>
-
   );
 };
 
