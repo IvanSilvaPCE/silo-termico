@@ -1,0 +1,94 @@
+const dadosSilo = {
+  dados: {
+    layout: "3618",
+    nivel: 66.6,
+    volume: 2649,
+    media: 15.7,
+    umidMedia: 15,
+    tipoNivel: 0,
+    tipoGrao: 2,
+    tipo: 2,
+    nivelManual: 0,
+    data: "09/06/2025 15:10"
+  },
+  motor: {
+    horasDiarias: 2,
+    consumoDia: 300,
+    consumoTotal: 25151,
+    statusMotor: [3, 3, 0, 0, 0, 0],
+    nMotores: 2
+  },
+  leitura: {
+    P1: {
+      "1": [14.5, true, false, false, true],
+      "2": [14.6, true, false, false, true],
+      "3": [14.7, true, false, false, true],
+      "4": [15, true, false, false, true],
+      "5": [16.8, true, false, false, true],
+      "6": [17.5, true, false, false, true],
+      "7": [17.6, true, false, false, true],
+      "8": [17.9, false, false, false, false],
+      "9": [17.7, false, false, false, false],
+      "10": [18.1, false, false, false, false]
+    },
+    P2: {
+      "1": [14.8, true, false, false, true],
+      "2": [15.2, true, false, false, true],
+      "3": [14.8, true, false, false, true],
+      "4": [15.3, true, false, false, true],
+      "5": [16.3, true, false, false, true],
+      "6": [17.4, true, false, false, true],
+      "7": [17.8, false, false, false, false],
+      "8": [17.9, false, false, false, false],
+      "9": [18, false, false, false, false],
+      "10": [18.1, false, false, false, false]
+    },
+    P3: {
+      "1": [14.4, true, false, false, true],
+      "2": [14.1, true, false, false, true],
+      "3": [14.8, true, false, false, true],
+      "4": [14.7, true, false, false, true],
+      "5": [16.5, true, false, false, true],
+      "6": [17.3, true, false, false, true],
+      "7": [17.7, true, false, false, true],
+      "8": [17.8, false, false, false, false],
+      "9": [18, false, false, false, false],
+      "10": [18, false, false, false, false]
+    }
+  },
+  dados_layout: {
+    modelo_silo: "PCE-TESTE-RABBIT",
+    tamanho_svg: [163, 163],
+    desenho_sensores: {
+      escala_cores_sensores: 2,
+      nome_sensores_direita: 0,
+      nome_cabo_acima: 0,
+      escala_sensores: 17,
+      dist_y_sensores: 12,
+      dist_y_nome_cabo: [0, 0, 0],
+      pos_x_cabos_uniforme: 1,
+      pos_x_cabo: [13, 40],
+      pos_y_cabo: [143, 143, 143]
+    },
+    desenho_corte_silo: {
+      lb: 135,
+      hs: 152,
+      hb: 11,
+      eb: 3
+    },
+    cabos: {
+      "1": 10,
+      "2": 10,
+      "3": 10
+    },
+    aeradores: {
+      "1": [50, 150, 1],
+      na: 1,
+      dy: 0,
+      ds: -6,
+      da: 0
+    }
+  }
+};
+
+export default dadosSilo;

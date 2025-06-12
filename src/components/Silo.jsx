@@ -144,7 +144,7 @@ export default function Silo({ dados }) {
               values="0 86.35 24.05; 360 86.35 24.05;"
               repeatCount="indefinite"
             />
-            {angles.map((angle) => ( 
+            {angles.map((angle) => (
 
               <path
                 key={angle}
@@ -458,7 +458,7 @@ export default function Silo({ dados }) {
       ) : (
         modo === "temperatura" ? <RenderSiloTemperatura /> : <RenderSiloMapa />
       )}
-      <div style={{ textAlign: "center", marginTop: "20px" }}>
+      <div className="d-flex justify-content-center mt-3">
         <BotaoTrocaModo />
       </div>
     </div>

@@ -1,7 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 const ArmazemSVG = ({ dados }) => {
     const containerRef = useRef(null);
+    const [modo, setModo] = useState("temperatura");
+    const [carregandoModo, setCarregandoModo] = useState(false);
 
     const layoutArco = {
         tamanho_svg: [350, 200],
@@ -54,65 +57,31 @@ const ArmazemSVG = ({ dados }) => {
         container.appendChild(svgEl);
 
         desenhaFundo(layoutArco);
-        desenhaSensores(layoutArco);
-        if (dados) {
-            atualizarSensores(dados);
+        if (modo === "temperatura") {
+            desenhaSensores(layoutArco);
+            if (dados) atualizarSensores(dados);
+        } else {
+            desenhaMapaCalor(layoutArco);
         }
-    }, [dados]);
+    }, [dados, modo]);
 
-    function atualizarSensores(dadosArco) {
-        const cabosIds = Object.keys(dadosArco.leitura);
-        cabosIds.forEach((idCabo, i) => {
-            const sensores = dadosArco.leitura[idCabo];
-
-            Object.keys(sensores).forEach((s) => {
-                const [temp, media, pq, falha, nivel] = sensores[s];
-                const rec = document.getElementById(`C${i + 1}S${s}`);
-                const txt = document.getElementById(`TC${i + 1}S${s}`);
-                if (!rec || !txt) return;
-                txt.textContent = temp.toFixed(1);
-
-                if (temp < 12) {
-                    rec.setAttribute("fill", "#0384fc");
-                    txt.setAttribute("fill", "white");
-                } else if (temp < 15) {
-                    rec.setAttribute("fill", "#03e8fc");
-                    txt.setAttribute("fill", "black");
-                } else if (temp < 17) {
-                    rec.setAttribute("fill", "#03fcbe");
-                    txt.setAttribute("fill", "black");
-                } else if (temp < 21) {
-                    rec.setAttribute("fill", "#07fc03");
-                    txt.setAttribute("fill", "black");
-                } else if (temp < 25) {
-                    rec.setAttribute("fill", "#c3ff00");
-                    txt.setAttribute("fill", "black");
-                } else if (temp < 27) {
-                    rec.setAttribute("fill", "#fcf803");
-                    txt.setAttribute("fill", "black");
-                } else if (temp < 30) {
-                    rec.setAttribute("fill", "#ffb300");
-                    txt.setAttribute("fill", "black");
-                } else if (temp < 35) {
-                    rec.setAttribute("fill", "#ff2200");
-                    txt.setAttribute("fill", "white");
-                } else {
-                    rec.setAttribute("fill", "#ff2200");
-                    txt.setAttribute("fill", "white");
-                }
-
-                if (!nivel) {
-                    rec.setAttribute("fill", "#e6e6e6");
-                    txt.setAttribute("fill", "black");
-                }
-            });
-        });
+    function corFaixaExata(t) {
+        if (t === -1000) return "#ff0000";
+        if (t < 12) return "#0384fc";
+        else if (t < 15) return "#03e8fc";
+        else if (t < 17) return "#03fcbe";
+        else if (t < 21) return "#07fc03";
+        else if (t < 25) return "#c3ff00";
+        else if (t < 27) return "#fcf803";
+        else if (t < 30) return "#ffb300";
+        else if (t < 35) return "#ff2200";
+        else if (t < 50) return "#ff0090";
+        else return "#f700ff";
     }
 
     function desenhaFundo(layout) {
         const svgEl = document.getElementById("des_arco_armazem");
-        const { tipo_telhado, pb, lb, hb, hf, lf, le, ht, ctrl_p1, ctrl_p2 } =
-            layout.desenho_arco;
+        const { tipo_telhado, pb, lb, hb, hf, lf, le, ht } = layout.desenho_arco;
         const p1 = [lb, pb - hb],
             p2 = [lb - le, pb - hb],
             p3 = [lb - ((lb - lf) / 2), pb - hf],
@@ -121,15 +90,10 @@ const ArmazemSVG = ({ dados }) => {
             p6 = [0, pb - hb],
             p7 = [0, pb],
             p8 = [lb, pb];
-        const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(
+        const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(
             ","
-        )} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(
-            ","
-        )} ${p8.join(",")}`;
-        const polBase = document.createElementNS(
-            "http://www.w3.org/2000/svg",
-            "polygon"
-        );
+        )} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
+        const polBase = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
         polBase.setAttribute("fill", "#999999");
         polBase.setAttribute("id", "des_fundo");
         polBase.setAttribute("points", pathBase);
@@ -145,10 +109,7 @@ const ArmazemSVG = ({ dados }) => {
             const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(
                 ","
             )} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
-            polTelhado = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "polygon"
-            );
+            polTelhado = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
             polTelhado.setAttribute("fill", "#E6E6E6");
             polTelhado.setAttribute("stroke", "#999999");
             polTelhado.setAttribute("stroke-width", "1.7");
@@ -166,21 +127,18 @@ const ArmazemSVG = ({ dados }) => {
         const svgEl = document.getElementById("des_arco_armazem");
         const cabosIds = Object.keys(layout.cabos);
         cabosIds.forEach((id, i) => {
-            // Retângulo do cabo (posição fixa para exemplo)
             const retNome = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            retNome.setAttribute("id", "C" + (i + 1));
+            retNome.setAttribute("id", `C${i + 1}`);
             retNome.setAttribute("width", layout.desenho_sensores.escala_sensores);
             retNome.setAttribute("height", layout.desenho_sensores.escala_sensores / 2);
             retNome.setAttribute("rx", "2");
             retNome.setAttribute("ry", "2");
             retNome.setAttribute("fill", "#3A78FD");
-            // Defina a posição na base (ajuste os valores conforme necessário)
             retNome.setAttribute("x", 50 + i * 60);
             retNome.setAttribute("y", 185);
 
-            // Texto do cabo
             const txtNome = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            txtNome.setAttribute("id", "TC" + (i + 1));
+            txtNome.setAttribute("id", `TC${i + 1}`);
             txtNome.setAttribute("text-anchor", "middle");
             txtNome.setAttribute("dominant-baseline", "central");
             txtNome.setAttribute("font-weight", "bold");
@@ -189,28 +147,22 @@ const ArmazemSVG = ({ dados }) => {
                 layout.desenho_sensores.escala_sensores * 0.4 - 0.5
             );
             txtNome.setAttribute("font-family", "Arial");
-            txtNome.textContent = "P" + id;
+            txtNome.textContent = `P${id}`;
             txtNome.setAttribute("fill", "white");
             txtNome.setAttribute(
                 "x",
-                parseFloat(retNome.getAttribute("x")) +
-                layout.desenho_sensores.escala_sensores / 2
+                parseFloat(retNome.getAttribute("x")) + layout.desenho_sensores.escala_sensores / 2
             );
             txtNome.setAttribute(
                 "y",
-                parseFloat(retNome.getAttribute("y")) +
-                layout.desenho_sensores.escala_sensores / 4
+                parseFloat(retNome.getAttribute("y")) + layout.desenho_sensores.escala_sensores / 4
             );
 
             svgEl.appendChild(retNome);
             svgEl.appendChild(txtNome);
 
-            // Número de pêndulos (texto abaixo do nome do cabo)
             const numSensores = layout.cabos[id];
-            const txtNumPendulos = document.createElementNS(
-                "http://www.w3.org/2000/svg",
-                "text"
-            );
+            const txtNumPendulos = document.createElementNS("http://www.w3.org/2000/svg", "text");
             txtNumPendulos.setAttribute("id", `TPEND${i + 1}`);
             txtNumPendulos.setAttribute("text-anchor", "middle");
             txtNumPendulos.setAttribute("dominant-baseline", "central");
@@ -229,92 +181,209 @@ const ArmazemSVG = ({ dados }) => {
             );
             svgEl.appendChild(txtNumPendulos);
 
-            // Cria os sensores para cada cabo
             for (let s = 1; s <= numSensores; s++) {
-                // Retângulo do sensor
-                const recSensor = document.createElementNS(
-                    "http://www.w3.org/2000/svg",
-                    "rect"
-                );
+                const recSensor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                 recSensor.setAttribute("id", `C${i + 1}S${s}`);
                 recSensor.setAttribute("width", layout.desenho_sensores.escala_sensores);
-                recSensor.setAttribute(
-                    "height",
-                    layout.desenho_sensores.escala_sensores / 2
-                );
+                recSensor.setAttribute("height", layout.desenho_sensores.escala_sensores / 2);
                 recSensor.setAttribute("rx", "2");
                 recSensor.setAttribute("ry", "2");
                 recSensor.setAttribute("fill", "#ccc");
-                // Posiciona o sensor acima do retângulo do cabo
                 recSensor.setAttribute("x", retNome.getAttribute("x"));
                 const ySensor =
-                    parseFloat(retNome.getAttribute("y")) -
-                    layout.desenho_sensores.dist_y_sensores * s - 12;
-
+                    parseFloat(retNome.getAttribute("y")) - layout.desenho_sensores.dist_y_sensores * s - 12;
                 recSensor.setAttribute("y", Math.max(ySensor, 10));
-
                 recSensor.setAttribute("stroke", "black");
                 recSensor.setAttribute("stroke-width", "1");
 
-
-                // Texto da leitura do sensor
-                const txtSensor = document.createElementNS(
-                    "http://www.w3.org/2000/svg",
-                    "text"
-                );
+                const txtSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
                 txtSensor.setAttribute("id", `TC${i + 1}S${s}`);
                 txtSensor.setAttribute("text-anchor", "middle");
                 txtSensor.setAttribute("dominant-baseline", "central");
-                txtSensor.setAttribute(
-                    "font-size",
-                    layout.desenho_sensores.escala_sensores * 0.4 - 0.5
-                );
+                txtSensor.setAttribute("font-size", layout.desenho_sensores.escala_sensores * 0.4 - 0.5);
                 txtSensor.setAttribute("font-family", "Arial");
                 txtSensor.textContent = "0";
                 txtSensor.setAttribute(
                     "x",
-                    parseFloat(recSensor.getAttribute("x")) +
-                    layout.desenho_sensores.escala_sensores / 2
+                    parseFloat(recSensor.getAttribute("x")) + layout.desenho_sensores.escala_sensores / 2
                 );
                 txtSensor.setAttribute(
                     "y",
-                    parseFloat(recSensor.getAttribute("y")) +
-                    layout.desenho_sensores.escala_sensores / 4
+                    parseFloat(recSensor.getAttribute("y")) + layout.desenho_sensores.escala_sensores / 4
+                );
+
+                const txtSensorName = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                txtSensorName.setAttribute("id", `TIND${i + 1}S${s}`);
+                txtSensorName.setAttribute("text-anchor", "end");
+                txtSensorName.setAttribute("dominant-baseline", "central");
+                txtSensorName.setAttribute("font-size", layout.desenho_sensores.escala_sensores * 0.4 - 1.5);
+                txtSensorName.setAttribute("font-family", "Arial");
+                txtSensorName.textContent = `S${s}`;
+                txtSensorName.setAttribute("fill", "black");
+                txtSensorName.setAttribute("x", parseFloat(recSensor.getAttribute("x")) - 2);
+                txtSensorName.setAttribute(
+                    "y",
+                    parseFloat(recSensor.getAttribute("y")) + layout.desenho_sensores.escala_sensores / 4
                 );
 
                 svgEl.appendChild(recSensor);
                 svgEl.appendChild(txtSensor);
-
-                // Texto do nome do sensor (S1, S2, …) à esquerda do sensor
-                const txtSensorName = document.createElementNS(
-                    "http://www.w3.org/2000/svg",
-                    "text"
-                );
-                txtSensorName.setAttribute("id", `TIND${i + 1}S${s}`);
-                txtSensorName.setAttribute("text-anchor", "end");
-                txtSensorName.setAttribute("dominant-baseline", "central");
-                txtSensorName.setAttribute(
-                    "font-size",
-                    layout.desenho_sensores.escala_sensores * 0.4 - 1.5
-                );
-                txtSensorName.setAttribute("font-family", "Arial");
-                txtSensorName.textContent = `S${s}`;
-                txtSensorName.setAttribute("fill", "black");
-                txtSensorName.setAttribute(
-                    "x",
-                    parseFloat(recSensor.getAttribute("x")) - 2
-                );
-                txtSensorName.setAttribute("y",
-                    parseFloat(recSensor.getAttribute("y")) +
-                    layout.desenho_sensores.escala_sensores / 4
-                );
                 svgEl.appendChild(txtSensorName);
             }
         });
     }
 
+    function desenhaMapaCalor(layout) {
+        const svgEl = document.getElementById("des_arco_armazem");
+        const ds = layout.desenho_sensores;
+        const { pb, lb, hb, hf, lf, le, ht } = layout.desenho_arco;
+        const [largura, altura] = layout.tamanho_svg;
+        const resolucao = 320;
+        const wCell = largura / resolucao;
+        const hCell = altura / resolucao;
 
-    return <div ref={containerRef} />;
+        const sensores = [];
+        if (dados && dados.leitura) {
+            Object.entries(layout.cabos).forEach(([pend, qtd], idxCabo) => {
+                const objSensores = dados.leitura[pend] || {};
+                const xCabo = ds.pos_x_cabo[idxCabo];
+                const yCabo = ds.pos_y_cabo[idxCabo];
+                Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
+                    const t = parseFloat(dadosSensor[0]) || -1000;
+                    sensores.push({
+                        x: xCabo,
+                        y: yCabo - ds.dist_y_sensores * parseInt(sensorKey, 10) - 12,
+                        t,
+                        ativo: dadosSensor[4] === true
+                    });
+                });
+            });
+        }
+
+        function idw(cx, cy) {
+            let somaPesos = 0;
+            let somaTemp = 0;
+            const power = 2;
+            let temSensorAtivo = false;
+
+            sensores.forEach(({ x, y, t, ativo }) => {
+                if (t === -1000 || !ativo) return;
+                temSensorAtivo = true;
+                const dist = Math.max(Math.hypot(x - cx, y - cy), 0.0001);
+                const peso = 1 / Math.pow(dist, power);
+                somaPesos += peso;
+                somaTemp += t * peso;
+            });
+
+            return temSensorAtivo && somaPesos !== 0 ? somaTemp / somaPesos : null;
+        }
+
+        const blocos = [];
+        for (let i = 0; i < resolucao; i++) {
+            for (let j = 0; j < resolucao; j++) {
+                const cx = i * wCell + wCell / 2;
+                const cy = j * hCell + hCell / 2;
+                const tempInterpolada = idw(cx, cy);
+                const cor = tempInterpolada === null ? "#ffffff" : corFaixaExata(tempInterpolada);
+
+
+                const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+                rect.setAttribute("x", i * wCell);
+                rect.setAttribute("y", j * hCell);
+                rect.setAttribute("width", wCell);
+                rect.setAttribute("height", hCell);
+                rect.setAttribute("fill", cor);
+                blocos.push(rect);
+            }
+        }
+
+        const p1 = [(lb - lf) / 2, pb - hf],
+            p2 = [le, pb - hb],
+            p3 = [le, pb - ht],
+            p4 = [lb / 2, 1],
+            p5 = [lb - le, pb - ht],
+            p6 = [lb - le, pb - hb],
+            p7 = [lb - ((lb - lf) / 2), pb - hf];
+        const pathD = `M ${p1.join(",")} L ${p2.join(",")} L ${p3.join(",")} L ${p4.join(
+            ","
+        )} L ${p5.join(",")} L ${p6.join(",")} L ${p7.join(",")} Z`;
+
+        const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+        const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+        filter.setAttribute("id", "blurFilter");
+        const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+        blur.setAttribute("stdDeviation", "0.4");
+        filter.appendChild(blur);
+        defs.appendChild(filter);
+
+        const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+        clipPath.setAttribute("id", "clipArmazem");
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", pathD);
+        clipPath.appendChild(path);
+        defs.appendChild(clipPath);
+        svgEl.appendChild(defs);
+
+        const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        g.setAttribute("filter", "url(#blurFilter)");
+        g.setAttribute("clip-path", "url(#clipArmazem)");
+        blocos.forEach((bloco) => g.appendChild(bloco));
+        svgEl.appendChild(g);
+    }
+
+    function atualizarSensores(dadosArco) {
+        const cabosIds = Object.keys(dadosArco.leitura);
+        cabosIds.forEach((idCabo, i) => {
+            const sensores = dadosArco.leitura[idCabo];
+            Object.keys(sensores).forEach((s) => {
+                const [temp, , , falha, nivel] = sensores[s];
+                const rec = document.getElementById(`C${i + 1}S${s}`);
+                const txt = document.getElementById(`TC${i + 1}S${s}`);
+                if (!rec || !txt) return;
+                txt.textContent = falha ? "ERRO" : temp.toFixed(1);
+                if (!nivel) {
+                    rec.setAttribute("fill", "#e6e6e6");
+                    txt.setAttribute("fill", "black");
+                } else {
+                    const cor = corFaixaExata(temp);
+                    rec.setAttribute("fill", cor);
+                    txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
+                }
+            });
+        });
+    }
+
+    function trocarModo() {
+        setCarregandoModo(true);
+        setTimeout(() => {
+            setModo(modo === "temperatura" ? "mapa" : "temperatura");
+            setCarregandoModo(false);
+        }, 600);
+    }
+
+    const BotaoTrocaModo = () => (
+        <button className="btn btn-primary" onClick={trocarModo}>
+            {modo === "temperatura" ? "Ver Mapa de Calor" : "Ver Temperatura"}
+        </button>
+    );
+
+    return (
+        <div>
+            <h1>Armazém - Monitoramento de Temperatura</h1>
+            {carregandoModo ? (
+                <div className="d-flex justify-content-center m-3">
+                    <div className="spinner-border" role="status">
+                        <span className="visually-hidden">Carregando...</span>
+                    </div>
+                </div>
+            ) : (
+                <div ref={containerRef} />
+            )}
+            <div className="d-flex justify-content-center mt-3">
+                <BotaoTrocaModo />
+            </div>
+        </div>
+    );
 };
 
 export default ArmazemSVG;
