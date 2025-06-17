@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import SiloSVG from "./components/Silo";
 import ArmazemSVG from './components/Armazem';
+import ModeladorSVG from './components/ModeladorSVG';
 import dadosSimulados from "./dados";
 import dadosSimuladosSilo from "./dadosSilo";
 
@@ -8,6 +9,7 @@ const App = () => {
   const [dados, setDados] = useState(null);
   const [dadosArm, setDadosArm] = useState(null);
   const [dadosSilo, setDadosSilo] = useState(null);
+  const [telaAtiva, setTelaAtiva] = useState("modelador"); // "modelador", "silo", "armazem"
 
   useEffect(() => {
     setDadosArm(dadosSimulados);
@@ -29,13 +31,52 @@ const App = () => {
 
   // if (!dados) return <div>Carregando...</div>;
 
+  const renderNavegacao = () => (
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+      <div className="container">
+        <span className="navbar-brand">Sistema de Monitoramento</span>
+        <div className="navbar-nav">
+          <button 
+            className={`btn ${telaAtiva === "modelador" ? "btn-light" : "btn-outline-light"} me-2`}
+            onClick={() => setTelaAtiva("modelador")}
+          >
+            Modelador SVG
+          </button>
+          <button 
+            className={`btn ${telaAtiva === "silo" ? "btn-light" : "btn-outline-light"} me-2`}
+            onClick={() => setTelaAtiva("silo")}
+          >
+            Silo
+          </button>
+          <button 
+            className={`btn ${telaAtiva === "armazem" ? "btn-light" : "btn-outline-light"}`}
+            onClick={() => setTelaAtiva("armazem")}
+          >
+            Armazém
+          </button>
+        </div>
+      </div>
+    </nav>
+  );
+
+  const renderConteudo = () => {
+    switch(telaAtiva) {
+      case "modelador":
+        return <ModeladorSVG />;
+      case "silo":
+        return <SiloSVG dados={dadosSilo} />;
+      case "armazem":
+        return <ArmazemSVG dados={dadosArm} />;
+      default:
+        return <ModeladorSVG />;
+    }
+  };
+
   return (
     <div>
-      {/* <SiloSVG dados={dadosSilo} /> */}
-      {/* <SiloSVG dados={dados} /> */}
-      <ArmazemSVG dados={dadosArm}/>
+      {renderNavegacao()}
+      {renderConteudo()}
     </div>
-
   );
 };
 
