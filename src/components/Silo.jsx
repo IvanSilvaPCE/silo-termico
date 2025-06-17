@@ -167,20 +167,25 @@ export default function Silo({ dados }) {
     const posYCabo = ds.pos_y_cabo;
     const posXCabo = ds.pos_x_cabo;
     const posXUniforme = Number(ds.pos_x_cabos_uniforme);
+    
+    // Memoizar sensores ativos para evitar recálculos
     const sensores = [];
     Object.entries(leitura).forEach(([pend, objSensores], idxCabo) => {
-      const xCabo =
-        posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo;
+      const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo;
       const yCabo = posYCabo[idxCabo];
       Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
         const sensorIdx = parseInt(sensorKey, 10);
         const t = parseFloat(dadosSensor[0]);
-        sensores.push({ x: xCabo, y: yCabo - distYSensores * sensorIdx, t, ativo: dadosSensor[4] });
-
+        if (dadosSensor[4] && t !== -1000) { // Filtrar apenas sensores ativos
+          sensores.push({ x: xCabo, y: yCabo - distYSensores * sensorIdx, t, ativo: true });
+        }
       });
     });
+
+    // Reduzir resolução em telas pequenas para melhor performance
     const [largura, altura] = layout.tamanho_svg;
-    const resolucao = 320; // 80 padrão
+    const isMobile = window.innerWidth < 768;
+    const resolucao = isMobile ? 160 : 240; // Otimização adaptativa
     const wCell = largura / resolucao;
     const hCell = altura / resolucao;
     const blocos = [];
@@ -401,17 +406,20 @@ export default function Silo({ dados }) {
   const RenderSiloTemperatura = () => (
     <svg
       width="100%"
-      height="70vh"
+      height="auto"
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
         maxWidth: "100%",
         maxHeight: "70vh",
+        height: "auto",
+        minHeight: "300px",
         shapeRendering: "auto",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
         fillRule: "evenodd",
         clipRule: "evenodd"
       }}
+      preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g transform={transformSilo}>
@@ -425,17 +433,20 @@ export default function Silo({ dados }) {
   const RenderSiloMapa = () => (
     <svg
       width="100%"
-      height="70vh"
+      height="auto"
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
         maxWidth: "100%",
         maxHeight: "70vh",
+        height: "auto",
+        minHeight: "300px",
         shapeRendering: "geometricPrecision",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
         fillRule: "evenodd",
         clipRule: "evenodd"
       }}
+      preserveAspectRatio="xMidYMid meet"
       xmlns="http://www.w3.org/2000/svg"
     >
       <g transform={transformSilo}>
@@ -447,19 +458,33 @@ export default function Silo({ dados }) {
   );
 
   return (
-    <div className="container-fluid p-3" style={{ height: '100vh', overflow: 'hidden' }}>
-      <h1 className="text-center mb-3">Silo - Monitoramento de Temperatura</h1>
-      {carregandoModo ? (
-        <div className="d-flex justify-content-center m-3">
-          <div className="spinner-border" role="status">
-            <span className="visually-hidden">Carregando...</span>
+    <div className="container-fluid p-2 p-md-3" style={{ minHeight: '100vh', overflow: 'auto' }}>
+      <div className="row">
+        <div className="col-12">
+          <h1 className="text-center mb-2 mb-md-3 fs-3 fs-md-1">Silo - Monitoramento de Temperatura</h1>
+          
+          {carregandoModo ? (
+            <div className="d-flex justify-content-center m-3">
+              <div className="spinner-border" role="status">
+                <span className="visually-hidden">Carregando...</span>
+              </div>
+            </div>
+          ) : (
+            <div className="svg-container mb-2 mb-md-3" style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center',
+              maxHeight: '75vh',
+              overflow: 'auto'
+            }}>
+              {modo === "temperatura" ? <RenderSiloTemperatura /> : <RenderSiloMapa />}
+            </div>
+          )}
+          
+          <div className="d-flex justify-content-center">
+            <BotaoTrocaModo />
           </div>
         </div>
-      ) : (
-        modo === "temperatura" ? <RenderSiloTemperatura /> : <RenderSiloMapa />
-      )}
-      <div className="d-flex justify-content-center mt-3">
-        <BotaoTrocaModo />
       </div>
     </div>
   );

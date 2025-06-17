@@ -429,23 +429,48 @@ const ArmazemSVG = ({ dados }) => {
         );
     };
 
+    const RenderArmazemTemperatura = () => (
+        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh' }} />
+    );
+
+    const RenderArmazemMapa = () => (
+        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh' }} />
+    );
+
     return (
-        <div className="container-fluid p-3" style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
-            <h1 className="text-center mb-3">Armazém - Monitoramento de Temperatura</h1>
+        <div className="container-fluid p-2 p-md-3" style={{ minHeight: '100vh', overflow: 'auto' }}>
+            <div className="row">
+                <div className="col-12">
+                    <h1 className="text-center mb-2 mb-md-3 fs-3 fs-md-1">Armazém - Monitoramento de Temperatura</h1>
 
-            <SeletorLayout />
+                    {carregandoModo ? (
+                        <div className="d-flex justify-content-center m-3">
+                            <div className="spinner-border" role="status">
+                                <span className="visually-hidden">Carregando...</span>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="svg-container mb-2 mb-md-3" style={{ 
+                            display: 'flex', 
+                            justifyContent: 'center', 
+                            alignItems: 'center',
+                            maxHeight: '65vh',
+                            overflow: 'auto'
+                        }}>
+                            {modo === "temperatura" ? <RenderArmazemTemperatura /> : <RenderArmazemMapa />}
+                        </div>
+                    )}
 
-            {carregandoModo ? (
-                <div className="d-flex justify-content-center align-items-center" style={{ height: '70vh' }}>
-                    <div className="spinner-border" role="status">
-                        <span className="visually-hidden">Carregando...</span>
+                    <div className="row mb-2 mb-md-3">
+                        <div className="col-12">
+                            <SeletorLayout />
+                        </div>
+                    </div>
+
+                    <div className="d-flex justify-content-center">
+                        <BotaoTrocaModo />
                     </div>
                 </div>
-            ) : (
-                <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh' }} />
-            )}
-            <div className="d-flex justify-content-center mt-3">
-                <BotaoTrocaModo />
             </div>
         </div>
     );
