@@ -61,10 +61,10 @@ const ArmazemSVG = ({ dados }) => {
             "shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
         );
         svgEl.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-        
+
         // Usar layout adaptado se disponível
         const layoutFinal = layoutConfig || layoutArco;
-        
+
         svgEl.setAttribute("width", layoutFinal.tamanho_svg?.[0] || layoutArco.tamanho_svg[0] + "mm");
         svgEl.setAttribute("height", layoutFinal.tamanho_svg?.[1] || layoutArco.tamanho_svg[1] + "mm");
         svgEl.setAttribute(
@@ -386,7 +386,7 @@ const ArmazemSVG = ({ dados }) => {
 
     const SeletorLayout = () => {
         const layoutsDisponiveis = LayoutManager.listarLayouts("armazem");
-        
+
         return (
             <div className="mb-3">
                 <div className="row align-items-center">
@@ -430,11 +430,11 @@ const ArmazemSVG = ({ dados }) => {
     };
 
     return (
-        <div>
+        <div className="container-fluid p-4" style={{ width: '100%' }}>
             <h1>Armazém - Monitoramento de Temperatura</h1>
-            
+
             <SeletorLayout />
-            
+
             {carregandoModo ? (
                 <div className="d-flex justify-content-center m-3">
                     <div className="spinner-border" role="status">

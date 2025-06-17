@@ -32,8 +32,8 @@ const App = () => {
   // if (!dados) return <div>Carregando...</div>;
 
   const renderNavegacao = () => (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-      <div className="container">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-0">
+      <div className="container-fluid px-4">
         <span className="navbar-brand">Sistema de Monitoramento</span>
         <div className="navbar-nav">
           <button 
@@ -73,9 +73,11 @@ const App = () => {
   };
 
   return (
-    <div>
+    <div style={{ width: '100%', minHeight: '100vh' }}>
       {renderNavegacao()}
-      {renderConteudo()}
+      <div style={{ width: '100%' }}>
+        {renderConteudo()}
+      </div>
     </div>
   );
 };

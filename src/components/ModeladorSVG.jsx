@@ -365,7 +365,7 @@ const ModeladorSVG = () => {
   const listarConfiguracoesSalvas = () => {
     const prefixo = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_`;
     const configs = [];
-    
+
     for (let i = 0; i < localStorage.length; i++) {
       const chave = localStorage.key(i);
       if (chave && chave.startsWith(prefixo)) {
@@ -373,7 +373,7 @@ const ModeladorSVG = () => {
         configs.push(nome);
       }
     }
-    
+
     return configs;
   };
 
@@ -402,14 +402,14 @@ const ModeladorSVG = () => {
 
     const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nomeLayout}`;
     const layoutSalvo = localStorage.getItem(chave);
-    
+
     if (!layoutSalvo) {
       alert(`Layout "${nomeLayout}" não encontrado!`);
       return;
     }
 
     const config = JSON.parse(layoutSalvo);
-    
+
     // Simular dados do backend para demonstração
     const dadosDemo = dadosSimulados || {
       leitura: {
@@ -418,19 +418,19 @@ const ModeladorSVG = () => {
         "3": { "1": [21.5, 0, 0, false, true], "2": [22.3, 0, 0, false, true], "3": [20.7, 0, 0, false, true], "4": [21.1, 0, 0, false, true] }
       }
     };
-    
+
     if (tipoAtivo === "armazem") {
       // Adaptar armazém baseado nos cabos/pêndulos dos dados
       const cabos = Object.keys(dadosDemo.leitura);
       const novaConfigArmazem = { ...config };
-      
+
       // Ajustar posições dos cabos baseado na quantidade
       const numCabos = cabos.length;
       const larguraBase = novaConfigArmazem.lb;
       const margemLateral = 50;
       const larguraUtil = larguraBase - (margemLateral * 2);
       const espacamento = numCabos > 1 ? larguraUtil / (numCabos - 1) : 0;
-      
+
       // Calcular novas posições dos cabos
       novaConfigArmazem.pos_x_cabo = cabos.map((_, i) => {
         if (numCabos === 1) {
@@ -438,23 +438,23 @@ const ModeladorSVG = () => {
         }
         return margemLateral + (espacamento * i);
       });
-      
+
       novaConfigArmazem.pos_y_cabo = new Array(numCabos).fill(novaConfigArmazem.pos_y_cabo?.[0] || 181);
-      
+
       setConfigArmazem(novaConfigArmazem);
       alert(`Layout "${nomeLayout}" adaptado para ${numCabos} cabos!`);
-      
+
     } else if (tipoAtivo === "silo") {
       // Adaptar silo baseado nos dados
       const cabos = Object.keys(dadosDemo.leitura);
       const novaConfigSilo = { ...config };
-      
+
       // Ajustar configuração baseado no número de cabos
       const numCabos = cabos.length;
       if (novaConfigSilo.pos_y_cabo) {
         novaConfigSilo.pos_y_cabo = new Array(numCabos).fill(novaConfigSilo.pos_y_cabo[0] || 160);
       }
-      
+
       setConfigSilo(novaConfigSilo);
       alert(`Layout "${nomeLayout}" adaptado para ${numCabos} cabos!`);
     }
@@ -520,498 +520,501 @@ const ModeladorSVG = () => {
       : "";
 
   return (
-    <div className="container-fluid" style={{minHeight: '100vh'}}>
-      <div className="row">
-        <div className="col-12">
-          <h1 className="text-center mb-4">
-            Modelador de SVG - Baseado nos Componentes Originais
-          </h1>
-        </div>
-      </div>
-
-      <div className="row" style={{minHeight: 'calc(100vh - 120px)'}}>
+    <div className="container-fluid p-0">
+      <div className="row g-0">
         {/* Painel de Controles */}
-        <div className="col-lg-4 col-md-5">
-          <div className="card position-sticky" style={{top: '20px', maxHeight: '90vh', overflowY: 'auto'}}>
-            <div className="card-header bg-primary text-white">
-              <h5 className="mb-0">Controles de Modelagem</h5>
+        <div 
+          className={`col-lg-3 col-md-4 bg-light border-end`}
+          style={{ 
+            height: '100vh', 
+            overflowY: 'auto',
+            position: 'fixed',
+            top: '0',
+            left: '0',
+            zIndex: 1000,
+            borderRight: '2px solid #dee2e6'
+          }}
+        >
+          <div className="p-4">
+            <h1 className="text-center mb-4">
+              Modelador de SVG - Baseado nos Componentes Originais
+            </h1>
+            {/* Seletor de Tipo */}
+            <div className="mb-3">
+              <label className="form-label fw-bold">Tipo de Estrutura:</label>
+              <select
+                className="form-select form-select-lg"
+                value={tipoAtivo}
+                onChange={(e) => setTipoAtivo(e.target.value)}
+              >
+                <option value="silo">🏗️ Silo</option>
+                <option value="armazem">🏢 Armazém</option>
+              </select>
             </div>
-            <div className="card-body p-3">
-              {/* Seletor de Tipo */}
-              <div className="mb-3">
-                <label className="form-label fw-bold">Tipo de Estrutura:</label>
-                <select
-                  className="form-select form-select-lg"
-                  value={tipoAtivo}
-                  onChange={(e) => setTipoAtivo(e.target.value)}
-                >
-                  <option value="silo">🏗️ Silo</option>
-                  <option value="armazem">🏢 Armazém</option>
-                </select>
-              </div>
 
-              {/* Controles para Silo */}
-              {tipoAtivo === "silo" && (
-                <>
-                  <h6 className="mt-3">Dimensões do Silo</h6>
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Largura Base (lb): {configSilo.lb}px
-                    </label>
+            {/* Controles para Silo */}
+            {tipoAtivo === "silo" && (
+              <>
+                <h6 className="mt-3">Dimensões do Silo</h6>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Largura Base (lb): {configSilo.lb}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="100"
+                    max="400"
+                    value={configSilo.lb}
+                    onChange={(e) => handleSiloChange("lb", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Altura Superior (hs): {configSilo.hs}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="100"
+                    max="300"
+                    value={configSilo.hs}
+                    onChange={(e) => handleSiloChange("hs", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Altura Base (hb): {configSilo.hb}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="5"
+                    max="30"
+                    value={configSilo.hb}
+                    onChange={(e) => handleSiloChange("hb", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Espessura Borda (eb): {configSilo.eb}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="2"
+                    max="15"
+                    value={configSilo.eb}
+                    onChange={(e) => handleSiloChange("eb", e.target.value)}
+                  />
+                </div>
+
+                <h6 className="mt-3">Aeradores</h6>
+                <div className="mb-3">
+                  <div className="form-check">
                     <input
-                      type="range"
-                      className="form-range"
-                      min="100"
-                      max="400"
-                      value={configSilo.lb}
-                      onChange={(e) => handleSiloChange("lb", e.target.value)}
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={configSilo.aeradores_ativo}
+                      onChange={(e) =>
+                        handleSiloChange(
+                          "aeradores_ativo",
+                          e.target.checked ? 1 : 0,
+                        )
+                      }
                     />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Altura Superior (hs): {configSilo.hs}px
+                    <label className="form-check-label">
+                      Ativar Aeradores
                     </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="100"
-                      max="300"
-                      value={configSilo.hs}
-                      onChange={(e) => handleSiloChange("hs", e.target.value)}
-                    />
                   </div>
+                </div>
 
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Altura Base (hb): {configSilo.hb}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="5"
-                      max="30"
-                      value={configSilo.hb}
-                      onChange={(e) => handleSiloChange("hb", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Espessura Borda (eb): {configSilo.eb}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="2"
-                      max="15"
-                      value={configSilo.eb}
-                      onChange={(e) => handleSiloChange("eb", e.target.value)}
-                    />
-                  </div>
-
-                  <h6 className="mt-3">Aeradores</h6>
-                  <div className="mb-3">
-                    <div className="form-check">
+                {configSilo.aeradores_ativo && (
+                  <>
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Número de Aeradores: {configSilo.na}
+                      </label>
                       <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={configSilo.aeradores_ativo}
+                        type="range"
+                        className="form-range"
+                        min="2"
+                        max="6"
+                        value={configSilo.na}
                         onChange={(e) =>
-                          handleSiloChange(
-                            "aeradores_ativo",
-                            e.target.checked ? 1 : 0,
-                          )
+                          handleSiloChange("na", e.target.value)
                         }
                       />
-                      <label className="form-check-label">
-                        Ativar Aeradores
-                      </label>
                     </div>
-                  </div>
 
-                  {configSilo.aeradores_ativo && (
-                    <>
-                      <div className="mb-3">
-                        <label className="form-label">
-                          Número de Aeradores: {configSilo.na}
-                        </label>
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="2"
-                          max="6"
-                          value={configSilo.na}
-                          onChange={(e) =>
-                            handleSiloChange("na", e.target.value)
-                          }
-                        />
-                      </div>
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Deslocamento Lateral (ds): {configSilo.ds}px
+                      </label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        min="10"
+                        max="60"
+                        value={configSilo.ds}
+                        onChange={(e) =>
+                          handleSiloChange("ds", e.target.value)
+                        }
+                      />
+                    </div>
 
-                      <div className="mb-3">
-                        <label className="form-label">
-                          Deslocamento Lateral (ds): {configSilo.ds}px
-                        </label>
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="10"
-                          max="60"
-                          value={configSilo.ds}
-                          onChange={(e) =>
-                            handleSiloChange("ds", e.target.value)
-                          }
-                        />
-                      </div>
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Distância entre Aeradores (da): {configSilo.da}px
+                      </label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        min="20"
+                        max="60"
+                        value={configSilo.da}
+                        onChange={(e) =>
+                          handleSiloChange("da", e.target.value)
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
 
-                      <div className="mb-3">
-                        <label className="form-label">
-                          Distância entre Aeradores (da): {configSilo.da}px
-                        </label>
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="20"
-                          max="60"
-                          value={configSilo.da}
-                          onChange={(e) =>
-                            handleSiloChange("da", e.target.value)
-                          }
-                        />
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
+            {/* Controles para Armazém */}
+            {tipoAtivo === "armazem" && (
+              <>
+                <h6 className="mt-3">Dimensões do Armazém</h6>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Largura Base (lb): {configArmazem.lb}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="200"
+                    max="500"
+                    value={configArmazem.lb}
+                    onChange={(e) =>
+                      handleArmazemChange("lb", e.target.value)
+                    }
+                  />
+                </div>
 
-              {/* Controles para Armazém */}
-              {tipoAtivo === "armazem" && (
-                <>
-                  <h6 className="mt-3">Dimensões do Armazém</h6>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Posição Base (pb): {configArmazem.pb}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="150"
+                    max="300"
+                    value={configArmazem.pb}
+                    onChange={(e) =>
+                      handleArmazemChange("pb", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Altura Base (hb): {configArmazem.hb}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="20"
+                    max="60"
+                    value={configArmazem.hb}
+                    onChange={(e) =>
+                      handleArmazemChange("hb", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Largura Frente (lf): {configArmazem.lf}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="100"
+                    max="400"
+                    value={configArmazem.lf}
+                    onChange={(e) =>
+                      handleArmazemChange("lf", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Altura Frente (hf): {configArmazem.hf}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="2"
+                    max="20"
+                    value={configArmazem.hf}
+                    onChange={(e) =>
+                      handleArmazemChange("hf", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Largura Entrada (le): {configArmazem.le}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="5"
+                    max="50"
+                    value={configArmazem.le}
+                    onChange={(e) =>
+                      handleArmazemChange("le", e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Altura Telhado (ht): {configArmazem.ht}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="20"
+                    max="100"
+                    value={configArmazem.ht}
+                    onChange={(e) =>
+                      handleArmazemChange("ht", e.target.value)
+                    }
+                  />
+                </div>
+
+                <h6 className="mt-3">Formato do Topo</h6>
+                <div className="mb-3">
+                  <label className="form-label">Tipo de Telhado:</label>
+                  <select
+                    className="form-select"
+                    value={configArmazem.tipo_telhado}
+                    onChange={(e) =>
+                      handleArmazemChange("tipo_telhado", e.target.value)
+                    }
+                  >
+                    <option value="1">Pontudo (Original)</option>
+                    <option value="2">Arredondado</option>
+                    <option value="3">Arco</option>
+                  </select>
+                </div>
+
+                {(configArmazem.tipo_telhado === 2 ||
+                  configArmazem.tipo_telhado === 3) && (
                   <div className="mb-3">
                     <label className="form-label">
-                      Largura Base (lb): {configArmazem.lb}px
+                      Curvatura do Topo: {configArmazem.curvatura_topo}px
                     </label>
                     <input
                       type="range"
                       className="form-range"
-                      min="200"
-                      max="500"
-                      value={configArmazem.lb}
+                      min="10"
+                      max="80"
+                      value={configArmazem.curvatura_topo}
                       onChange={(e) =>
-                        handleArmazemChange("lb", e.target.value)
+                        handleArmazemChange("curvatura_topo", e.target.value)
                       }
                     />
                   </div>
+                )}
 
+                <h6 className="mt-3">Formato do Fundo</h6>
+                <div className="mb-3">
+                  <label className="form-label">Tipo de Fundo:</label>
+                  <select
+                    className="form-select"
+                    value={configArmazem.tipo_fundo}
+                    onChange={(e) =>
+                      handleArmazemChange("tipo_fundo", e.target.value)
+                    }
+                  >
+                    <option value="0">Reto (Original)</option>
+                    <option value="1">Funil/V</option>
+                    <option value="2">Duplo V</option>
+                  </select>
+                </div>
+
+                {(configArmazem.tipo_fundo === 1 ||
+                  configArmazem.tipo_fundo === 2) && (
                   <div className="mb-3">
                     <label className="form-label">
-                      Posição Base (pb): {configArmazem.pb}px
+                      Intensidade do V/Funil:{" "}
+                      {configArmazem.intensidade_fundo}px
                     </label>
                     <input
                       type="range"
                       className="form-range"
-                      min="150"
-                      max="300"
-                      value={configArmazem.pb}
-                      onChange={(e) =>
-                        handleArmazemChange("pb", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Altura Base (hb): {configArmazem.hb}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="20"
-                      max="60"
-                      value={configArmazem.hb}
-                      onChange={(e) =>
-                        handleArmazemChange("hb", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Largura Frente (lf): {configArmazem.lf}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="100"
-                      max="400"
-                      value={configArmazem.lf}
-                      onChange={(e) =>
-                        handleArmazemChange("lf", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Altura Frente (hf): {configArmazem.hf}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="2"
-                      max="20"
-                      value={configArmazem.hf}
-                      onChange={(e) =>
-                        handleArmazemChange("hf", e.target.value)
-                      }
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Largura Entrada (le): {configArmazem.le}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="5"
+                      min="10"
                       max="50"
-                      value={configArmazem.le}
+                      value={configArmazem.intensidade_fundo}
                       onChange={(e) =>
-                        handleArmazemChange("le", e.target.value)
+                        handleArmazemChange(
+                          "intensidade_fundo",
+                          e.target.value,
+                        )
                       }
                     />
                   </div>
+                )}
+              </>
+            )}
 
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Altura Telhado (ht): {configArmazem.ht}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="20"
-                      max="100"
-                      value={configArmazem.ht}
-                      onChange={(e) =>
-                        handleArmazemChange("ht", e.target.value)
-                      }
-                    />
-                  </div>
+            {/* Gerenciamento de Configurações */}
+            <hr className="my-4" />
+            <h6 className="text-primary mb-3">
+              <i className="fas fa-cog me-2"></i>Gerenciar Layouts
+            </h6>
 
-                  <h6 className="mt-3">Formato do Topo</h6>
-                  <div className="mb-3">
-                    <label className="form-label">Tipo de Telhado:</label>
-                    <select
-                      className="form-select"
-                      value={configArmazem.tipo_telhado}
-                      onChange={(e) =>
-                        handleArmazemChange("tipo_telhado", e.target.value)
-                      }
-                    >
-                      <option value="1">Pontudo (Original)</option>
-                      <option value="2">Arredondado</option>
-                      <option value="3">Arco</option>
-                    </select>
-                  </div>
+            <div className="mb-3">
+              <label className="form-label fw-bold">Nome do Layout:</label>
+              <input
+                type="text"
+                className="form-control"
+                value={nomeConfiguracao}
+                onChange={(e) => setNomeConfiguracao(e.target.value)}
+                placeholder="Digite um nome para salvar/carregar"
+              />
+            </div>
 
-                  {(configArmazem.tipo_telhado === 2 ||
-                    configArmazem.tipo_telhado === 3) && (
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Curvatura do Topo: {configArmazem.curvatura_topo}px
-                      </label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="10"
-                        max="80"
-                        value={configArmazem.curvatura_topo}
-                        onChange={(e) =>
-                          handleArmazemChange("curvatura_topo", e.target.value)
-                        }
-                      />
-                    </div>
-                  )}
+            <div className="d-grid gap-2 mb-3">
+              <button
+                className="btn btn-success"
+                onClick={salvarConfiguracao}
+                disabled={!nomeConfiguracao}
+              >
+                💾 Salvar Layout
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={carregarConfiguracao}
+                disabled={!nomeConfiguracao}
+              >
+                📂 Carregar Layout
+              </button>
+              <button className="btn btn-warning" onClick={resetarPadrao}>
+                🔄 Resetar para Padrão
+              </button>
+            </div>
 
-                  <h6 className="mt-3">Formato do Fundo</h6>
-                  <div className="mb-3">
-                    <label className="form-label">Tipo de Fundo:</label>
-                    <select
-                      className="form-select"
-                      value={configArmazem.tipo_fundo}
-                      onChange={(e) =>
-                        handleArmazemChange("tipo_fundo", e.target.value)
-                      }
-                    >
-                      <option value="0">Reto (Original)</option>
-                      <option value="1">Funil/V</option>
-                      <option value="2">Duplo V</option>
-                    </select>
-                  </div>
-
-                  {(configArmazem.tipo_fundo === 1 ||
-                    configArmazem.tipo_fundo === 2) && (
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Intensidade do V/Funil:{" "}
-                        {configArmazem.intensidade_fundo}px
-                      </label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="10"
-                        max="50"
-                        value={configArmazem.intensidade_fundo}
-                        onChange={(e) =>
-                          handleArmazemChange(
-                            "intensidade_fundo",
-                            e.target.value,
-                          )
-                        }
-                      />
-                    </div>
-                  )}
-                </>
-              )}
-
-              {/* Gerenciamento de Configurações */}
-              <hr className="my-4" />
-              <h6 className="text-primary mb-3">
-                <i className="fas fa-cog me-2"></i>Gerenciar Layouts
-              </h6>
-              
-              <div className="mb-3">
-                <label className="form-label fw-bold">Nome do Layout:</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={nomeConfiguracao}
-                  onChange={(e) => setNomeConfiguracao(e.target.value)}
-                  placeholder="Digite um nome para salvar/carregar"
-                />
-              </div>
-
-              <div className="d-grid gap-2 mb-3">
-                <button
-                  className="btn btn-success"
-                  onClick={salvarConfiguracao}
-                  disabled={!nomeConfiguracao}
-                >
-                  💾 Salvar Layout
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={carregarConfiguracao}
-                  disabled={!nomeConfiguracao}
-                >
-                  📂 Carregar Layout
-                </button>
-                <button className="btn btn-warning" onClick={resetarPadrao}>
-                  🔄 Resetar para Padrão
-                </button>
-              </div>
-
-              {/* Lista de Layouts Salvos */}
-              <div className="mb-3">
-                <label className="form-label">Layouts Salvos:</label>
-                <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto'}}>
-                  {configsMemoized.length === 0 ? (
-                    <small className="text-muted">Nenhum layout salvo ainda</small>
-                  ) : (
-                    configsMemoized.map(nome => (
-                      <div key={nome} className="d-flex justify-content-between align-items-center mb-1">
-                        <small 
-                          className={`cursor-pointer ${nomeConfiguracao === nome ? 'fw-bold text-primary' : ''}`}
-                          style={{cursor: 'pointer'}}
+            {/* Lista de Layouts Salvos */}
+            <div className="mb-3">
+              <label className="form-label">Layouts Salvos:</label>
+              <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto'}}>
+                {configsMemoized.length === 0 ? (
+                  <small className="text-muted">Nenhum layout salvo ainda</small>
+                ) : (
+                  configsMemoized.map(nome => (
+                    <div key={nome} className="d-flex justify-content-between align-items-center mb-1">
+                      <small 
+                        className={`cursor-pointer ${nomeConfiguracao === nome ? 'fw-bold text-primary' : ''}`}
+                        style={{cursor: 'pointer'}}
+                        onClick={() => carregarConfiguracao(nome)}
+                      >
+                        {nome}
+                      </small>
+                      <div>
+                        <button 
+                          className="btn btn-sm btn-outline-primary me-1"
                           onClick={() => carregarConfiguracao(nome)}
                         >
-                          {nome}
-                        </small>
-                        <div>
-                          <button 
-                            className="btn btn-sm btn-outline-primary me-1"
-                            onClick={() => carregarConfiguracao(nome)}
-                          >
-                            Carregar
-                          </button>
-                          <button 
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => deletarConfiguracao(nome)}
-                          >
-                            Excluir
-                          </button>
-                        </div>
+                          Carregar
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => deletarConfiguracao(nome)}
+                        >
+                          Excluir
+                        </button>
                       </div>
-                    ))
-                  )}
-                </div>
+                    </div>
+                  ))
+                )}
               </div>
+            </div>
 
-              {/* Adaptar Layout aos Dados */}
-              <div className="mb-3">
-                <label className="form-label">Adaptar Layout aos Dados:</label>
-                <div className="input-group">
-                  <select 
-                    className="form-select"
-                    value={nomeConfiguracao}
-                    onChange={(e) => setNomeConfiguracao(e.target.value)}
-                  >
-                    <option value="">Selecione um layout</option>
-                    {configsMemoized.map(nome => (
-                      <option key={nome} value={nome}>{nome}</option>
-                    ))}
-                  </select>
-                  <button 
-                    className="btn btn-info"
-                    onClick={() => adaptarLayoutParaDados(nomeConfiguracao)}
-                    disabled={!nomeConfiguracao}
-                  >
-                    Adaptar
-                  </button>
-                </div>
-                <small className="form-text text-muted">
-                  Esta função adapta o layout salvo baseado em dados simulados do backend
-                </small>
+            {/* Adaptar Layout aos Dados */}
+            <div className="mb-3">
+              <label className="form-label">Adaptar Layout aos Dados:</label>
+              <div className="input-group">
+                <select 
+                  className="form-select"
+                  value={nomeConfiguracao}
+                  onChange={(e) => setNomeConfiguracao(e.target.value)}
+                >
+                  <option value="">Selecione um layout</option>
+                  {configsMemoized.map(nome => (
+                    <option key={nome} value={nome}>{nome}</option>
+                  ))}
+                </select>
+                <button 
+                  className="btn btn-info"
+                  onClick={() => adaptarLayoutParaDados(nomeConfiguracao)}
+                  disabled={!nomeConfiguracao}
+                >
+                  Adaptar
+                </button>
               </div>
+              <small className="form-text text-muted">
+                Esta função adapta o layout salvo baseado em dados simulados do backend
+              </small>
             </div>
           </div>
         </div>
 
-        {/* Preview do SVG */}
-        <div className="col-lg-8 col-md-7">
-          <div className="card h-100">
-            <div className="card-header bg-success text-white">
-              <h5 className="mb-0">Preview - {tipoAtivo === "silo" ? "Silo" : "Armazém"}</h5>
-            </div>
-            <div className="card-body text-center d-flex align-items-center justify-content-center" style={{minHeight: '500px'}}>
-              <svg
-                width="100%"
-                height="auto"
-                viewBox={`0 0 ${larguraSVG} ${alturaSVG}`}
-                style={{
-                  maxHeight: '600px',
-                  border: "2px solid #ddd",
-                  backgroundColor: "#f8f9fa",
-                  borderRadius: '8px',
-                  shapeRendering: "geometricPrecision",
-                  textRendering: "geometricPrecision",
-                  imageRendering: "optimizeQuality",
-                  fillRule: "evenodd",
-                  clipRule: "evenodd",
-                }}
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                {tipoAtivo === "silo" ? (
-                  <>
-                    <g transform={transformSilo}>{renderFundoSilo()}</g>
-                    {renderAeradoresSilo()}
-                  </>
-                ) : (
-                  renderFundoArmazem()
-                )}
-              </svg>
+        {/* Área de Visualização */}
+        <div className="col-lg-9 col-md-8" style={{ marginLeft: 'auto', paddingLeft: '25%' }}>
+          <div className="d-flex justify-content-center align-items-center p-4" style={{ minHeight: '100vh', width: '100%' }}>
+            <div className="card w-100">
+              <div className="card-header bg-success text-white">
+                <h5 className="mb-0">Preview - {tipoAtivo === "silo" ? "Silo" : "Armazém"}</h5>
+              </div>
+              <div className="card-body text-center d-flex align-items-center justify-content-center" style={{minHeight: '500px'}}>
+                <svg
+                  width="100%"
+                  height="auto"
+                  viewBox={`0 0 ${larguraSVG} ${alturaSVG}`}
+                  style={{
+                    maxHeight: '600px',
+                    border: "2px solid #ddd",
+                    backgroundColor: "#f8f9fa",
+                    borderRadius: '8px',
+                    shapeRendering: "geometricPrecision",
+                    textRendering: "geometricPrecision",
+                    imageRendering: "optimizeQuality",
+                    fillRule: "evenodd",
+                    clipRule: "evenodd",
+                  }}
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  {tipoAtivo === "silo" ? (
+                    <>
+                      <g transform={transformSilo}>{renderFundoSilo()}</g>
+                      {renderAeradoresSilo()}
+                    </>
+                  ) : (
+                    renderFundoArmazem()
+                  )}
+                </svg>
+              </div>
             </div>
           </div>
         </div>
