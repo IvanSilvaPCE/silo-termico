@@ -171,18 +171,20 @@ const ModeladorSVG = () => {
           points={pathBase}
         />
       );
-    } else if (tipo_fundo === 1) { // Funil/V
+    } else if (tipo_fundo === 1) { // Funil/V - baseado na área da frente (lf)
       const p1 = [lb, pb - hb],
           p2 = [lb - le, pb - hb],
           p3 = [lb - ((lb - lf) / 2), pb - hf],
+          // Aplicar o V na área da frente
+          p3v = [lb - ((lb - lf) / 2) + intensidade_fundo, pb - hf - intensidade_fundo],
+          p4v = [(lb - lf) / 2 + (lf / 2), pb - hf - intensidade_fundo * 1.5], // ponto central do V
+          p5v = [(lb - lf) / 2 - intensidade_fundo, pb - hf - intensidade_fundo],
           p4 = [(lb - lf) / 2, pb - hf],
           p5 = [le, pb - hb],
           p6 = [0, pb - hb],
-          p7 = [intensidade_fundo, pb],
-          p8 = [lb / 2, pb - intensidade_fundo],
-          p9 = [lb - intensidade_fundo, pb],
-          p10 = [lb, pb];
-      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")}`;
+          p7 = [0, pb],
+          p8 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p3v.join(",")} ${p4v.join(",")} ${p5v.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
       
       polBase = (
         <polygon
@@ -191,20 +193,24 @@ const ModeladorSVG = () => {
           points={pathBase}
         />
       );
-    } else if (tipo_fundo === 2) { // Duplo V
+    } else if (tipo_fundo === 2) { // Duplo V - baseado na área da frente (lf)
       const p1 = [lb, pb - hb],
           p2 = [lb - le, pb - hb],
           p3 = [lb - ((lb - lf) / 2), pb - hf],
+          // Primeiro V (lado direito da frente)
+          p3v1 = [lb - ((lb - lf) / 2) + intensidade_fundo / 2, pb - hf - intensidade_fundo],
+          p4v1 = [(lb - lf) / 2 + (lf * 3/4), pb - hf - intensidade_fundo * 1.2], // ponto do primeiro V
+          p5v1 = [(lb - lf) / 2 + (lf / 2) + intensidade_fundo / 2, pb - hf - intensidade_fundo],
+          // Segundo V (lado esquerdo da frente)  
+          p6v2 = [(lb - lf) / 2 + (lf / 2) - intensidade_fundo / 2, pb - hf - intensidade_fundo],
+          p7v2 = [(lb - lf) / 2 + (lf / 4), pb - hf - intensidade_fundo * 1.2], // ponto do segundo V
+          p8v2 = [(lb - lf) / 2 - intensidade_fundo / 2, pb - hf - intensidade_fundo],
           p4 = [(lb - lf) / 2, pb - hf],
           p5 = [le, pb - hb],
           p6 = [0, pb - hb],
-          p7 = [intensidade_fundo, pb],
-          p8 = [lb / 4, pb - intensidade_fundo],
-          p9 = [lb / 2, pb],
-          p10 = [lb * 3/4, pb - intensidade_fundo],
-          p11 = [lb - intensidade_fundo, pb],
-          p12 = [lb, pb];
-      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")}`;
+          p7 = [0, pb],
+          p8 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p3v1.join(",")} ${p4v1.join(",")} ${p5v1.join(",")} ${p6v2.join(",")} ${p7v2.join(",")} ${p8v2.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
       
       polBase = (
         <polygon
