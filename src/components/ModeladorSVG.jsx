@@ -174,7 +174,7 @@ const ModeladorSVG = () => {
       const numeroPendulo = p + 1;
       const pendId = numeroPendulo.toString();
       const xCabo = posicoes[p];
-      const yCabo = configArmazem.pos_y_cabo[0] || 181;
+      const yCabo = (configArmazem.pos_y_cabo[0] || 181) + 20; // Desceu 20px
       
       // Dados do pêndulo atual (cíclico caso não tenha dados suficientes)
       const dadosPendulo = dadosExemplo[pendId] || dadosExemplo["1"];
@@ -1111,38 +1111,7 @@ const ModeladorSVG = () => {
               </>
             )}
 
-            {/* Navegação entre Células */}
-            {tipoAtivo === "armazem" && (
-              <>
-                <hr className="my-3" />
-                <h6 className="text-info mb-3">Navegação de Células</h6>
-                <div className="mb-3">
-                  <label className="form-label">Célula Atual: {celulaAtual}</label>
-                  <div className="d-flex gap-2 mb-2">
-                    <button 
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => setCelulaAtual(Math.max(1, celulaAtual - 1))}
-                      disabled={celulaAtual <= 1}
-                    >
-                      ← Anterior
-                    </button>
-                    <button 
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => setCelulaAtual(Math.min(configArmazem.total_celulas, celulaAtual + 1))}
-                      disabled={celulaAtual >= configArmazem.total_celulas}
-                    >
-                      Próxima →
-                    </button>
-                  </div>
-                  <div className="text-center">
-                    <small className="text-muted">
-                      {obterConfiguracaoCelula(celulaAtual).qtdPendulos} pêndulos 
-                      ({obterConfiguracaoCelula(celulaAtual).tipo})
-                    </small>
-                  </div>
-                </div>
-              </>
-            )}
+            
 
             {/* Gerenciamento de Configurações */}
             <hr className="my-3" />
@@ -1251,6 +1220,41 @@ const ModeladorSVG = () => {
                   )}
                 </svg>
               </div>
+              
+              {/* Navegação de Células - Abaixo do SVG */}
+              {tipoAtivo === "armazem" && (
+                <div className="card-footer bg-light">
+                  <div className="row align-items-center">
+                    <div className="col-md-4">
+                      <div className="d-flex gap-2">
+                        <button 
+                          className="btn btn-outline-primary"
+                          onClick={() => setCelulaAtual(Math.max(1, celulaAtual - 1))}
+                          disabled={celulaAtual <= 1}
+                        >
+                          ← Anterior
+                        </button>
+                        <button 
+                          className="btn btn-outline-primary"
+                          onClick={() => setCelulaAtual(Math.min(configArmazem.total_celulas, celulaAtual + 1))}
+                          disabled={celulaAtual >= configArmazem.total_celulas}
+                        >
+                          Próxima →
+                        </button>
+                      </div>
+                    </div>
+                    <div className="col-md-4 text-center">
+                      <strong>Célula {celulaAtual} de {configArmazem.total_celulas}</strong>
+                    </div>
+                    <div className="col-md-4 text-end">
+                      <span className="badge bg-info">
+                        {obterConfiguracaoCelula(celulaAtual).qtdPendulos} pêndulos 
+                        ({obterConfiguracaoCelula(celulaAtual).tipo})
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
