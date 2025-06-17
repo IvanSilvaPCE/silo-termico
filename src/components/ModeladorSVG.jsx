@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const ModeladorSVG = () => {
@@ -49,6 +49,7 @@ const ModeladorSVG = () => {
 
   const [tipoAtivo, setTipoAtivo] = useState("silo");
   const [nomeConfiguracao, setNomeConfiguracao] = useState("");
+  const [forceUpdateLista, setForceUpdateLista] = useState(0);
 
   // Carregar configurações salvas
   useEffect(() => {
@@ -337,13 +338,14 @@ const ModeladorSVG = () => {
       }
     }
     alert(`Configuração ${tipoAtivo} salva com sucesso!`);
+    setForceUpdateLista(prev => prev + 1); // Força atualização da lista
   };
 
   // Carregar configuração nomeada
-  const carregarConfiguracao = () => {
-    if (!nomeConfiguracao) return;
+  const carregarConfiguracao = (nome = nomeConfiguracao) => {
+    if (!nome) return;
 
-    const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nomeConfiguracao}`;
+    const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nome}`;
     const configSalva = localStorage.getItem(chave);
 
     if (configSalva) {
@@ -352,6 +354,7 @@ const ModeladorSVG = () => {
       } else {
         setConfigArmazem(JSON.parse(configSalva));
       }
+      setNomeConfiguracao(nome);
       alert("Configuração carregada com sucesso!");
     } else {
       alert("Configuração não encontrada!");
@@ -374,11 +377,20 @@ const ModeladorSVG = () => {
     return configs;
   };
 
+  // Usar o forceUpdate para re-render quando necessário
+  const configsDisponiveis = listarConfiguracoesSalvas();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const configsMemoized = useMemo(() => configsDisponiveis, [forceUpdateLista, tipoAtivo]);
+
   // Deletar configuração
   const deletarConfiguracao = (nome) => {
     const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nome}`;
     localStorage.removeItem(chave);
     alert(`Configuração "${nome}" removida com sucesso!`);
+    setForceUpdateLista(prev => prev + 1); // Força atualização da lista
+    if (nomeConfiguracao === nome) {
+      setNomeConfiguracao(""); // Limpa o nome se estava selecionado
+    }
   };
 
   // Adaptar layout baseado nos dados do backend
@@ -492,7 +504,7 @@ const ModeladorSVG = () => {
       <div className="row">
         {/* Painel de Controles */}
         <div className="col-md-4">
-          <div className="card">
+          <div className="card position-sticky" style={{top: '20px', maxHeight: '90vh', overflowY: 'auto'}}>
             <div className="card-header">
               <h5>Controles de Modelagem</h5>
             </div>
@@ -874,19 +886,22 @@ const ModeladorSVG = () => {
               <div className="mb-3">
                 <label className="form-label">Layouts Salvos:</label>
                 <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto'}}>
-                  {listarConfiguracoesSalvas().length === 0 ? (
+                  {configsMemoized.length === 0 ? (
                     <small className="text-muted">Nenhum layout salvo ainda</small>
                   ) : (
-                    listarConfiguracoesSalvas().map(nome => (
+                    configsMemoized.map(nome => (
                       <div key={nome} className="d-flex justify-content-between align-items-center mb-1">
-                        <small>{nome}</small>
+                        <small 
+                          className={`cursor-pointer ${nomeConfiguracao === nome ? 'fw-bold text-primary' : ''}`}
+                          style={{cursor: 'pointer'}}
+                          onClick={() => carregarConfiguracao(nome)}
+                        >
+                          {nome}
+                        </small>
                         <div>
                           <button 
                             className="btn btn-sm btn-outline-primary me-1"
-                            onClick={() => {
-                              setNomeConfiguracao(nome);
-                              carregarConfiguracao();
-                            }}
+                            onClick={() => carregarConfiguracao(nome)}
                           >
                             Carregar
                           </button>
@@ -913,7 +928,7 @@ const ModeladorSVG = () => {
                     onChange={(e) => setNomeConfiguracao(e.target.value)}
                   >
                     <option value="">Selecione um layout</option>
-                    {listarConfiguracoesSalvas().map(nome => (
+                    {configsMemoized.map(nome => (
                       <option key={nome} value={nome}>{nome}</option>
                     ))}
                   </select>
