@@ -358,6 +358,68 @@ const ModeladorSVG = () => {
     }
   };
 
+  // Listar todas as configurações salvas
+  const listarConfiguracoesSalvas = () => {
+    const prefixo = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_`;
+    const configs = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const chave = localStorage.key(i);
+      if (chave && chave.startsWith(prefixo)) {
+        const nome = chave.replace(prefixo, '');
+        configs.push(nome);
+      }
+    }
+    
+    return configs;
+  };
+
+  // Deletar configuração
+  const deletarConfiguracao = (nome) => {
+    const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nome}`;
+    localStorage.removeItem(chave);
+    alert(`Configuração "${nome}" removida com sucesso!`);
+  };
+
+  // Adaptar layout baseado nos dados do backend
+  const adaptarLayoutParaDados = (dados, nomeLayout) => {
+    if (!dados || !nomeLayout) return;
+
+    const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nomeLayout}`;
+    const layoutSalvo = localStorage.getItem(chave);
+    
+    if (!layoutSalvo) {
+      console.warn(`Layout "${nomeLayout}" não encontrado`);
+      return;
+    }
+
+    const config = JSON.parse(layoutSalvo);
+    
+    if (tipoAtivo === "armazem" && dados.leitura) {
+      // Adaptar armazém baseado nos cabos/pêndulos dos dados
+      const cabos = Object.keys(dados.leitura);
+      const novaConfigArmazem = { ...config };
+      
+      // Ajustar posições dos cabos baseado na quantidade
+      const numCabos = cabos.length;
+      const larguraBase = novaConfigArmazem.lb;
+      const espacamento = larguraBase / (numCabos + 1);
+      
+      novaConfigArmazem.pos_x_cabo = cabos.map((_, i) => espacamento * (i + 1));
+      novaConfigArmazem.pos_y_cabo = new Array(numCabos).fill(novaConfigArmazem.pos_y_cabo[0] || 181);
+      
+      setConfigArmazem(novaConfigArmazem);
+      
+    } else if (tipoAtivo === "silo" && dados.leitura) {
+      // Adaptar silo baseado nos dados
+      const novaConfigSilo = { ...config };
+      // Aqui você pode adicionar lógica específica para adaptar o silo
+      setConfigSilo(novaConfigSilo);
+    }
+    
+    alert(`Layout "${nomeLayout}" adaptado aos dados do backend!`);
+  };
+
   // Reset para padrão
   const resetarPadrao = () => {
     if (tipoAtivo === "silo") {
@@ -776,8 +838,10 @@ const ModeladorSVG = () => {
 
               {/* Gerenciamento de Configurações */}
               <hr />
+              <h6>Gerenciar Layouts</h6>
+              
               <div className="mb-3">
-                <label className="form-label">Nome da Configuração:</label>
+                <label className="form-label">Nome do Layout:</label>
                 <input
                   type="text"
                   className="form-control"
@@ -787,23 +851,87 @@ const ModeladorSVG = () => {
                 />
               </div>
 
-              <div className="d-grid gap-2">
+              <div className="d-grid gap-2 mb-3">
                 <button
                   className="btn btn-success"
                   onClick={salvarConfiguracao}
                 >
-                  Salvar Configuração
+                  Salvar Layout
                 </button>
                 <button
                   className="btn btn-primary"
                   onClick={carregarConfiguracao}
                   disabled={!nomeConfiguracao}
                 >
-                  Carregar Configuração
+                  Carregar Layout
                 </button>
                 <button className="btn btn-warning" onClick={resetarPadrao}>
                   Resetar para Padrão
                 </button>
+              </div>
+
+              {/* Lista de Layouts Salvos */}
+              <div className="mb-3">
+                <label className="form-label">Layouts Salvos:</label>
+                <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto'}}>
+                  {listarConfiguracoesSalvas().length === 0 ? (
+                    <small className="text-muted">Nenhum layout salvo ainda</small>
+                  ) : (
+                    listarConfiguracoesSalvas().map(nome => (
+                      <div key={nome} className="d-flex justify-content-between align-items-center mb-1">
+                        <small>{nome}</small>
+                        <div>
+                          <button 
+                            className="btn btn-sm btn-outline-primary me-1"
+                            onClick={() => {
+                              setNomeConfiguracao(nome);
+                              carregarConfiguracao();
+                            }}
+                          >
+                            Carregar
+                          </button>
+                          <button 
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => deletarConfiguracao(nome)}
+                          >
+                            Excluir
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Adaptar Layout aos Dados */}
+              <div className="mb-3">
+                <label className="form-label">Adaptar Layout aos Dados:</label>
+                <div className="input-group">
+                  <select 
+                    className="form-select"
+                    value={nomeConfiguracao}
+                    onChange={(e) => setNomeConfiguracao(e.target.value)}
+                  >
+                    <option value="">Selecione um layout</option>
+                    {listarConfiguracoesSalvas().map(nome => (
+                      <option key={nome} value={nome}>{nome}</option>
+                    ))}
+                  </select>
+                  <button 
+                    className="btn btn-info"
+                    onClick={() => {
+                      // Aqui você precisa passar os dados do backend
+                      // Por exemplo: adaptarLayoutParaDados(dadosDoBackend, nomeConfiguracao);
+                      alert('Para usar esta função, passe os dados do backend para o componente');
+                    }}
+                    disabled={!nomeConfiguracao}
+                  >
+                    Adaptar
+                  </button>
+                </div>
+                <small className="form-text text-muted">
+                  Esta função adapta o layout salvo baseado nos dados recebidos do backend
+                </small>
               </div>
             </div>
           </div>

@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import LayoutManager from "../utils/layoutManager";
 
 const ArmazemSVG = ({ dados }) => {
     const containerRef = useRef(null);
     const [modo, setModo] = useState("temperatura");
     const [carregandoModo, setCarregandoModo] = useState(false);
+    const [layoutAtual, setLayoutAtual] = useState("default");
+    const [layoutConfig, setLayoutConfig] = useState(null);
 
     const layoutArco = {
         tamanho_svg: [350, 200],
@@ -34,6 +37,16 @@ const ArmazemSVG = ({ dados }) => {
         cabos: { "1": 5, "2": 7, "3": 9, "4": 7, "5": 5 },
     };
 
+    // Carregar layout baseado nos dados
+    useEffect(() => {
+        if (dados && layoutAtual !== "default") {
+            const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
+            if (layoutAdaptado) {
+                setLayoutConfig(layoutAdaptado);
+            }
+        }
+    }, [dados, layoutAtual]);
+
     useEffect(() => {
         const container = containerRef.current;
         const svgExistente = container.querySelector("#des_arco_armazem");
@@ -48,15 +61,19 @@ const ArmazemSVG = ({ dados }) => {
             "shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
         );
         svgEl.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
-        svgEl.setAttribute("width", layoutArco.tamanho_svg[0] + "mm");
-        svgEl.setAttribute("height", layoutArco.tamanho_svg[1] + "mm");
+        
+        // Usar layout adaptado se disponível
+        const layoutFinal = layoutConfig || layoutArco;
+        
+        svgEl.setAttribute("width", layoutFinal.tamanho_svg?.[0] || layoutArco.tamanho_svg[0] + "mm");
+        svgEl.setAttribute("height", layoutFinal.tamanho_svg?.[1] || layoutArco.tamanho_svg[1] + "mm");
         svgEl.setAttribute(
             "viewBox",
-            `0 0 ${layoutArco.tamanho_svg[0]} ${layoutArco.tamanho_svg[1]}`
+            `0 0 ${layoutFinal.tamanho_svg?.[0] || layoutArco.tamanho_svg[0]} ${layoutFinal.tamanho_svg?.[1] || layoutArco.tamanho_svg[1]}`
         );
         container.appendChild(svgEl);
 
-        desenhaFundo(layoutArco);
+        desenhaFundo(layoutFinal);
         if (modo === "temperatura") {
             desenhaSensores(layoutArco);
             if (dados) atualizarSensores(dados);
@@ -367,9 +384,57 @@ const ArmazemSVG = ({ dados }) => {
         </button>
     );
 
+    const SeletorLayout = () => {
+        const layoutsDisponiveis = LayoutManager.listarLayouts("armazem");
+        
+        return (
+            <div className="mb-3">
+                <div className="row align-items-center">
+                    <div className="col-md-6">
+                        <label className="form-label">Layout:</label>
+                        <select 
+                            className="form-select"
+                            value={layoutAtual}
+                            onChange={(e) => setLayoutAtual(e.target.value)}
+                        >
+                            <option value="default">Layout Padrão</option>
+                            {layoutsDisponiveis.map(nome => (
+                                <option key={nome} value={nome}>{nome}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="col-md-6">
+                        {layoutAtual !== "default" && dados && (
+                            <button 
+                                className="btn btn-info btn-sm"
+                                onClick={() => {
+                                    const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
+                                    if (layoutAdaptado) {
+                                        setLayoutConfig(layoutAdaptado);
+                                        alert(`Layout "${layoutAtual}" adaptado aos dados!`);
+                                    }
+                                }}
+                            >
+                                Adaptar aos Dados
+                            </button>
+                        )}
+                    </div>
+                </div>
+                {layoutConfig && (
+                    <small className="text-success">
+                        Layout "{layoutAtual}" aplicado com {Object.keys(dados?.leitura || {}).length} cabos
+                    </small>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div>
             <h1>Armazém - Monitoramento de Temperatura</h1>
+            
+            <SeletorLayout />
+            
             {carregandoModo ? (
                 <div className="d-flex justify-content-center m-3">
                     <div className="spinner-border" role="status">
