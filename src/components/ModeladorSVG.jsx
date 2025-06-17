@@ -38,11 +38,11 @@ const ModeladorSVG = () => {
     dist_y_sensores: 12,
     pos_x_cabo: [62, 52, 158, 208, 258],
     pos_y_cabo: [181, 181, 181, 181, 181],
-    // Configurações de distribuição por células
-    total_cabos: 18,
-    sensores_celula_impar: 3,
-    sensores_celula_par: 4,
-    distribuicao_automatica: true,
+    // Configurações de células/slides
+    pendulos_celula_impar: 3, // quantos pêndulos mostrar nas células ímpares
+    pendulos_celula_par: 4, // quantos pêndulos mostrar nas células pares
+    total_celulas: 6, // quantas células/slides teremos
+    posicionamento_automatico: true,
   });
 
   const [tipoAtivo, setTipoAtivo] = useState("silo");
@@ -151,19 +151,27 @@ const ModeladorSVG = () => {
   };
 
   // Funções de renderização do Armazém
+  // Estado para controlar qual célula está sendo visualizada
+  const [celulaAtual, setCelulaAtual] = useState(1);
+
   const renderSensoresArmazem = () => {
-    const distribuicao = calcularDistribuicaoCelulas();
-    const posicoes = configArmazem.distribuicao_automatica ? gerarPosicoesAutomaticas() : configArmazem.pos_x_cabo;
+    const configCelula = obterConfiguracaoCelula(celulaAtual);
+    const posicoes = configArmazem.posicionamento_automatico ? 
+      gerarPosicoesCelula(configCelula.qtdPendulos) : 
+      configArmazem.pos_x_cabo.slice(0, configCelula.qtdPendulos);
+    
     const elementos = [];
 
-    Object.entries(distribuicao).forEach(([cabo, qtdSensores], index) => {
-      const xCabo = posicoes[index] || (50 + index * 60);
+    // Renderizar pêndulos da célula atual
+    for (let p = 0; p < configCelula.qtdPendulos; p++) {
+      const numeroPendulo = p + 1;
+      const xCabo = posicoes[p] || (50 + p * 60);
       const yCabo = configArmazem.pos_y_cabo[0] || 181;
 
-      // Retângulo do cabo
+      // Retângulo do pêndulo
       elementos.push(
         <rect
-          key={`cabo-${cabo}`}
+          key={`pendulo-${numeroPendulo}`}
           x={xCabo - 8}
           y={yCabo}
           width={16}
@@ -174,10 +182,10 @@ const ModeladorSVG = () => {
         />
       );
 
-      // Nome do cabo
+      // Nome do pêndulo
       elementos.push(
         <text
-          key={`texto-cabo-${cabo}`}
+          key={`texto-pendulo-${numeroPendulo}`}
           x={xCabo}
           y={yCabo + 6}
           textAnchor="middle"
@@ -187,14 +195,14 @@ const ModeladorSVG = () => {
           fontFamily="Arial"
           fill="white"
         >
-          P{cabo}
+          P{numeroPendulo}
         </text>
       );
 
-      // Indicador de quantidade de sensores
+      // Indicador da célula
       elementos.push(
         <text
-          key={`qtd-${cabo}`}
+          key={`celula-${numeroPendulo}`}
           x={xCabo}
           y={yCabo + 20}
           textAnchor="middle"
@@ -202,19 +210,20 @@ const ModeladorSVG = () => {
           fontWeight="bold"
           fontSize="4"
           fontFamily="Arial"
-          fill={cabo % 2 === 1 ? "#0066cc" : "#009900"}
+          fill={configCelula.tipo === 'ímpar' ? "#0066cc" : "#009900"}
         >
-          {qtdSensores}S
+          Célula {celulaAtual}
         </text>
       );
 
-      // Sensores simulados
-      for (let s = 1; s <= qtdSensores; s++) {
+      // Sensores simulados (representando que terão sensores dos dados)
+      const maxSensores = 8; // máximo de sensores para visualização
+      for (let s = 1; s <= maxSensores; s++) {
         const ySensor = yCabo - (s * configArmazem.dist_y_sensores);
-        if (ySensor > 20) { // Só desenha se estiver dentro da área visível
+        if (ySensor > 20) {
           elementos.push(
             <rect
-              key={`sensor-${cabo}-${s}`}
+              key={`sensor-${numeroPendulo}-${s}`}
               x={xCabo - 6}
               y={ySensor}
               width={12}
@@ -228,7 +237,7 @@ const ModeladorSVG = () => {
           );
         }
       }
-    });
+    }
 
     return elementos;
   };
@@ -398,30 +407,40 @@ const ModeladorSVG = () => {
     }));
   };
 
-  // Função para calcular distribuição de sensores por células
-  const calcularDistribuicaoCelulas = () => {
-    const { total_cabos, sensores_celula_impar, sensores_celula_par } = configArmazem;
-    const distribuicao = {};
+  // Função para calcular total de pêndulos baseado nas células
+  const calcularTotalPendulos = () => {
+    const { total_celulas, pendulos_celula_impar, pendulos_celula_par } = configArmazem;
+    let total = 0;
     
-    for (let i = 1; i <= total_cabos; i++) {
-      // Célula ímpar (1, 3, 5, 7...) usa sensores_celula_impar
-      // Célula par (2, 4, 6, 8...) usa sensores_celula_par
-      distribuicao[i] = i % 2 === 1 ? sensores_celula_impar : sensores_celula_par;
+    for (let i = 1; i <= total_celulas; i++) {
+      total += i % 2 === 1 ? pendulos_celula_impar : pendulos_celula_par;
     }
     
-    return distribuicao;
+    return total;
   };
 
-  // Função para gerar posições dos cabos baseado na quantidade total
-  const gerarPosicoesAutomaticas = () => {
-    const { total_cabos, lb } = configArmazem;
+  // Função para obter configuração de uma célula específica
+  const obterConfiguracaoCelula = (numeroCelula) => {
+    const { pendulos_celula_impar, pendulos_celula_par } = configArmazem;
+    const qtdPendulos = numeroCelula % 2 === 1 ? pendulos_celula_impar : pendulos_celula_par;
+    
+    return {
+      numeroCelula,
+      qtdPendulos,
+      tipo: numeroCelula % 2 === 1 ? 'ímpar' : 'par'
+    };
+  };
+
+  // Função para gerar posições dos pêndulos em uma célula
+  const gerarPosicoesCelula = (qtdPendulos) => {
+    const { lb } = configArmazem;
     const margemLateral = 50;
     const larguraUtil = lb - (margemLateral * 2);
-    const espacamento = total_cabos > 1 ? larguraUtil / (total_cabos - 1) : 0;
+    const espacamento = qtdPendulos > 1 ? larguraUtil / (qtdPendulos - 1) : 0;
     
     const posicoes = [];
-    for (let i = 0; i < total_cabos; i++) {
-      if (total_cabos === 1) {
+    for (let i = 0; i < qtdPendulos; i++) {
+      if (qtdPendulos === 1) {
         posicoes.push(lb / 2);
       } else {
         posicoes.push(margemLateral + (espacamento * i));
@@ -541,7 +560,12 @@ const ModeladorSVG = () => {
         dist_y_sensores: 12,
         pos_x_cabo: [62, 52, 158, 208, 258],
         pos_y_cabo: [181, 181, 181, 181, 181],
+        pendulos_celula_impar: 3,
+        pendulos_celula_par: 4,
+        total_celulas: 6,
+        posicionamento_automatico: true,
       });
+      setCelulaAtual(1);
     }
   };
 
@@ -931,46 +955,46 @@ const ModeladorSVG = () => {
                   />
                 </div>
 
-                <h6 className="mt-3 text-primary">Distribuição por Células</h6>
+                <h6 className="mt-3 text-primary">Configuração de Células/Slides</h6>
                 <div className="mb-3">
                   <label className="form-label">
-                    Total de Cabos/Pêndulos: {configArmazem.total_cabos}
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="5"
-                    max="25"
-                    value={configArmazem.total_cabos}
-                    onChange={(e) => handleArmazemChange("total_cabos", e.target.value)}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Sensores Célula Ímpar (1,3,5...): {configArmazem.sensores_celula_impar}
+                    Pêndulos na Célula Ímpar (1ª, 3ª, 5ª...): {configArmazem.pendulos_celula_impar}
                   </label>
                   <input
                     type="range"
                     className="form-range"
                     min="1"
-                    max="10"
-                    value={configArmazem.sensores_celula_impar}
-                    onChange={(e) => handleArmazemChange("sensores_celula_impar", e.target.value)}
+                    max="8"
+                    value={configArmazem.pendulos_celula_impar}
+                    onChange={(e) => handleArmazemChange("pendulos_celula_impar", e.target.value)}
                   />
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Sensores Célula Par (2,4,6...): {configArmazem.sensores_celula_par}
+                    Pêndulos na Célula Par (2ª, 4ª, 6ª...): {configArmazem.pendulos_celula_par}
                   </label>
                   <input
                     type="range"
                     className="form-range"
                     min="1"
+                    max="8"
+                    value={configArmazem.pendulos_celula_par}
+                    onChange={(e) => handleArmazemChange("pendulos_celula_par", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Total de Células: {configArmazem.total_celulas}
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="2"
                     max="10"
-                    value={configArmazem.sensores_celula_par}
-                    onChange={(e) => handleArmazemChange("sensores_celula_par", e.target.value)}
+                    value={configArmazem.total_celulas}
+                    onChange={(e) => handleArmazemChange("total_celulas", e.target.value)}
                   />
                 </div>
 
@@ -979,37 +1003,74 @@ const ModeladorSVG = () => {
                     <input
                       className="form-check-input"
                       type="checkbox"
-                      checked={configArmazem.distribuicao_automatica}
+                      checked={configArmazem.posicionamento_automatico}
                       onChange={(e) =>
                         handleArmazemChange(
-                          "distribuicao_automatica",
+                          "posicionamento_automatico",
                           e.target.checked ? 1 : 0,
                         )
                       }
                     />
                     <label className="form-check-label">
-                      Posicionamento Automático dos Cabos
+                      Posicionamento Automático dos Pêndulos
                     </label>
                   </div>
                 </div>
 
-                {/* Visualização da distribuição */}
+                {/* Visualização da distribuição por células */}
                 <div className="mb-3">
-                  <label className="form-label">Distribuição Atual:</label>
+                  <label className="form-label">Distribuição por Células:</label>
                   <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem'}}>
-                    {Object.entries(calcularDistribuicaoCelulas()).map(([cabo, sensores]) => (
-                      <div key={cabo} className="d-flex justify-content-between">
-                        <span>Cabo {cabo}:</span>
-                        <span className={cabo % 2 === 1 ? 'text-primary' : 'text-success'}>
-                          {sensores} sensores {cabo % 2 === 1 ? '(ímpar)' : '(par)'}
-                        </span>
-                      </div>
-                    ))}
+                    {Array.from({length: configArmazem.total_celulas}, (_, i) => {
+                      const numeroCelula = i + 1;
+                      const pendulos = numeroCelula % 2 === 1 ? configArmazem.pendulos_celula_impar : configArmazem.pendulos_celula_par;
+                      return (
+                        <div key={numeroCelula} className="d-flex justify-content-between">
+                          <span>Célula {numeroCelula}:</span>
+                          <span className={numeroCelula % 2 === 1 ? 'text-primary' : 'text-success'}>
+                            {pendulos} pêndulos {numeroCelula % 2 === 1 ? '(ímpar)' : '(par)'}
+                          </span>
+                        </div>
+                      );
+                    })}
                     <hr className="my-2" />
                     <div className="d-flex justify-content-between fw-bold">
-                      <span>Total:</span>
-                      <span>{Object.values(calcularDistribuicaoCelulas()).reduce((a, b) => a + b, 0)} sensores</span>
+                      <span>Total de Pêndulos:</span>
+                      <span>{calcularTotalPendulos()} pêndulos</span>
                     </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Navegação entre Células */}
+            {tipoAtivo === "armazem" && (
+              <>
+                <hr className="my-3" />
+                <h6 className="text-info mb-3">Navegação de Células</h6>
+                <div className="mb-3">
+                  <label className="form-label">Célula Atual: {celulaAtual}</label>
+                  <div className="d-flex gap-2 mb-2">
+                    <button 
+                      className="btn btn-sm btn-outline-primary"
+                      onClick={() => setCelulaAtual(Math.max(1, celulaAtual - 1))}
+                      disabled={celulaAtual <= 1}
+                    >
+                      ← Anterior
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-outline-primary"
+                      onClick={() => setCelulaAtual(Math.min(configArmazem.total_celulas, celulaAtual + 1))}
+                      disabled={celulaAtual >= configArmazem.total_celulas}
+                    >
+                      Próxima →
+                    </button>
+                  </div>
+                  <div className="text-center">
+                    <small className="text-muted">
+                      {obterConfiguracaoCelula(celulaAtual).qtdPendulos} pêndulos 
+                      ({obterConfiguracaoCelula(celulaAtual).tipo})
+                    </small>
                   </div>
                 </div>
               </>

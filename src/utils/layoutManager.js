@@ -48,42 +48,47 @@ class LayoutManager {
     const layoutAdaptado = { ...layoutBase };
     const cabos = Object.keys(dados.leitura);
     
-    // Criar estrutura de cabos baseada nos dados
-    const novosCabos = {};
-    cabos.forEach((cabo, index) => {
+    // Criar estrutura de cabos baseada nos dados (pêndulos com seus sensores)
+    const pendulos = {};
+    cabos.forEach((cabo) => {
       const sensores = dados.leitura[cabo];
-      novosCabos[cabo] = Object.keys(sensores).length;
+      pendulos[cabo] = Object.keys(sensores).length;
     });
 
-    // Adaptar posições dos cabos
-    const numCabos = cabos.length;
-    if (numCabos > 0) {
+    // Configuração de células
+    const configCelulas = {
+      pendulos_celula_impar: layoutAdaptado.pendulos_celula_impar || 3,
+      pendulos_celula_par: layoutAdaptado.pendulos_celula_par || 4,
+      total_celulas: layoutAdaptado.total_celulas || 6,
+      posicionamento_automatico: layoutAdaptado.posicionamento_automatico !== false
+    };
+
+    // Função para gerar posições baseadas na célula
+    const gerarPosicoesPorCelula = (numeroCelula) => {
+      const qtdPendulos = numeroCelula % 2 === 1 ? 
+        configCelulas.pendulos_celula_impar : 
+        configCelulas.pendulos_celula_par;
+      
+      if (!configCelulas.posicionamento_automatico) {
+        return layoutAdaptado.pos_x_cabo?.slice(0, qtdPendulos) || [];
+      }
+
       const larguraBase = layoutAdaptado.lb || 350;
       const margemLateral = 50;
       const larguraUtil = larguraBase - (margemLateral * 2);
-      const espacamento = numCabos > 1 ? larguraUtil / (numCabos - 1) : 0;
-
-      layoutAdaptado.pos_x_cabo = cabos.map((_, i) => {
-        if (numCabos === 1) {
-          return larguraBase / 2;
+      const espacamento = qtdPendulos > 1 ? larguraUtil / (qtdPendulos - 1) : 0;
+      
+      const posicoes = [];
+      for (let i = 0; i < qtdPendulos; i++) {
+        if (qtdPendulos === 1) {
+          posicoes.push(larguraBase / 2);
+        } else {
+          posicoes.push(margemLateral + (espacamento * i));
         }
-        return margemLateral + (espacamento * i);
-      });
-
-      layoutAdaptado.pos_y_cabo = new Array(numCabos).fill(
-        layoutAdaptado.pos_y_cabo?.[0] || 181
-      );
-    }
-
-    // Adicionar informações de distribuição por células se disponível
-    if (layoutAdaptado.total_cabos && layoutAdaptado.sensores_celula_impar && layoutAdaptado.sensores_celula_par) {
-      layoutAdaptado.distribuicao_celulas = {};
-      for (let i = 1; i <= layoutAdaptado.total_cabos; i++) {
-        layoutAdaptado.distribuicao_celulas[i] = i % 2 === 1 ? 
-          layoutAdaptado.sensores_celula_impar : 
-          layoutAdaptado.sensores_celula_par;
       }
-    }
+      
+      return posicoes;
+    };
 
     // Estrutura final para o componente Armazem
     return {
@@ -94,13 +99,16 @@ class LayoutManager {
         nome_cabo_acima: 0,
         escala_sensores: layoutAdaptado.escala_sensores || 16,
         dist_y_sensores: layoutAdaptado.dist_y_sensores || 12,
-        dist_y_nome_cabo: new Array(numCabos).fill(8),
+        dist_y_nome_cabo: [8, 8, 8, 8, 8, 8, 8, 8],
         pos_x_cabos_uniforme: 1,
-        pos_x_cabo: layoutAdaptado.pos_x_cabo,
-        pos_y_cabo: layoutAdaptado.pos_y_cabo,
+        pos_x_cabo: layoutAdaptado.pos_x_cabo || [62, 52, 158, 208, 258],
+        pos_y_cabo: new Array(8).fill(layoutAdaptado.pos_y_cabo?.[0] || 181),
       },
       desenho_arco: {
         tipo_telhado: layoutAdaptado.tipo_telhado || 1,
+        tipo_fundo: layoutAdaptado.tipo_fundo || 0,
+        intensidade_fundo: layoutAdaptado.intensidade_fundo || 20,
+        curvatura_topo: layoutAdaptado.curvatura_topo || 30,
         pb: layoutAdaptado.pb || 185,
         lb: layoutAdaptado.lb || 350,
         hb: layoutAdaptado.hb || 30,
@@ -111,7 +119,13 @@ class LayoutManager {
         ctrl_p1: [60, 30],
         ctrl_p2: [97, 10],
       },
-      cabos: novosCabos,
+      // Dados dos pêndulos (vindos do JSON/API)
+      pendulos: pendulos,
+      // Configuração de células para navegação
+      configuracao_celulas: {
+        ...configCelulas,
+        gerarPosicoesPorCelula
+      }
     };
   }
 
