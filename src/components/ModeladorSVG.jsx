@@ -36,7 +36,10 @@ const ModeladorSVG = () => {
     lf: 250, // largura frente
     le: 15,  // largura entrada
     ht: 50,  // altura telhado
-    tipo_telhado: 1, // 1 = arco
+    tipo_telhado: 1, // 1 = arco pontudo, 2 = arredondado, 3 = arco
+    tipo_fundo: 0,   // 0 = reto, 1 = funil/V, 2 = duplo V
+    intensidade_fundo: 20, // intensidade do V/funil
+    curvatura_topo: 30, // curvatura quando arredondado
 
     // Desenho dos sensores
     escala_sensores: 16,
@@ -144,30 +147,78 @@ const ModeladorSVG = () => {
 
   // Funções de renderização do Armazém (baseadas no componente original)
   const renderFundoArmazem = () => {
-    const { tipo_telhado, pb, lb, hb, hf, lf, le, ht } = configArmazem;
+    const { tipo_telhado, tipo_fundo, intensidade_fundo, curvatura_topo, pb, lb, hb, hf, lf, le, ht } = configArmazem;
     
-    // Base
-    const p1 = [lb, pb - hb],
-        p2 = [lb - le, pb - hb],
-        p3 = [lb - ((lb - lf) / 2), pb - hf],
-        p4 = [(lb - lf) / 2, pb - hf],
-        p5 = [le, pb - hb],
-        p6 = [0, pb - hb],
-        p7 = [0, pb],
-        p8 = [lb, pb];
-    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
-    
-    const polBase = (
-      <polygon
-        fill="#999999"
-        id="des_fundo"
-        points={pathBase}
-      />
-    );
+    // Base com diferentes tipos de fundo
+    let pathBase = "";
+    let polBase = null;
 
-    // Telhado
+    if (tipo_fundo === 0) { // Fundo reto (original)
+      const p1 = [lb, pb - hb],
+          p2 = [lb - le, pb - hb],
+          p3 = [lb - ((lb - lf) / 2), pb - hf],
+          p4 = [(lb - lf) / 2, pb - hf],
+          p5 = [le, pb - hb],
+          p6 = [0, pb - hb],
+          p7 = [0, pb],
+          p8 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
+      
+      polBase = (
+        <polygon
+          fill="#999999"
+          id="des_fundo"
+          points={pathBase}
+        />
+      );
+    } else if (tipo_fundo === 1) { // Funil/V
+      const p1 = [lb, pb - hb],
+          p2 = [lb - le, pb - hb],
+          p3 = [lb - ((lb - lf) / 2), pb - hf],
+          p4 = [(lb - lf) / 2, pb - hf],
+          p5 = [le, pb - hb],
+          p6 = [0, pb - hb],
+          p7 = [intensidade_fundo, pb],
+          p8 = [lb / 2, pb - intensidade_fundo],
+          p9 = [lb - intensidade_fundo, pb],
+          p10 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")}`;
+      
+      polBase = (
+        <polygon
+          fill="#999999"
+          id="des_fundo"
+          points={pathBase}
+        />
+      );
+    } else if (tipo_fundo === 2) { // Duplo V
+      const p1 = [lb, pb - hb],
+          p2 = [lb - le, pb - hb],
+          p3 = [lb - ((lb - lf) / 2), pb - hf],
+          p4 = [(lb - lf) / 2, pb - hf],
+          p5 = [le, pb - hb],
+          p6 = [0, pb - hb],
+          p7 = [intensidade_fundo, pb],
+          p8 = [lb / 4, pb - intensidade_fundo],
+          p9 = [lb / 2, pb],
+          p10 = [lb * 3/4, pb - intensidade_fundo],
+          p11 = [lb - intensidade_fundo, pb],
+          p12 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")}`;
+      
+      polBase = (
+        <polygon
+          fill="#999999"
+          id="des_fundo"
+          points={pathBase}
+        />
+      );
+    }
+
+    // Telhado com diferentes formatos
     let polTelhado = null;
-    if (tipo_telhado === 1) {
+    
+    if (tipo_telhado === 1) { // Pontudo (original)
       const p1_ = [(lb - lf) / 2, pb - hf],
           p2_ = [le, pb - hb],
           p3_ = [le, pb - ht],
@@ -187,6 +238,52 @@ const ModeladorSVG = () => {
           strokeMiterlimit="23"
           id="des_telhado"
           points={pathTelhado}
+        />
+      );
+    } else if (tipo_telhado === 2) { // Arredondado
+      const pathTelhado = `
+        M ${(lb - lf) / 2} ${pb - hf}
+        L ${le} ${pb - hb}
+        L ${le} ${pb - ht}
+        Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
+        L ${lb - le} ${pb - hb}
+        L ${lb - ((lb - lf) / 2)} ${pb - hf}
+        Z
+      `;
+      
+      polTelhado = (
+        <path
+          fill="#E6E6E6"
+          stroke="#999999"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeMiterlimit="23"
+          id="des_telhado"
+          d={pathTelhado}
+        />
+      );
+    } else if (tipo_telhado === 3) { // Arco
+      const pathTelhado = `
+        M ${(lb - lf) / 2} ${pb - hf}
+        L ${le} ${pb - hb}
+        L ${le} ${pb - ht}
+        A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
+        L ${lb - le} ${pb - hb}
+        L ${lb - ((lb - lf) / 2)} ${pb - hf}
+        Z
+      `;
+      
+      polTelhado = (
+        <path
+          fill="#E6E6E6"
+          stroke="#999999"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeMiterlimit="23"
+          id="des_telhado"
+          d={pathTelhado}
         />
       );
     }
@@ -278,6 +375,9 @@ const ModeladorSVG = () => {
         le: 15,
         ht: 50,
         tipo_telhado: 1,
+        tipo_fundo: 0,
+        intensidade_fundo: 20,
+        curvatura_topo: 30,
         escala_sensores: 16,
         dist_y_sensores: 12,
         pos_x_cabo: [62, 52, 158, 208, 258],
@@ -527,6 +627,62 @@ const ModeladorSVG = () => {
                       onChange={(e) => handleArmazemChange("ht", e.target.value)}
                     />
                   </div>
+
+                  <h6 className="mt-3">Formato do Topo</h6>
+                  <div className="mb-3">
+                    <label className="form-label">Tipo de Telhado:</label>
+                    <select 
+                      className="form-select" 
+                      value={configArmazem.tipo_telhado} 
+                      onChange={(e) => handleArmazemChange("tipo_telhado", e.target.value)}
+                    >
+                      <option value="1">Pontudo (Original)</option>
+                      <option value="2">Arredondado</option>
+                      <option value="3">Arco</option>
+                    </select>
+                  </div>
+
+                  {(configArmazem.tipo_telhado === 2 || configArmazem.tipo_telhado === 3) && (
+                    <div className="mb-3">
+                      <label className="form-label">Curvatura do Topo: {configArmazem.curvatura_topo}px</label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        min="10"
+                        max="80"
+                        value={configArmazem.curvatura_topo}
+                        onChange={(e) => handleArmazemChange("curvatura_topo", e.target.value)}
+                      />
+                    </div>
+                  )}
+
+                  <h6 className="mt-3">Formato do Fundo</h6>
+                  <div className="mb-3">
+                    <label className="form-label">Tipo de Fundo:</label>
+                    <select 
+                      className="form-select" 
+                      value={configArmazem.tipo_fundo} 
+                      onChange={(e) => handleArmazemChange("tipo_fundo", e.target.value)}
+                    >
+                      <option value="0">Reto (Original)</option>
+                      <option value="1">Funil/V</option>
+                      <option value="2">Duplo V</option>
+                    </select>
+                  </div>
+
+                  {(configArmazem.tipo_fundo === 1 || configArmazem.tipo_fundo === 2) && (
+                    <div className="mb-3">
+                      <label className="form-label">Intensidade do V/Funil: {configArmazem.intensidade_fundo}px</label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        min="10"
+                        max="50"
+                        value={configArmazem.intensidade_fundo}
+                        onChange={(e) => handleArmazemChange("intensidade_fundo", e.target.value)}
+                      />
+                    </div>
+                  )}
                 </>
               )}
 
