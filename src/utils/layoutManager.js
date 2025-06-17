@@ -1,23 +1,10 @@
 
-// Utilitário para gerenciar layouts salvos e adaptação aos dados do backend
-
-export class LayoutManager {
-  static salvarLayout(tipo, nome, configuracao) {
-    const chave = `config${tipo === "silo" ? "Silo" : "Armazem"}_${nome}`;
-    localStorage.setItem(chave, JSON.stringify(configuracao));
-    return true;
-  }
-
-  static carregarLayout(tipo, nome) {
-    const chave = `config${tipo === "silo" ? "Silo" : "Armazem"}_${nome}`;
-    const layoutSalvo = localStorage.getItem(chave);
-    return layoutSalvo ? JSON.parse(layoutSalvo) : null;
-  }
-
+class LayoutManager {
+  // Listar layouts salvos
   static listarLayouts(tipo) {
     const prefixo = `config${tipo === "silo" ? "Silo" : "Armazem"}_`;
     const layouts = [];
-    
+
     for (let i = 0; i < localStorage.length; i++) {
       const chave = localStorage.key(i);
       if (chave && chave.startsWith(prefixo)) {
@@ -25,76 +12,97 @@ export class LayoutManager {
         layouts.push(nome);
       }
     }
-    
+
     return layouts;
   }
 
-  static deletarLayout(tipo, nome) {
+  // Carregar layout específico
+  static carregarLayout(tipo, nome) {
     const chave = `config${tipo === "silo" ? "Silo" : "Armazem"}_${nome}`;
-    localStorage.removeItem(chave);
-    return true;
+    const layout = localStorage.getItem(chave);
+    return layout ? JSON.parse(layout) : null;
   }
 
-  // Função principal para adaptar layout aos dados do backend
-  static adaptarLayoutParaDados(tipo, nomeLayout, dadosBackend) {
+  // Adaptar layout para dados específicos
+  static adaptarLayoutParaDados(tipo, nomeLayout, dados) {
+    if (!dados || !dados.leitura) {
+      return null;
+    }
+
     const layoutBase = this.carregarLayout(tipo, nomeLayout);
-    
     if (!layoutBase) {
-      throw new Error(`Layout "${nomeLayout}" não encontrado`);
+      console.warn(`Layout "${nomeLayout}" não encontrado`);
+      return null;
     }
 
     if (tipo === "armazem") {
-      return this.adaptarArmazemParaDados(layoutBase, dadosBackend);
+      return this.adaptarArmazemParaDados(layoutBase, dados);
     } else if (tipo === "silo") {
-      return this.adaptarSiloParaDados(layoutBase, dadosBackend);
+      return this.adaptarSiloParaDados(layoutBase, dados);
     }
 
     return layoutBase;
   }
 
   static adaptarArmazemParaDados(layoutBase, dados) {
-    if (!dados || !dados.leitura) {
-      return layoutBase;
-    }
-
     const layoutAdaptado = { ...layoutBase };
     const cabos = Object.keys(dados.leitura);
-    const numCabos = cabos.length;
-
-    // Adaptar posicionamento dos cabos baseado na quantidade
-    const larguraBase = layoutAdaptado.lb;
-    const margemLateral = 50; // margem das bordas
-    const larguraUtil = larguraBase - (margemLateral * 2);
-    const espacamento = numCabos > 1 ? larguraUtil / (numCabos - 1) : 0;
-
-    // Calcular novas posições dos cabos
-    layoutAdaptado.pos_x_cabo = cabos.map((_, i) => {
-      if (numCabos === 1) {
-        return larguraBase / 2; // centralizar se só tem 1 cabo
-      }
-      return margemLateral + (espacamento * i);
-    });
-
-    // Manter mesma altura para todos os cabos ou adaptar conforme necessário
-    layoutAdaptado.pos_y_cabo = new Array(numCabos).fill(
-      layoutAdaptado.pos_y_cabo?.[0] || 181
-    );
-
-    // Adaptar cabos no objeto de configuração
+    
+    // Criar estrutura de cabos baseada nos dados
     const novosCabos = {};
     cabos.forEach((cabo, index) => {
-      // Contar quantos sensores tem cada cabo
       const sensores = dados.leitura[cabo];
-      const qtdSensores = Object.keys(sensores).length;
-      novosCabos[cabo] = qtdSensores;
+      novosCabos[cabo] = Object.keys(sensores).length;
     });
 
-    // Se o layout original tem configuração de cabos, adaptamos
-    if (layoutBase.cabos) {
-      layoutAdaptado.cabos = novosCabos;
+    // Adaptar posições dos cabos
+    const numCabos = cabos.length;
+    if (numCabos > 0) {
+      const larguraBase = layoutAdaptado.lb || 350;
+      const margemLateral = 50;
+      const larguraUtil = larguraBase - (margemLateral * 2);
+      const espacamento = numCabos > 1 ? larguraUtil / (numCabos - 1) : 0;
+
+      layoutAdaptado.pos_x_cabo = cabos.map((_, i) => {
+        if (numCabos === 1) {
+          return larguraBase / 2;
+        }
+        return margemLateral + (espacamento * i);
+      });
+
+      layoutAdaptado.pos_y_cabo = new Array(numCabos).fill(
+        layoutAdaptado.pos_y_cabo?.[0] || 181
+      );
     }
 
-    return layoutAdaptado;
+    // Estrutura final para o componente Armazem
+    return {
+      tamanho_svg: [layoutAdaptado.lb || 350, layoutAdaptado.pb || 200],
+      desenho_sensores: {
+        escala_cores_sensores: 2,
+        nome_sensores_direita: 0,
+        nome_cabo_acima: 0,
+        escala_sensores: layoutAdaptado.escala_sensores || 16,
+        dist_y_sensores: layoutAdaptado.dist_y_sensores || 12,
+        dist_y_nome_cabo: new Array(numCabos).fill(8),
+        pos_x_cabos_uniforme: 1,
+        pos_x_cabo: layoutAdaptado.pos_x_cabo,
+        pos_y_cabo: layoutAdaptado.pos_y_cabo,
+      },
+      desenho_arco: {
+        tipo_telhado: layoutAdaptado.tipo_telhado || 1,
+        pb: layoutAdaptado.pb || 185,
+        lb: layoutAdaptado.lb || 350,
+        hb: layoutAdaptado.hb || 30,
+        hf: layoutAdaptado.hf || 5,
+        lf: layoutAdaptado.lf || 250,
+        le: layoutAdaptado.le || 15,
+        ht: layoutAdaptado.ht || 50,
+        ctrl_p1: [60, 30],
+        ctrl_p2: [97, 10],
+      },
+      cabos: novosCabos,
+    };
   }
 
   static adaptarSiloParaDados(layoutBase, dados) {
@@ -103,33 +111,61 @@ export class LayoutManager {
     }
 
     const layoutAdaptado = { ...layoutBase };
-    
-    // Para silo, você pode adaptar baseado no número de cabos/sensores
     const totalCabos = Object.keys(dados.leitura).length;
     
-    // Adaptar posicionamento dos cabos se necessário
+    // Adaptar posicionamento dos cabos
     if (layoutAdaptado.pos_x_cabo && Array.isArray(layoutAdaptado.pos_x_cabo)) {
-      // Ajustar espaçamento baseado no número de cabos
       const [posInicial, distancia] = layoutAdaptado.pos_x_cabo;
       layoutAdaptado.pos_x_cabo = [posInicial, distancia];
     }
 
-    // Adaptar altura dos cabos se necessário
-    if (layoutAdaptado.pos_y_cabo && totalCabos > 0) {
+    // Adaptar altura dos cabos
+    if (totalCabos > 0) {
       layoutAdaptado.pos_y_cabo = new Array(totalCabos).fill(
-        layoutAdaptado.pos_y_cabo[0] || 160
+        layoutAdaptado.pos_y_cabo?.[0] || 160
       );
     }
 
-    return layoutAdaptado;
+    // Estrutura final para o componente Silo
+    return {
+      tamanho_svg: [
+        layoutAdaptado.lb + (layoutAdaptado.aeradores_ativo ? layoutAdaptado.ds * 2 + 68 : 0),
+        layoutAdaptado.hs + layoutAdaptado.hb * 1.75
+      ],
+      desenho_corte_silo: {
+        lb: layoutAdaptado.lb || 200,
+        hs: layoutAdaptado.hs || 180,
+        hb: layoutAdaptado.hb || 15,
+        eb: layoutAdaptado.eb || 5,
+      },
+      desenho_sensores: {
+        escala_sensores: layoutAdaptado.escala_sensores || 16,
+        dist_y_sensores: layoutAdaptado.dist_y_sensores || 12,
+        pos_x_cabos_uniforme: layoutAdaptado.pos_x_cabos_uniforme || 1,
+        pos_x_cabo: layoutAdaptado.pos_x_cabo || [50, 25],
+        pos_y_cabo: layoutAdaptado.pos_y_cabo,
+        nome_sensores_direita: 0,
+        nome_cabo_acima: 0,
+        dist_y_nome_cabo: new Array(totalCabos).fill(8),
+      },
+      aeradores: layoutAdaptado.aeradores_ativo ? {
+        na: layoutAdaptado.na || 4,
+        ds: layoutAdaptado.ds || 30,
+        dy: layoutAdaptado.dy || 0,
+        da: layoutAdaptado.da || 35,
+      } : null,
+    };
   }
 
   // Função para usar nos componentes Silo e Armazem
   static aplicarLayoutAutomatico(tipo, nomeLayout, dados, setConfigCallback) {
     try {
       const layoutAdaptado = this.adaptarLayoutParaDados(tipo, nomeLayout, dados);
-      setConfigCallback(layoutAdaptado);
-      return true;
+      if (layoutAdaptado && setConfigCallback) {
+        setConfigCallback(layoutAdaptado);
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Erro ao aplicar layout automático:', error);
       return false;

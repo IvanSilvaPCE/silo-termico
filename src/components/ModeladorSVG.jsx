@@ -1,23 +1,19 @@
+
 import React, { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const ModeladorSVG = () => {
-  // Estados para configurações do Silo (baseado no layout original)
+  // Estados para configurações do Silo
   const [configSilo, setConfigSilo] = useState({
-    // Desenho do corte do silo
     lb: 200, // largura base
     hs: 180, // altura superior
     hb: 15, // altura base (elipse)
     eb: 5, // espessura borda
-
-    // Desenho dos sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
     pos_x_cabos_uniforme: 1,
     pos_x_cabo: [50, 25], // [posição inicial, distância entre cabos]
     pos_y_cabo: [160, 160, 160, 160, 160],
-
-    // Aeradores (opcional)
     aeradores_ativo: false,
     na: 4, // número de aeradores
     ds: 30, // deslocamento lateral
@@ -25,9 +21,8 @@ const ModeladorSVG = () => {
     da: 35, // distância entre aeradores
   });
 
-  // Estados para configurações do Armazém (baseado no layout original)
+  // Estados para configurações do Armazém
   const [configArmazem, setConfigArmazem] = useState({
-    // Desenho do arco
     pb: 185, // posição base
     lb: 350, // largura base
     hb: 30, // altura base
@@ -39,8 +34,6 @@ const ModeladorSVG = () => {
     tipo_fundo: 0, // 0 = reto, 1 = funil/V, 2 = duplo V
     intensidade_fundo: 20, // intensidade do V/funil
     curvatura_topo: 30, // curvatura quando arredondado
-
-    // Desenho dos sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
     pos_x_cabo: [62, 52, 158, 208, 258],
@@ -64,7 +57,7 @@ const ModeladorSVG = () => {
     }
   }, []);
 
-  // Funções de renderização do Silo (baseadas no componente original)
+  // Funções de renderização do Silo
   const renderFundoSilo = () => {
     const { lb, hs, hb, eb } = configSilo;
     const p1 = [0, hs];
@@ -152,7 +145,7 @@ const ModeladorSVG = () => {
     return aeradores;
   };
 
-  // Funções de renderização do Armazém (baseadas no componente original)
+  // Funções de renderização do Armazém
   const renderFundoArmazem = () => {
     const {
       tipo_telhado,
@@ -320,25 +313,26 @@ const ModeladorSVG = () => {
 
   // Salvar configuração
   const salvarConfiguracao = () => {
+    if (!nomeConfiguracao.trim()) {
+      alert('Digite um nome para salvar a configuração!');
+      return;
+    }
+
     if (tipoAtivo === "silo") {
       localStorage.setItem("configSilo", JSON.stringify(configSilo));
-      if (nomeConfiguracao) {
-        localStorage.setItem(
-          `configSilo_${nomeConfiguracao}`,
-          JSON.stringify(configSilo),
-        );
-      }
+      localStorage.setItem(
+        `configSilo_${nomeConfiguracao}`,
+        JSON.stringify(configSilo),
+      );
     } else {
       localStorage.setItem("configArmazem", JSON.stringify(configArmazem));
-      if (nomeConfiguracao) {
-        localStorage.setItem(
-          `configArmazem_${nomeConfiguracao}`,
-          JSON.stringify(configArmazem),
-        );
-      }
+      localStorage.setItem(
+        `configArmazem_${nomeConfiguracao}`,
+        JSON.stringify(configArmazem),
+      );
     }
-    alert(`Configuração ${tipoAtivo} salva com sucesso!`);
-    setForceUpdateLista(prev => prev + 1); // Força atualização da lista
+    alert(`Configuração ${tipoAtivo} "${nomeConfiguracao}" salva com sucesso!`);
+    setForceUpdateLista(prev => prev + 1);
   };
 
   // Carregar configuração nomeada
@@ -377,9 +371,7 @@ const ModeladorSVG = () => {
     return configs;
   };
 
-  // Usar o forceUpdate para re-render quando necessário
   const configsDisponiveis = listarConfiguracoesSalvas();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const configsMemoized = useMemo(() => configsDisponiveis, [forceUpdateLista, tipoAtivo]);
 
   // Deletar configuração
@@ -387,76 +379,9 @@ const ModeladorSVG = () => {
     const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nome}`;
     localStorage.removeItem(chave);
     alert(`Configuração "${nome}" removida com sucesso!`);
-    setForceUpdateLista(prev => prev + 1); // Força atualização da lista
+    setForceUpdateLista(prev => prev + 1);
     if (nomeConfiguracao === nome) {
-      setNomeConfiguracao(""); // Limpa o nome se estava selecionado
-    }
-  };
-
-  // Adaptar layout baseado nos dados do backend
-  const adaptarLayoutParaDados = (nomeLayout, dadosSimulados = null) => {
-    if (!nomeLayout) {
-      alert('Selecione um layout primeiro!');
-      return;
-    }
-
-    const chave = `config${tipoAtivo === "silo" ? "Silo" : "Armazem"}_${nomeLayout}`;
-    const layoutSalvo = localStorage.getItem(chave);
-
-    if (!layoutSalvo) {
-      alert(`Layout "${nomeLayout}" não encontrado!`);
-      return;
-    }
-
-    const config = JSON.parse(layoutSalvo);
-
-    // Simular dados do backend para demonstração
-    const dadosDemo = dadosSimulados || {
-      leitura: {
-        "1": { "1": [20.5, 0, 0, false, true], "2": [21.2, 0, 0, false, true], "3": [19.8, 0, 0, false, true] },
-        "2": { "1": [22.1, 0, 0, false, true], "2": [20.9, 0, 0, false, true] },
-        "3": { "1": [21.5, 0, 0, false, true], "2": [22.3, 0, 0, false, true], "3": [20.7, 0, 0, false, true], "4": [21.1, 0, 0, false, true] }
-      }
-    };
-
-    if (tipoAtivo === "armazem") {
-      // Adaptar armazém baseado nos cabos/pêndulos dos dados
-      const cabos = Object.keys(dadosDemo.leitura);
-      const novaConfigArmazem = { ...config };
-
-      // Ajustar posições dos cabos baseado na quantidade
-      const numCabos = cabos.length;
-      const larguraBase = novaConfigArmazem.lb;
-      const margemLateral = 50;
-      const larguraUtil = larguraBase - (margemLateral * 2);
-      const espacamento = numCabos > 1 ? larguraUtil / (numCabos - 1) : 0;
-
-      // Calcular novas posições dos cabos
-      novaConfigArmazem.pos_x_cabo = cabos.map((_, i) => {
-        if (numCabos === 1) {
-          return larguraBase / 2; // centralizar se só tem 1 cabo
-        }
-        return margemLateral + (espacamento * i);
-      });
-
-      novaConfigArmazem.pos_y_cabo = new Array(numCabos).fill(novaConfigArmazem.pos_y_cabo?.[0] || 181);
-
-      setConfigArmazem(novaConfigArmazem);
-      alert(`Layout "${nomeLayout}" adaptado para ${numCabos} cabos!`);
-
-    } else if (tipoAtivo === "silo") {
-      // Adaptar silo baseado nos dados
-      const cabos = Object.keys(dadosDemo.leitura);
-      const novaConfigSilo = { ...config };
-
-      // Ajustar configuração baseado no número de cabos
-      const numCabos = cabos.length;
-      if (novaConfigSilo.pos_y_cabo) {
-        novaConfigSilo.pos_y_cabo = new Array(numCabos).fill(novaConfigSilo.pos_y_cabo[0] || 160);
-      }
-
-      setConfigSilo(novaConfigSilo);
-      alert(`Layout "${nomeLayout}" adaptado para ${numCabos} cabos!`);
+      setNomeConfiguracao("");
     }
   };
 
@@ -524,7 +449,7 @@ const ModeladorSVG = () => {
       <div className="row g-0">
         {/* Painel de Controles */}
         <div 
-          className={`col-lg-3 col-md-4 bg-light border-end`}
+          className="col-lg-3 col-md-4 bg-light border-end"
           style={{ 
             height: '100vh', 
             overflowY: 'auto',
@@ -535,30 +460,29 @@ const ModeladorSVG = () => {
             borderRight: '2px solid #dee2e6'
           }}
         >
-          <div className="p-4">
-            <h1 className="text-center mb-4">
-              Modelador de SVG - Baseado nos Componentes Originais
-            </h1>
+          <div className="p-3">
+            <h4 className="text-center mb-4">Modelador de Layouts</h4>
+            
             {/* Seletor de Tipo */}
             <div className="mb-3">
               <label className="form-label fw-bold">Tipo de Estrutura:</label>
               <select
-                className="form-select form-select-lg"
+                className="form-select"
                 value={tipoAtivo}
                 onChange={(e) => setTipoAtivo(e.target.value)}
               >
-                <option value="silo">🏗️ Silo</option>
-                <option value="armazem">🏢 Armazém</option>
+                <option value="silo">Silo</option>
+                <option value="armazem">Armazém</option>
               </select>
             </div>
 
             {/* Controles para Silo */}
             {tipoAtivo === "silo" && (
               <>
-                <h6 className="mt-3">Dimensões do Silo</h6>
+                <h6 className="mt-3 text-primary">Dimensões do Silo</h6>
                 <div className="mb-3">
                   <label className="form-label">
-                    Largura Base (lb): {configSilo.lb}px
+                    Largura Base: {configSilo.lb}px
                   </label>
                   <input
                     type="range"
@@ -572,7 +496,7 @@ const ModeladorSVG = () => {
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Altura Superior (hs): {configSilo.hs}px
+                    Altura Superior: {configSilo.hs}px
                   </label>
                   <input
                     type="range"
@@ -586,7 +510,7 @@ const ModeladorSVG = () => {
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Altura Base (hb): {configSilo.hb}px
+                    Altura Base: {configSilo.hb}px
                   </label>
                   <input
                     type="range"
@@ -598,21 +522,36 @@ const ModeladorSVG = () => {
                   />
                 </div>
 
+                <h6 className="mt-3 text-primary">Sensores</h6>
                 <div className="mb-3">
                   <label className="form-label">
-                    Espessura Borda (eb): {configSilo.eb}px
+                    Escala Sensores: {configSilo.escala_sensores}px
                   </label>
                   <input
                     type="range"
                     className="form-range"
-                    min="2"
-                    max="15"
-                    value={configSilo.eb}
-                    onChange={(e) => handleSiloChange("eb", e.target.value)}
+                    min="10"
+                    max="25"
+                    value={configSilo.escala_sensores}
+                    onChange={(e) => handleSiloChange("escala_sensores", e.target.value)}
                   />
                 </div>
 
-                <h6 className="mt-3">Aeradores</h6>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Distância Y Sensores: {configSilo.dist_y_sensores}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="8"
+                    max="20"
+                    value={configSilo.dist_y_sensores}
+                    onChange={(e) => handleSiloChange("dist_y_sensores", e.target.value)}
+                  />
+                </div>
+
+                <h6 className="mt-3 text-primary">Aeradores</h6>
                 <div className="mb-3">
                   <div className="form-check">
                     <input
@@ -652,7 +591,7 @@ const ModeladorSVG = () => {
 
                     <div className="mb-3">
                       <label className="form-label">
-                        Deslocamento Lateral (ds): {configSilo.ds}px
+                        Deslocamento Lateral: {configSilo.ds}px
                       </label>
                       <input
                         type="range"
@@ -668,7 +607,7 @@ const ModeladorSVG = () => {
 
                     <div className="mb-3">
                       <label className="form-label">
-                        Distância entre Aeradores (da): {configSilo.da}px
+                        Distância entre Aeradores: {configSilo.da}px
                       </label>
                       <input
                         type="range"
@@ -689,10 +628,10 @@ const ModeladorSVG = () => {
             {/* Controles para Armazém */}
             {tipoAtivo === "armazem" && (
               <>
-                <h6 className="mt-3">Dimensões do Armazém</h6>
+                <h6 className="mt-3 text-primary">Dimensões do Armazém</h6>
                 <div className="mb-3">
                   <label className="form-label">
-                    Largura Base (lb): {configArmazem.lb}px
+                    Largura Base: {configArmazem.lb}px
                   </label>
                   <input
                     type="range"
@@ -708,7 +647,7 @@ const ModeladorSVG = () => {
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Posição Base (pb): {configArmazem.pb}px
+                    Posição Base: {configArmazem.pb}px
                   </label>
                   <input
                     type="range"
@@ -724,7 +663,7 @@ const ModeladorSVG = () => {
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Altura Base (hb): {configArmazem.hb}px
+                    Altura Base: {configArmazem.hb}px
                   </label>
                   <input
                     type="range"
@@ -740,7 +679,7 @@ const ModeladorSVG = () => {
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Largura Frente (lf): {configArmazem.lf}px
+                    Largura Frente: {configArmazem.lf}px
                   </label>
                   <input
                     type="range"
@@ -756,39 +695,7 @@ const ModeladorSVG = () => {
 
                 <div className="mb-3">
                   <label className="form-label">
-                    Altura Frente (hf): {configArmazem.hf}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="2"
-                    max="20"
-                    value={configArmazem.hf}
-                    onChange={(e) =>
-                      handleArmazemChange("hf", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Largura Entrada (le): {configArmazem.le}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="5"
-                    max="50"
-                    value={configArmazem.le}
-                    onChange={(e) =>
-                      handleArmazemChange("le", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Altura Telhado (ht): {configArmazem.ht}px
+                    Altura Telhado: {configArmazem.ht}px
                   </label>
                   <input
                     type="range"
@@ -802,7 +709,7 @@ const ModeladorSVG = () => {
                   />
                 </div>
 
-                <h6 className="mt-3">Formato do Topo</h6>
+                <h6 className="mt-3 text-primary">Formato do Telhado</h6>
                 <div className="mb-3">
                   <label className="form-label">Tipo de Telhado:</label>
                   <select
@@ -812,7 +719,7 @@ const ModeladorSVG = () => {
                       handleArmazemChange("tipo_telhado", e.target.value)
                     }
                   >
-                    <option value="1">Pontudo (Original)</option>
+                    <option value="1">Pontudo</option>
                     <option value="2">Arredondado</option>
                     <option value="3">Arco</option>
                   </select>
@@ -822,7 +729,7 @@ const ModeladorSVG = () => {
                   configArmazem.tipo_telhado === 3) && (
                   <div className="mb-3">
                     <label className="form-label">
-                      Curvatura do Topo: {configArmazem.curvatura_topo}px
+                      Curvatura: {configArmazem.curvatura_topo}px
                     </label>
                     <input
                       type="range"
@@ -837,7 +744,7 @@ const ModeladorSVG = () => {
                   </div>
                 )}
 
-                <h6 className="mt-3">Formato do Fundo</h6>
+                <h6 className="mt-3 text-primary">Formato do Fundo</h6>
                 <div className="mb-3">
                   <label className="form-label">Tipo de Fundo:</label>
                   <select
@@ -847,7 +754,7 @@ const ModeladorSVG = () => {
                       handleArmazemChange("tipo_fundo", e.target.value)
                     }
                   >
-                    <option value="0">Reto (Original)</option>
+                    <option value="0">Reto</option>
                     <option value="1">Funil/V</option>
                     <option value="2">Duplo V</option>
                   </select>
@@ -857,8 +764,7 @@ const ModeladorSVG = () => {
                   configArmazem.tipo_fundo === 2) && (
                   <div className="mb-3">
                     <label className="form-label">
-                      Intensidade do V/Funil:{" "}
-                      {configArmazem.intensidade_fundo}px
+                      Intensidade do V: {configArmazem.intensidade_fundo}px
                     </label>
                     <input
                       type="range"
@@ -875,23 +781,50 @@ const ModeladorSVG = () => {
                     />
                   </div>
                 )}
+
+                <h6 className="mt-3 text-primary">Sensores</h6>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Escala Sensores: {configArmazem.escala_sensores}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="10"
+                    max="25"
+                    value={configArmazem.escala_sensores}
+                    onChange={(e) => handleArmazemChange("escala_sensores", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Distância Y Sensores: {configArmazem.dist_y_sensores}px
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="8"
+                    max="20"
+                    value={configArmazem.dist_y_sensores}
+                    onChange={(e) => handleArmazemChange("dist_y_sensores", e.target.value)}
+                  />
+                </div>
               </>
             )}
 
             {/* Gerenciamento de Configurações */}
-            <hr className="my-4" />
-            <h6 className="text-primary mb-3">
-              <i className="fas fa-cog me-2"></i>Gerenciar Layouts
-            </h6>
+            <hr className="my-3" />
+            <h6 className="text-success mb-3">Gerenciar Modelos</h6>
 
             <div className="mb-3">
-              <label className="form-label fw-bold">Nome do Layout:</label>
+              <label className="form-label">Nome do Modelo:</label>
               <input
                 type="text"
                 className="form-control"
                 value={nomeConfiguracao}
                 onChange={(e) => setNomeConfiguracao(e.target.value)}
-                placeholder="Digite um nome para salvar/carregar"
+                placeholder="Digite um nome para o modelo"
               />
             </div>
 
@@ -899,31 +832,24 @@ const ModeladorSVG = () => {
               <button
                 className="btn btn-success"
                 onClick={salvarConfiguracao}
-                disabled={!nomeConfiguracao}
+                disabled={!nomeConfiguracao.trim()}
               >
-                💾 Salvar Layout
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={carregarConfiguracao}
-                disabled={!nomeConfiguracao}
-              >
-                📂 Carregar Layout
+                Salvar Modelo
               </button>
               <button className="btn btn-warning" onClick={resetarPadrao}>
-                🔄 Resetar para Padrão
+                Resetar para Padrão
               </button>
             </div>
 
-            {/* Lista de Layouts Salvos */}
+            {/* Lista de Modelos Salvos */}
             <div className="mb-3">
-              <label className="form-label">Layouts Salvos:</label>
-              <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto'}}>
+              <label className="form-label">Modelos Salvos:</label>
+              <div className="border rounded p-2" style={{maxHeight: '200px', overflowY: 'auto'}}>
                 {configsMemoized.length === 0 ? (
-                  <small className="text-muted">Nenhum layout salvo ainda</small>
+                  <small className="text-muted">Nenhum modelo salvo</small>
                 ) : (
                   configsMemoized.map(nome => (
-                    <div key={nome} className="d-flex justify-content-between align-items-center mb-1">
+                    <div key={nome} className="d-flex justify-content-between align-items-center mb-2 p-1 border rounded">
                       <small 
                         className={`cursor-pointer ${nomeConfiguracao === nome ? 'fw-bold text-primary' : ''}`}
                         style={{cursor: 'pointer'}}
@@ -935,14 +861,16 @@ const ModeladorSVG = () => {
                         <button 
                           className="btn btn-sm btn-outline-primary me-1"
                           onClick={() => carregarConfiguracao(nome)}
+                          title="Carregar modelo"
                         >
-                          Carregar
+                          Usar
                         </button>
                         <button 
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => deletarConfiguracao(nome)}
+                          title="Excluir modelo"
                         >
-                          Excluir
+                          ×
                         </button>
                       </div>
                     </div>
@@ -950,41 +878,14 @@ const ModeladorSVG = () => {
                 )}
               </div>
             </div>
-
-            {/* Adaptar Layout aos Dados */}
-            <div className="mb-3">
-              <label className="form-label">Adaptar Layout aos Dados:</label>
-              <div className="input-group">
-                <select 
-                  className="form-select"
-                  value={nomeConfiguracao}
-                  onChange={(e) => setNomeConfiguracao(e.target.value)}
-                >
-                  <option value="">Selecione um layout</option>
-                  {configsMemoized.map(nome => (
-                    <option key={nome} value={nome}>{nome}</option>
-                  ))}
-                </select>
-                <button 
-                  className="btn btn-info"
-                  onClick={() => adaptarLayoutParaDados(nomeConfiguracao)}
-                  disabled={!nomeConfiguracao}
-                >
-                  Adaptar
-                </button>
-              </div>
-              <small className="form-text text-muted">
-                Esta função adapta o layout salvo baseado em dados simulados do backend
-              </small>
-            </div>
           </div>
         </div>
 
         {/* Área de Visualização */}
         <div className="col-lg-9 col-md-8" style={{ marginLeft: 'auto', paddingLeft: '25%' }}>
-          <div className="d-flex justify-content-center align-items-center p-3" style={{ height: '100vh', width: '100%' }}>
+          <div className="d-flex justify-content-center align-items-center p-3" style={{ height: '100vh' }}>
             <div className="card w-100" style={{ height: '90vh' }}>
-              <div className="card-header bg-success text-white">
+              <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">Preview - {tipoAtivo === "silo" ? "Silo" : "Armazém"}</h5>
               </div>
               <div className="card-body text-center d-flex align-items-center justify-content-center" style={{ height: 'calc(100% - 60px)' }}>
