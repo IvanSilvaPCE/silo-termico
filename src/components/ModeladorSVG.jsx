@@ -174,7 +174,7 @@ const ModeladorSVG = () => {
       const numeroPendulo = p + 1;
       const pendId = numeroPendulo.toString();
       const xCabo = posicoes[p];
-      const yCabo = (configArmazem.pos_y_cabo[0] || 181) + 20; // Desceu 20px
+      const yCabo = (configArmazem.pos_y_cabo[0] || 181) + 10; // Desceu 10px
       
       // Dados do pêndulo atual (cíclico caso não tenha dados suficientes)
       const dadosPendulo = dadosExemplo[pendId] || dadosExemplo["1"];
