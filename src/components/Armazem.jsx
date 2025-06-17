@@ -65,8 +65,8 @@ const ArmazemSVG = ({ dados }) => {
         // Usar layout adaptado se disponível
         const layoutFinal = layoutConfig || layoutArco;
 
-        svgEl.setAttribute("width", layoutFinal.tamanho_svg?.[0] || layoutArco.tamanho_svg[0] + "mm");
-        svgEl.setAttribute("height", layoutFinal.tamanho_svg?.[1] || layoutArco.tamanho_svg[1] + "mm");
+        svgEl.setAttribute("width", "100%");
+        svgEl.setAttribute("height", "70vh");
         svgEl.setAttribute(
             "viewBox",
             `0 0 ${layoutFinal.tamanho_svg?.[0] || layoutArco.tamanho_svg[0]} ${layoutFinal.tamanho_svg?.[1] || layoutArco.tamanho_svg[1]}`
@@ -430,19 +430,19 @@ const ArmazemSVG = ({ dados }) => {
     };
 
     return (
-        <div className="container-fluid p-4" style={{ width: '100%' }}>
-            <h1>Armazém - Monitoramento de Temperatura</h1>
+        <div className="container-fluid p-3" style={{ width: '100%', height: '100vh', overflow: 'hidden' }}>
+            <h1 className="text-center mb-3">Armazém - Monitoramento de Temperatura</h1>
 
             <SeletorLayout />
 
             {carregandoModo ? (
-                <div className="d-flex justify-content-center m-3">
+                <div className="d-flex justify-content-center align-items-center" style={{ height: '70vh' }}>
                     <div className="spinner-border" role="status">
                         <span className="visually-hidden">Carregando...</span>
                     </div>
                 </div>
             ) : (
-                <div ref={containerRef} />
+                <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh' }} />
             )}
             <div className="d-flex justify-content-center mt-3">
                 <BotaoTrocaModo />

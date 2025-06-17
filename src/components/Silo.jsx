@@ -400,12 +400,12 @@ export default function Silo({ dados }) {
 
   const RenderSiloTemperatura = () => (
     <svg
-      // width={`${largura}mm`}
-      // height={`${altura}mm`}
       width="100%"
-      height="auto"
+      height="70vh"
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
+        maxWidth: "100%",
+        maxHeight: "70vh",
         shapeRendering: "auto",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
@@ -424,12 +424,12 @@ export default function Silo({ dados }) {
 
   const RenderSiloMapa = () => (
     <svg
-      // width={`${largura}mm`}
-      // height={`${altura}mm`}
       width="100%"
-      height="auto"
+      height="70vh"
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
+        maxWidth: "100%",
+        maxHeight: "70vh",
         shapeRendering: "geometricPrecision",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
@@ -447,8 +447,8 @@ export default function Silo({ dados }) {
   );
 
   return (
-    <div>
-      <h1>Silo - Monitoramento de Temperatura</h1>
+    <div className="container-fluid p-3" style={{ height: '100vh', overflow: 'hidden' }}>
+      <h1 className="text-center mb-3">Silo - Monitoramento de Temperatura</h1>
       {carregandoModo ? (
         <div className="d-flex justify-content-center m-3">
           <div className="spinner-border" role="status">
