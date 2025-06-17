@@ -75,6 +75,16 @@ class LayoutManager {
       );
     }
 
+    // Adicionar informações de distribuição por células se disponível
+    if (layoutAdaptado.total_cabos && layoutAdaptado.sensores_celula_impar && layoutAdaptado.sensores_celula_par) {
+      layoutAdaptado.distribuicao_celulas = {};
+      for (let i = 1; i <= layoutAdaptado.total_cabos; i++) {
+        layoutAdaptado.distribuicao_celulas[i] = i % 2 === 1 ? 
+          layoutAdaptado.sensores_celula_impar : 
+          layoutAdaptado.sensores_celula_par;
+      }
+    }
+
     // Estrutura final para o componente Armazem
     return {
       tamanho_svg: [layoutAdaptado.lb || 350, layoutAdaptado.pb || 200],

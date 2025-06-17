@@ -38,6 +38,11 @@ const ModeladorSVG = () => {
     dist_y_sensores: 12,
     pos_x_cabo: [62, 52, 158, 208, 258],
     pos_y_cabo: [181, 181, 181, 181, 181],
+    // Configurações de distribuição por células
+    total_cabos: 18,
+    sensores_celula_impar: 3,
+    sensores_celula_par: 4,
+    distribuicao_automatica: true,
   });
 
   const [tipoAtivo, setTipoAtivo] = useState("silo");
@@ -146,6 +151,88 @@ const ModeladorSVG = () => {
   };
 
   // Funções de renderização do Armazém
+  const renderSensoresArmazem = () => {
+    const distribuicao = calcularDistribuicaoCelulas();
+    const posicoes = configArmazem.distribuicao_automatica ? gerarPosicoesAutomaticas() : configArmazem.pos_x_cabo;
+    const elementos = [];
+
+    Object.entries(distribuicao).forEach(([cabo, qtdSensores], index) => {
+      const xCabo = posicoes[index] || (50 + index * 60);
+      const yCabo = configArmazem.pos_y_cabo[0] || 181;
+
+      // Retângulo do cabo
+      elementos.push(
+        <rect
+          key={`cabo-${cabo}`}
+          x={xCabo - 8}
+          y={yCabo}
+          width={16}
+          height={8}
+          rx="2"
+          ry="2"
+          fill="#3A78FD"
+        />
+      );
+
+      // Nome do cabo
+      elementos.push(
+        <text
+          key={`texto-cabo-${cabo}`}
+          x={xCabo}
+          y={yCabo + 6}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontWeight="bold"
+          fontSize="6"
+          fontFamily="Arial"
+          fill="white"
+        >
+          P{cabo}
+        </text>
+      );
+
+      // Indicador de quantidade de sensores
+      elementos.push(
+        <text
+          key={`qtd-${cabo}`}
+          x={xCabo}
+          y={yCabo + 20}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontWeight="bold"
+          fontSize="4"
+          fontFamily="Arial"
+          fill={cabo % 2 === 1 ? "#0066cc" : "#009900"}
+        >
+          {qtdSensores}S
+        </text>
+      );
+
+      // Sensores simulados
+      for (let s = 1; s <= qtdSensores; s++) {
+        const ySensor = yCabo - (s * configArmazem.dist_y_sensores);
+        if (ySensor > 20) { // Só desenha se estiver dentro da área visível
+          elementos.push(
+            <rect
+              key={`sensor-${cabo}-${s}`}
+              x={xCabo - 6}
+              y={ySensor}
+              width={12}
+              height={6}
+              rx="1"
+              ry="1"
+              fill="#cccccc"
+              stroke="#666"
+              strokeWidth="0.5"
+            />
+          );
+        }
+      }
+    });
+
+    return elementos;
+  };
+
   const renderFundoArmazem = () => {
     const {
       tipo_telhado,
@@ -309,6 +396,39 @@ const ModeladorSVG = () => {
       ...prev,
       [campo]: parseFloat(valor),
     }));
+  };
+
+  // Função para calcular distribuição de sensores por células
+  const calcularDistribuicaoCelulas = () => {
+    const { total_cabos, sensores_celula_impar, sensores_celula_par } = configArmazem;
+    const distribuicao = {};
+    
+    for (let i = 1; i <= total_cabos; i++) {
+      // Célula ímpar (1, 3, 5, 7...) usa sensores_celula_impar
+      // Célula par (2, 4, 6, 8...) usa sensores_celula_par
+      distribuicao[i] = i % 2 === 1 ? sensores_celula_impar : sensores_celula_par;
+    }
+    
+    return distribuicao;
+  };
+
+  // Função para gerar posições dos cabos baseado na quantidade total
+  const gerarPosicoesAutomaticas = () => {
+    const { total_cabos, lb } = configArmazem;
+    const margemLateral = 50;
+    const larguraUtil = lb - (margemLateral * 2);
+    const espacamento = total_cabos > 1 ? larguraUtil / (total_cabos - 1) : 0;
+    
+    const posicoes = [];
+    for (let i = 0; i < total_cabos; i++) {
+      if (total_cabos === 1) {
+        posicoes.push(lb / 2);
+      } else {
+        posicoes.push(margemLateral + (espacamento * i));
+      }
+    }
+    
+    return posicoes;
   };
 
   // Salvar configuração
@@ -810,6 +930,88 @@ const ModeladorSVG = () => {
                     onChange={(e) => handleArmazemChange("dist_y_sensores", e.target.value)}
                   />
                 </div>
+
+                <h6 className="mt-3 text-primary">Distribuição por Células</h6>
+                <div className="mb-3">
+                  <label className="form-label">
+                    Total de Cabos/Pêndulos: {configArmazem.total_cabos}
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="5"
+                    max="25"
+                    value={configArmazem.total_cabos}
+                    onChange={(e) => handleArmazemChange("total_cabos", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Sensores Célula Ímpar (1,3,5...): {configArmazem.sensores_celula_impar}
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="1"
+                    max="10"
+                    value={configArmazem.sensores_celula_impar}
+                    onChange={(e) => handleArmazemChange("sensores_celula_impar", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">
+                    Sensores Célula Par (2,4,6...): {configArmazem.sensores_celula_par}
+                  </label>
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="1"
+                    max="10"
+                    value={configArmazem.sensores_celula_par}
+                    onChange={(e) => handleArmazemChange("sensores_celula_par", e.target.value)}
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      checked={configArmazem.distribuicao_automatica}
+                      onChange={(e) =>
+                        handleArmazemChange(
+                          "distribuicao_automatica",
+                          e.target.checked ? 1 : 0,
+                        )
+                      }
+                    />
+                    <label className="form-check-label">
+                      Posicionamento Automático dos Cabos
+                    </label>
+                  </div>
+                </div>
+
+                {/* Visualização da distribuição */}
+                <div className="mb-3">
+                  <label className="form-label">Distribuição Atual:</label>
+                  <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem'}}>
+                    {Object.entries(calcularDistribuicaoCelulas()).map(([cabo, sensores]) => (
+                      <div key={cabo} className="d-flex justify-content-between">
+                        <span>Cabo {cabo}:</span>
+                        <span className={cabo % 2 === 1 ? 'text-primary' : 'text-success'}>
+                          {sensores} sensores {cabo % 2 === 1 ? '(ímpar)' : '(par)'}
+                        </span>
+                      </div>
+                    ))}
+                    <hr className="my-2" />
+                    <div className="d-flex justify-content-between fw-bold">
+                      <span>Total:</span>
+                      <span>{Object.values(calcularDistribuicaoCelulas()).reduce((a, b) => a + b, 0)} sensores</span>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
@@ -913,7 +1115,10 @@ const ModeladorSVG = () => {
                       {renderAeradoresSilo()}
                     </>
                   ) : (
-                    renderFundoArmazem()
+                    <>
+                      {renderFundoArmazem()}
+                      {renderSensoresArmazem()}
+                    </>
                   )}
                 </svg>
               </div>
