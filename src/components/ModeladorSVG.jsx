@@ -1183,8 +1183,8 @@ const ModeladorSVG = () => {
 
         {/* Área de Visualização */}
         <div className="col-lg-9 col-md-8" style={{ marginLeft: '25%', paddingLeft: '10px', paddingRight: '10px' }}>
-          <div className="d-flex justify-content-center align-items-center p-2" style={{ height: '100vh' }}>
-            <div className="card w-100" style={{ height: '95vh', maxWidth: '100%' }}>
+          <div className="d-flex justify-content-center align-items-center p-2" style={{ height: '80vh' }}>
+            <div className="card w-100" style={{ height: '75vh', maxWidth: '100%' }}>
               <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">Preview - {tipoAtivo === "silo" ? "Silo" : "Armazém"}</h5>
               </div>
