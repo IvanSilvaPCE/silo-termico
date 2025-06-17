@@ -66,7 +66,7 @@ const ArmazemSVG = ({ dados }) => {
         const layoutFinal = layoutConfig || layoutArco;
 
         svgEl.setAttribute("width", "100%");
-        svgEl.setAttribute("height", "70vh");
+        svgEl.setAttribute("height", "85vh");
         svgEl.setAttribute(
             "viewBox",
             `0 0 ${layoutFinal.tamanho_svg?.[0] || layoutArco.tamanho_svg[0]} ${layoutFinal.tamanho_svg?.[1] || layoutArco.tamanho_svg[1]}`
@@ -430,44 +430,45 @@ const ArmazemSVG = ({ dados }) => {
     };
 
     const RenderArmazemTemperatura = () => (
-        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh' }} />
+        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '85vh', minHeight: '400px' }} />
     );
 
     const RenderArmazemMapa = () => (
-        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh' }} />
+        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '85vh', minHeight: '400px' }} />
     );
 
     return (
-        <div className="container-fluid p-2 p-md-3" style={{ minHeight: '100vh', overflow: 'auto' }}>
+        <div className="container-fluid p-1 p-md-2" style={{ minHeight: '100vh', overflow: 'auto' }}>
             <div className="row">
                 <div className="col-12">
-                    <h1 className="text-center mb-2 mb-md-3 fs-3 fs-md-1">Armazém - Monitoramento de Temperatura</h1>
+                    <h1 className="text-center mb-1 mb-md-2 fs-4 fs-md-1">Armazém - Monitoramento de Temperatura</h1>
 
                     {carregandoModo ? (
-                        <div className="d-flex justify-content-center m-3">
+                        <div className="d-flex justify-content-center m-2">
                             <div className="spinner-border" role="status">
                                 <span className="visually-hidden">Carregando...</span>
                             </div>
                         </div>
                     ) : (
-                        <div className="svg-container mb-2 mb-md-3" style={{ 
+                        <div className="svg-container mb-1 mb-md-2" style={{ 
                             display: 'flex', 
                             justifyContent: 'center', 
                             alignItems: 'center',
-                            maxHeight: '65vh',
+                            minHeight: 'calc(100vh - 200px)',
+                            maxHeight: 'calc(100vh - 140px)',
                             overflow: 'auto'
                         }}>
                             {modo === "temperatura" ? <RenderArmazemTemperatura /> : <RenderArmazemMapa />}
                         </div>
                     )}
 
-                    <div className="row mb-2 mb-md-3">
+                    <div className="row mb-1 mb-md-2">
                         <div className="col-12">
                             <SeletorLayout />
                         </div>
                     </div>
 
-                    <div className="d-flex justify-content-center">
+                    <div className="d-flex justify-content-center py-2">
                         <BotaoTrocaModo />
                     </div>
                 </div>

@@ -410,9 +410,9 @@ export default function Silo({ dados }) {
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
         maxWidth: "100%",
-        maxHeight: "70vh",
+        maxHeight: "85vh",
         height: "auto",
-        minHeight: "300px",
+        minHeight: "400px",
         shapeRendering: "auto",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
@@ -437,9 +437,9 @@ export default function Silo({ dados }) {
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
         maxWidth: "100%",
-        maxHeight: "70vh",
+        maxHeight: "85vh",
         height: "auto",
-        minHeight: "300px",
+        minHeight: "400px",
         shapeRendering: "geometricPrecision",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
@@ -458,30 +458,31 @@ export default function Silo({ dados }) {
   );
 
   return (
-    <div className="container-fluid p-2 p-md-3" style={{ minHeight: '100vh', overflow: 'auto' }}>
+    <div className="container-fluid p-1 p-md-2" style={{ minHeight: '100vh', overflow: 'auto' }}>
       <div className="row">
         <div className="col-12">
-          <h1 className="text-center mb-2 mb-md-3 fs-3 fs-md-1">Silo - Monitoramento de Temperatura</h1>
+          <h1 className="text-center mb-1 mb-md-2 fs-4 fs-md-1">Silo - Monitoramento de Temperatura</h1>
           
           {carregandoModo ? (
-            <div className="d-flex justify-content-center m-3">
+            <div className="d-flex justify-content-center m-2">
               <div className="spinner-border" role="status">
                 <span className="visually-hidden">Carregando...</span>
               </div>
             </div>
           ) : (
-            <div className="svg-container mb-2 mb-md-3" style={{ 
+            <div className="svg-container mb-1 mb-md-2" style={{ 
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center',
-              maxHeight: '75vh',
+              minHeight: 'calc(100vh - 140px)',
+              maxHeight: 'calc(100vh - 100px)',
               overflow: 'auto'
             }}>
               {modo === "temperatura" ? <RenderSiloTemperatura /> : <RenderSiloMapa />}
             </div>
           )}
           
-          <div className="d-flex justify-content-center">
+          <div className="d-flex justify-content-center py-2">
             <BotaoTrocaModo />
           </div>
         </div>
