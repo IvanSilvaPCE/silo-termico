@@ -41,13 +41,6 @@ const ModeladorSVG = () => {
     intensidade_fundo: 20, // intensidade do V/funil
     curvatura_topo: 30, // curvatura quando arredondado
 
-    // Aeradores (similar ao silo)
-    aeradores_ativo: false,
-    na: 4, // número de aeradores
-    ds: 30, // deslocamento lateral
-    dy: 0,  // deslocamento vertical
-    da: 35, // distância entre aeradores
-
     // Desenho dos sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
@@ -156,102 +149,97 @@ const ModeladorSVG = () => {
   const renderFundoArmazem = () => {
     const { tipo_telhado, tipo_fundo, intensidade_fundo, curvatura_topo, pb, lb, hb, hf, lf, le, ht } = configArmazem;
     
-    // Base sempre reta (original)
-    const p1 = [lb, pb - hb],
-        p2 = [lb - le, pb - hb],
-        p3 = [lb - ((lb - lf) / 2), pb - hf],
-        p4 = [(lb - lf) / 2, pb - hf],
-        p5 = [le, pb - hb],
-        p6 = [0, pb - hb],
-        p7 = [0, pb],
-        p8 = [lb, pb];
-    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
-    
-    const polBase = (
-      <polygon
-        fill="#999999"
-        id="des_fundo"
-        points={pathBase}
-      />
-    );
+    // Base com diferentes tipos de fundo
+    let pathBase = "";
+    let polBase = null;
 
-    // Telhado com diferentes formatos (aqui aplicamos os tipos de fundo)
+    if (tipo_fundo === 0) { // Fundo reto (original)
+      const p1 = [lb, pb - hb],
+          p2 = [lb - le, pb - hb],
+          p3 = [lb - ((lb - lf) / 2), pb - hf],
+          p4 = [(lb - lf) / 2, pb - hf],
+          p5 = [le, pb - hb],
+          p6 = [0, pb - hb],
+          p7 = [0, pb],
+          p8 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
+      
+      polBase = (
+        <polygon
+          fill="#999999"
+          id="des_fundo"
+          points={pathBase}
+        />
+      );
+    } else if (tipo_fundo === 1) { // Funil/V
+      const p1 = [lb, pb - hb],
+          p2 = [lb - le, pb - hb],
+          p3 = [lb - ((lb - lf) / 2), pb - hf],
+          p4 = [(lb - lf) / 2, pb - hf],
+          p5 = [le, pb - hb],
+          p6 = [0, pb - hb],
+          p7 = [intensidade_fundo, pb],
+          p8 = [lb / 2, pb - intensidade_fundo],
+          p9 = [lb - intensidade_fundo, pb],
+          p10 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")}`;
+      
+      polBase = (
+        <polygon
+          fill="#999999"
+          id="des_fundo"
+          points={pathBase}
+        />
+      );
+    } else if (tipo_fundo === 2) { // Duplo V
+      const p1 = [lb, pb - hb],
+          p2 = [lb - le, pb - hb],
+          p3 = [lb - ((lb - lf) / 2), pb - hf],
+          p4 = [(lb - lf) / 2, pb - hf],
+          p5 = [le, pb - hb],
+          p6 = [0, pb - hb],
+          p7 = [intensidade_fundo, pb],
+          p8 = [lb / 4, pb - intensidade_fundo],
+          p9 = [lb / 2, pb],
+          p10 = [lb * 3/4, pb - intensidade_fundo],
+          p11 = [lb - intensidade_fundo, pb],
+          p12 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")}`;
+      
+      polBase = (
+        <polygon
+          fill="#999999"
+          id="des_fundo"
+          points={pathBase}
+        />
+      );
+    }
+
+    // Telhado com diferentes formatos
     let polTelhado = null;
     
     if (tipo_telhado === 1) { // Pontudo (original)
-      if (tipo_fundo === 0) { // Topo reto (original)
-        const p1_ = [(lb - lf) / 2, pb - hf],
-            p2_ = [le, pb - hb],
-            p3_ = [le, pb - ht],
-            p4_ = [lb / 2, 1],
-            p5_ = [lb - le, pb - ht],
-            p6_ = [lb - le, pb - hb],
-            p7_ = [lb - ((lb - lf) / 2), pb - hf];
-        const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
-        
-        polTelhado = (
-          <polygon
-            fill="#E6E6E6"
-            stroke="#999999"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeMiterlimit="23"
-            id="des_telhado"
-            points={pathTelhado}
-          />
-        );
-      } else if (tipo_fundo === 1) { // Topo funil/V
-        const p1_ = [(lb - lf) / 2, pb - hf],
-            p2_ = [le, pb - hb],
-            p3_ = [le, pb - ht],
-            p4_ = [le + intensidade_fundo, pb - ht + intensidade_fundo],
-            p5_ = [lb / 2, 1],
-            p6_ = [lb - le - intensidade_fundo, pb - ht + intensidade_fundo],
-            p7_ = [lb - le, pb - ht],
-            p8_ = [lb - le, pb - hb],
-            p9_ = [lb - ((lb - lf) / 2), pb - hf];
-        const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")} ${p8_.join(",")} ${p9_.join(",")}`;
-        
-        polTelhado = (
-          <polygon
-            fill="#E6E6E6"
-            stroke="#999999"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeMiterlimit="23"
-            id="des_telhado"
-            points={pathTelhado}
-          />
-        );
-      } else if (tipo_fundo === 2) { // Topo duplo V
-        const p1_ = [(lb - lf) / 2, pb - hf],
-            p2_ = [le, pb - hb],
-            p3_ = [le, pb - ht],
-            p4_ = [le + intensidade_fundo, pb - ht + intensidade_fundo],
-            p5_ = [lb / 4, 1 + intensidade_fundo/2],
-            p6_ = [lb / 2, pb - ht + intensidade_fundo],
-            p7_ = [lb * 3/4, 1 + intensidade_fundo/2],
-            p8_ = [lb - le - intensidade_fundo, pb - ht + intensidade_fundo],
-            p9_ = [lb - le, pb - ht],
-            p10_ = [lb - le, pb - hb],
-            p11_ = [lb - ((lb - lf) / 2), pb - hf];
-        const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")} ${p8_.join(",")} ${p9_.join(",")} ${p10_.join(",")} ${p11_.join(",")}`;
-        
-        polTelhado = (
-          <polygon
-            fill="#E6E6E6"
-            stroke="#999999"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeMiterlimit="23"
-            id="des_telhado"
-            points={pathTelhado}
-          />
-        );
-      }
+      const p1_ = [(lb - lf) / 2, pb - hf],
+          p2_ = [le, pb - hb],
+          p3_ = [le, pb - ht],
+          p4_ = [lb / 2, 1],
+          p5_ = [lb - le, pb - ht],
+          p6_ = [lb - le, pb - hb],
+          p7_ = [lb - ((lb - lf) / 2), pb - hf];
+      const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
+      
+      polTelhado = (
+        <polygon
+          fill="#E6E6E6"
+          stroke="#999999"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeMiterlimit="23"
+          id="des_telhado"
+          points={pathTelhado}
+        />
+      );
     } else if (tipo_telhado === 2) { // Arredondado
       const pathTelhado = `
         M ${(lb - lf) / 2} ${pb - hf}
@@ -306,64 +294,6 @@ const ModeladorSVG = () => {
         {polBase}
       </>
     );
-  };
-
-  // Renderizar aeradores do armazém (similar ao silo)
-  const renderAeradoresArmazem = () => {
-    if (!configArmazem.aeradores_ativo) return null;
-
-    const { na, ds, dy, da, lb, pb } = configArmazem;
-    const posY = pb + dy - 30;
-    const posX = lb + ds * 2 - 31;
-    const aeradores = [];
-
-    const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z";
-    const angles = [0, 60, 120, 180, 240, 300];
-
-    for (let id = 1; id <= na; id++) {
-      let transform = "";
-      if (id === 1) transform = `translate(-73, ${posY})`;
-      else if (id === 2) transform = `translate(${posX}, ${posY})`;
-      else if (id === 3) transform = `translate(-73, ${posY - 35 - da})`;
-      else if (id === 4) transform = `translate(${posX}, ${posY - 35 - da})`;
-      else if (id === 5) transform = `translate(-73, ${posY - 70 - da * 2})`;
-      else if (id === 6) transform = `translate(${posX}, ${posY - 70 - da * 2})`;
-
-      aeradores.push(
-        <g key={id} id={`aerador_armazem_${id}`} transform={transform}>
-          <circle
-            cx={70 + 12.5 + 3.5}
-            cy={24}
-            r="10"
-            fill="#c5c5c5"
-          />
-          <rect x={70 + 3.5} y={2} width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
-          <text
-            x={70 + 12.5 + 3.5}
-            y={7}
-            textAnchor="middle"
-            dominantBaseline="central"
-            fontWeight="bold"
-            fontSize="6.5"
-            fontFamily="Arial"
-            fill="white"
-          >
-            {`AE-${id}`}
-          </text>
-          <g>
-            {angles.map((angle) => (
-              <path
-                key={angle}
-                d={dBlade}
-                fill="white"
-                transform={angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`}
-              />
-            ))}
-          </g>
-        </g>
-      );
-    }
-    return aeradores;
   };
 
   // Handlers para mudança de configuração
@@ -448,11 +378,6 @@ const ModeladorSVG = () => {
         tipo_fundo: 0,
         intensidade_fundo: 20,
         curvatura_topo: 30,
-        aeradores_ativo: false,
-        na: 4,
-        ds: 30,
-        dy: 0,
-        da: 35,
         escala_sensores: 16,
         dist_y_sensores: 12,
         pos_x_cabo: [62, 52, 158, 208, 258],
@@ -468,17 +393,13 @@ const ModeladorSVG = () => {
       const altura = configSilo.hs + configSilo.hb * 1.75;
       return [largura, altura];
     } else {
-      const largura = configArmazem.lb + (configArmazem.aeradores_ativo ? configArmazem.ds * 2 + 68 : 0);
-      return [largura, configArmazem.pb];
+      return [configArmazem.lb, configArmazem.pb];
     }
   };
 
   const [larguraSVG, alturaSVG] = calcularDimensoesSVG();
   const transformSilo = (tipoAtivo === "silo" && configSilo.aeradores_ativo) 
     ? `translate(${configSilo.ds + 34}, 0)` 
-    : "";
-  const transformArmazem = (tipoAtivo === "armazem" && configArmazem.aeradores_ativo) 
-    ? `translate(${configArmazem.ds + 34}, 0)` 
     : "";
 
   return (
@@ -735,9 +656,9 @@ const ModeladorSVG = () => {
                     </div>
                   )}
 
-                  <h6 className="mt-3">Formato do Topo (aplicado no telhado pontudo)</h6>
+                  <h6 className="mt-3">Formato do Fundo</h6>
                   <div className="mb-3">
-                    <label className="form-label">Tipo de Topo:</label>
+                    <label className="form-label">Tipo de Fundo:</label>
                     <select 
                       className="form-select" 
                       value={configArmazem.tipo_fundo} 
@@ -761,61 +682,6 @@ const ModeladorSVG = () => {
                         onChange={(e) => handleArmazemChange("intensidade_fundo", e.target.value)}
                       />
                     </div>
-                  )}
-
-                  <h6 className="mt-3">Aeradores</h6>
-                  <div className="mb-3">
-                    <div className="form-check">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        checked={configArmazem.aeradores_ativo}
-                        onChange={(e) => handleArmazemChange("aeradores_ativo", e.target.checked ? 1 : 0)}
-                      />
-                      <label className="form-check-label">
-                        Ativar Aeradores
-                      </label>
-                    </div>
-                  </div>
-
-                  {configArmazem.aeradores_ativo && (
-                    <>
-                      <div className="mb-3">
-                        <label className="form-label">Número de Aeradores: {configArmazem.na}</label>
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="2"
-                          max="6"
-                          value={configArmazem.na}
-                          onChange={(e) => handleArmazemChange("na", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="mb-3">
-                        <label className="form-label">Deslocamento Lateral (ds): {configArmazem.ds}px</label>
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="10"
-                          max="60"
-                          value={configArmazem.ds}
-                          onChange={(e) => handleArmazemChange("ds", e.target.value)}
-                        />
-                      </div>
-
-                      <div className="mb-3">
-                        <label className="form-label">Distância entre Aeradores (da): {configArmazem.da}px</label>
-                        <input
-                          type="range"
-                          className="form-range"
-                          min="20"
-                          max="60"
-                          value={configArmazem.da}
-                          onChange={(e) => handleArmazemChange("da", e.target.value)}
-                        />
-                      </div>
-                    </>
                   )}
                 </>
               )}
@@ -882,12 +748,7 @@ const ModeladorSVG = () => {
                     {renderAeradoresSilo()}
                   </>
                 ) : (
-                  <>
-                    <g transform={transformArmazem}>
-                      {renderFundoArmazem()}
-                    </g>
-                    {renderAeradoresArmazem()}
-                  </>
+                  renderFundoArmazem()
                 )}
               </svg>
             </div>
