@@ -31,9 +31,9 @@ const App = () => {
 
   return (
     <div>
-      <SiloSVG dados={dadosSilo} />
+      {/* <SiloSVG dados={dadosSilo} /> */}
       {/* <SiloSVG dados={dados} /> */}
-      {/* <ArmazemSVG dados={dadosArm}/> */}
+      <ArmazemSVG dados={dadosArm}/>
     </div>
 
   );
