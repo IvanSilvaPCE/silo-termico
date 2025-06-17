@@ -3,31 +3,49 @@ import React, { useState, useEffect } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const ModeladorSVG = () => {
-  // Estados para configurações do Silo
+  // Estados para configurações do Silo (baseado no layout original)
   const [configSilo, setConfigSilo] = useState({
-    larguraBase: 200,
-    alturaTotal: 300,
-    alturaCilindro: 200,
-    curvaturaTopo: 50,
-    tipoCone: 1, // 0: reto, 1: cônico simples, 2: cônico duplo
-    aberturaCone: 30,
-    espessuraBorda: 15
+    // Desenho do corte do silo
+    lb: 200, // largura base
+    hs: 180, // altura superior
+    hb: 15,  // altura base (elipse)
+    eb: 5,   // espessura borda
+
+    // Desenho dos sensores
+    escala_sensores: 16,
+    dist_y_sensores: 12,
+    pos_x_cabos_uniforme: 1,
+    pos_x_cabo: [50, 25], // [posição inicial, distância entre cabos]
+    pos_y_cabo: [160, 160, 160, 160, 160],
+
+    // Aeradores (opcional)
+    aeradores_ativo: false,
+    na: 4, // número de aeradores
+    ds: 30, // deslocamento lateral
+    dy: 0,  // deslocamento vertical
+    da: 35  // distância entre aeradores
   });
 
-  // Estados para configurações do Armazém
+  // Estados para configurações do Armazém (baseado no layout original)
   const [configArmazem, setConfigArmazem] = useState({
-    larguraBase: 350,
-    alturaTotal: 200,
-    alturaParede: 155,
-    tipoTelhado: 1, // 0: reto, 1: arco simples, 2: arco duplo, 3: triangular
-    alturaTelhado: 50,
-    curvaturaTelhado: 30,
-    larguraEntrada: 250,
-    margemEntrada: 15,
-    pontuTelhado: 50 // Para controlar quão pontudo é o telhado
+    // Desenho do arco
+    pb: 185, // posição base
+    lb: 350, // largura base
+    hb: 30,  // altura base
+    hf: 5,   // altura frente
+    lf: 250, // largura frente
+    le: 15,  // largura entrada
+    ht: 50,  // altura telhado
+    tipo_telhado: 1, // 1 = arco
+
+    // Desenho dos sensores
+    escala_sensores: 16,
+    dist_y_sensores: 12,
+    pos_x_cabo: [62, 52, 158, 208, 258],
+    pos_y_cabo: [181, 181, 181, 181, 181]
   });
 
-  const [tipoAtivo, setTipoAtivo] = useState("silo"); // "silo" ou "armazem"
+  const [tipoAtivo, setTipoAtivo] = useState("silo");
   const [nomeConfiguracao, setNomeConfiguracao] = useState("");
 
   // Carregar configurações salvas
@@ -43,121 +61,142 @@ const ModeladorSVG = () => {
     }
   }, []);
 
-  // Gerar path do Silo
-  const gerarPathSilo = () => {
-    const { larguraBase, alturaTotal, alturaCilindro, curvaturaTopo, tipoCone, aberturaCone } = configSilo;
-    const raio = larguraBase / 2;
-    const xCentro = raio;
-    const yBase = alturaTotal;
-    const yTopo = alturaTotal - alturaCilindro;
+  // Funções de renderização do Silo (baseadas no componente original)
+  const renderFundoSilo = () => {
+    const { lb, hs, hb, eb } = configSilo;
+    const p1 = [0, hs];
+    const p2 = [lb, hs];
+    const p3 = [lb, hb * 1.75];
+    const p4 = [lb / 2, 0];
+    const p5 = [0, hb * 1.75];
+    const points = `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]} ${p4[0]},${p4[1]} ${p5[0]},${p5[1]}`;
     
-    let pathD = "";
-    
-    // Parte cilíndrica
-    pathD += `M 0,${yTopo} `;
-    pathD += `L 0,${yBase} `;
-    pathD += `L ${larguraBase},${yBase} `;
-    pathD += `L ${larguraBase},${yTopo} `;
-    
-    // Topo curvo
-    if (curvaturaTopo > 0) {
-      const alturaArco = Math.min(curvaturaTopo, yTopo);
-      pathD += `Q ${xCentro},${yTopo - alturaArco} 0,${yTopo} `;
-    } else {
-      pathD += `L 0,${yTopo} `;
-    }
-    
-    // Cone na base (se aplicável)
-    if (tipoCone > 0) {
-      const pontoMedioCone = yBase - aberturaCone;
-      if (tipoCone === 1) {
-        // Cone simples
-        pathD = `M 0,${yTopo} L 0,${pontoMedioCone} L ${xCentro},${yBase} L ${larguraBase},${pontoMedioCone} L ${larguraBase},${yTopo} `;
-        if (curvaturaTopo > 0) {
-          const alturaArco = Math.min(curvaturaTopo, yTopo);
-          pathD += `Q ${xCentro},${yTopo - alturaArco} 0,${yTopo}`;
-        } else {
-          pathD += `L 0,${yTopo}`;
-        }
-      } else if (tipoCone === 2) {
-        // Cone duplo (formato W)
-        const ponto1 = larguraBase * 0.25;
-        const ponto2 = larguraBase * 0.75;
-        pathD = `M 0,${yTopo} L 0,${pontoMedioCone} L ${ponto1},${yBase} L ${xCentro},${pontoMedioCone} L ${ponto2},${yBase} L ${larguraBase},${pontoMedioCone} L ${larguraBase},${yTopo} `;
-        if (curvaturaTopo > 0) {
-          const alturaArco = Math.min(curvaturaTopo, yTopo);
-          pathD += `Q ${xCentro},${yTopo - alturaArco} 0,${yTopo}`;
-        } else {
-          pathD += `L 0,${yTopo}`;
-        }
-      }
-    }
-    
-    pathD += " Z";
-    return pathD;
+    return (
+      <g id="g_des_fundo">
+        <polygon fill="#E7E7E7" points={points} />
+        <path
+          fill="#999999"
+          d="M71.6612 0.7892c-22.3726,7.3556 -44.7452,14.711 -67.1178,22.0666 -2.8377,0.9516 -4.5433,2.0295 -4.5433,3.0972 0,1.2723 2.1973,2.4833 6.1583,3.5826l65.1098 -26.4989c2.7618,-1.1944 5.9842,-1.6696 9.8636,0l65.35 26.5966c3.6894,-1.0265 5.9182,-2.2416 5.9182,-3.6803 0,-1.0677 -1.7056,-2.1456 -4.5433,-3.0972 -22.3726,-7.3556 -44.7453,-14.711 -67.1179,-22.0666 -2.9444,-1.0554 -5.9663,-1.0486 -9.0776,0z"
+          transform={`scale(${lb / 152}, ${hb / 15})`}
+        />
+        <ellipse fill="#999999" cx={lb / 2} cy={hs} rx={lb / 2} ry={hb} />
+        <ellipse fill="#CCCCCC" cx={lb / 2} cy={hs - eb} rx={lb / 2} ry={hb} />
+      </g>
+    );
   };
 
-  // Gerar path do Armazém
-  const gerarPathArmazem = () => {
-    const { 
-      larguraBase, 
-      alturaTotal, 
-      alturaParede, 
-      tipoTelhado, 
-      alturaTelhado, 
-      curvaturaTelhado, 
-      larguraEntrada, 
-      margemEntrada,
-      pontuTelhado 
-    } = configArmazem;
-    
-    const yBase = alturaTotal;
-    const yParede = alturaTotal - alturaParede;
-    const xMeio = larguraBase / 2;
-    
-    let pathD = "";
-    
-    // Base e paredes
-    pathD += `M 0,${yParede} `;
-    pathD += `L 0,${yBase} `;
-    pathD += `L ${larguraBase},${yBase} `;
-    pathD += `L ${larguraBase},${yParede} `;
-    
-    // Entrada (parte mais baixa do telhado)
-    const xEntradaInicio = (larguraBase - larguraEntrada) / 2;
-    const xEntradaFim = xEntradaInicio + larguraEntrada;
-    const yEntrada = yParede + margemEntrada;
-    
-    pathD += `L ${larguraBase - margemEntrada},${yParede} `;
-    pathD += `L ${xEntradaFim},${yEntrada} `;
-    
-    // Telhado
-    if (tipoTelhado === 0) {
-      // Telhado reto
-      pathD += `L ${xEntradaInicio},${yEntrada} `;
-    } else if (tipoTelhado === 1) {
-      // Arco simples
-      const yTopoTelhado = yParede - alturaTelhado;
-      pathD += `Q ${xMeio},${yTopoTelhado - curvaturaTelhado} ${xEntradaInicio},${yEntrada} `;
-    } else if (tipoTelhado === 2) {
-      // Arco duplo
-      const ponto1 = xEntradaInicio + (larguraEntrada * 0.25);
-      const ponto2 = xEntradaInicio + (larguraEntrada * 0.75);
-      const yTopoTelhado = yParede - alturaTelhado;
-      pathD += `Q ${ponto2},${yTopoTelhado - curvaturaTelhado} ${xMeio},${yEntrada + 10} `;
-      pathD += `Q ${ponto1},${yTopoTelhado - curvaturaTelhado} ${xEntradaInicio},${yEntrada} `;
-    } else if (tipoTelhado === 3) {
-      // Triangular (pontudo)
-      const yTopoTelhado = yParede - alturaTelhado - pontuTelhado;
-      pathD += `L ${xMeio},${yTopoTelhado} `;
-      pathD += `L ${xEntradaInicio},${yEntrada} `;
+  const renderAeradoresSilo = () => {
+    if (!configSilo.aeradores_ativo) return null;
+
+    const { na, ds, dy, da, lb, hs } = configSilo;
+    const posY = hs + dy - 30;
+    const posX = lb + ds * 2 - 31;
+    const aeradores = [];
+
+    const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z";
+    const angles = [0, 60, 120, 180, 240, 300];
+
+    for (let id = 1; id <= na; id++) {
+      let transform = "";
+      if (id === 1) transform = `translate(-73, ${posY})`;
+      else if (id === 2) transform = `translate(${posX}, ${posY})`;
+      else if (id === 3) transform = `translate(-73, ${posY - 35 - da})`;
+      else if (id === 4) transform = `translate(${posX}, ${posY - 35 - da})`;
+      else if (id === 5) transform = `translate(-73, ${posY - 70 - da * 2})`;
+      else if (id === 6) transform = `translate(${posX}, ${posY - 70 - da * 2})`;
+
+      aeradores.push(
+        <g key={id} id={`aerador_${id}`} transform={transform}>
+          <circle
+            cx={70 + 12.5 + 3.5}
+            cy={24}
+            r="10"
+            fill="#c5c5c5"
+          />
+          <rect x={70 + 3.5} y={2} width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
+          <text
+            x={70 + 12.5 + 3.5}
+            y={7}
+            textAnchor="middle"
+            dominantBaseline="central"
+            fontWeight="bold"
+            fontSize="6.5"
+            fontFamily="Arial"
+            fill="white"
+          >
+            {`AE-${id}`}
+          </text>
+          <g>
+            {angles.map((angle) => (
+              <path
+                key={angle}
+                d={dBlade}
+                fill="white"
+                transform={angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`}
+              />
+            ))}
+          </g>
+        </g>
+      );
     }
+    return aeradores;
+  };
+
+  // Funções de renderização do Armazém (baseadas no componente original)
+  const renderFundoArmazem = () => {
+    const { tipo_telhado, pb, lb, hb, hf, lf, le, ht } = configArmazem;
     
-    pathD += `L ${margemEntrada},${yParede} `;
-    pathD += `L 0,${yParede} `;
-    pathD += " Z";
+    // Base
+    const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - ((lb - lf) / 2), pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb, pb];
+    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
     
-    return pathD;
+    const polBase = (
+      <polygon
+        fill="#999999"
+        id="des_fundo"
+        points={pathBase}
+      />
+    );
+
+    // Telhado
+    let polTelhado = null;
+    if (tipo_telhado === 1) {
+      const p1_ = [(lb - lf) / 2, pb - hf],
+          p2_ = [le, pb - hb],
+          p3_ = [le, pb - ht],
+          p4_ = [lb / 2, 1],
+          p5_ = [lb - le, pb - ht],
+          p6_ = [lb - le, pb - hb],
+          p7_ = [lb - ((lb - lf) / 2), pb - hf];
+      const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
+      
+      polTelhado = (
+        <polygon
+          fill="#E6E6E6"
+          stroke="#999999"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeMiterlimit="23"
+          id="des_telhado"
+          points={pathTelhado}
+        />
+      );
+    }
+
+    return (
+      <>
+        {polTelhado}
+        {polBase}
+      </>
+    );
   };
 
   // Handlers para mudança de configuração
@@ -214,37 +253,60 @@ const ModeladorSVG = () => {
   const resetarPadrao = () => {
     if (tipoAtivo === "silo") {
       setConfigSilo({
-        larguraBase: 200,
-        alturaTotal: 300,
-        alturaCilindro: 200,
-        curvaturaTopo: 50,
-        tipoCone: 1,
-        aberturaCone: 30,
-        espessuraBorda: 15
+        lb: 200,
+        hs: 180,
+        hb: 15,
+        eb: 5,
+        escala_sensores: 16,
+        dist_y_sensores: 12,
+        pos_x_cabos_uniforme: 1,
+        pos_x_cabo: [50, 25],
+        pos_y_cabo: [160, 160, 160, 160, 160],
+        aeradores_ativo: false,
+        na: 4,
+        ds: 30,
+        dy: 0,
+        da: 35
       });
     } else {
       setConfigArmazem({
-        larguraBase: 350,
-        alturaTotal: 200,
-        alturaParede: 155,
-        tipoTelhado: 1,
-        alturaTelhado: 50,
-        curvaturaTelhado: 30,
-        larguraEntrada: 250,
-        margemEntrada: 15,
-        pontuTelhado: 50
+        pb: 185,
+        lb: 350,
+        hb: 30,
+        hf: 5,
+        lf: 250,
+        le: 15,
+        ht: 50,
+        tipo_telhado: 1,
+        escala_sensores: 16,
+        dist_y_sensores: 12,
+        pos_x_cabo: [62, 52, 158, 208, 258],
+        pos_y_cabo: [181, 181, 181, 181, 181]
       });
     }
   };
 
-  const configAtual = tipoAtivo === "silo" ? configSilo : configArmazem;
-  const pathAtual = tipoAtivo === "silo" ? gerarPathSilo() : gerarPathArmazem();
+  // Calcular dimensões do SVG
+  const calcularDimensoesSVG = () => {
+    if (tipoAtivo === "silo") {
+      const largura = configSilo.lb + (configSilo.aeradores_ativo ? configSilo.ds * 2 + 68 : 0);
+      const altura = configSilo.hs + configSilo.hb * 1.75;
+      return [largura, altura];
+    } else {
+      return [configArmazem.lb, configArmazem.pb];
+    }
+  };
+
+  const [larguraSVG, alturaSVG] = calcularDimensoesSVG();
+  const transformSilo = (tipoAtivo === "silo" && configSilo.aeradores_ativo) 
+    ? `translate(${configSilo.ds + 34}, 0)` 
+    : "";
 
   return (
     <div className="container-fluid">
       <div className="row">
         <div className="col-12">
-          <h1 className="text-center mb-4">Modelador de SVG - Silo e Armazém</h1>
+          <h1 className="text-center mb-4">Modelador de SVG - Baseado nos Componentes Originais</h1>
         </div>
       </div>
       
@@ -272,195 +334,199 @@ const ModeladorSVG = () => {
               {/* Controles para Silo */}
               {tipoAtivo === "silo" && (
                 <>
+                  <h6 className="mt-3">Dimensões do Silo</h6>
                   <div className="mb-3">
-                    <label className="form-label">Largura da Base: {configSilo.larguraBase}px</label>
+                    <label className="form-label">Largura Base (lb): {configSilo.lb}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="100"
                       max="400"
-                      value={configSilo.larguraBase}
-                      onChange={(e) => handleSiloChange("larguraBase", e.target.value)}
+                      value={configSilo.lb}
+                      onChange={(e) => handleSiloChange("lb", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Altura Total: {configSilo.alturaTotal}px</label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="200"
-                      max="500"
-                      value={configSilo.alturaTotal}
-                      onChange={(e) => handleSiloChange("alturaTotal", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Altura do Cilindro: {configSilo.alturaCilindro}px</label>
+                    <label className="form-label">Altura Superior (hs): {configSilo.hs}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="100"
-                      max="400"
-                      value={configSilo.alturaCilindro}
-                      onChange={(e) => handleSiloChange("alturaCilindro", e.target.value)}
+                      max="300"
+                      value={configSilo.hs}
+                      onChange={(e) => handleSiloChange("hs", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Curvatura do Topo: {configSilo.curvaturaTopo}px</label>
+                    <label className="form-label">Altura Base (hb): {configSilo.hb}px</label>
                     <input
                       type="range"
                       className="form-range"
-                      min="0"
-                      max="100"
-                      value={configSilo.curvaturaTopo}
-                      onChange={(e) => handleSiloChange("curvaturaTopo", e.target.value)}
+                      min="5"
+                      max="30"
+                      value={configSilo.hb}
+                      onChange={(e) => handleSiloChange("hb", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Tipo de Cone:</label>
-                    <select 
-                      className="form-select" 
-                      value={configSilo.tipoCone} 
-                      onChange={(e) => handleSiloChange("tipoCone", e.target.value)}
-                    >
-                      <option value="0">Reto</option>
-                      <option value="1">Cone Simples (V)</option>
-                      <option value="2">Cone Duplo (W)</option>
-                    </select>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Abertura do Cone: {configSilo.aberturaCone}px</label>
+                    <label className="form-label">Espessura Borda (eb): {configSilo.eb}px</label>
                     <input
                       type="range"
                       className="form-range"
-                      min="10"
-                      max="100"
-                      value={configSilo.aberturaCone}
-                      onChange={(e) => handleSiloChange("aberturaCone", e.target.value)}
+                      min="2"
+                      max="15"
+                      value={configSilo.eb}
+                      onChange={(e) => handleSiloChange("eb", e.target.value)}
                     />
                   </div>
+
+                  <h6 className="mt-3">Aeradores</h6>
+                  <div className="mb-3">
+                    <div className="form-check">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={configSilo.aeradores_ativo}
+                        onChange={(e) => handleSiloChange("aeradores_ativo", e.target.checked ? 1 : 0)}
+                      />
+                      <label className="form-check-label">
+                        Ativar Aeradores
+                      </label>
+                    </div>
+                  </div>
+
+                  {configSilo.aeradores_ativo && (
+                    <>
+                      <div className="mb-3">
+                        <label className="form-label">Número de Aeradores: {configSilo.na}</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="2"
+                          max="6"
+                          value={configSilo.na}
+                          onChange={(e) => handleSiloChange("na", e.target.value)}
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Deslocamento Lateral (ds): {configSilo.ds}px</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="60"
+                          value={configSilo.ds}
+                          onChange={(e) => handleSiloChange("ds", e.target.value)}
+                        />
+                      </div>
+
+                      <div className="mb-3">
+                        <label className="form-label">Distância entre Aeradores (da): {configSilo.da}px</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="20"
+                          max="60"
+                          value={configSilo.da}
+                          onChange={(e) => handleSiloChange("da", e.target.value)}
+                        />
+                      </div>
+                    </>
+                  )}
                 </>
               )}
 
               {/* Controles para Armazém */}
               {tipoAtivo === "armazem" && (
                 <>
+                  <h6 className="mt-3">Dimensões do Armazém</h6>
                   <div className="mb-3">
-                    <label className="form-label">Largura da Base: {configArmazem.larguraBase}px</label>
+                    <label className="form-label">Largura Base (lb): {configArmazem.lb}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="200"
                       max="500"
-                      value={configArmazem.larguraBase}
-                      onChange={(e) => handleArmazemChange("larguraBase", e.target.value)}
+                      value={configArmazem.lb}
+                      onChange={(e) => handleArmazemChange("lb", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Altura Total: {configArmazem.alturaTotal}px</label>
+                    <label className="form-label">Posição Base (pb): {configArmazem.pb}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="150"
-                      max="400"
-                      value={configArmazem.alturaTotal}
-                      onChange={(e) => handleArmazemChange("alturaTotal", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Altura da Parede: {configArmazem.alturaParede}px</label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="100"
                       max="300"
-                      value={configArmazem.alturaParede}
-                      onChange={(e) => handleArmazemChange("alturaParede", e.target.value)}
+                      value={configArmazem.pb}
+                      onChange={(e) => handleArmazemChange("pb", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Tipo de Telhado:</label>
-                    <select 
-                      className="form-select" 
-                      value={configArmazem.tipoTelhado} 
-                      onChange={(e) => handleArmazemChange("tipoTelhado", e.target.value)}
-                    >
-                      <option value="0">Reto</option>
-                      <option value="1">Arco Simples</option>
-                      <option value="2">Arco Duplo</option>
-                      <option value="3">Triangular (Pontudo)</option>
-                    </select>
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Altura do Telhado: {configArmazem.alturaTelhado}px</label>
+                    <label className="form-label">Altura Base (hb): {configArmazem.hb}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="20"
-                      max="100"
-                      value={configArmazem.alturaTelhado}
-                      onChange={(e) => handleArmazemChange("alturaTelhado", e.target.value)}
+                      max="60"
+                      value={configArmazem.hb}
+                      onChange={(e) => handleArmazemChange("hb", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Curvatura do Telhado: {configArmazem.curvaturaTelhado}px</label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="0"
-                      max="80"
-                      value={configArmazem.curvaturaTelhado}
-                      onChange={(e) => handleArmazemChange("curvaturaTelhado", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="mb-3">
-                    <label className="form-label">Largura da Entrada: {configArmazem.larguraEntrada}px</label>
+                    <label className="form-label">Largura Frente (lf): {configArmazem.lf}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="100"
                       max="400"
-                      value={configArmazem.larguraEntrada}
-                      onChange={(e) => handleArmazemChange("larguraEntrada", e.target.value)}
+                      value={configArmazem.lf}
+                      onChange={(e) => handleArmazemChange("lf", e.target.value)}
                     />
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label">Margem da Entrada: {configArmazem.margemEntrada}px</label>
+                    <label className="form-label">Altura Frente (hf): {configArmazem.hf}px</label>
+                    <input
+                      type="range"
+                      className="form-range"
+                      min="2"
+                      max="20"
+                      value={configArmazem.hf}
+                      onChange={(e) => handleArmazemChange("hf", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label">Largura Entrada (le): {configArmazem.le}px</label>
                     <input
                       type="range"
                       className="form-range"
                       min="5"
                       max="50"
-                      value={configArmazem.margemEntrada}
-                      onChange={(e) => handleArmazemChange("margemEntrada", e.target.value)}
+                      value={configArmazem.le}
+                      onChange={(e) => handleArmazemChange("le", e.target.value)}
                     />
                   </div>
 
-                  {configArmazem.tipoTelhado === 3 && (
-                    <div className="mb-3">
-                      <label className="form-label">Ponto do Telhado: {configArmazem.pontuTelhado}px</label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="0"
-                        max="100"
-                        value={configArmazem.pontuTelhado}
-                        onChange={(e) => handleArmazemChange("pontuTelhado", e.target.value)}
-                      />
-                    </div>
-                  )}
+                  <div className="mb-3">
+                    <label className="form-label">Altura Telhado (ht): {configArmazem.ht}px</label>
+                    <input
+                      type="range"
+                      className="form-range"
+                      min="20"
+                      max="100"
+                      value={configArmazem.ht}
+                      onChange={(e) => handleArmazemChange("ht", e.target.value)}
+                    />
+                  </div>
                 </>
               )}
 
@@ -506,26 +572,28 @@ const ModeladorSVG = () => {
               <svg
                 width="100%"
                 height="400"
-                viewBox={`0 0 ${configAtual.larguraBase || 400} ${configAtual.alturaTotal || 400}`}
+                viewBox={`0 0 ${larguraSVG} ${alturaSVG}`}
                 style={{
                   border: "1px solid #ddd",
-                  backgroundColor: "#f8f9fa"
+                  backgroundColor: "#f8f9fa",
+                  shapeRendering: "geometricPrecision",
+                  textRendering: "geometricPrecision",
+                  imageRendering: "optimizeQuality",
+                  fillRule: "evenodd",
+                  clipRule: "evenodd"
                 }}
+                xmlns="http://www.w3.org/2000/svg"
               >
-                <defs>
-                  <linearGradient id="gradientFill" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#e3f2fd" />
-                    <stop offset="50%" stopColor="#bbdefb" />
-                    <stop offset="100%" stopColor="#90caf9" />
-                  </linearGradient>
-                </defs>
-                <path
-                  d={pathAtual}
-                  fill="url(#gradientFill)"
-                  stroke="#1976d2"
-                  strokeWidth="2"
-                  strokeLinejoin="round"
-                />
+                {tipoAtivo === "silo" ? (
+                  <>
+                    <g transform={transformSilo}>
+                      {renderFundoSilo()}
+                    </g>
+                    {renderAeradoresSilo()}
+                  </>
+                ) : (
+                  renderFundoArmazem()
+                )}
               </svg>
             </div>
           </div>
