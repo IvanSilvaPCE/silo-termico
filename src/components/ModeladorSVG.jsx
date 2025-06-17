@@ -156,42 +156,54 @@ const ModeladorSVG = () => {
 
   const renderSensoresArmazem = () => {
     const configCelula = obterConfiguracaoCelula(celulaAtual);
-    const posicoes = configArmazem.posicionamento_automatico ? 
-      gerarPosicoesCelula(configCelula.qtdPendulos) : 
-      configArmazem.pos_x_cabo.slice(0, configCelula.qtdPendulos);
+    const posicoes = gerarPosicoesCelula(configCelula.qtdPendulos);
     
     const elementos = [];
 
-    // Renderizar pêndulos da célula atual
+    // Dados de exemplo do ArmazemSVG para simular sensores
+    const dadosExemplo = {
+      "1": { "1": [28.5, false, false, false, true], "2": [27.5, false, false, false, true], "3": [28.5, false, false, false, true], "4": [28, false, false, false, true], "5": [29, false, false, false, true] },
+      "2": { "1": [28.5, false, false, false, true], "2": [28, false, false, false, true], "3": [28.5, false, false, false, true], "4": [28.5, false, false, false, true], "5": [29, false, false, false, true], "6": [30, false, false, false, true], "7": [30, false, false, false, true] },
+      "3": { "1": [29.5, false, false, false, true], "2": [28.5, false, false, false, true], "3": [29, false, false, false, true], "4": [28.5, false, false, false, true], "5": [29, false, false, false, true], "6": [30.5, false, false, false, true], "7": [29.5, false, false, false, true], "8": [30, false, false, false, true], "9": [29, false, false, false, true] },
+      "4": { "1": [28, false, false, false, true], "2": [27.5, false, false, false, true], "3": [28.5, false, false, false, true], "4": [28.5, false, false, false, true], "5": [29.5, false, false, false, true], "6": [30, false, false, false, true], "7": [29.5, false, false, false, true] },
+      "5": { "1": [29, false, false, false, true], "2": [28.5, false, false, false, true], "3": [29.5, false, false, false, true], "4": [28, false, false, false, true], "5": [29, false, false, false, true] }
+    };
+
+    // Renderizar pêndulos da célula atual usando o mesmo padrão do ArmazemSVG
     for (let p = 0; p < configCelula.qtdPendulos; p++) {
       const numeroPendulo = p + 1;
-      const xCabo = posicoes[p] || (50 + p * 60);
+      const pendId = numeroPendulo.toString();
+      const xCabo = posicoes[p];
       const yCabo = configArmazem.pos_y_cabo[0] || 181;
+      
+      // Dados do pêndulo atual (cíclico caso não tenha dados suficientes)
+      const dadosPendulo = dadosExemplo[pendId] || dadosExemplo["1"];
+      const numSensores = Object.keys(dadosPendulo).length;
 
-      // Retângulo do pêndulo
+      // Retângulo do nome do pêndulo (igual ao ArmazemSVG)
       elementos.push(
         <rect
           key={`pendulo-${numeroPendulo}`}
-          x={xCabo - 8}
+          x={xCabo - configArmazem.escala_sensores/2}
           y={yCabo}
-          width={16}
-          height={8}
+          width={configArmazem.escala_sensores}
+          height={configArmazem.escala_sensores/2}
           rx="2"
           ry="2"
           fill="#3A78FD"
         />
       );
 
-      // Nome do pêndulo
+      // Texto do nome do pêndulo
       elementos.push(
         <text
           key={`texto-pendulo-${numeroPendulo}`}
           x={xCabo}
-          y={yCabo + 6}
+          y={yCabo + configArmazem.escala_sensores/4}
           textAnchor="middle"
           dominantBaseline="central"
           fontWeight="bold"
-          fontSize="6"
+          fontSize={configArmazem.escala_sensores * 0.4 - 0.5}
           fontFamily="Arial"
           fill="white"
         >
@@ -199,44 +211,98 @@ const ModeladorSVG = () => {
         </text>
       );
 
-      // Indicador da célula
+      // Texto com número de pêndulos (igual ao ArmazemSVG)
       elementos.push(
         <text
-          key={`celula-${numeroPendulo}`}
+          key={`num-pendulos-${numeroPendulo}`}
           x={xCabo}
-          y={yCabo + 20}
+          y={yCabo + 35}
           textAnchor="middle"
           dominantBaseline="central"
           fontWeight="bold"
-          fontSize="4"
+          fontSize={configArmazem.escala_sensores * 0.3}
           fontFamily="Arial"
-          fill={configCelula.tipo === 'ímpar' ? "#0066cc" : "#009900"}
+          fill="white"
         >
-          Célula {celulaAtual}
+          {numSensores} Pendulos
         </text>
       );
 
-      // Sensores simulados (representando que terão sensores dos dados)
-      const maxSensores = 8; // máximo de sensores para visualização
-      for (let s = 1; s <= maxSensores; s++) {
-        const ySensor = yCabo - (s * configArmazem.dist_y_sensores);
-        if (ySensor > 20) {
+      // Renderizar sensores do pêndulo atual
+      Object.entries(dadosPendulo).forEach(([sensorKey, valores], sensorIndex) => {
+        const s = parseInt(sensorKey);
+        const [temp, , , falha, nivel] = valores;
+        
+        const ySensor = yCabo - configArmazem.dist_y_sensores * s - 12;
+        
+        // Só renderizar se estiver dentro dos limites visíveis
+        if (ySensor > 10) {
+          // Determinar cor do sensor baseado na temperatura
+          let corSensor = "#ccc";
+          if (nivel) {
+            if (temp < 12) corSensor = "#0384fc";
+            else if (temp < 15) corSensor = "#03e8fc";
+            else if (temp < 17) corSensor = "#03fcbe";
+            else if (temp < 21) corSensor = "#07fc03";
+            else if (temp < 25) corSensor = "#c3ff00";
+            else if (temp < 27) corSensor = "#fcf803";
+            else if (temp < 30) corSensor = "#ffb300";
+            else if (temp < 35) corSensor = "#ff2200";
+            else if (temp < 50) corSensor = "#ff0090";
+            else corSensor = "#f700ff";
+          } else {
+            corSensor = "#e6e6e6";
+          }
+
+          // Retângulo do sensor
           elementos.push(
             <rect
               key={`sensor-${numeroPendulo}-${s}`}
-              x={xCabo - 6}
+              x={xCabo - configArmazem.escala_sensores/2}
               y={ySensor}
-              width={12}
-              height={6}
-              rx="1"
-              ry="1"
-              fill="#cccccc"
-              stroke="#666"
-              strokeWidth="0.5"
+              width={configArmazem.escala_sensores}
+              height={configArmazem.escala_sensores/2}
+              rx="2"
+              ry="2"
+              fill={corSensor}
+              stroke="black"
+              strokeWidth="1"
             />
           );
+
+          // Texto do valor do sensor
+          elementos.push(
+            <text
+              key={`texto-sensor-${numeroPendulo}-${s}`}
+              x={xCabo}
+              y={ySensor + configArmazem.escala_sensores/4}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={configArmazem.escala_sensores * 0.4 - 0.5}
+              fontFamily="Arial"
+              fill={corSensor === "#ff2200" ? "white" : "black"}
+            >
+              {falha ? "ERRO" : temp.toFixed(1)}
+            </text>
+          );
+
+          // Nome do sensor (S1, S2, etc.)
+          elementos.push(
+            <text
+              key={`nome-sensor-${numeroPendulo}-${s}`}
+              x={xCabo - configArmazem.escala_sensores/2 - 2}
+              y={ySensor + configArmazem.escala_sensores/4}
+              textAnchor="end"
+              dominantBaseline="central"
+              fontSize={configArmazem.escala_sensores * 0.4 - 1.5}
+              fontFamily="Arial"
+              fill="black"
+            >
+              S{s}
+            </text>
+          );
         }
-      }
+      });
     }
 
     return elementos;
@@ -431,20 +497,22 @@ const ModeladorSVG = () => {
     };
   };
 
-  // Função para gerar posições dos pêndulos em uma célula
+  // Função para gerar posições dos pêndulos em uma célula (baseado no ArmazemSVG)
   const gerarPosicoesCelula = (qtdPendulos) => {
     const { lb } = configArmazem;
+    
+    if (qtdPendulos === 1) {
+      return [lb / 2];
+    }
+    
+    // Usar a mesma lógica de espaçamento do ArmazemSVG
     const margemLateral = 50;
     const larguraUtil = lb - (margemLateral * 2);
-    const espacamento = qtdPendulos > 1 ? larguraUtil / (qtdPendulos - 1) : 0;
+    const espacamento = larguraUtil / (qtdPendulos - 1);
     
     const posicoes = [];
     for (let i = 0; i < qtdPendulos; i++) {
-      if (qtdPendulos === 1) {
-        posicoes.push(lb / 2);
-      } else {
-        posicoes.push(margemLateral + (espacamento * i));
-      }
+      posicoes.push(margemLateral + (espacamento * i));
     }
     
     return posicoes;
