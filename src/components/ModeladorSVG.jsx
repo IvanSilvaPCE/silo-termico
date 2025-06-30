@@ -215,6 +215,9 @@ const ModeladorSVG = () => {
       const yCabo = (configArmazem.pos_y_cabo[0] || 181) + 10; // Desceu 10px
       const numSensores = pendulo.totalSensores;
 
+      const numeroPendulo = pendulo.numero;
+      const dadosPendulo = pendulo.sensores;
+
       // Retângulo do nome do pêndulo (igual ao ArmazemSVG)
       elementos.push(
         <rect
@@ -245,8 +248,6 @@ const ModeladorSVG = () => {
           P{numeroPendulo}
         </text>
       );
-
-      
 
       // Renderizar sensores do pêndulo atual
       Object.entries(dadosPendulo).forEach(([sensorKey, valores], sensorIndex) => {
