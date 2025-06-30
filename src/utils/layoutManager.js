@@ -246,6 +246,31 @@ class LayoutManager {
     return celulas;
   }
 
+  // Gerar distribuição piramidal de sensores
+  static gerarDistribuicaoPiramidal(totalPendulos, totalSensores) {
+    if (totalPendulos === 1) return [totalSensores];
+    
+    const minSensores = 5;
+    const distribuicao = new Array(totalPendulos).fill(minSensores);
+    let sensoresRestantes = totalSensores - (totalPendulos * minSensores);
+    
+    const centro = Math.floor(totalPendulos / 2);
+    for (let offset = 0; offset <= centro && sensoresRestantes > 0; offset++) {
+      const indices = offset === 0 ? [centro] : 
+                     totalPendulos % 2 === 1 ? [centro - offset, centro + offset] :
+                     offset === 1 ? [centro - 1, centro] : [centro - offset, centro + offset - 1];
+      
+      indices.forEach(idx => {
+        if (idx >= 0 && idx < totalPendulos && sensoresRestantes > 0) {
+          distribuicao[idx]++;
+          sensoresRestantes--;
+        }
+      });
+    }
+    
+    return distribuicao;
+  }
+
   // Gerar dados exemplo para ArmazemPortal
   static gerarDadosExemploPortal() {
     const totalPendulos = 57;

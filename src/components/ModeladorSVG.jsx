@@ -211,22 +211,7 @@ const ModeladorSVG = () => {
         </text>
       );
 
-      // Texto com número de pêndulos (igual ao ArmazemSVG)
-      elementos.push(
-        <text
-          key={`num-pendulos-${numeroPendulo}`}
-          x={xCabo}
-          y={yCabo + 35}
-          textAnchor="middle"
-          dominantBaseline="central"
-          fontWeight="bold"
-          fontSize={configArmazem.escala_sensores * 0.3}
-          fontFamily="Arial"
-          fill="white"
-        >
-          {numSensores} Pendulos
-        </text>
-      );
+      
 
       // Renderizar sensores do pêndulo atual
       Object.entries(dadosPendulo).forEach(([sensorKey, valores], sensorIndex) => {

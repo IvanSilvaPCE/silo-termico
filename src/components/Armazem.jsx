@@ -37,7 +37,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
             ctrl_p1: [60, 30],
             ctrl_p2: [97, 10],
         },
-        cabos: { "1": 5, "2": 7, "3": 9, "4": 7, "5": 5 },
+        cabos: { "1": 5, "2": 8, "3": 11, "4": 8, "5": 5 }, // Distribuição piramidal
     };
 
     // Atualizar dados internos quando props mudam
@@ -164,113 +164,89 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         svgEl.appendChild(polBase);
     }
 
+    // Função para gerar distribuição piramidal de sensores
+    function gerarDistribuicaoPiramidal(totalPendulos, totalSensores) {
+        if (totalPendulos === 1) return [totalSensores];
+        
+        const minSensores = 5; // Mínimo nas pontas
+        const distribuicao = new Array(totalPendulos).fill(minSensores);
+        let sensoresRestantes = totalSensores - (totalPendulos * minSensores);
+        
+        // Distribuir sensores extras priorizando o centro
+        const centro = Math.floor(totalPendulos / 2);
+        for (let offset = 0; offset <= centro && sensoresRestantes > 0; offset++) {
+            const indices = offset === 0 ? [centro] : 
+                           totalPendulos % 2 === 1 ? [centro - offset, centro + offset] :
+                           offset === 1 ? [centro - 1, centro] : [centro - offset, centro + offset - 1];
+            
+            indices.forEach(idx => {
+                if (idx >= 0 && idx < totalPendulos && sensoresRestantes > 0) {
+                    distribuicao[idx]++;
+                    sensoresRestantes--;
+                }
+            });
+        }
+        
+        return distribuicao;
+    }
+
     function desenhaSensores(layout) {
         const svgEl = document.getElementById("des_arco_armazem");
         const cabosIds = Object.keys(layout.cabos);
+        const { escala_sensores, dist_y_sensores } = layout.desenho_sensores;
+        const { pb, lb, hb } = layout.desenho_arco;
+        
+        // Calcular distribuição piramidal
+        const totalSensores = Object.values(layout.cabos).reduce((a, b) => a + b, 0);
+        const distribuicao = gerarDistribuicaoPiramidal(cabosIds.length, totalSensores);
+        
+        // Posicionar pêndulos fixos abaixo do layout
+        const yPendulo = pb - hb - 5;
+        const espacamento = (lb - 100) / Math.max(1, cabosIds.length - 1);
+        const xInicial = 50;
+        
         cabosIds.forEach((id, i) => {
-            const retNome = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            retNome.setAttribute("id", `C${i + 1}`);
-            retNome.setAttribute("width", layout.desenho_sensores.escala_sensores);
-            retNome.setAttribute("height", layout.desenho_sensores.escala_sensores / 2);
-            retNome.setAttribute("rx", "2");
-            retNome.setAttribute("ry", "2");
-            retNome.setAttribute("fill", "#3A78FD");
-            retNome.setAttribute("x", 50 + i * 60);
-            retNome.setAttribute("y", 185);
-
-            const txtNome = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            txtNome.setAttribute("id", `TC${i + 1}`);
-            txtNome.setAttribute("text-anchor", "middle");
-            txtNome.setAttribute("dominant-baseline", "central");
-            txtNome.setAttribute("font-weight", "bold");
-            txtNome.setAttribute(
-                "font-size",
-                layout.desenho_sensores.escala_sensores * 0.4 - 0.5
-            );
-            txtNome.setAttribute("font-family", "Arial");
-            txtNome.textContent = `P${id}`;
-            txtNome.setAttribute("fill", "white");
-            txtNome.setAttribute(
-                "x",
-                parseFloat(retNome.getAttribute("x")) + layout.desenho_sensores.escala_sensores / 2
-            );
-            txtNome.setAttribute(
-                "y",
-                parseFloat(retNome.getAttribute("y")) + layout.desenho_sensores.escala_sensores / 4
-            );
-
-            svgEl.appendChild(retNome);
-            svgEl.appendChild(txtNome);
-
-            const numSensores = layout.cabos[id];
-            const txtNumPendulos = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            txtNumPendulos.setAttribute("id", `TPEND${i + 1}`);
-            txtNumPendulos.setAttribute("text-anchor", "middle");
-            txtNumPendulos.setAttribute("dominant-baseline", "central");
-            txtNumPendulos.setAttribute("font-weight", "bold");
-            txtNumPendulos.setAttribute(
-                "font-size",
-                layout.desenho_sensores.escala_sensores * 0.3
-            );
-            txtNumPendulos.setAttribute("font-family", "Arial");
-            txtNumPendulos.textContent = `${numSensores} Pendulos`;
-            txtNumPendulos.setAttribute("fill", "white");
-            txtNumPendulos.setAttribute("x", txtNome.getAttribute("x"));
-            txtNumPendulos.setAttribute(
-                "y",
-                parseFloat(txtNome.getAttribute("y")) + 35
-            );
-            svgEl.appendChild(txtNumPendulos);
-
+            const xCabo = xInicial + (i * espacamento);
+            const numSensores = distribuicao[i];
+            
+            // Pêndulo fixo abaixo
+            const elementos = [
+                { tipo: 'rect', attrs: { id: `C${i + 1}`, x: xCabo - escala_sensores/2, y: yPendulo, 
+                    width: escala_sensores, height: escala_sensores/2, rx: "2", ry: "2", fill: "#3A78FD" }},
+                { tipo: 'text', attrs: { id: `TC${i + 1}`, x: xCabo, y: yPendulo + escala_sensores/4,
+                    'text-anchor': "middle", 'dominant-baseline': "central", 'font-weight': "bold",
+                    'font-size': escala_sensores * 0.4 - 0.5, 'font-family': "Arial", fill: "white" },
+                    texto: `P${id}` }
+            ];
+            
+            // Sensores dentro do layout
+            const yMaxSensor = yPendulo - 15;
+            const alturaDisponivel = yMaxSensor - 20; // Margem superior
+            const espacamentoSensor = Math.min(dist_y_sensores, alturaDisponivel / numSensores);
+            
             for (let s = 1; s <= numSensores; s++) {
-                const recSensor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-                recSensor.setAttribute("id", `C${i + 1}S${s}`);
-                recSensor.setAttribute("width", layout.desenho_sensores.escala_sensores);
-                recSensor.setAttribute("height", layout.desenho_sensores.escala_sensores / 2);
-                recSensor.setAttribute("rx", "2");
-                recSensor.setAttribute("ry", "2");
-                recSensor.setAttribute("fill", "#ccc");
-                recSensor.setAttribute("x", retNome.getAttribute("x"));
-                const ySensor =
-                    parseFloat(retNome.getAttribute("y")) - layout.desenho_sensores.dist_y_sensores * s - 12;
-                recSensor.setAttribute("y", Math.max(ySensor, 10));
-                recSensor.setAttribute("stroke", "black");
-                recSensor.setAttribute("stroke-width", "1");
-
-                const txtSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                txtSensor.setAttribute("id", `TC${i + 1}S${s}`);
-                txtSensor.setAttribute("text-anchor", "middle");
-                txtSensor.setAttribute("dominant-baseline", "central");
-                txtSensor.setAttribute("font-size", layout.desenho_sensores.escala_sensores * 0.4 - 0.5);
-                txtSensor.setAttribute("font-family", "Arial");
-                txtSensor.textContent = "0";
-                txtSensor.setAttribute(
-                    "x",
-                    parseFloat(recSensor.getAttribute("x")) + layout.desenho_sensores.escala_sensores / 2
+                const ySensor = yMaxSensor - (espacamentoSensor * s);
+                
+                elementos.push(
+                    { tipo: 'rect', attrs: { id: `C${i + 1}S${s}`, x: xCabo - escala_sensores/2, y: ySensor,
+                        width: escala_sensores, height: escala_sensores/2, rx: "2", ry: "2", fill: "#ccc",
+                        stroke: "black", 'stroke-width': "1" }},
+                    { tipo: 'text', attrs: { id: `TC${i + 1}S${s}`, x: xCabo, y: ySensor + escala_sensores/4,
+                        'text-anchor': "middle", 'dominant-baseline': "central", 'font-size': escala_sensores * 0.4 - 0.5,
+                        'font-family': "Arial" }, texto: "0" },
+                    { tipo: 'text', attrs: { id: `TIND${i + 1}S${s}`, x: xCabo - escala_sensores/2 - 2, y: ySensor + escala_sensores/4,
+                        'text-anchor': "end", 'dominant-baseline': "central", 'font-size': escala_sensores * 0.4 - 1.5,
+                        'font-family': "Arial", fill: "black" }, texto: `S${s}` }
                 );
-                txtSensor.setAttribute(
-                    "y",
-                    parseFloat(recSensor.getAttribute("y")) + layout.desenho_sensores.escala_sensores / 4
-                );
-
-                const txtSensorName = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                txtSensorName.setAttribute("id", `TIND${i + 1}S${s}`);
-                txtSensorName.setAttribute("text-anchor", "end");
-                txtSensorName.setAttribute("dominant-baseline", "central");
-                txtSensorName.setAttribute("font-size", layout.desenho_sensores.escala_sensores * 0.4 - 1.5);
-                txtSensorName.setAttribute("font-family", "Arial");
-                txtSensorName.textContent = `S${s}`;
-                txtSensorName.setAttribute("fill", "black");
-                txtSensorName.setAttribute("x", parseFloat(recSensor.getAttribute("x")) - 2);
-                txtSensorName.setAttribute(
-                    "y",
-                    parseFloat(recSensor.getAttribute("y")) + layout.desenho_sensores.escala_sensores / 4
-                );
-
-                svgEl.appendChild(recSensor);
-                svgEl.appendChild(txtSensor);
-                svgEl.appendChild(txtSensorName);
             }
+            
+            // Criar elementos no DOM
+            elementos.forEach(({ tipo, attrs, texto }) => {
+                const el = document.createElementNS("http://www.w3.org/2000/svg", tipo);
+                Object.entries(attrs).forEach(([key, value]) => el.setAttribute(key, value));
+                if (texto) el.textContent = texto;
+                svgEl.appendChild(el);
+            });
         });
     }
 
@@ -373,14 +349,12 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     }
 
     function atualizarSensores(dadosArco) {
-        const cabosIds = Object.keys(dadosArco.leitura);
-        cabosIds.forEach((idCabo, i) => {
-            const sensores = dadosArco.leitura[idCabo];
-            Object.keys(sensores).forEach((s) => {
-                const [temp, , , falha, nivel] = sensores[s];
+        Object.entries(dadosArco.leitura).forEach(([idCabo, sensores], i) => {
+            Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
                 const rec = document.getElementById(`C${i + 1}S${s}`);
                 const txt = document.getElementById(`TC${i + 1}S${s}`);
                 if (!rec || !txt) return;
+                
                 txt.textContent = falha ? "ERRO" : temp.toFixed(1);
                 if (!nivel) {
                     rec.setAttribute("fill", "#e6e6e6");
