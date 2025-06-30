@@ -323,7 +323,7 @@ const ModeladorSVG = () => {
           );
         }
       });
-    }
+    });
 
     return elementos;
   };
