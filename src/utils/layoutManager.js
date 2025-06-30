@@ -194,37 +194,92 @@ class LayoutManager {
     return this.layoutsArmazemPortal;
   }
 
+  // Analisar estrutura dos arcos automaticamente
+  static analisarEstruturaArcos(dadosPortal) {
+    if (!dadosPortal?.arcos) return null;
+
+    const analise = {
+      totalArcos: Object.keys(dadosPortal.arcos).length,
+      arcos: {},
+      estatisticas: {
+        totalPendulos: 0,
+        totalSensores: 0,
+        pendulosPorArco: [],
+        sensoresPorPendulo: []
+      }
+    };
+
+    Object.entries(dadosPortal.arcos).forEach(([numeroArco, pendulos]) => {
+      const pendulosDoArco = Object.keys(pendulos);
+      const infoArco = {
+        numeroArco: parseInt(numeroArco),
+        pendulos: [],
+        totalPendulos: pendulosDoArco.length,
+        totalSensores: 0
+      };
+
+      pendulosDoArco.forEach(numeroPendulo => {
+        const sensores = pendulos[numeroPendulo];
+        const numerosSensores = Object.keys(sensores);
+        const infoPendulo = {
+          numero: parseInt(numeroPendulo),
+          totalSensores: numerosSensores.length,
+          sensores: sensores
+        };
+
+        infoArco.pendulos.push(infoPendulo);
+        infoArco.totalSensores += infoPendulo.totalSensores;
+        analise.estatisticas.sensoresPorPendulo.push(infoPendulo.totalSensores);
+      });
+
+      analise.arcos[numeroArco] = infoArco;
+      analise.estatisticas.totalPendulos += infoArco.totalPendulos;
+      analise.estatisticas.totalSensores += infoArco.totalSensores;
+      analise.estatisticas.pendulosPorArco.push(infoArco.totalPendulos);
+    });
+
+    return analise;
+  }
+
   // Converter dados do ArmazemPortal para o formato esperado pelo componente
-  static converterDadosPortalParaArmazem(dadosPortal) {
+  static converterDadosPortalParaArmazem(dadosPortal, arcoAtual = 1) {
     if (!dadosPortal) return null;
 
     const dadosConvertidos = { leitura: {} };
 
-    // Converter dados detalhados dos arcos (tem prioridade)
-    Object.entries(dadosPortal.arcos || {}).forEach(([arco, pendulos]) => {
+    // Se arcoAtual for especificado, mostrar apenas esse arco
+    if (arcoAtual && dadosPortal.arcos?.[arcoAtual]) {
+      const pendulos = dadosPortal.arcos[arcoAtual];
       Object.entries(pendulos).forEach(([pendulo, sensores]) => {
-        if (!dadosConvertidos.leitura[pendulo]) {
-          dadosConvertidos.leitura[pendulo] = {};
-        }
-        
-        // sensores = { "1": [temp, alarme, pre_alarme, falha, ativo], ... }
-        Object.entries(sensores).forEach(([sensor, dadosSensor]) => {
-          dadosConvertidos.leitura[pendulo][sensor] = dadosSensor;
+        dadosConvertidos.leitura[pendulo] = sensores;
+      });
+    } else {
+      // Converter dados detalhados dos arcos (tem prioridade)
+      Object.entries(dadosPortal.arcos || {}).forEach(([arco, pendulos]) => {
+        Object.entries(pendulos).forEach(([pendulo, sensores]) => {
+          if (!dadosConvertidos.leitura[pendulo]) {
+            dadosConvertidos.leitura[pendulo] = {};
+          }
+          
+          // sensores = { "1": [temp, alarme, pre_alarme, falha, ativo], ... }
+          Object.entries(sensores).forEach(([sensor, dadosSensor]) => {
+            dadosConvertidos.leitura[pendulo][sensor] = dadosSensor;
+          });
         });
       });
-    });
 
-    // Para pêndulos que só estão em pendulos (sem dados detalhados), usar dados básicos
-    Object.entries(dadosPortal.pendulos || {}).forEach(([pendulo, dados]) => {
-      if (!dadosConvertidos.leitura[pendulo]) {
-        // dados = [alarme, pre_alarme, ativo, temperatura_maxima]
-        const [alarme, preAlarme, ativo, tempMaxima] = dados;
-        
-        dadosConvertidos.leitura[pendulo] = {
-          "1": [tempMaxima, alarme, preAlarme, false, ativo]
-        };
-      }
-    });
+      // Para pêndulos que só estão em pendulos (sem dados detalhados), usar dados básicos
+      Object.entries(dadosPortal.pendulos || {}).forEach(([pendulo, dados]) => {
+        if (!dadosConvertidos.leitura[pendulo]) {
+          // dados = [alarme, pre_alarme, ativo, temperatura_maxima]
+          const [alarme, preAlarme, ativo, tempMaxima] = dados;
+          
+          dadosConvertidos.leitura[pendulo] = {
+            "1": [tempMaxima, alarme, preAlarme, false, ativo]
+          };
+        }
+      });
+    }
 
     return dadosConvertidos;
   }
@@ -305,6 +360,69 @@ class LayoutManager {
     }
     
     return distribuicao;
+  }
+
+  // Gerar layout automático baseado na análise dos arcos
+  static gerarLayoutAutomatico(analiseArcos) {
+    if (!analiseArcos) return null;
+
+    const layouts = {};
+
+    Object.entries(analiseArcos.arcos).forEach(([numeroArco, infoArco]) => {
+      const totalPendulos = infoArco.totalPendulos;
+      const totalSensores = infoArco.totalSensores;
+
+      // Calcular distribuição piramidal baseada nos dados reais
+      const distribuicaoReal = infoArco.pendulos.map(p => p.totalSensores);
+      
+      // Gerar posições dos pêndulos
+      const larguraBase = 350;
+      const margemLateral = 50;
+      const larguraUtil = larguraBase - (margemLateral * 2);
+      const espacamento = totalPendulos > 1 ? larguraUtil / (totalPendulos - 1) : 0;
+      
+      const posicoes = [];
+      for (let i = 0; i < totalPendulos; i++) {
+        posicoes.push(margemLateral + (espacamento * i));
+      }
+
+      layouts[`arco_${numeroArco}`] = {
+        tamanho_svg: [350, 200],
+        desenho_sensores: {
+          escala_cores_sensores: 2,
+          nome_sensores_direita: 0,
+          nome_cabo_acima: 0,
+          escala_sensores: 16,
+          dist_y_sensores: 12,
+          dist_y_nome_cabo: new Array(totalPendulos).fill(8),
+          pos_x_cabos_uniforme: 1,
+          pos_x_cabo: posicoes,
+          pos_y_cabo: new Array(totalPendulos).fill(181),
+        },
+        desenho_arco: {
+          tipo_telhado: 1,
+          pb: 185,
+          lb: 350,
+          hb: 30,
+          hf: 5,
+          lf: 250,
+          le: 15,
+          ht: 50,
+          ctrl_p1: [60, 30],
+          ctrl_p2: [97, 10],
+        },
+        cabos: Object.fromEntries(
+          infoArco.pendulos.map((pendulo, index) => [
+            pendulo.numero.toString(),
+            pendulo.totalSensores
+          ])
+        ),
+        distribuicao_sensores: distribuicaoReal,
+        pendulos_ordem: infoArco.pendulos.map(p => p.numero)
+      };
+    });
+
+    return layouts;
   }
 
   // Gerar dados exemplo para ArmazemPortal

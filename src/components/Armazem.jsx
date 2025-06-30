@@ -12,6 +12,10 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const [tipoLayout, setTipoLayout] = useState("antigo"); // "antigo" ou "portal"
     const [dadosPortal, setDadosPortal] = useState(null);
     const [celulaAtual, setCelulaAtual] = useState(1);
+    const [arcoAtual, setArcoAtual] = useState(1);
+    const [analiseArcos, setAnaliseArcos] = useState(null);
+    const [layoutsAutomaticos, setLayoutsAutomaticos] = useState(null);
+    const [configAutomatica, setConfigAutomatica] = useState(true);
 
     const layoutArco = {
         tamanho_svg: [350, 200],
@@ -56,8 +60,21 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 const dadosPortalCarregados = await LayoutManager.carregarDadosArmazemPortal();
                 setDadosPortal(dadosPortalCarregados);
 
+                // Analisar estrutura dos arcos
+                const analise = LayoutManager.analisarEstruturaArcos(dadosPortalCarregados);
+                setAnaliseArcos(analise);
+
+                if (configAutomatica && analise) {
+                    // Gerar layouts automáticos baseados na análise
+                    const layouts = LayoutManager.gerarLayoutAutomatico(analise);
+                    setLayoutsAutomaticos(layouts);
+                }
+
                 // Converter dados do portal para o formato do armazém
-                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortalCarregados);
+                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(
+                    dadosPortalCarregados, 
+                    configAutomatica ? arcoAtual : null
+                );
                 if (dadosConvertidos) {
                     setDados(dadosConvertidos);
                 }
@@ -193,28 +210,43 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
     function desenhaSensores(layout) {
         const svgEl = document.getElementById("des_arco_armazem");
-        const cabosIds = Object.keys(layout.cabos);
         const { escala_sensores, dist_y_sensores } = layout.desenho_sensores;
         const { pb, lb, hb } = layout.desenho_arco;
 
-        // Calcular distribuição piramidal
-        const totalSensores = Object.values(layout.cabos).reduce((a, b) => a + b, 0);
-        const distribuicao = gerarDistribuicaoPiramidal(cabosIds.length, totalSensores);
+        // Usar layout automático se disponível
+        let cabosInfo;
+        if (configAutomatica && layoutsAutomaticos && arcoAtual && layoutsAutomaticos[`arco_${arcoAtual}`]) {
+            const layoutArco = layoutsAutomaticos[`arco_${arcoAtual}`];
+            cabosInfo = layoutArco.pendulos_ordem.map((numeroPendulo, index) => ({
+                id: numeroPendulo.toString(),
+                numSensores: layoutArco.distribuicao_sensores[index],
+                posX: layoutArco.desenho_sensores.pos_x_cabo[index]
+            }));
+        } else {
+            // Fallback para layout manual
+            const cabosIds = Object.keys(layout.cabos);
+            const totalSensores = Object.values(layout.cabos).reduce((a, b) => a + b, 0);
+            const distribuicao = gerarDistribuicaoPiramidal(cabosIds.length, totalSensores);
+            
+            const espacamento = (lb - 100) / Math.max(1, cabosIds.length - 1);
+            const xInicial = 50;
+            
+            cabosInfo = cabosIds.map((id, i) => ({
+                id,
+                numSensores: distribuicao[i],
+                posX: xInicial + (i * espacamento)
+            }));
+        }
 
         // Posicionar pêndulos fixos abaixo do layout
         const yPendulo = pb - hb - 5;
-        const espacamento = (lb - 100) / Math.max(1, cabosIds.length - 1);
-        const xInicial = 50;
 
-        cabosIds.forEach((id, i) => {
-            const xCabo = xInicial + (i * espacamento);
-            const numSensores = distribuicao[i];
-
+        cabosInfo.forEach(({ id, numSensores, posX }, i) => {
             // Pêndulo fixo abaixo
             const elementos = [
-                { tipo: 'rect', attrs: { id: `C${i + 1}`, x: xCabo - escala_sensores/2, y: yPendulo, 
+                { tipo: 'rect', attrs: { id: `C${i + 1}`, x: posX - escala_sensores/2, y: yPendulo, 
                     width: escala_sensores, height: escala_sensores/2, rx: "2", ry: "2", fill: "#3A78FD" }},
-                { tipo: 'text', attrs: { id: `TC${i + 1}`, x: xCabo, y: yPendulo + escala_sensores/4,
+                { tipo: 'text', attrs: { id: `TC${i + 1}`, x: posX, y: yPendulo + escala_sensores/4,
                     'text-anchor': "middle", 'dominant-baseline': "central", 'font-weight': "bold",
                     'font-size': escala_sensores * 0.4 - 0.5, 'font-family': "Arial", fill: "white" },
                     texto: `P${id}` }
@@ -229,13 +261,13 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 const ySensor = yMaxSensor - (espacamentoSensor * s);
 
                 elementos.push(
-                    { tipo: 'rect', attrs: { id: `C${i + 1}S${s}`, x: xCabo - escala_sensores/2, y: ySensor,
+                    { tipo: 'rect', attrs: { id: `C${i + 1}S${s}`, x: posX - escala_sensores/2, y: ySensor,
                         width: escala_sensores, height: escala_sensores/2, rx: "2", ry: "2", fill: "#ccc",
                         stroke: "black", 'stroke-width': "1" }},
-                    { tipo: 'text', attrs: { id: `TC${i + 1}S${s}`, x: xCabo, y: ySensor + escala_sensores/4,
+                    { tipo: 'text', attrs: { id: `TC${i + 1}S${s}`, x: posX, y: ySensor + escala_sensores/4,
                         'text-anchor': "middle", 'dominant-baseline': "central", 'font-size': escala_sensores * 0.4 - 0.5,
                         'font-family': "Arial" }, texto: "0" },
-                    { tipo: 'text', attrs: { id: `TIND${i + 1}S${s}`, x: xCabo - escala_sensores/2 - 2, y: ySensor + escala_sensores/4,
+                    { tipo: 'text', attrs: { id: `TIND${i + 1}S${s}`, x: posX - escala_sensores/2 - 2, y: ySensor + escala_sensores/4,
                         'text-anchor': "end", 'dominant-baseline': "central", 'font-size': escala_sensores * 0.4 - 1.5,
                         'font-family': "Arial", fill: "black" }, texto: `S${s}` }
                 );
@@ -388,7 +420,39 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         const layoutsPortal = LayoutManager.listarLayouts("portal");
 
         const InfoCelulas = () => {
-            if (tipoLayout === "portal" && dadosPortal) {
+            if (tipoLayout === "portal" && configAutomatica && analiseArcos) {
+                return (
+                    <div className="mt-2 p-2 border rounded bg-light">
+                        <small className="fw-bold">Estrutura dos Arcos (Detecção Automática):</small>
+                        <div className="mt-2">
+                            <div className="row">
+                                <div className="col-md-6">
+                                    <small><strong>Arco {arcoAtual}:</strong></small>
+                                    <div className="mt-1">
+                                        {analiseArcos.arcos[arcoAtual] && 
+                                            analiseArcos.arcos[arcoAtual].pendulos.map(pendulo => (
+                                                <span key={pendulo.numero} className="badge bg-primary me-1 mb-1">
+                                                    P{pendulo.numero}: {pendulo.totalSensores} sensores
+                                                </span>
+                                            ))
+                                        }
+                                    </div>
+                                </div>
+                                <div className="col-md-6">
+                                    <small className="text-muted">
+                                        <strong>Total Geral:</strong><br/>
+                                        • {analiseArcos.totalArcos} arcos<br/>
+                                        • {analiseArcos.estatisticas.totalPendulos} pêndulos<br/>
+                                        • {analiseArcos.estatisticas.totalSensores} sensores
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (tipoLayout === "portal" && dadosPortal && !configAutomatica) {
                 const infoCelulas = LayoutManager.obterInfoCelulasPortal(dadosPortal);
                 if (!infoCelulas) return null;
 
@@ -464,12 +528,42 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                                     onChange={() => setTipoLayout("portal")}
                                 />
                                 <label className="form-check-label" htmlFor="layoutPortal">
-                                    ArmazemPortal (Novo Modelo)
+                                    ArmazemPortal (Modelo por Arcos)
                                 </label>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {tipoLayout === "portal" && (
+                    <div className="row align-items-center mb-2">
+                        <div className="col-md-12">
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id="configAutomatica"
+                                    checked={configAutomatica}
+                                    onChange={(e) => {
+                                        setConfigAutomatica(e.target.checked);
+                                        if (e.target.checked && analiseArcos) {
+                                            const layouts = LayoutManager.gerarLayoutAutomatico(analiseArcos);
+                                            setLayoutsAutomaticos(layouts);
+                                        }
+                                    }}
+                                />
+                                <label className="form-check-label" htmlFor="configAutomatica">
+                                    <strong>Configuração Automática</strong> - Detectar estrutura dos arcos automaticamente
+                                </label>
+                            </div>
+                            <small className="text-muted">
+                                {configAutomatica ? 
+                                    "Usando dados reais dos arcos para distribuição de pêndulos e sensores" : 
+                                    "Configuração manual - gerará exemplo genérico"}
+                            </small>
+                        </div>
+                    </div>
+                )}
 
                 <div className="row align-items-center">
                     <div className="col-md-6">
@@ -477,13 +571,71 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                             {tipoLayout === "portal" ? "Layout ArmazemPortal:" : "Layout por Células:"}
                         </label>
                         {tipoLayout === "portal" ? (
-                            <select 
-                                className="form-select"
-                                value="portal"
-                                disabled
-                            >
-                                <option value="portal">ArmazemPortal - Modelo Exemplo</option>
-                            </select>
+                            configAutomatica ? (
+                                <div>
+                                    <label className="form-label">Arco Atual:</label>
+                                    <div className="d-flex gap-2 align-items-center">
+                                        <button 
+                                            className="btn btn-outline-primary btn-sm"
+                                            onClick={() => {
+                                                const novoArco = Math.max(1, arcoAtual - 1);
+                                                setArcoAtual(novoArco);
+                                                if (dadosPortal) {
+                                                    const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, novoArco);
+                                                    setDados(dadosConvertidos);
+                                                }
+                                            }}
+                                            disabled={arcoAtual <= 1}
+                                        >
+                                            ← Anterior
+                                        </button>
+                                        <select 
+                                            className="form-select"
+                                            value={arcoAtual}
+                                            onChange={(e) => {
+                                                const novoArco = parseInt(e.target.value);
+                                                setArcoAtual(novoArco);
+                                                if (dadosPortal) {
+                                                    const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, novoArco);
+                                                    setDados(dadosConvertidos);
+                                                }
+                                            }}
+                                        >
+                                            {analiseArcos && Object.keys(analiseArcos.arcos).map(numeroArco => {
+                                                const arco = analiseArcos.arcos[numeroArco];
+                                                return (
+                                                    <option key={numeroArco} value={numeroArco}>
+                                                        Arco {numeroArco} - {arco.totalPendulos} pêndulos, {arco.totalSensores} sensores
+                                                    </option>
+                                                );
+                                            })}
+                                        </select>
+                                        <button 
+                                            className="btn btn-outline-primary btn-sm"
+                                            onClick={() => {
+                                                const maxArco = analiseArcos ? Math.max(...Object.keys(analiseArcos.arcos).map(Number)) : 1;
+                                                const novoArco = Math.min(maxArco, arcoAtual + 1);
+                                                setArcoAtual(novoArco);
+                                                if (dadosPortal) {
+                                                    const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, novoArco);
+                                                    setDados(dadosConvertidos);
+                                                }
+                                            }}
+                                            disabled={!analiseArcos || arcoAtual >= Math.max(...Object.keys(analiseArcos.arcos).map(Number))}
+                                        >
+                                            Próximo →
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <select 
+                                    className="form-select"
+                                    value="portal"
+                                    disabled
+                                >
+                                    <option value="portal">ArmazemPortal - Modelo Exemplo</option>
+                                </select>
+                            )
                         ) : (
                             <select 
                                 className="form-select"
@@ -503,26 +655,56 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                     </div>
                     <div className="col-md-6">
                         {tipoLayout === "portal" ? (
-                            <div className="d-flex gap-2">
+                            <div className="d-flex gap-2 flex-wrap">
                                 <button 
                                     className="btn btn-success btn-sm"
                                     onClick={() => {
                                         const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
                                         setDadosPortal(dadosExemplo);
-                                        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo);
+                                        
+                                        // Analisar estrutura automaticamente
+                                        const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
+                                        setAnaliseArcos(analise);
+                                        
+                                        if (configAutomatica && analise) {
+                                            const layouts = LayoutManager.gerarLayoutAutomatico(analise);
+                                            setLayoutsAutomaticos(layouts);
+                                        }
+                                        
+                                        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(
+                                            dadosExemplo, 
+                                            configAutomatica ? arcoAtual : null
+                                        );
                                         setDados(dadosConvertidos);
                                         setCelulaAtual(1);
+                                        setArcoAtual(1);
                                         alert("Dados de exemplo ArmazemPortal gerados!");
                                     }}
                                 >
                                     Gerar Exemplo Portal
                                 </button>
+                                {configAutomatica && (
+                                    <button 
+                                        className="btn btn-info btn-sm"
+                                        onClick={() => {
+                                            if (analiseArcos) {
+                                                const layouts = LayoutManager.gerarLayoutAutomatico(analiseArcos);
+                                                setLayoutsAutomaticos(layouts);
+                                                alert("Layout automático regenerado!");
+                                            }
+                                        }}
+                                    >
+                                        Regenerar Layout
+                                    </button>
+                                )}
                                 <button 
                                     className="btn btn-primary btn-sm"
                                     onClick={() => {
                                         console.log("Dados Portal:", dadosPortal);
+                                        console.log("Análise Arcos:", analiseArcos);
+                                        console.log("Layouts Automáticos:", layoutsAutomaticos);
                                         console.log("Dados Convertidos:", dados);
-                                        console.log("Célula Atual:", celulaAtual);
+                                        console.log("Arco Atual:", arcoAtual);
                                     }}
                                 >
                                     Debug Dados
@@ -563,7 +745,10 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
                 {tipoLayout === "portal" && dadosPortal && (
                     <small className="text-success d-block mt-2">
-                        ArmazemPortal carregado com {Object.keys(dadosPortal.pendulos || {}).length} pêndulos e {Object.keys(dadosPortal.arcos || {}).length} arcos
+                        {configAutomatica ? 
+                            `ArmazemPortal - Arco ${arcoAtual}/${analiseArcos?.totalArcos || 0} carregado` :
+                            `ArmazemPortal carregado com ${Object.keys(dadosPortal.pendulos || {}).length} pêndulos e ${Object.keys(dadosPortal.arcos || {}).length} arcos`
+                        }
                     </small>
                 )}
 
