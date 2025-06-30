@@ -200,18 +200,7 @@ class LayoutManager {
 
     const dadosConvertidos = { leitura: {} };
 
-    // Converter pendulos para o formato leitura
-    Object.entries(dadosPortal.pendulos || {}).forEach(([pendulo, dados]) => {
-      // dados = [alarme, pre_alarme, ativo, temperatura_maxima]
-      const [alarme, preAlarme, ativo, tempMaxima] = dados;
-      
-      // Para cada pêndulo, criar dados básicos
-      dadosConvertidos.leitura[pendulo] = {
-        "1": [tempMaxima, alarme, preAlarme, false, ativo]
-      };
-    });
-
-    // Converter dados detalhados dos arcos
+    // Converter dados detalhados dos arcos (tem prioridade)
     Object.entries(dadosPortal.arcos || {}).forEach(([arco, pendulos]) => {
       Object.entries(pendulos).forEach(([pendulo, sensores]) => {
         if (!dadosConvertidos.leitura[pendulo]) {
@@ -225,7 +214,54 @@ class LayoutManager {
       });
     });
 
+    // Para pêndulos que só estão em pendulos (sem dados detalhados), usar dados básicos
+    Object.entries(dadosPortal.pendulos || {}).forEach(([pendulo, dados]) => {
+      if (!dadosConvertidos.leitura[pendulo]) {
+        // dados = [alarme, pre_alarme, ativo, temperatura_maxima]
+        const [alarme, preAlarme, ativo, tempMaxima] = dados;
+        
+        dadosConvertidos.leitura[pendulo] = {
+          "1": [tempMaxima, alarme, preAlarme, false, ativo]
+        };
+      }
+    });
+
     return dadosConvertidos;
+  }
+
+  // Obter dados de uma célula específica baseado na sequência de pêndulos
+  static obterDadosCelula(dadosPortal, numeroCelula) {
+    if (!dadosPortal?.configuracao?.sequencia_celulas) return null;
+
+    // Encontrar a célula correta
+    const celula = Object.values(dadosPortal.configuracao.sequencia_celulas)
+      .find(c => c.celula === numeroCelula);
+    
+    if (!celula) return null;
+
+    const dadosCelula = { leitura: {} };
+    
+    // Para cada pêndulo da célula, buscar seus dados nos arcos
+    celula.sequencia_pendulos.forEach(pendulo => {
+      const penduloStr = pendulo.toString();
+      
+      // Buscar nos arcos
+      Object.entries(dadosPortal.arcos || {}).forEach(([arco, pendulos]) => {
+        if (pendulos[penduloStr]) {
+          dadosCelula.leitura[penduloStr] = pendulos[penduloStr];
+        }
+      });
+      
+      // Se não encontrou nos arcos, usar dados básicos
+      if (!dadosCelula.leitura[penduloStr] && dadosPortal.pendulos?.[penduloStr]) {
+        const [alarme, preAlarme, ativo, tempMaxima] = dadosPortal.pendulos[penduloStr];
+        dadosCelula.leitura[penduloStr] = {
+          "1": [tempMaxima, alarme, preAlarme, false, ativo]
+        };
+      }
+    });
+
+    return dadosCelula;
   }
 
   // Obter informações sobre células do ArmazemPortal

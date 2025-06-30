@@ -11,6 +11,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const [dados, setDados] = useState(dadosExternos);
     const [tipoLayout, setTipoLayout] = useState("antigo"); // "antigo" ou "portal"
     const [dadosPortal, setDadosPortal] = useState(null);
+    const [celulaAtual, setCelulaAtual] = useState(1);
 
     const layoutArco = {
         tamanho_svg: [350, 200],
@@ -50,11 +51,11 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         const carregarLayouts = async () => {
             await LayoutManager.carregarLayoutsArmazem();
             await LayoutManager.carregarLayoutsArmazemPortal();
-            
+
             if (tipoLayout === "portal") {
                 const dadosPortalCarregados = await LayoutManager.carregarDadosArmazemPortal();
                 setDadosPortal(dadosPortalCarregados);
-                
+
                 // Converter dados do portal para o formato do armazém
                 const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortalCarregados);
                 if (dadosConvertidos) {
@@ -67,7 +68,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 }
             }
         };
-        
+
         carregarLayouts();
     }, [dados, layoutAtual, tipoLayout]);
 
@@ -167,18 +168,18 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     // Função para gerar distribuição piramidal de sensores
     function gerarDistribuicaoPiramidal(totalPendulos, totalSensores) {
         if (totalPendulos === 1) return [totalSensores];
-        
+
         const minSensores = 5; // Mínimo nas pontas
         const distribuicao = new Array(totalPendulos).fill(minSensores);
         let sensoresRestantes = totalSensores - (totalPendulos * minSensores);
-        
+
         // Distribuir sensores extras priorizando o centro
         const centro = Math.floor(totalPendulos / 2);
         for (let offset = 0; offset <= centro && sensoresRestantes > 0; offset++) {
             const indices = offset === 0 ? [centro] : 
                            totalPendulos % 2 === 1 ? [centro - offset, centro + offset] :
                            offset === 1 ? [centro - 1, centro] : [centro - offset, centro + offset - 1];
-            
+
             indices.forEach(idx => {
                 if (idx >= 0 && idx < totalPendulos && sensoresRestantes > 0) {
                     distribuicao[idx]++;
@@ -186,7 +187,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 }
             });
         }
-        
+
         return distribuicao;
     }
 
@@ -195,20 +196,20 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         const cabosIds = Object.keys(layout.cabos);
         const { escala_sensores, dist_y_sensores } = layout.desenho_sensores;
         const { pb, lb, hb } = layout.desenho_arco;
-        
+
         // Calcular distribuição piramidal
         const totalSensores = Object.values(layout.cabos).reduce((a, b) => a + b, 0);
         const distribuicao = gerarDistribuicaoPiramidal(cabosIds.length, totalSensores);
-        
+
         // Posicionar pêndulos fixos abaixo do layout
         const yPendulo = pb - hb - 5;
         const espacamento = (lb - 100) / Math.max(1, cabosIds.length - 1);
         const xInicial = 50;
-        
+
         cabosIds.forEach((id, i) => {
             const xCabo = xInicial + (i * espacamento);
             const numSensores = distribuicao[i];
-            
+
             // Pêndulo fixo abaixo
             const elementos = [
                 { tipo: 'rect', attrs: { id: `C${i + 1}`, x: xCabo - escala_sensores/2, y: yPendulo, 
@@ -218,15 +219,15 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                     'font-size': escala_sensores * 0.4 - 0.5, 'font-family': "Arial", fill: "white" },
                     texto: `P${id}` }
             ];
-            
+
             // Sensores dentro do layout
             const yMaxSensor = yPendulo - 15;
             const alturaDisponivel = yMaxSensor - 20; // Margem superior
             const espacamentoSensor = Math.min(dist_y_sensores, alturaDisponivel / numSensores);
-            
+
             for (let s = 1; s <= numSensores; s++) {
                 const ySensor = yMaxSensor - (espacamentoSensor * s);
-                
+
                 elementos.push(
                     { tipo: 'rect', attrs: { id: `C${i + 1}S${s}`, x: xCabo - escala_sensores/2, y: ySensor,
                         width: escala_sensores, height: escala_sensores/2, rx: "2", ry: "2", fill: "#ccc",
@@ -239,7 +240,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                         'font-family': "Arial", fill: "black" }, texto: `S${s}` }
                 );
             }
-            
+
             // Criar elementos no DOM
             elementos.forEach(({ tipo, attrs, texto }) => {
                 const el = document.createElementNS("http://www.w3.org/2000/svg", tipo);
@@ -354,7 +355,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 const rec = document.getElementById(`C${i + 1}S${s}`);
                 const txt = document.getElementById(`TC${i + 1}S${s}`);
                 if (!rec || !txt) return;
-                
+
                 txt.textContent = falha ? "ERRO" : temp.toFixed(1);
                 if (!nivel) {
                     rec.setAttribute("fill", "#e6e6e6");
@@ -412,9 +413,9 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                     </div>
                 );
             }
-            
+
             if (layoutAtual === "default" || tipoLayout === "portal") return null;
-            
+
             const infoCelulas = LayoutManager.obterInfoCelulas(layoutAtual);
             if (!infoCelulas) return null;
 
@@ -469,7 +470,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="row align-items-center">
                     <div className="col-md-6">
                         <label className="form-label">
@@ -510,6 +511,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                                         setDadosPortal(dadosExemplo);
                                         const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo);
                                         setDados(dadosConvertidos);
+                                        setCelulaAtual(1);
                                         alert("Dados de exemplo ArmazemPortal gerados!");
                                     }}
                                 >
@@ -520,6 +522,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                                     onClick={() => {
                                         console.log("Dados Portal:", dadosPortal);
                                         console.log("Dados Convertidos:", dados);
+                                        console.log("Célula Atual:", celulaAtual);
                                     }}
                                 >
                                     Debug Dados
@@ -555,15 +558,15 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                         )}
                     </div>
                 </div>
-                
+
                 <InfoCelulas />
-                
+
                 {tipoLayout === "portal" && dadosPortal && (
                     <small className="text-success d-block mt-2">
                         ArmazemPortal carregado com {Object.keys(dadosPortal.pendulos || {}).length} pêndulos e {Object.keys(dadosPortal.arcos || {}).length} arcos
                     </small>
                 )}
-                
+
                 {layoutConfig && tipoLayout !== "portal" && (
                     <small className="text-success d-block mt-2">
                         Layout "{layoutAtual}" aplicado com {Object.keys(dados?.leitura || {}).length} pêndulos
