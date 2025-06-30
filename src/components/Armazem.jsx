@@ -2,12 +2,13 @@ import React, { useEffect, useRef, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
 
-const ArmazemSVG = ({ dados }) => {
+const ArmazemSVG = ({ dados: dadosExternos }) => {
     const containerRef = useRef(null);
     const [modo, setModo] = useState("temperatura");
     const [carregandoModo, setCarregandoModo] = useState(false);
     const [layoutAtual, setLayoutAtual] = useState("default");
     const [layoutConfig, setLayoutConfig] = useState(null);
+    const [dados, setDados] = useState(dadosExternos);
 
     const layoutArco = {
         tamanho_svg: [350, 200],
@@ -37,14 +38,25 @@ const ArmazemSVG = ({ dados }) => {
         cabos: { "1": 5, "2": 7, "3": 9, "4": 7, "5": 5 },
     };
 
-    // Carregar layout baseado nos dados
+    // Atualizar dados internos quando props mudam
     useEffect(() => {
-        if (dados && layoutAtual !== "default") {
-            const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
-            if (layoutAdaptado) {
-                setLayoutConfig(layoutAdaptado);
+        setDados(dadosExternos);
+    }, [dadosExternos]);
+
+    // Carregar layouts disponíveis e aplicar layout selecionado
+    useEffect(() => {
+        const carregarLayouts = async () => {
+            await LayoutManager.carregarLayoutsArmazem();
+            
+            if (dados && layoutAtual !== "default") {
+                const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
+                if (layoutAdaptado) {
+                    setLayoutConfig(layoutAdaptado);
+                }
             }
-        }
+        };
+        
+        carregarLayouts();
     }, [dados, layoutAtual]);
 
     useEffect(() => {
@@ -387,11 +399,33 @@ const ArmazemSVG = ({ dados }) => {
     const SeletorLayout = () => {
         const layoutsDisponiveis = LayoutManager.listarLayouts("armazem");
 
+        const InfoCelulas = () => {
+            if (layoutAtual === "default") return null;
+            
+            const infoCelulas = LayoutManager.obterInfoCelulas(layoutAtual);
+            if (!infoCelulas) return null;
+
+            return (
+                <div className="mt-2 p-2 border rounded bg-light">
+                    <small className="fw-bold">Estrutura do Layout {layoutAtual}:</small>
+                    <div className="row mt-1">
+                        {Object.values(infoCelulas).map(celula => (
+                            <div key={celula.numero} className="col-auto">
+                                <span className="badge bg-primary me-1">
+                                    Célula {celula.numero}: {celula.pendulos.length} pêndulos
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
         return (
             <div className="mb-3">
                 <div className="row align-items-center">
                     <div className="col-md-6">
-                        <label className="form-label">Layout:</label>
+                        <label className="form-label">Layout por Células:</label>
                         <select 
                             className="form-select"
                             value={layoutAtual}
@@ -399,30 +433,51 @@ const ArmazemSVG = ({ dados }) => {
                         >
                             <option value="default">Layout Padrão</option>
                             {layoutsDisponiveis.map(nome => (
-                                <option key={nome} value={nome}>{nome}</option>
+                                <option key={nome} value={nome}>
+                                    Layout {nome} - {LayoutManager.obterInfoCelulas(nome) ? 
+                                        Object.keys(LayoutManager.obterInfoCelulas(nome)).length + ' células' : 
+                                        'Layout complexo'}
+                                </option>
                             ))}
                         </select>
                     </div>
                     <div className="col-md-6">
-                        {layoutAtual !== "default" && dados && (
-                            <button 
-                                className="btn btn-info btn-sm"
-                                onClick={() => {
-                                    const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
-                                    if (layoutAdaptado) {
-                                        setLayoutConfig(layoutAdaptado);
-                                        alert(`Layout "${layoutAtual}" adaptado aos dados!`);
-                                    }
-                                }}
-                            >
-                                Adaptar aos Dados
-                            </button>
+                        {layoutAtual !== "default" && (
+                            <div className="d-flex gap-2">
+                                <button 
+                                    className="btn btn-info btn-sm"
+                                    onClick={() => {
+                                        const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
+                                        if (layoutAdaptado) {
+                                            setLayoutConfig(layoutAdaptado);
+                                            alert(`Layout "${layoutAtual}" adaptado aos dados!`);
+                                        }
+                                    }}
+                                >
+                                    Adaptar aos Dados
+                                </button>
+                                <button 
+                                    className="btn btn-success btn-sm"
+                                    onClick={() => {
+                                        const dadosExemplo = LayoutManager.gerarDadosExemplo(layoutAtual);
+                                        if (dadosExemplo) {
+                                            setDados(dadosExemplo);
+                                            alert(`Dados de exemplo gerados para layout "${layoutAtual}"!`);
+                                        }
+                                    }}
+                                >
+                                    Gerar Exemplo
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
+                
+                <InfoCelulas />
+                
                 {layoutConfig && (
-                    <small className="text-success">
-                        Layout "{layoutAtual}" aplicado com {Object.keys(dados?.leitura || {}).length} cabos
+                    <small className="text-success d-block mt-2">
+                        Layout "{layoutAtual}" aplicado com {Object.keys(dados?.leitura || {}).length} pêndulos
                     </small>
                 )}
             </div>
