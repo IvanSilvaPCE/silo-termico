@@ -9,6 +9,8 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const [layoutAtual, setLayoutAtual] = useState("default");
     const [layoutConfig, setLayoutConfig] = useState(null);
     const [dados, setDados] = useState(dadosExternos);
+    const [tipoLayout, setTipoLayout] = useState("antigo"); // "antigo" ou "portal"
+    const [dadosPortal, setDadosPortal] = useState(null);
 
     const layoutArco = {
         tamanho_svg: [350, 200],
@@ -47,8 +49,18 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     useEffect(() => {
         const carregarLayouts = async () => {
             await LayoutManager.carregarLayoutsArmazem();
+            await LayoutManager.carregarLayoutsArmazemPortal();
             
-            if (dados && layoutAtual !== "default") {
+            if (tipoLayout === "portal") {
+                const dadosPortalCarregados = await LayoutManager.carregarDadosArmazemPortal();
+                setDadosPortal(dadosPortalCarregados);
+                
+                // Converter dados do portal para o formato do armazém
+                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortalCarregados);
+                if (dadosConvertidos) {
+                    setDados(dadosConvertidos);
+                }
+            } else if (dados && layoutAtual !== "default") {
                 const layoutAdaptado = LayoutManager.adaptarLayoutParaDados("armazem", layoutAtual, dados);
                 if (layoutAdaptado) {
                     setLayoutConfig(layoutAdaptado);
@@ -57,7 +69,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         };
         
         carregarLayouts();
-    }, [dados, layoutAtual]);
+    }, [dados, layoutAtual, tipoLayout]);
 
     useEffect(() => {
         const container = containerRef.current;
@@ -398,9 +410,36 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
     const SeletorLayout = () => {
         const layoutsDisponiveis = LayoutManager.listarLayouts("armazem");
+        const layoutsPortal = LayoutManager.listarLayouts("portal");
 
         const InfoCelulas = () => {
-            if (layoutAtual === "default") return null;
+            if (tipoLayout === "portal" && dadosPortal) {
+                const infoCelulas = LayoutManager.obterInfoCelulasPortal(dadosPortal);
+                if (!infoCelulas) return null;
+
+                return (
+                    <div className="mt-2 p-2 border rounded bg-light">
+                        <small className="fw-bold">Estrutura do ArmazemPortal:</small>
+                        <div className="row mt-1">
+                            {Object.values(infoCelulas).map(celula => (
+                                <div key={celula.numero} className="col-auto">
+                                    <span className="badge bg-success me-1">
+                                        Célula {celula.numero}: {celula.totalPendulos} pêndulos
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-2">
+                            <small className="text-muted">
+                                Total de pêndulos: {Object.keys(dadosPortal.pendulos || {}).length} | 
+                                Total de arcos: {Object.keys(dadosPortal.arcos || {}).length}
+                            </small>
+                        </div>
+                    </div>
+                );
+            }
+            
+            if (layoutAtual === "default" || tipoLayout === "portal") return null;
             
             const infoCelulas = LayoutManager.obterInfoCelulas(layoutAtual);
             if (!infoCelulas) return null;
@@ -423,26 +462,96 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
         return (
             <div className="mb-3">
+                <div className="row align-items-center mb-2">
+                    <div className="col-md-12">
+                        <label className="form-label">Tipo de Layout:</label>
+                        <div className="d-flex gap-3">
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="tipoLayout"
+                                    id="layoutAntigo"
+                                    checked={tipoLayout === "antigo"}
+                                    onChange={() => setTipoLayout("antigo")}
+                                />
+                                <label className="form-check-label" htmlFor="layoutAntigo">
+                                    Layout Antigo (Padrão)
+                                </label>
+                            </div>
+                            <div className="form-check">
+                                <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name="tipoLayout"
+                                    id="layoutPortal"
+                                    checked={tipoLayout === "portal"}
+                                    onChange={() => setTipoLayout("portal")}
+                                />
+                                <label className="form-check-label" htmlFor="layoutPortal">
+                                    ArmazemPortal (Novo Modelo)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <div className="row align-items-center">
                     <div className="col-md-6">
-                        <label className="form-label">Layout por Células:</label>
-                        <select 
-                            className="form-select"
-                            value={layoutAtual}
-                            onChange={(e) => setLayoutAtual(e.target.value)}
-                        >
-                            <option value="default">Layout Padrão</option>
-                            {layoutsDisponiveis.map(nome => (
-                                <option key={nome} value={nome}>
-                                    Layout {nome} - {LayoutManager.obterInfoCelulas(nome) ? 
-                                        Object.keys(LayoutManager.obterInfoCelulas(nome)).length + ' células' : 
-                                        'Layout complexo'}
-                                </option>
-                            ))}
-                        </select>
+                        <label className="form-label">
+                            {tipoLayout === "portal" ? "Layout ArmazemPortal:" : "Layout por Células:"}
+                        </label>
+                        {tipoLayout === "portal" ? (
+                            <select 
+                                className="form-select"
+                                value="portal"
+                                disabled
+                            >
+                                <option value="portal">ArmazemPortal - Modelo Exemplo</option>
+                            </select>
+                        ) : (
+                            <select 
+                                className="form-select"
+                                value={layoutAtual}
+                                onChange={(e) => setLayoutAtual(e.target.value)}
+                            >
+                                <option value="default">Layout Padrão</option>
+                                {layoutsDisponiveis.map(nome => (
+                                    <option key={nome} value={nome}>
+                                        Layout {nome} - {LayoutManager.obterInfoCelulas(nome) ? 
+                                            Object.keys(LayoutManager.obterInfoCelulas(nome)).length + ' células' : 
+                                            'Layout complexo'}
+                                    </option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                     <div className="col-md-6">
-                        {layoutAtual !== "default" && (
+                        {tipoLayout === "portal" ? (
+                            <div className="d-flex gap-2">
+                                <button 
+                                    className="btn btn-success btn-sm"
+                                    onClick={() => {
+                                        const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
+                                        setDadosPortal(dadosExemplo);
+                                        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo);
+                                        setDados(dadosConvertidos);
+                                        alert("Dados de exemplo ArmazemPortal gerados!");
+                                    }}
+                                >
+                                    Gerar Exemplo Portal
+                                </button>
+                                <button 
+                                    className="btn btn-primary btn-sm"
+                                    onClick={() => {
+                                        console.log("Dados Portal:", dadosPortal);
+                                        console.log("Dados Convertidos:", dados);
+                                    }}
+                                >
+                                    Debug Dados
+                                </button>
+                            </div>
+                        ) : layoutAtual !== "default" && (
                             <div className="d-flex gap-2">
                                 <button 
                                     className="btn btn-info btn-sm"
@@ -475,7 +584,13 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 
                 <InfoCelulas />
                 
-                {layoutConfig && (
+                {tipoLayout === "portal" && dadosPortal && (
+                    <small className="text-success d-block mt-2">
+                        ArmazemPortal carregado com {Object.keys(dadosPortal.pendulos || {}).length} pêndulos e {Object.keys(dadosPortal.arcos || {}).length} arcos
+                    </small>
+                )}
+                
+                {layoutConfig && tipoLayout !== "portal" && (
                     <small className="text-success d-block mt-2">
                         Layout "{layoutAtual}" aplicado com {Object.keys(dados?.leitura || {}).length} pêndulos
                     </small>
