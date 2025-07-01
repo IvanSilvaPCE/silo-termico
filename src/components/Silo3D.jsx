@@ -31,8 +31,8 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
     ativo: valores[4]
   }));
 
-  // Cabo vai do topo até a base
-  const topoSilo = alturaSilo + (alturaSilo * 0.3); // altura do silo + altura do topo cônico
+  // Cabo vai do topo do cilindro até a base (não passa pelo chapéu cônico)
+  const topoSilo = alturaSilo; // apenas altura do cilindro
   const baseSilo = 0.3; // altura da base
   const alturaCabo = topoSilo - baseSilo;
   const espacamentoSensores = alturaCabo / (sensoresArray.length + 1);
@@ -46,19 +46,19 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
       </mesh>
 
       {/* Nome do pêndulo FORA do silo, na base */}
-      <Billboard position={[position[0] > 0 ? raioSilo * 1.3 : -raioSilo * 1.3, baseSilo - 0.5, position[2] > 0 ? raioSilo * 1.3 : -raioSilo * 1.3]}>
+      <Billboard position={[0, baseSilo - 0.8, 0]}>
         <mesh>
-          <planeGeometry args={[1.2, 0.4]} />
+          <planeGeometry args={[0.8, 0.3]} />
           <meshStandardMaterial color="#2E86AB" />
         </mesh>
         <Text
           position={[0, 0, 0.01]}
-          fontSize={0.15}
+          fontSize={0.12}
           color="white"
           anchorX="center"
           anchorY="middle"
         >
-          PÊNDULO {pendulo}
+          P{pendulo}
         </Text>
       </Billboard>
 
@@ -222,19 +222,7 @@ const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
         <meshStandardMaterial color="#888888" metalness={0.7} roughness={0.3} />
       </mesh>
 
-      {/* Estruturas de suporte */}
-      {Array.from({length: 8}, (_, i) => {
-        const angle = (i / 8) * Math.PI * 2;
-        const x = Math.cos(angle) * raioSilo * 0.9;
-        const z = Math.sin(angle) * raioSilo * 0.9;
-
-        return (
-          <mesh key={i} position={[x, alturaSilo * 0.3, z]}>
-            <boxGeometry args={[0.08, alturaSilo * 0.6, 0.08]} />
-            <meshStandardMaterial color="#666666" metalness={0.8} roughness={0.2} />
-          </mesh>
-        );
-      })}
+      
     </group>
   );
 };
@@ -392,8 +380,8 @@ const Silo3D = ({ dados }) => {
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          minDistance={raioSilo * 2}
-          maxDistance={raioSilo * 8}
+          minDistance={raioSilo * 1.5}
+          maxDistance={raioSilo * 12}
         />
 
         {/* Plano do chão */}
