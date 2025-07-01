@@ -377,7 +377,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
     const handleArcoSelecionadoTopo = (numeroArco) => {
         mudarArco(numeroArco);
-        // Não fechar o topo automaticamente, deixar o usuário decidir
+        setMostrarTopo(false); // Fechar topo após seleção
     };
 
     const BotaoTrocaModo = () => (

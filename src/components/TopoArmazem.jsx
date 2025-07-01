@@ -36,23 +36,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 });
                 setDadosTopo(dadosConvertidos);
                 
-                // Usar layout da configuração ou gerar automaticamente com mapeamento correto
-                let layout;
-                if (config) {
-                    layout = config;
-                } else {
-                    layout = gerarLayoutAutomatico(pendulos);
-                    // Adicionar configuração de células baseada nos dados exemplares
-                    layout.celulas = {
-                        ...layout.celulas,
-                        mapeamento_arcos: {
-                            "1": [1, 2, 3, 4, 5, 6],      // Célula 1: arcos 1-6
-                            "2": [7, 8, 9, 10, 11, 12],   // Célula 2: arcos 7-12
-                            "3": [13, 14, 15, 16, 17, 18, 19] // Célula 3: arcos 13-19
-                        }
-                    };
-                }
-                
+                // Usar layout da configuração ou gerar automaticamente
+                const layout = config || gerarLayoutAutomatico(pendulos);
                 setLayoutTopo(layout);
                 
             } catch (error) {
@@ -102,12 +87,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             }
         };
 
-        // Mapeamento baseado na imagem: arcos 1-6 célula 1, 7-12 célula 2, 13-19 célula 3
-        function obterCelula(arco) {
-            if (arco <= 6) return 1;
-            else if (arco <= 12) return 2;
-            else return 3;
-        }
+        // Distribuir arcos entre as 3 células
+        const arcosParaCelula = Math.ceil(totalArcos / 3);
         
         // Distribuir pêndulos em arcos com posicionamento alternado
         const pendulosArray = Object.entries(pendulos);
@@ -115,7 +96,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const espacamentoArco = 30;
         
         for (let arco = 1; arco <= totalArcos; arco++) {
-            const celula = obterCelula(arco);
+            // Determinar qual célula (1, 2 ou 3)
+            let celula;
+            if (arco <= arcosParaCelula) celula = 1;
+            else if (arco <= arcosParaCelula * 2) celula = 2;
+            else celula = 3;
+            
             const pendulosDoArco = pendulosArray.slice((arco - 1) * pendulosPorArco, arco * pendulosPorArco);
             
             const sensores = {};
@@ -487,13 +473,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function atualizarSelecoes() {
-        // Função para determinar célula do arco baseada no mapeamento correto
-        function obterCelulaDoArco(arco) {
-            if (arco <= 6) return 1;
-            else if (arco <= 12) return 2;
-            else return 3;
-        }
-
         // Primeiro: atualizar arcos baseado na célula selecionada (seguindo modelo HTML)
         Object.keys(layoutTopo).forEach(key => {
             if (key !== 'celulas' && key !== 'aeradores') {
@@ -501,9 +480,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 const arcoRect = document.getElementById(`rec_arco_${arcoNum}`);
                 
                 if (arcoRect) {
-                    const celulaDoArco = obterCelulaDoArco(arcoNum);
                     // Se o arco pertence à célula selecionada
-                    if (celulaDoArco === celulaSelecionada) {
+                    if (layoutTopo[key].celula === celulaSelecionada) {
                         arcoRect.setAttribute("fill", "#E6E6E6");
                     } else {
                         arcoRect.setAttribute("fill", "#B3B3B3");
@@ -533,14 +511,11 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             }
         });
 
-        // Quarto: atualizar células baseado no arco selecionado
-        const celulaDoArcoSelecionado = obterCelulaDoArco(arcoSelecionado);
-        setCelulaSelecionada(celulaDoArcoSelecionado);
-        
+        // Quarto: atualizar células
         for (let celula = 1; celula <= 3; celula++) {
             const elemento = document.getElementById(`rec_celula${celula}`);
             if (elemento) {
-                if (celula === celulaDoArcoSelecionado) {
+                if (celula === celulaSelecionada) {
                     elemento.setAttribute("fill", "#E6E6E6");
                     elemento.setAttribute("stroke", "#438AF6");
                 } else {
@@ -666,14 +641,9 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 if (tipo === 'arco') {
                     const novoArco = parseInt(numero);
                     setArcoSelecionado(novoArco);
-                    
-                    // Determinar célula baseada no mapeamento correto
-                    let celula;
-                    if (novoArco <= 6) celula = 1;
-                    else if (novoArco <= 12) celula = 2;
-                    else celula = 3;
-                    
-                    setCelulaSelecionada(celula);
+                    if (layoutTopo && layoutTopo[novoArco]) {
+                        setCelulaSelecionada(layoutTopo[novoArco].celula);
+                    }
                     if (onArcoSelecionado) {
                         onArcoSelecionado(novoArco);
                     }
@@ -685,14 +655,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                             if (arcoData.sensores && arcoData.sensores[caboNum]) {
                                 const novoArco = parseInt(arcoKey);
                                 setArcoSelecionado(novoArco);
-                                
-                                // Determinar célula baseada no mapeamento correto  
-                                let celula;
-                                if (novoArco <= 6) celula = 1;
-                                else if (novoArco <= 12) celula = 2;
-                                else celula = 3;
-                                
-                                setCelulaSelecionada(celula);
+                                setCelulaSelecionada(arcoData.celula);
                                 if (onArcoSelecionado) {
                                     onArcoSelecionado(novoArco);
                                 }
