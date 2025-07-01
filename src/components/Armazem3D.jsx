@@ -81,6 +81,7 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
               color={falha ? "#ff0000" : "#ffffff"}
               anchorX="center"
               anchorY="middle"
+              depthTest={false} // Garante que o texto sempre apareça na frente
             >
               {falha ? "ERR" : temp.toFixed(0) + "°"}
             </Text>
@@ -290,7 +291,7 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
           {Array.from({length: numeroArcos + 1}, (_, i) => {
             const x = -larguraArmazem/2 + i * larguraArco;
             const isSelected = i === arcoSelecionado;
-            
+
             return (
               <Instance 
                 key={i} 
@@ -503,9 +504,55 @@ const Armazem3D = () => {
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [tipoSelecao, setTipoSelecao] = useState('arco'); // 'arco' ou 'celula'
+  const [lastInteractionTime, setLastInteractionTime] = useState(Date.now());
+  const [zoomedIn, setZoomedIn] = useState(false);
 
   const alturaArmazem = 8; // Reduzido de 10 para 8
   const numeroArcos = 19;
+  const larguraTotal = numeroArcos * 3.5;
+  const canvasRef = useRef();
+
+  // Function to handle zoom in
+  const zoomToCenter = () => {
+    if (canvasRef.current) {
+      const controls = canvasRef.current.controls;
+      if (controls) {
+        controls.target.set(0, alturaArmazem/2, 0); // Zoom to the center of the warehouse
+        controls.distance = larguraTotal * 0.3; // Adjust the zoom distance as needed
+        setZoomedIn(true);
+      }
+    }
+  };
+
+  // Function to handle zoom out
+  const resetZoom = () => {
+    if (canvasRef.current) {
+      const controls = canvasRef.current.controls;
+      if (controls) {
+        controls.target.set(0, alturaArmazem/2, 0); // Reset zoom target
+        controls.distance = larguraTotal * 0.8; // Reset to default distance
+        setZoomedIn(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (Date.now() - lastInteractionTime >= 15000 && !zoomedIn) {
+        zoomToCenter();
+      }
+    }, 15000);
+
+    return () => clearTimeout(timer);
+  }, [lastInteractionTime, zoomedIn, alturaArmazem, larguraTotal]);
+
+  // Reset timer on user interaction
+  const handleInteraction = () => {
+    setLastInteractionTime(Date.now());
+    if(zoomedIn){
+        resetZoom();
+    }
+  };
 
   useEffect(() => {
     const inicializarDados = async () => {
@@ -537,10 +584,9 @@ const Armazem3D = () => {
     );
   }
 
-  const larguraTotal = numeroArcos * 3.5;
 
   return (
-    <div style={{ width: '100%', height: '100vh' }}>
+    <div style={{ width: '100%', height: '100vh' }} onMouseMove={handleInteraction} onMouseDown={handleInteraction} onWheel={handleInteraction}>
       {/* Controles simples */}
       <div style={{ 
         position: 'absolute', 
@@ -559,7 +605,7 @@ const Armazem3D = () => {
           />
           Rotação Automática
         </label>
-        
+
         {/* Seletor de tipo de seleção */}
         <label style={{ marginRight: '20px' }}>
           Tipo de Seleção:
@@ -639,6 +685,7 @@ const Armazem3D = () => {
 
         {/* Controles de câmera */}
         <OrbitControls 
+          ref={canvasRef}
           autoRotate={autoRotate}
           autoRotateSpeed={0.15}
           enablePan={true}
@@ -646,6 +693,7 @@ const Armazem3D = () => {
           enableRotate={true}
           minDistance={larguraTotal * 0.25}
           maxDistance={larguraTotal * 1.2}
+          target={[0, alturaArmazem/2, 0]} // set initial target
         />
 
         {/* Grade simplificada do chão */}

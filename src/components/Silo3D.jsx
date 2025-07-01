@@ -1,4 +1,4 @@
-import React, { useRef, useState, useMemo } from 'react';
+import React, { useRef, useState, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Billboard, Instances, Instance } from '@react-three/drei';
 import * as THREE from 'three';
@@ -90,7 +90,7 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
             <Billboard position={[0, 0, 0.08]}>
               <mesh>
                 <planeGeometry args={[0.25, 0.08]} />
-                <meshStandardMaterial color="#000000" />
+                <meshStandardMaterial color="#000000" transparent opacity={0.5} />
               </mesh>
               <Text
                 position={[0, 0, 0.001]}
@@ -112,6 +112,7 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
                 anchorY="middle"
                 outlineWidth={0.02}
                 outlineColor="#000000"
+                
               >
                 {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
               </Text>
@@ -309,6 +310,9 @@ const NivelGrao3D = ({ nivel, raioSilo, alturaSilo }) => {
 
 const Silo3D = ({ dados }) => {
   const [autoRotate, setAutoRotate] = useState(true);
+  const [inactivityTimeout, setInactivityTimeout] = useState(null);
+  const [cameraTarget, setCameraTarget] = useState(new THREE.Vector3(0, 0, 0));
+  const orbitRef = useRef(null);
 
   if (!dados) return <div>Carregando dados 3D...</div>;
 
@@ -361,6 +365,54 @@ const Silo3D = ({ dados }) => {
 
     return positions;
   }, [layout, raioSilo]);
+
+  // Auto Zoom Functionality
+  const resetInactivityTimeout = () => {
+    clearTimeout(inactivityTimeout);
+    setInactivityTimeout(
+      setTimeout(() => {
+        setCameraTarget(new THREE.Vector3(0, alturaSilo / 2, 0));
+        if (orbitRef.current) {
+          orbitRef.current.target.copy(cameraTarget);
+           // Zoom in closer
+          orbitRef.current.minDistance = raioSilo * 0.8;
+          orbitRef.current.maxDistance = raioSilo * 3;
+
+          orbitRef.current.update();
+        }
+
+        setTimeout(() => {
+            if (orbitRef.current) {
+              orbitRef.current.minDistance = raioSilo * 1.5;
+              orbitRef.current.maxDistance = raioSilo * 12;
+              orbitRef.current.update();
+            }
+        }, 5000);
+
+      }, 15000)
+    );
+  };
+
+  useEffect(() => {
+    resetInactivityTimeout();
+
+    const handleUserActivity = () => {
+      resetInactivityTimeout();
+    };
+
+    window.addEventListener('mousemove', handleUserActivity);
+    window.addEventListener('keydown', handleUserActivity);
+    window.addEventListener('mousedown', handleUserActivity);
+    window.addEventListener('touchstart', handleUserActivity);
+
+    return () => {
+      clearTimeout(inactivityTimeout);
+      window.removeEventListener('mousemove', handleUserActivity);
+      window.removeEventListener('keydown', handleUserActivity);
+      window.removeEventListener('mousedown', handleUserActivity);
+      window.removeEventListener('touchstart', handleUserActivity);
+    };
+  }, [alturaSilo, raioSilo]);
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
@@ -438,6 +490,7 @@ const Silo3D = ({ dados }) => {
 
         {/* Controles de câmera */}
         <OrbitControls 
+          ref={orbitRef}
           autoRotate={autoRotate}
           autoRotateSpeed={0.5}
           enablePan={true}
@@ -445,6 +498,7 @@ const Silo3D = ({ dados }) => {
           enableRotate={true}
           minDistance={raioSilo * 1.5}
           maxDistance={raioSilo * 12}
+          target={cameraTarget}
         />
 
         {/* Grade do chão */}
