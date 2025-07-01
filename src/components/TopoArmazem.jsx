@@ -627,15 +627,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         else return "#f700ff";
     }
 
-    // Função auxiliar para atualizar o arco selecionado
-    function setArcoSelecionado(novoArco) {
-        if (novoArco !== arcoSelecionado) {
-            // Atualizar estado do arco
-            // O useState já está sendo usado no componente
-            // Esta função garante que a visualização seja atualizada
-        }
-    }
-
     function adicionarEventosClique() {
         const svgEl = document.getElementById("des_topo_armazem");
         if (!svgEl) return;
