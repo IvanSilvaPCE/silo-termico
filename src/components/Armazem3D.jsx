@@ -164,42 +164,53 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
           />
         </mesh>
 
-        {/* Telhado limpo estilo shed - similar ao cone do silo */}
+        {/* Telhado auto-ajustável duas águas */}
         <group position={[0, alturaArmazem, 0]}>
-          {/* Telhado principal - forma trapezoidal limpa */}
-          <mesh position={[0, alturaTelhado/2, 0]} castShadow>
-            <cylinderGeometry 
-              args={[
-                (larguraArmazem + profundidadeArmazem) / 6, // raio menor no topo
-                (larguraArmazem + profundidadeArmazem) / 4, // raio maior na base
-                alturaTelhado, 
-                4 // forma retangular com 4 lados
-              ]} 
-            />
+          {/* Telhado lado A */}
+          <mesh position={[0, alturaTelhado/2, -profundidadeArmazem/4]} rotation={[-Math.PI/6, 0, 0]} castShadow>
+            <boxGeometry args={[larguraArmazem + 1, 0.2, profundidadeArmazem/2 + 0.5]} />
             <meshStandardMaterial 
-              color="#888888" 
+              color="#666666" 
               metalness={0.4} 
               roughness={0.6}
             />
           </mesh>
 
-          {/* Beirais simples */}
-          <mesh position={[0, 0, 0]} castShadow>
-            <boxGeometry args={[larguraArmazem + 2, 0.3, profundidadeArmazem + 2]} />
+          {/* Telhado lado B */}
+          <mesh position={[0, alturaTelhado/2, profundidadeArmazem/4]} rotation={[Math.PI/6, 0, 0]} castShadow>
+            <boxGeometry args={[larguraArmazem + 1, 0.2, profundidadeArmazem/2 + 0.5]} />
             <meshStandardMaterial 
               color="#666666" 
-              metalness={0.5} 
-              roughness={0.5}
+              metalness={0.4} 
+              roughness={0.6}
             />
           </mesh>
 
-          {/* Cumeeira simples no topo */}
+          {/* Cumeeira central */}
           <mesh position={[0, alturaTelhado + 0.1, 0]} castShadow>
-            <boxGeometry args={[larguraArmazem/3, 0.2, profundidadeArmazem/3]} />
+            <boxGeometry args={[larguraArmazem + 1.2, 0.3, 0.4]} />
             <meshStandardMaterial 
               color="#444444" 
               metalness={0.7} 
               roughness={0.3}
+            />
+          </mesh>
+
+          {/* Beirais laterais */}
+          <mesh position={[0, alturaTelhado/4, -profundidadeArmazem/2 - 0.3]} castShadow>
+            <boxGeometry args={[larguraArmazem + 2, 0.15, 0.6]} />
+            <meshStandardMaterial 
+              color="#555555" 
+              metalness={0.5} 
+              roughness={0.5}
+            />
+          </mesh>
+          <mesh position={[0, alturaTelhado/4, profundidadeArmazem/2 + 0.3]} castShadow>
+            <boxGeometry args={[larguraArmazem + 2, 0.15, 0.6]} />
+            <meshStandardMaterial 
+              color="#555555" 
+              metalness={0.5} 
+              roughness={0.5}
             />
           </mesh>
         </group>
@@ -494,11 +505,23 @@ const Armazem3D = () => {
           maxDistance={larguraTotal * 1.5}
         />
 
-        {/* Plano do terreno */}
-        <mesh position={[0, -1.5, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[larguraTotal * 1.5, larguraTotal]} />
-          <meshStandardMaterial color="#8FBC8F" />
-        </mesh>
+        {/* Grade do chão - igual ao silo */}
+        <group position={[0, -1, 0]}>
+          {/* Linhas horizontais */}
+          {Array.from({ length: Math.ceil(larguraTotal / 6) + 1 }, (_, i) => (
+            <mesh key={`h-${i}`} position={[0, 0, (i - Math.ceil(larguraTotal / 12)) * 6]} rotation={[0, 0, 0]}>
+              <boxGeometry args={[larguraTotal * 1.2, 0.02, 0.02]} />
+              <meshStandardMaterial color="#666666" />
+            </mesh>
+          ))}
+          {/* Linhas verticais */}
+          {Array.from({ length: Math.ceil(larguraTotal / 6) + 1 }, (_, i) => (
+            <mesh key={`v-${i}`} position={[(i - Math.ceil(larguraTotal / 12)) * 6, 0, 0]} rotation={[0, 0, 0]}>
+              <boxGeometry args={[0.02, 0.02, larguraTotal]} />
+              <meshStandardMaterial color="#666666" />
+            </mesh>
+          ))}
+        </group>
       </Canvas>
     </div>
   );
