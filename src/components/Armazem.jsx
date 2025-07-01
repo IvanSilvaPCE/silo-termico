@@ -415,6 +415,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                         <TopoArmazem 
                             onArcoSelecionado={handleArcoSelecionadoTopo}
                             arcoAtual={arcoAtual}
+                            onFecharTopo={() => setMostrarTopo(false)}
                         />
                     ) : (
                         <div className="svg-container mb-1 mb-md-2" style={{ 
