@@ -54,6 +54,47 @@ const ModeladorSVG = () => {
   const [forceUpdateLista, setForceUpdateLista] = useState(0);
   const [dadosPortalExample, setDadosPortalExample] = useState(null);
   const [analiseArcos, setAnaliseArcos] = useState(null);
+  const [dimensoesSVGArmazem, setDimensoesSVGArmazem] = useState({ largura: 350, altura: 200 });
+
+  // Calcular dimensões ideais do SVG baseado na análise de todos os arcos
+  const calcularDimensoesIdeaisArmazem = (analiseArcos) => {
+    if (!analiseArcos) return { largura: 350, altura: 200 };
+
+    let maxSensores = 0;
+    let maxPendulos = 0;
+
+    // Encontrar o máximo de sensores e pêndulos em todos os arcos
+    Object.values(analiseArcos.arcos).forEach(arco => {
+      maxPendulos = Math.max(maxPendulos, arco.totalPendulos);
+      arco.pendulos.forEach(pendulo => {
+        maxSensores = Math.max(maxSensores, pendulo.totalSensores);
+      });
+    });
+
+    const escala_sensores = configArmazem.escala_sensores;
+    const dist_y_sensores = configArmazem.dist_y_sensores;
+    const margemSuperior = 30;
+    const margemInferior = 50;
+    const margemPendulo = 20;
+
+    // Calcular altura necessária
+    const alturaBaseTelhado = configArmazem.pb;
+    const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
+    const alturaTotal = Math.max(
+      alturaBaseTelhado, 
+      margemSuperior + alturaSensores + margemInferior + margemPendulo
+    );
+
+    // Calcular largura necessária
+    const larguraMinima = configArmazem.lb;
+    const espacamentoPendulo = 50;
+    const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100);
+
+    return {
+      largura: larguraCalculada,
+      altura: Math.max(alturaTotal, 250)
+    };
+  };
 
   // Carregar configurações salvas
   useEffect(() => {
@@ -212,7 +253,7 @@ const ModeladorSVG = () => {
     // Renderizar pêndulos
     pendulosParaRenderizar.forEach((pendulo, p) => {
       const xCabo = posicoes[p];
-      const yCabo = (configArmazem.pos_y_cabo[0] || 181) + 10; // Desceu 10px
+      const yCabo = dimensoesSVGArmazem.altura - 35; // Posição fixa baseada na altura calculada
       const numSensores = pendulo.totalSensores;
 
       const numeroPendulo = pendulo.numero;
@@ -254,10 +295,10 @@ const ModeladorSVG = () => {
         const s = parseInt(sensorKey);
         const [temp, , , falha, nivel] = valores;
         
-        const ySensor = yCabo - configArmazem.dist_y_sensores * s - 12;
+        const ySensor = yCabo - configArmazem.dist_y_sensores * s - 25;
         
-        // Só renderizar se estiver dentro dos limites visíveis
-        if (ySensor > 10) {
+        // Garantir que está dentro dos limites do SVG
+        if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 50)) {
           // Determinar cor do sensor baseado na temperatura
           let corSensor = "#ccc";
           if (nivel) {
@@ -335,14 +376,16 @@ const ModeladorSVG = () => {
       tipo_fundo,
       intensidade_fundo,
       curvatura_topo,
-      pb,
-      lb,
       hb,
       hf,
-      lf,
       le,
       ht,
     } = configArmazem;
+
+    // Usar dimensões dinâmicas
+    const pb = dimensoesSVGArmazem.altura - 50;
+    const lb = dimensoesSVGArmazem.largura;
+    const lf = Math.min(configArmazem.lf, lb * 0.7);
 
     // Base com diferentes tipos de fundo
     let pathBase = "";
@@ -667,7 +710,7 @@ const ModeladorSVG = () => {
       const altura = configSilo.hs + configSilo.hb * 1.75;
       return [largura, altura];
     } else {
-      return [configArmazem.lb, configArmazem.pb];
+      return [dimensoesSVGArmazem.largura, dimensoesSVGArmazem.altura];
     }
   };
 
@@ -1060,6 +1103,12 @@ const ModeladorSVG = () => {
                             setDadosPortalExample(dadosExemplo);
                             const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
                             setAnaliseArcos(analise);
+                            
+                            // Calcular dimensões ideais baseado na análise
+                            if (analise) {
+                              const dimensoes = calcularDimensoesIdeaisArmazem(analise);
+                              setDimensoesSVGArmazem(dimensoes);
+                            }
                           });
                         }
                       }}

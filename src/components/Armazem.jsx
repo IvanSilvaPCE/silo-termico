@@ -13,6 +13,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const [analiseArcos, setAnaliseArcos] = useState(null);
     const [layoutsAutomaticos, setLayoutsAutomaticos] = useState(null);
     const [mostrarTopo, setMostrarTopo] = useState(false);
+    const [dimensoesSVG, setDimensoesSVG] = useState({ largura: 350, altura: 200 });
 
     // Carregar dados de exemplo automaticamente
     useEffect(() => {
@@ -29,6 +30,10 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 // Gerar layouts automáticos
                 const layouts = LayoutManager.gerarLayoutAutomatico(analise);
                 setLayoutsAutomaticos(layouts);
+
+                // Calcular dimensões ideais do SVG baseado em todos os arcos
+                const dimensoes = calcularDimensoesIdeais(analise);
+                setDimensoesSVG(dimensoes);
 
                 // Converter dados para o formato do armazém (arco 1 inicialmente)
                 const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo, 1);
@@ -62,7 +67,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         svgEl.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
         svgEl.setAttribute("width", "100%");
         svgEl.setAttribute("height", "85vh");
-        svgEl.setAttribute("viewBox", "0 0 350 200");
+        svgEl.setAttribute("viewBox", `0 0 ${dimensoesSVG.largura} ${dimensoesSVG.altura}`);
         container.appendChild(svgEl);
 
         // Desenhar fundo e conteúdo
@@ -74,6 +79,46 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
             desenhaMapaCalor();
         }
     }, [dados, modo, arcoAtual, layoutsAutomaticos]);
+
+    // Calcular dimensões ideais do SVG baseado na análise de todos os arcos
+    function calcularDimensoesIdeais(analiseArcos) {
+        if (!analiseArcos) return { largura: 350, altura: 200 };
+
+        let maxSensores = 0;
+        let maxPendulos = 0;
+
+        // Encontrar o máximo de sensores e pêndulos em todos os arcos
+        Object.values(analiseArcos.arcos).forEach(arco => {
+            maxPendulos = Math.max(maxPendulos, arco.totalPendulos);
+            arco.pendulos.forEach(pendulo => {
+                maxSensores = Math.max(maxSensores, pendulo.totalSensores);
+            });
+        });
+
+        const escala_sensores = 16;
+        const dist_y_sensores = 12;
+        const margemSuperior = 30; // Margem para o telhado
+        const margemInferior = 50; // Margem para os pêndulos (P1, P2, etc.)
+        const margemPendulo = 20; // Espaço extra para o nome do pêndulo
+
+        // Calcular altura necessária
+        const alturaBaseTelhado = 185; // Altura base original
+        const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
+        const alturaTotal = Math.max(
+            alturaBaseTelhado, 
+            margemSuperior + alturaSensores + margemInferior + margemPendulo
+        );
+
+        // Calcular largura necessária (baseada no número de pêndulos)
+        const larguraMinima = 350;
+        const espacamentoPendulo = 50;
+        const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100);
+
+        return {
+            largura: larguraCalculada,
+            altura: Math.max(alturaTotal, 250) // Altura mínima
+        };
+    }
 
     function corFaixaExata(t) {
         if (t === -1000) return "#ff0000";
@@ -91,7 +136,12 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
     function desenhaFundo() {
         const svgEl = document.getElementById("des_arco_armazem");
-        const pb = 185, lb = 350, hb = 30, hf = 5, lf = 250, le = 15, ht = 50;
+        // Usar dimensões dinâmicas mas manter proporções do armazém
+        const pb = dimensoesSVG.altura - 50; // Posição base ajustada
+        const lb = dimensoesSVG.largura;
+        const hb = 30, hf = 5;
+        const lf = Math.min(250, lb * 0.7); // Largura frente proporcional
+        const le = 15, ht = 50;
 
         // Base
         const p1 = [lb, pb - hb],
@@ -146,8 +196,8 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
         const escala_sensores = 16;
         const dist_y_sensores = 12;
-        const pb = 185;
-        const yPendulo = pb - 30 + 10; // Posição dos pêndulos
+        const pb = dimensoesSVG.altura - 50; // Posição base ajustada
+        const yPendulo = pb + 15; // Posição dos pêndulos - FORA do armazém
 
         arcoInfo.pendulos.forEach((pendulo, index) => {
             const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
@@ -179,11 +229,12 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
             textPendulo.textContent = `P${pendulo.numero}`;
             svgEl.appendChild(textPendulo);
 
-            // Sensores
+            // Sensores - ajustar posicionamento para ficar dentro do SVG
             for (let s = 1; s <= numSensores; s++) {
-                const ySensor = yPendulo - dist_y_sensores * s - 12;
+                const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
 
-                if (ySensor > 10) {
+                // Garantir que o sensor está dentro dos limites do SVG
+                if (ySensor > 10 && ySensor < (dimensoesSVG.altura - 60)) {
                     // Retângulo do sensor
                     const rectSensor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
                     rectSensor.setAttribute("id", `C${index + 1}S${s}`);
@@ -236,7 +287,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
         if (!layoutArco || !arcoInfo) return;
 
-        const largura = 350, altura = 200;
+        const largura = dimensoesSVG.largura, altura = dimensoesSVG.altura;
         const resolucao = 160;
         const wCell = largura / resolucao;
         const hCell = altura / resolucao;
@@ -245,7 +296,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         const sensores = [];
         Object.entries(dados.leitura).forEach(([pendulo, sensoresData], penduloIndex) => {
             const xCabo = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
-            const yCabo = 185 - 30 + 10; // Posição base dos pêndulos
+            const yCabo = dimensoesSVG.altura - 50 + 15; // Posição base dos pêndulos ajustada
 
             Object.entries(sensoresData).forEach(([sensorKey, dadosSensor]) => {
                 const s = parseInt(sensorKey);
@@ -299,8 +350,11 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
             }
         }
 
-        // Definir clip path para formato do armazém
-        const lb = 350, lf = 250, le = 15, pb = 185, hb = 30, hf = 5, ht = 50;
+        // Definir clip path para formato do armazém - usar dimensões dinâmicas
+        const lb = dimensoesSVG.largura;
+        const pb = dimensoesSVG.altura - 50;
+        const lf = Math.min(250, lb * 0.7);
+        const le = 15, hb = 30, hf = 5, ht = 50;
         const p1 = [(lb - lf) / 2, pb - hf],
             p2 = [le, pb - hb],
             p3 = [le, pb - ht],

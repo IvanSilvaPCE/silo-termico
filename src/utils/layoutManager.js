@@ -368,6 +368,40 @@ class LayoutManager {
 
     const layouts = {};
 
+    // Calcular dimensões ideais uma única vez para todos os arcos
+    let maxSensores = 0;
+    let maxPendulos = 0;
+
+    Object.values(analiseArcos.arcos).forEach(arco => {
+      maxPendulos = Math.max(maxPendulos, arco.totalPendulos);
+      arco.pendulos.forEach(pendulo => {
+        maxSensores = Math.max(maxSensores, pendulo.totalSensores);
+      });
+    });
+
+    // Calcular dimensões ideais
+    const escala_sensores = 16;
+    const dist_y_sensores = 12;
+    const margemSuperior = 30;
+    const margemInferior = 50;
+    const margemPendulo = 20;
+
+    const alturaBaseTelhado = 185;
+    const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
+    const alturaTotal = Math.max(
+      alturaBaseTelhado, 
+      margemSuperior + alturaSensores + margemInferior + margemPendulo
+    );
+
+    const larguraMinima = 350;
+    const espacamentoPendulo = 50;
+    const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100);
+
+    const dimensoesIdeais = {
+      largura: larguraCalculada,
+      altura: Math.max(alturaTotal, 250)
+    };
+
     Object.entries(analiseArcos.arcos).forEach(([numeroArco, infoArco]) => {
       const totalPendulos = infoArco.totalPendulos;
       const totalSensores = infoArco.totalSensores;
@@ -375,8 +409,8 @@ class LayoutManager {
       // Calcular distribuição piramidal baseada nos dados reais
       const distribuicaoReal = infoArco.pendulos.map(p => p.totalSensores);
       
-      // Gerar posições dos pêndulos
-      const larguraBase = 350;
+      // Gerar posições dos pêndulos usando as dimensões calculadas
+      const larguraBase = dimensoesIdeais.largura;
       const margemLateral = 50;
       const larguraUtil = larguraBase - (margemLateral * 2);
       const espacamento = totalPendulos > 1 ? larguraUtil / (totalPendulos - 1) : 0;
@@ -387,7 +421,7 @@ class LayoutManager {
       }
 
       layouts[`arco_${numeroArco}`] = {
-        tamanho_svg: [350, 200],
+        tamanho_svg: [dimensoesIdeais.largura, dimensoesIdeais.altura],
         desenho_sensores: {
           escala_cores_sensores: 2,
           nome_sensores_direita: 0,
@@ -397,12 +431,12 @@ class LayoutManager {
           dist_y_nome_cabo: new Array(totalPendulos).fill(8),
           pos_x_cabos_uniforme: 1,
           pos_x_cabo: posicoes,
-          pos_y_cabo: new Array(totalPendulos).fill(181),
+          pos_y_cabo: new Array(totalPendulos).fill(dimensoesIdeais.altura - 35),
         },
         desenho_arco: {
           tipo_telhado: 1,
-          pb: 185,
-          lb: 350,
+          pb: dimensoesIdeais.altura - 50,
+          lb: dimensoesIdeais.largura,
           hb: 30,
           hf: 5,
           lf: 250,
