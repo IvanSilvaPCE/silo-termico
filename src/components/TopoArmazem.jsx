@@ -1,39 +1,36 @@
-
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState, useEffect, useRef } from 'react';
+import dadosArmazemTopo from '../dadosArmazemTopo';
 import "bootstrap/dist/css/bootstrap.min.css";
 
-const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
+const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     const containerRef = useRef(null);
     const [dadosPendulos, setDadosPendulos] = useState(null);
+    const [dadosTopo, setDadosTopo] = useState(null);
     const [arcoSelecionado, setArcoSelecionado] = useState(1);
     const [celulaSelecionada, setCelulaSelecionada] = useState(1);
     const [layoutTopo, setLayoutTopo] = useState(null);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState(null);
 
-    // Carregar dados reais da rota /pendulos
+    // Carregar dados de exemplo (simular dados reais)
     useEffect(() => {
         const carregarDadosPendulos = async () => {
             try {
                 setCarregando(true);
                 setErro(null);
-                
-                const response = await fetch('/api/pendulos');
-                if (!response.ok) {
-                    throw new Error(`Erro ao carregar dados: ${response.status}`);
-                }
-                
-                const dados = await response.json();
-                setDadosPendulos(dados.pendulos);
 
-                // Gerar layout baseado nos dados reais
-                const layout = gerarLayoutTopoComDadosReais(dados.pendulos);
+                // Usar dados de exemplo
+                setDadosPendulos(dadosArmazemTopo.pendulos);
+                setDadosTopo(dadosArmazemTopo);
+
+                // Gerar layout baseado nos dados de exemplo
+                const layout = gerarLayoutTopoComDadosReais(dadosArmazemTopo.pendulos);
                 setLayoutTopo(layout);
 
             } catch (error) {
-                console.error('Erro ao carregar dados dos pêndulos:', error);
+                console.error('Erro ao carregar dados:', error);
                 setErro(error.message);
-                
+
                 // Fallback para dados de exemplo em caso de erro
                 const dadosExemplo = gerarDadosExemplo();
                 setDadosPendulos(dadosExemplo);
@@ -45,7 +42,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         };
 
         carregarDadosPendulos();
-        
+
         // Atualizar dados a cada 30 segundos
         const interval = setInterval(carregarDadosPendulos, 30000);
         return () => clearInterval(interval);
@@ -156,7 +153,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         svgEl.setAttribute("height", "400px");
         svgEl.setAttribute("viewBox", `0 0 ${layoutTopo.celulas.tamanho_svg[0]} ${layoutTopo.celulas.tamanho_svg[1]}`);
         svgEl.setAttribute("style", "background: #f8f9fa; border-radius: 8px; shape-rendering:geometricPrecision; text-rendering:geometricPrecision;");
-        
+
         container.appendChild(svgEl);
 
         // Desenhar elementos
@@ -164,7 +161,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         desenharCelulas();
         desenharArcos();
         desenharAeradores();
-        
+
         // Aplicar seleções
         atualizarSelecoes();
         atualizarVisualizacaoPendulos();
@@ -176,7 +173,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     function desenharFundo() {
         const svgEl = document.getElementById("des_topo_armazem");
         const fundo = layoutTopo.celulas.fundo;
-        
+
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rect.setAttribute("id", "rec_celula0");
         rect.setAttribute("x", fundo[0]);
@@ -187,16 +184,16 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         rect.setAttribute("stroke-width", "2");
         rect.setAttribute("rx", "5");
         rect.setAttribute("ry", "5");
-        
+
         svgEl.appendChild(rect);
     }
 
     function desenharCelulas() {
         const svgEl = document.getElementById("des_topo_armazem");
-        
+
         for (let celula = 1; celula <= 3; celula++) {
             const celulaData = layoutTopo.celulas[celula.toString()];
-            
+
             const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
             rect.setAttribute("id", `rec_celula${celula}`);
             rect.setAttribute("x", celulaData[0]);
@@ -209,14 +206,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
             rect.setAttribute("rx", "5");
             rect.setAttribute("ry", "5");
             rect.style.cursor = "pointer";
-            
+
             svgEl.appendChild(rect);
         }
     }
 
     function desenharArcos() {
         const svgEl = document.getElementById("des_topo_armazem");
-        
+
         Object.keys(layoutTopo).forEach(key => {
             if (key !== 'celulas' && key !== 'aeradores') {
                 const arcoData = layoutTopo[key];
@@ -228,12 +225,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     function desenharArco(idArco, dadosArco) {
         const svgEl = document.getElementById("des_topo_armazem");
         const posX = dadosArco.pos_x;
-        
+
         // Grupo do arco
         const grupoArco = document.createElementNS("http://www.w3.org/2000/svg", "g");
         grupoArco.setAttribute("id", `arco_${idArco}`);
         grupoArco.style.cursor = "pointer";
-        
+
         // Retângulo de seleção
         const rectSelecao = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rectSelecao.setAttribute("id", `rec_arco_${idArco}`);
@@ -242,7 +239,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         rectSelecao.setAttribute("width", 17);
         rectSelecao.setAttribute("height", 254);
         rectSelecao.setAttribute("fill", "#B3B3B3");
-        
+
         // Botão superior
         const botaoSup = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         botaoSup.setAttribute("id", `arco${idArco}_botsup`);
@@ -253,7 +250,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         botaoSup.setAttribute("rx", 4.2);
         botaoSup.setAttribute("ry", 4.2);
         botaoSup.setAttribute("fill", "#999999");
-        
+
         // Texto botão superior
         const textoSup = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textoSup.setAttribute("x", posX);
@@ -265,7 +262,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         textoSup.setAttribute("font-family", "Arial");
         textoSup.setAttribute("fill", "white");
         textoSup.textContent = idArco;
-        
+
         // Botão inferior
         const botaoInf = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         botaoInf.setAttribute("id", `arco${idArco}_botinf`);
@@ -276,7 +273,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         botaoInf.setAttribute("rx", 4.2);
         botaoInf.setAttribute("ry", 4.2);
         botaoInf.setAttribute("fill", "#999999");
-        
+
         // Texto botão inferior
         const textoInf = document.createElementNS("http://www.w3.org/2000/svg", "text");
         textoInf.setAttribute("x", posX);
@@ -288,13 +285,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         textoInf.setAttribute("font-family", "Arial");
         textoInf.setAttribute("fill", "white");
         textoInf.textContent = idArco;
-        
+
         grupoArco.appendChild(rectSelecao);
         grupoArco.appendChild(botaoSup);
         grupoArco.appendChild(textoSup);
         grupoArco.appendChild(botaoInf);
         grupoArco.appendChild(textoInf);
-        
+
         // Desenhar pêndulos do arco
         if (dadosArco.pendulos) {
             dadosArco.pendulos.forEach((pendulo, index) => {
@@ -303,7 +300,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                 grupoArco.appendChild(cabo);
             });
         }
-        
+
         document.getElementById("des_topo_armazem").appendChild(grupoArco);
     }
 
@@ -311,16 +308,16 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         const grupo = document.createElementNS("http://www.w3.org/2000/svg", "g");
         grupo.setAttribute("id", `pendulo_${pendulo.id}`);
         grupo.style.cursor = "pointer";
-        
+
         // Cor baseada na temperatura
         const temperatura = pendulo.temperatura;
         let corFundo = corFaixaExata(temperatura);
-        
+
         // Se não está ativo, usar cor cinza
         if (!pendulo.ativo || temperatura === 0) {
             corFundo = "#c7c7c7";
         }
-        
+
         // Círculo do pêndulo
         const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circulo.setAttribute("id", `c_pendulo_${pendulo.id}`);
@@ -330,7 +327,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         circulo.setAttribute("fill", corFundo);
         circulo.setAttribute("stroke", "black");
         circulo.setAttribute("stroke-width", "0.8");
-        
+
         // Texto do pêndulo (temperatura)
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
         texto.setAttribute("id", `t_pendulo_${pendulo.id}`);
@@ -343,7 +340,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         texto.setAttribute("font-family", "Arial");
         texto.setAttribute("fill", temperatura >= 30 ? "white" : "black");
         texto.textContent = temperatura === 0 ? "OFF" : `${temperatura}°`;
-        
+
         // Número do pêndulo abaixo
         const numeroTexto = document.createElementNS("http://www.w3.org/2000/svg", "text");
         numeroTexto.setAttribute("x", posX);
@@ -355,7 +352,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         numeroTexto.setAttribute("font-family", "Arial");
         numeroTexto.setAttribute("fill", temperatura >= 30 ? "white" : "black");
         numeroTexto.textContent = `P${pendulo.id}`;
-        
+
         // Círculo de alarme (se houver)
         if (pendulo.alarme) {
             const circuloAlarme = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -364,7 +361,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
             circuloAlarme.setAttribute("r", 15);
             circuloAlarme.setAttribute("fill", "red");
             circuloAlarme.setAttribute("fill-opacity", "0.6");
-            
+
             const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animate");
             animacao.setAttribute("attributeName", "r");
             animacao.setAttribute("begin", "0s");
@@ -373,20 +370,20 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
             animacao.setAttribute("to", "10");
             animacao.setAttribute("repeatCount", "indefinite");
             circuloAlarme.appendChild(animacao);
-            
+
             grupo.appendChild(circuloAlarme);
         }
-        
+
         grupo.appendChild(circulo);
         grupo.appendChild(texto);
         grupo.appendChild(numeroTexto);
-        
+
         return grupo;
     }
 
     function desenharAeradores() {
         const svgEl = document.getElementById("des_topo_armazem");
-        
+
         Object.entries(layoutTopo.aeradores).forEach(([id, dados]) => {
             const [posX, posY, textoAcima] = dados;
             desenharAerador(parseInt(id), posX, posY, textoAcima);
@@ -395,11 +392,11 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
 
     function desenharAerador(idAerador, posX, posY, textoAcima) {
         const svgEl = document.getElementById("des_topo_armazem");
-        
+
         const grupo = document.createElementNS("http://www.w3.org/2000/svg", "g");
         grupo.setAttribute("id", `aerador_${idAerador}`);
         grupo.setAttribute("transform", `translate(${posX - 70}, ${posY})`);
-        
+
         // Círculo principal
         const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circulo.setAttribute("id", `fundo_aerador_${idAerador}`);
@@ -407,7 +404,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         circulo.setAttribute("cy", 24);
         circulo.setAttribute("r", 10.5);
         circulo.setAttribute("fill", "#c5c5c5");
-        
+
         // Retângulo do nome
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rect.setAttribute("x", 73.5);
@@ -417,7 +414,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         rect.setAttribute("rx", 6.4);
         rect.setAttribute("ry", 5);
         rect.setAttribute("fill", "#3A78FD");
-        
+
         // Texto do nome
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
         texto.setAttribute("x", 86);
@@ -429,7 +426,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         texto.setAttribute("font-family", "Arial");
         texto.setAttribute("fill", "white");
         texto.textContent = `AE-${idAerador}`;
-        
+
         // Blade (simplificado)
         const blade = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         blade.setAttribute("cx", 86.35);
@@ -438,18 +435,18 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         blade.setAttribute("fill", "none");
         blade.setAttribute("stroke", "white");
         blade.setAttribute("stroke-width", 2);
-        
+
         grupo.appendChild(circulo);
         grupo.appendChild(rect);
         grupo.appendChild(texto);
         grupo.appendChild(blade);
-        
+
         svgEl.appendChild(grupo);
     }
 
     function atualizarSelecoes() {
         if (!layoutTopo) return;
-        
+
         // Atualizar seleção de células
         for (let celula = 1; celula <= 3; celula++) {
             const elemento = document.getElementById(`rec_celula${celula}`);
@@ -463,13 +460,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                 }
             }
         }
-        
+
         // Atualizar seleção de arcos
         Object.keys(layoutTopo).forEach(key => {
             if (key !== 'celulas' && key !== 'aeradores') {
                 const arcoNum = parseInt(key);
                 const arcoData = layoutTopo[key];
-                
+
                 // Retângulo de seleção do arco
                 const rectArco = document.getElementById(`rec_arco_${arcoNum}`);
                 if (rectArco) {
@@ -481,7 +478,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                         rectArco.setAttribute("fill", "#B3B3B3");
                     }
                 }
-                
+
                 // Botões do arco
                 const botaoSup = document.getElementById(`arco${arcoNum}_botsup`);
                 const botaoInf = document.getElementById(`arco${arcoNum}_botinf`);
@@ -496,7 +493,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
 
     function atualizarVisualizacaoPendulos() {
         if (!dadosPendulos || !layoutTopo) return;
-        
+
         // Atualizar cada arco e seus pêndulos
         Object.keys(layoutTopo).forEach(key => {
             if (key !== 'celulas' && key !== 'aeradores') {
@@ -508,20 +505,20 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                             const temperatura = dadosAtuais[3];
                             const alarme = dadosAtuais[0];
                             const ativo = dadosAtuais[2];
-                            
+
                             const circulo = document.getElementById(`c_pendulo_${pendulo.id}`);
                             const texto = document.getElementById(`t_pendulo_${pendulo.id}`);
-                            
+
                             if (circulo && texto) {
                                 // Definir cor baseada na temperatura
                                 let cor = corFaixaExata(temperatura);
                                 let corTexto = temperatura >= 30 ? "white" : "black";
-                                
+
                                 if (!ativo || temperatura === 0) {
                                     cor = "#c7c7c7";
                                     corTexto = "black";
                                 }
-                                
+
                                 circulo.setAttribute("fill", cor);
                                 texto.setAttribute("fill", corTexto);
                                 texto.textContent = temperatura === 0 ? "OFF" : `${temperatura}°`;
@@ -549,14 +546,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     function adicionarEventosClique() {
         const svgEl = document.getElementById("des_topo_armazem");
         if (!svgEl) return;
-        
+
         svgEl.addEventListener('click', (evento) => {
             const elemento = evento.target;
             const grupo = elemento.parentElement;
-            
+
             if (grupo && grupo.id) {
                 const [tipo, numero] = grupo.id.split('_');
-                
+
                 if (tipo === 'arco') {
                     const novoArco = parseInt(numero);
                     setArcoSelecionado(novoArco);
@@ -582,13 +579,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                         }
                     });
                 }
-                
+
                 // Atualizar visualização
                 setTimeout(() => {
                     atualizarSelecoes();
                 }, 50);
             }
-            
+
             // Clique em células
             if (elemento.id && elemento.id.startsWith('rec_celula')) {
                 const numeroCelula = parseInt(elemento.id.replace('rec_celula', ''));
@@ -618,12 +615,23 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     }
 
     return (
-        <div className="container-fluid p-2">
-            <div className="row">
+        <div className="container-fluid p-0">
+            <div className="row g-0">
                 <div className="col-12">
                     <div className="card">
-                        <div className="card-header bg-info text-white">
-                            <h6 className="mb-0">Vista de Topo - Armazém (Layout Retangular)</h6>
+                        <div className="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                            <h5 className="mb-0">
+                                <i className="fas fa-warehouse me-2"></i>
+                                Visualização Topo do Armazém
+                                {carregando && <span className="ms-2"><i className="fas fa-spinner fa-spin"></i></span>}
+                            </h5>
+                            <button 
+                                className="btn btn-outline-light btn-sm"
+                                onClick={onFecharTopo}
+                                title="Fechar Topo"
+                            >
+                                <i className="fas fa-times"></i> Fechar Topo
+                            </button>
                         </div>
                         <div className="card-body">
                             <div 
@@ -631,7 +639,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                                 className="d-flex justify-content-center"
                                 style={{ minHeight: '400px' }}
                             />
-                            
+
                             <div className="mt-3">
                                 <div className="row">
                                     <div className="col-md-4">
