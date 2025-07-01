@@ -1,44 +1,54 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
-import LayoutManager from "../utils/layoutManager";
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     const containerRef = useRef(null);
-    const [dados, setDados] = useState(null);
-    const [dadosPortal, setDadosPortal] = useState(null);
-    const [analiseArcos, setAnaliseArcos] = useState(null);
+    const [dadosPendulos, setDadosPendulos] = useState(null);
     const [arcoSelecionado, setArcoSelecionado] = useState(1);
     const [celulaSelecionada, setCelulaSelecionada] = useState(1);
     const [layoutTopo, setLayoutTopo] = useState(null);
-    const [dadosTopo, setDadosTopo] = useState(null);
+    const [carregando, setCarregando] = useState(true);
+    const [erro, setErro] = useState(null);
 
-    // Carregar dados de exemplo
+    // Carregar dados reais da rota /pendulos
     useEffect(() => {
-        const inicializarDados = async () => {
+        const carregarDadosPendulos = async () => {
             try {
-                const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
-                setDadosPortal(dadosExemplo);
+                setCarregando(true);
+                setErro(null);
+                
+                const response = await fetch('/api/pendulos');
+                if (!response.ok) {
+                    throw new Error(`Erro ao carregar dados: ${response.status}`);
+                }
+                
+                const dados = await response.json();
+                setDadosPendulos(dados.pendulos);
 
-                const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
-                setAnaliseArcos(analise);
-
-                // Gerar layout baseado na estrutura do HTML
-                const layout = gerarLayoutTopo(analise);
+                // Gerar layout baseado nos dados reais
+                const layout = gerarLayoutTopoComDadosReais(dados.pendulos);
                 setLayoutTopo(layout);
 
-                // Gerar dados de temperatura dos cabos
-                const dadosTemp = gerarDadosTemperatura(layout);
-                setDadosTopo(dadosTemp);
-
-                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo);
-                setDados(dadosConvertidos);
             } catch (error) {
-                console.error('Erro ao carregar dados do topo:', error);
+                console.error('Erro ao carregar dados dos pêndulos:', error);
+                setErro(error.message);
+                
+                // Fallback para dados de exemplo em caso de erro
+                const dadosExemplo = gerarDadosExemplo();
+                setDadosPendulos(dadosExemplo);
+                const layout = gerarLayoutTopoComDadosReais(dadosExemplo);
+                setLayoutTopo(layout);
+            } finally {
+                setCarregando(false);
             }
         };
 
-        inicializarDados();
+        carregarDadosPendulos();
+        
+        // Atualizar dados a cada 30 segundos
+        const interval = setInterval(carregarDadosPendulos, 30000);
+        return () => clearInterval(interval);
     }, []);
 
     // Atualizar quando arco atual mudar
@@ -63,16 +73,21 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         criarSVGTopo();
     }, [layoutTopo, dadosTopo, arcoSelecionado, celulaSelecionada]);
 
-    function gerarLayoutTopo(analise) {
-        if (!analise) return null;
+    function gerarLayoutTopoComDadosReais(pendulos) {
+        if (!pendulos) return null;
+
+        const totalPendulos = Object.keys(pendulos).length;
+        const pendulosPorFileira = Math.ceil(totalPendulos / 3); // 3 células
+        const larguraTotal = 600;
+        const larguraCelula = (larguraTotal - 20) / 3; // 20px para margens
 
         const layout = {
             celulas: {
-                tamanho_svg: [600, 388],
-                fundo: [5, 49, 501, 256],
-                "1": [5, 50, 180, 254],
-                "2": [190, 50, 170, 254], 
-                "3": [364, 50, 150, 254]
+                tamanho_svg: [larguraTotal, 388],
+                fundo: [5, 49, larguraTotal - 10, 256],
+                "1": [10, 50, larguraCelula - 10, 254],
+                "2": [10 + larguraCelula, 50, larguraCelula - 10, 254], 
+                "3": [10 + larguraCelula * 2, 50, larguraCelula - 10, 254]
             },
             aeradores: {
                 "1": [65, 0, 1],
@@ -88,60 +103,46 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
             }
         };
 
-        // Gerar arcos baseado na análise
-        let caboAtual = 1;
-        let posX = 30;
-        Object.entries(analise.arcos).forEach(([numeroArco, infoArco], index) => {
-            const celula = Math.ceil(parseInt(numeroArco) / 5); // 5 arcos por célula
-            
-            layout[numeroArco] = {
-                celula: celula,
+        // Distribuir pêndulos nas células e criar "arcos" (grupos de pêndulos)
+        const pendulosArray = Object.entries(pendulos);
+        let arcoAtual = 1;
+        let posX = 25;
+        const espacamentoArco = 25;
+
+        for (let i = 0; i < pendulosArray.length; i += 3) {
+            const pendulosDoArco = pendulosArray.slice(i, i + 3);
+            const celula = Math.ceil(arcoAtual / Math.ceil(totalPendulos / 9)) || 1; // Distribuir em 3 células
+
+            layout[arcoAtual] = {
+                celula: Math.min(celula, 3),
                 pos_x: posX,
-                sensores: {}
+                pendulos: pendulosDoArco.map(([id, dados]) => ({
+                    id: parseInt(id),
+                    temperatura: dados[3], // 4º elemento é a temperatura
+                    alarme: dados[0],      // 1º elemento é alarme
+                    preAlarme: dados[1],   // 2º elemento é pré-alarme
+                    ativo: dados[2]        // 3º elemento é ativo
+                }))
             };
 
-            // Adicionar sensores/cabos para este arco
-            infoArco.pendulos.forEach((pendulo, pendIndex) => {
-                for (let s = 1; s <= pendulo.totalSensores; s++) {
-                    const posY = 75 + (s - 1) * 75 + (pendIndex * 25); // Distribuir verticalmente
-                    layout[numeroArco].sensores[caboAtual] = posY;
-                    caboAtual++;
-                }
-            });
-
-            posX += 35; // Espaçamento entre arcos
-        });
+            posX += espacamentoArco;
+            arcoAtual++;
+        }
 
         return layout;
     }
 
-    function gerarDadosTemperatura(layout) {
-        if (!layout) return null;
-
-        const dados = {};
-        let caboId = 1;
-
-        // Para cada arco no layout
-        Object.keys(layout).forEach(key => {
-            if (key !== 'celulas' && key !== 'aeradores') {
-                const arco = layout[key];
-                if (arco.sensores) {
-                    Object.keys(arco.sensores).forEach(cabo => {
-                        // [falha, ponto_quente, nivel, temperatura, arco, celula]
-                        dados[cabo] = [
-                            false, // falha
-                            false, // ponto quente
-                            true,  // nivel
-                            15 + Math.random() * 20, // temperatura aleatória
-                            parseInt(key), // arco
-                            arco.celula // célula
-                        ];
-                    });
-                }
-            }
-        });
-
-        return dados;
+    function gerarDadosExemplo() {
+        const dadosExemplo = {};
+        for (let i = 1; i <= 57; i++) {
+            dadosExemplo[i] = [
+                false, // alarme
+                false, // pré-alarme
+                true,  // ativo
+                20 + Math.random() * 15 // temperatura
+            ];
+        }
+        return dadosExemplo;
     }
 
     function criarSVGTopo() {
@@ -166,7 +167,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         
         // Aplicar seleções
         atualizarSelecoes();
-        atualizarTemperaturasCabos();
+        atualizarVisualizacaoPendulos();
 
         // Adicionar eventos de clique
         adicionarEventosClique();
@@ -294,75 +295,91 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         grupoArco.appendChild(botaoInf);
         grupoArco.appendChild(textoInf);
         
-        // Desenhar cabos
-        Object.entries(dadosArco.sensores).forEach(([caboId, posY]) => {
-            const cabo = desenharCabo(caboId, posX, posY);
-            grupoArco.appendChild(cabo);
-        });
+        // Desenhar pêndulos do arco
+        if (dadosArco.pendulos) {
+            dadosArco.pendulos.forEach((pendulo, index) => {
+                const posY = 80 + (index * 60); // Distribuir verticalmente
+                const cabo = desenharPendulo(pendulo, posX, posY);
+                grupoArco.appendChild(cabo);
+            });
+        }
         
         document.getElementById("des_topo_armazem").appendChild(grupoArco);
     }
 
-    function desenharCabo(idCabo, posX, posY) {
+    function desenharPendulo(pendulo, posX, posY) {
         const grupo = document.createElementNS("http://www.w3.org/2000/svg", "g");
-        grupo.setAttribute("id", `cabo_${idCabo}`);
+        grupo.setAttribute("id", `pendulo_${pendulo.id}`);
         grupo.style.cursor = "pointer";
         
-        // Círculo do cabo
+        // Cor baseada na temperatura
+        const temperatura = pendulo.temperatura;
+        let corFundo = corFaixaExata(temperatura);
+        
+        // Se não está ativo, usar cor cinza
+        if (!pendulo.ativo || temperatura === 0) {
+            corFundo = "#c7c7c7";
+        }
+        
+        // Círculo do pêndulo
         const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circulo.setAttribute("id", `c_cabo_${idCabo}`);
+        circulo.setAttribute("id", `c_pendulo_${pendulo.id}`);
         circulo.setAttribute("cx", posX);
         circulo.setAttribute("cy", posY);
-        circulo.setAttribute("r", 9);
-        circulo.setAttribute("fill", "white");
+        circulo.setAttribute("r", 12);
+        circulo.setAttribute("fill", corFundo);
         circulo.setAttribute("stroke", "black");
-        circulo.setAttribute("stroke-width", "0.4");
+        circulo.setAttribute("stroke-width", "0.8");
         
-        // Texto do cabo
+        // Texto do pêndulo (temperatura)
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        texto.setAttribute("id", `t_cabo_${idCabo}`);
+        texto.setAttribute("id", `t_pendulo_${pendulo.id}`);
         texto.setAttribute("x", posX);
-        texto.setAttribute("y", posY);
+        texto.setAttribute("y", posY - 2);
         texto.setAttribute("text-anchor", "middle");
         texto.setAttribute("dominant-baseline", "central");
         texto.setAttribute("font-weight", "bold");
-        texto.setAttribute("font-size", "7.75");
+        texto.setAttribute("font-size", "6");
         texto.setAttribute("font-family", "Arial");
-        texto.setAttribute("fill", "black");
-        texto.textContent = `C${idCabo}`;
+        texto.setAttribute("fill", temperatura >= 30 ? "white" : "black");
+        texto.textContent = temperatura === 0 ? "OFF" : `${temperatura}°`;
         
-        // Círculo de erro (inicialmente oculto)
-        const circuloErro = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circuloErro.setAttribute("id", `f_cabo_${idCabo}`);
-        circuloErro.setAttribute("cx", posX);
-        circuloErro.setAttribute("cy", posY);
-        circuloErro.setAttribute("r", 11);
-        circuloErro.setAttribute("fill", "red");
-        circuloErro.setAttribute("fill-opacity", "0.6");
-        circuloErro.style.visibility = "hidden";
+        // Número do pêndulo abaixo
+        const numeroTexto = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        numeroTexto.setAttribute("x", posX);
+        numeroTexto.setAttribute("y", posY + 5);
+        numeroTexto.setAttribute("text-anchor", "middle");
+        numeroTexto.setAttribute("dominant-baseline", "central");
+        numeroTexto.setAttribute("font-weight", "bold");
+        numeroTexto.setAttribute("font-size", "5");
+        numeroTexto.setAttribute("font-family", "Arial");
+        numeroTexto.setAttribute("fill", temperatura >= 30 ? "white" : "black");
+        numeroTexto.textContent = `P${pendulo.id}`;
         
-        // Círculo ponto quente com animação
-        const circuloPQ = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circuloPQ.setAttribute("id", `pq_cabo_${idCabo}`);
-        circuloPQ.setAttribute("cx", posX);
-        circuloPQ.setAttribute("cy", posY);
-        circuloPQ.setAttribute("r", 13);
-        circuloPQ.setAttribute("fill", "red");
-        circuloPQ.style.visibility = "hidden";
+        // Círculo de alarme (se houver)
+        if (pendulo.alarme) {
+            const circuloAlarme = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circuloAlarme.setAttribute("cx", posX);
+            circuloAlarme.setAttribute("cy", posY);
+            circuloAlarme.setAttribute("r", 15);
+            circuloAlarme.setAttribute("fill", "red");
+            circuloAlarme.setAttribute("fill-opacity", "0.6");
+            
+            const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+            animacao.setAttribute("attributeName", "r");
+            animacao.setAttribute("begin", "0s");
+            animacao.setAttribute("dur", "1s");
+            animacao.setAttribute("from", "15");
+            animacao.setAttribute("to", "10");
+            animacao.setAttribute("repeatCount", "indefinite");
+            circuloAlarme.appendChild(animacao);
+            
+            grupo.appendChild(circuloAlarme);
+        }
         
-        const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animate");
-        animacao.setAttribute("attributeName", "r");
-        animacao.setAttribute("begin", "0s");
-        animacao.setAttribute("dur", "1s");
-        animacao.setAttribute("from", "13");
-        animacao.setAttribute("to", "8");
-        animacao.setAttribute("repeatCount", "indefinite");
-        circuloPQ.appendChild(animacao);
-        
-        grupo.appendChild(circuloPQ);
         grupo.appendChild(circulo);
         grupo.appendChild(texto);
-        grupo.appendChild(circuloErro);
+        grupo.appendChild(numeroTexto);
         
         return grupo;
     }
@@ -477,48 +494,42 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         });
     }
 
-    function atualizarTemperaturasCabos() {
-        if (!dadosTopo) return;
+    function atualizarVisualizacaoPendulos() {
+        if (!dadosPendulos || !layoutTopo) return;
         
-        Object.entries(dadosTopo).forEach(([caboId, dados]) => {
-            const [falha, pontoQuente, nivel, temperatura] = dados;
-            
-            const circulo = document.getElementById(`c_cabo_${caboId}`);
-            const texto = document.getElementById(`t_cabo_${caboId}`);
-            const circuloErro = document.getElementById(`f_cabo_${caboId}`);
-            const circuloPQ = document.getElementById(`pq_cabo_${caboId}`);
-            
-            if (!circulo || !texto) return;
-            
-            // Esconder animações
-            if (circuloErro) circuloErro.style.visibility = "hidden";
-            if (circuloPQ) circuloPQ.style.visibility = "hidden";
-            
-            // Definir cor baseada na temperatura
-            let cor = corFaixaExata(temperatura);
-            let corTexto = temperatura >= 30 ? "white" : "black";
-            
-            if (!nivel) {
-                cor = "#c7c7c7";
-                corTexto = "black";
-                circulo.setAttribute("fill-opacity", "0.78");
-                texto.setAttribute("fill-opacity", "0.4");
-            } else {
-                circulo.setAttribute("fill-opacity", "1");
-                texto.setAttribute("fill-opacity", "1");
+        // Atualizar cada arco e seus pêndulos
+        Object.keys(layoutTopo).forEach(key => {
+            if (key !== 'celulas' && key !== 'aeradores') {
+                const arcoData = layoutTopo[key];
+                if (arcoData.pendulos) {
+                    arcoData.pendulos.forEach(pendulo => {
+                        const dadosAtuais = dadosPendulos[pendulo.id];
+                        if (dadosAtuais) {
+                            const temperatura = dadosAtuais[3];
+                            const alarme = dadosAtuais[0];
+                            const ativo = dadosAtuais[2];
+                            
+                            const circulo = document.getElementById(`c_pendulo_${pendulo.id}`);
+                            const texto = document.getElementById(`t_pendulo_${pendulo.id}`);
+                            
+                            if (circulo && texto) {
+                                // Definir cor baseada na temperatura
+                                let cor = corFaixaExata(temperatura);
+                                let corTexto = temperatura >= 30 ? "white" : "black";
+                                
+                                if (!ativo || temperatura === 0) {
+                                    cor = "#c7c7c7";
+                                    corTexto = "black";
+                                }
+                                
+                                circulo.setAttribute("fill", cor);
+                                texto.setAttribute("fill", corTexto);
+                                texto.textContent = temperatura === 0 ? "OFF" : `${temperatura}°`;
+                            }
+                        }
+                    });
+                }
             }
-            
-            if (pontoQuente && circuloPQ) {
-                circuloPQ.style.visibility = "visible";
-            }
-            
-            if (falha && circuloErro) {
-                circuloErro.style.visibility = "visible";
-                if (circuloPQ) circuloPQ.style.visibility = "hidden";
-            }
-            
-            circulo.setAttribute("fill", cor);
-            texto.setAttribute("fill", corTexto);
         });
     }
 
@@ -591,12 +602,17 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         });
     }
 
-    if (!dados || !analiseArcos || !layoutTopo) {
+    if (carregando || !dadosPendulos || !layoutTopo) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
                 <div className="spinner-border" role="status">
                     <span className="visually-hidden">Carregando vista de topo...</span>
                 </div>
+                {erro && (
+                    <div className="alert alert-warning mt-2">
+                        <small>Usando dados de exemplo: {erro}</small>
+                    </div>
+                )}
             </div>
         );
     }
@@ -634,7 +650,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                                             <div className="mt-1">
                                                 <small>
                                                     • Clique nos arcos para selecioná-los<br/>
-                                                    • Clique nos cabos para selecionar o arco<br/>
+                                                    • Clique nos pêndulos para selecionar o arco<br/>
                                                     • Clique nas células para selecioná-las
                                                 </small>
                                             </div>
@@ -642,12 +658,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                                     </div>
                                     <div className="col-md-4">
                                         <div className="p-2 border rounded bg-light">
-                                            <small className="fw-bold">Estatísticas:</small>
+                                            <small className="fw-bold">Dados Reais:</small>
                                             <div className="mt-1">
                                                 <small>
-                                                    {analiseArcos.totalArcos} arcos, {' '}
-                                                    {analiseArcos.estatisticas.totalPendulos} pêndulos, {' '}
-                                                    {analiseArcos.estatisticas.totalSensores} sensores
+                                                    {Object.keys(dadosPendulos).length} pêndulos<br/>
+                                                    {Object.values(dadosPendulos).filter(p => p[0]).length} em alarme<br/>
+                                                    {Object.values(dadosPendulos).filter(p => p[2]).length} ativos
+                                                    {erro && <><br/><span className="text-warning">⚠ Dados de exemplo</span></>}
                                                 </small>
                                             </div>
                                         </div>
