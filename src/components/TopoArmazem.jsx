@@ -167,6 +167,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         rect.setAttribute("fill", "#D3D3D3");
         rect.setAttribute("stroke", "#999999");
         rect.setAttribute("stroke-width", "2");
+        rect.setAttribute("stroke-miterlimit", "23");
         rect.setAttribute("rx", "5");
         rect.setAttribute("ry", "5");
 
@@ -186,25 +187,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             rect.setAttribute("width", celulaData[2]);
             rect.setAttribute("height", celulaData[3]);
             rect.setAttribute("fill", "#B3B3B3");
-            rect.setAttribute("stroke", "#666666");
+            rect.setAttribute("stroke", "#B3B3B3");
             rect.setAttribute("stroke-width", "2");
+            rect.setAttribute("stroke-miterlimit", "23");
             rect.setAttribute("rx", "5");
             rect.setAttribute("ry", "5");
             rect.style.cursor = "pointer";
 
             svgEl.appendChild(rect);
-
-            // Adicionar número da célula
-            const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            texto.setAttribute("x", celulaData[0] + 10);
-            texto.setAttribute("y", celulaData[1] + 20);
-            texto.setAttribute("font-family", "Arial");
-            texto.setAttribute("font-size", "14");
-            texto.setAttribute("font-weight", "bold");
-            texto.setAttribute("fill", "white");
-            texto.textContent = celula;
-
-            svgEl.appendChild(texto);
         }
     }
 
@@ -229,14 +219,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         grupoArco.setAttribute("id", `arco_${idArco}`);
         grupoArco.style.cursor = "pointer";
 
-        // Linha vertical do arco
-        const linha = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        linha.setAttribute("x1", posX);
-        linha.setAttribute("y1", 58);
-        linha.setAttribute("x2", posX);
-        linha.setAttribute("y2", 295);
-        linha.setAttribute("stroke", "#666666");
-        linha.setAttribute("stroke-width", "3");
+        // Retângulo de seleção do arco
+        const retanguloSelecao = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        retanguloSelecao.setAttribute("id", `rec_arco_${idArco}`);
+        retanguloSelecao.setAttribute("x", posX - 8.5);
+        retanguloSelecao.setAttribute("y", 49);
+        retanguloSelecao.setAttribute("width", 17);
+        retanguloSelecao.setAttribute("height", 254);
+        retanguloSelecao.setAttribute("fill", "#B3B3B3");
 
         // Botão superior
         const botaoSup = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -248,8 +238,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         botaoSup.setAttribute("rx", 4.2);
         botaoSup.setAttribute("ry", 4.2);
         botaoSup.setAttribute("fill", "#999999");
-        botaoSup.setAttribute("stroke", "white");
-        botaoSup.setAttribute("stroke-width", "1");
 
         // Texto botão superior
         const textoSup = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -258,7 +246,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         textoSup.setAttribute("text-anchor", "middle");
         textoSup.setAttribute("dominant-baseline", "central");
         textoSup.setAttribute("font-weight", "bold");
-        textoSup.setAttribute("font-size", "9");
+        textoSup.setAttribute("font-size", "10.5");
         textoSup.setAttribute("font-family", "Arial");
         textoSup.setAttribute("fill", "white");
         textoSup.textContent = idArco;
@@ -273,8 +261,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         botaoInf.setAttribute("rx", 4.2);
         botaoInf.setAttribute("ry", 4.2);
         botaoInf.setAttribute("fill", "#999999");
-        botaoInf.setAttribute("stroke", "white");
-        botaoInf.setAttribute("stroke-width", "1");
 
         // Texto botão inferior
         const textoInf = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -283,12 +269,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         textoInf.setAttribute("text-anchor", "middle");
         textoInf.setAttribute("dominant-baseline", "central");
         textoInf.setAttribute("font-weight", "bold");
-        textoInf.setAttribute("font-size", "9");
+        textoInf.setAttribute("font-size", "10.5");
         textoInf.setAttribute("font-family", "Arial");
         textoInf.setAttribute("fill", "white");
         textoInf.textContent = idArco;
 
-        grupoArco.appendChild(linha);
+        grupoArco.appendChild(retanguloSelecao);
         grupoArco.appendChild(botaoSup);
         grupoArco.appendChild(textoSup);
         grupoArco.appendChild(botaoInf);
@@ -310,15 +296,32 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         grupo.setAttribute("id", `cabo_${idCabo}`);
         grupo.style.cursor = "pointer";
 
+        // Círculo de ponto quente (oculto inicialmente) - deve vir primeiro para ficar atrás
+        const circuloPQ = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circuloPQ.setAttribute("id", `pq_cabo_${idCabo}`);
+        circuloPQ.setAttribute("cx", posX);
+        circuloPQ.setAttribute("cy", posY);
+        circuloPQ.setAttribute("r", 13);
+        circuloPQ.setAttribute("fill", "red");
+        circuloPQ.setAttribute("visibility", "hidden");
+
+        // Animação do ponto quente
+        const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animate");
+        animacao.setAttribute("attributeName", "r");
+        animacao.setAttribute("begin", "0s");
+        animacao.setAttribute("dur", "1s");
+        animacao.setAttribute("from", "13");
+        animacao.setAttribute("to", "8");
+        animacao.setAttribute("repeatCount", "indefinite");
+        circuloPQ.appendChild(animacao);
+
         // Círculo do cabo
         const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circulo.setAttribute("id", `c_cabo_${idCabo}`);
         circulo.setAttribute("cx", posX);
         circulo.setAttribute("cy", posY);
-        circulo.setAttribute("r", 12);
+        circulo.setAttribute("r", 9);
         circulo.setAttribute("fill", "white");
-        circulo.setAttribute("stroke", "black");
-        circulo.setAttribute("stroke-width", "1");
 
         // Texto do cabo
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -328,7 +331,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         texto.setAttribute("text-anchor", "middle");
         texto.setAttribute("dominant-baseline", "central");
         texto.setAttribute("font-weight", "bold");
-        texto.setAttribute("font-size", "8");
+        texto.setAttribute("font-size", "7.75");
         texto.setAttribute("font-family", "Arial");
         texto.textContent = `C${idCabo}`;
 
@@ -337,30 +340,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         circuloFalha.setAttribute("id", `f_cabo_${idCabo}`);
         circuloFalha.setAttribute("cx", posX);
         circuloFalha.setAttribute("cy", posY);
-        circuloFalha.setAttribute("r", 14);
+        circuloFalha.setAttribute("r", 11);
         circuloFalha.setAttribute("fill", "red");
         circuloFalha.setAttribute("fill-opacity", "0.6");
         circuloFalha.setAttribute("visibility", "hidden");
 
-        // Círculo de ponto quente (oculto inicialmente)
-        const circuloPQ = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circuloPQ.setAttribute("id", `pq_cabo_${idCabo}`);
-        circuloPQ.setAttribute("cx", posX);
-        circuloPQ.setAttribute("cy", posY);
-        circuloPQ.setAttribute("r", 16);
-        circuloPQ.setAttribute("fill", "red");
-        circuloPQ.setAttribute("visibility", "hidden");
-
-        // Animação do ponto quente
-        const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animate");
-        animacao.setAttribute("attributeName", "r");
-        animacao.setAttribute("begin", "0s");
-        animacao.setAttribute("dur", "1s");
-        animacao.setAttribute("from", "16");
-        animacao.setAttribute("to", "10");
-        animacao.setAttribute("repeatCount", "indefinite");
-        circuloPQ.appendChild(animacao);
-
+        // Ordem dos elementos: ponto quente, círculo, texto, falha
         grupo.appendChild(circuloPQ);
         grupo.appendChild(circulo);
         grupo.appendChild(texto);
@@ -381,46 +366,97 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     function desenharAerador(idAerador, posX, posY, textoAcima) {
         const svgEl = document.getElementById("des_topo_armazem");
 
+        // Criar grupo principal do aerador
         const grupo = document.createElementNS("http://www.w3.org/2000/svg", "g");
         grupo.setAttribute("id", `aerador_${idAerador}`);
 
-        // Círculo principal
-        const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-        circulo.setAttribute("id", `fundo_aerador_${idAerador}`);
-        circulo.setAttribute("cx", posX);
-        circulo.setAttribute("cy", posY);
-        circulo.setAttribute("r", 15);
-        circulo.setAttribute("fill", "#c5c5c5");
-        circulo.setAttribute("stroke", "#666666");
-        circulo.setAttribute("stroke-width", "2");
+        // Criar grupos para blade parada e girando
+        const grupoBladePrado = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        grupoBladePrado.setAttribute("id", `blade_aerador_${idAerador}_parado`);
+
+        const grupBladeGirando = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        grupBladeGirando.setAttribute("id", `blade_aerador_${idAerador}_girando`);
 
         // Retângulo do nome
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("x", posX - 15);
-        rect.setAttribute("y", textoAcima ? posY - 35 : posY + 20);
-        rect.setAttribute("width", 30);
-        rect.setAttribute("height", 12);
-        rect.setAttribute("rx", 6);
-        rect.setAttribute("ry", 6);
+        rect.setAttribute("width", 25);
+        rect.setAttribute("height", 10);
+        rect.setAttribute("rx", 6.4);
+        rect.setAttribute("ry", 5);
         rect.setAttribute("fill", "#3A78FD");
+
+        // Posicionar texto acima ou abaixo
+        if (textoAcima === 1) {
+            rect.setAttribute("x", 70 + 3.5);
+            rect.setAttribute("y", 2);
+        } else {
+            rect.setAttribute("x", 70 + 3.5);
+            rect.setAttribute("y", 36);
+        }
 
         // Texto do nome
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        texto.setAttribute("x", posX);
-        texto.setAttribute("y", textoAcima ? posY - 29 : posY + 26);
         texto.setAttribute("text-anchor", "middle");
         texto.setAttribute("dominant-baseline", "central");
         texto.setAttribute("font-weight", "bold");
-        texto.setAttribute("font-size", "8");
+        texto.setAttribute("font-size", "6.5");
         texto.setAttribute("font-family", "Arial");
         texto.setAttribute("fill", "white");
         texto.textContent = `AE-${idAerador}`;
 
+        // Posicionar texto acima ou abaixo
+        if (textoAcima === 1) {
+            texto.setAttribute("x", 70 + 12.5 + 3.5);
+            texto.setAttribute("y", 0 + 7);
+        } else {
+            texto.setAttribute("x", 70 + 12.5 + 3.5);
+            texto.setAttribute("y", 0 + 5 + 36);
+        }
+
+        // Círculo principal
+        const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circulo.setAttribute("id", `fundo_aerador_${idAerador}`);
+        circulo.setAttribute("cx", 70 + 12.5 + 3.5);
+        circulo.setAttribute("cy", 0 + 24);
+        circulo.setAttribute("r", 10.5);
+        circulo.setAttribute("fill", "#c5c5c5");
+
+        // Definir path da blade
+        const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z";
+
+        // Blade parada
+        const bladeParada = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        bladeParada.setAttribute("d", dBlade);
+        bladeParada.setAttribute("fill", "white");
+
+        // Blade girando
+        const bladeGirando = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        bladeGirando.setAttribute("d", dBlade);
+        bladeGirando.setAttribute("fill", "white");
+
+        // Animação da blade girando
+        const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animateTransform");
+        animacao.setAttribute("attributeName", "transform");
+        animacao.setAttribute("type", "rotate");
+        animacao.setAttribute("dur", "2s");
+        animacao.setAttribute("values", "0 86.35 24.05; 360 86.35 24.05;");
+        animacao.setAttribute("repeatCount", "indefinite");
+
+        // Montar estrutura
+        grupoBladePrado.appendChild(bladeParada);
+        grupBladeGirando.appendChild(bladeGirando);
+        grupBladeGirando.appendChild(animacao);
+
         grupo.appendChild(circulo);
         grupo.appendChild(rect);
         grupo.appendChild(texto);
+        grupo.appendChild(grupoBladePrado);
+        grupo.appendChild(grupBladeGirando);
 
         svgEl.appendChild(grupo);
+
+        // Posicionar o aerador usando transform
+        grupo.setAttribute("transform", `translate(${posX - 70}, ${posY})`);
     }
 
     function atualizarVisualizacao() {
@@ -442,13 +478,11 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             const elemento = document.getElementById(`rec_celula${celula}`);
             if (elemento) {
                 if (celula === celulaSelecionada) {
-                    elemento.setAttribute("fill", "#87CEEB");
-                    elemento.setAttribute("stroke", "#4169E1");
-                    elemento.setAttribute("stroke-width", "3");
+                    elemento.setAttribute("fill", "#E6E6E6");
+                    elemento.setAttribute("stroke", "#438AF6");
                 } else {
                     elemento.setAttribute("fill", "#B3B3B3");
-                    elemento.setAttribute("stroke", "#666666");
-                    elemento.setAttribute("stroke-width", "2");
+                    elemento.setAttribute("stroke", "#B3B3B3");
                 }
             }
         }
@@ -457,7 +491,19 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         Object.keys(layoutTopo).forEach(key => {
             if (key !== 'celulas' && key !== 'aeradores') {
                 const arcoNum = parseInt(key);
-                const arcoData = layoutTopo[key];
+
+                // Primeiro, definir cor base baseada na célula selecionada
+                const pertenceCelulaSelecionada = layoutTopo[key].celula === celulaSelecionada;
+                const corBase = pertenceCelulaSelecionada ? "#E6E6E6" : "#B3B3B3";
+                
+                const arcoRect = document.getElementById(`rec_arco_${arcoNum}`);
+                if (arcoRect) {
+                    if (arcoNum === arcoSelecionado) {
+                        arcoRect.setAttribute("fill", "#438AF6");
+                    } else {
+                        arcoRect.setAttribute("fill", corBase);
+                    }
+                }
 
                 const botaoSup = document.getElementById(`arco${arcoNum}_botsup`);
                 const botaoInf = document.getElementById(`arco${arcoNum}_botinf`);
@@ -509,21 +555,53 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function atualizarAeradores() {
-        // Estados dos aeradores (exemplo)
-        const estadosAeradores = [1, 1, 1, 1, 2, 2, 0, 0, 0, 0];
+        // Pegar número de aeradores dos dados
+        const numAeradores = Object.keys(layoutTopo.aeradores).length;
         
-        estadosAeradores.forEach((estado, index) => {
-            const aeradorId = index + 1;
-            const fundo = document.getElementById(`fundo_aerador_${aeradorId}`);
-            
-            if (fundo) {
-                let cor = "#c5c5c5"; // desligado
-                if (estado === 1) cor = "#31dd0f"; // ligado
-                else if (estado === 2) cor = "#ff0000"; // falha
-                
-                fundo.setAttribute("fill", cor);
-            }
-        });
+        // Estados dos aeradores (seguindo padrão do modelo HTML)
+        const estadosAeradores = [1, 1, 1, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        
+        for (let aeradorId = 1; aeradorId <= numAeradores; aeradorId++) {
+            const estado = estadosAeradores[aeradorId - 1] || 0;
+            setarEstadoAerador(aeradorId, estado);
+        }
+    }
+
+    function setarEstadoAerador(aeradorId, estado) {
+        const fundo = document.getElementById(`fundo_aerador_${aeradorId}`);
+        const bladePrado = document.getElementById(`blade_aerador_${aeradorId}_parado`);
+        const bladeGirando = document.getElementById(`blade_aerador_${aeradorId}_girando`);
+        
+        if (!fundo || !bladePrado || !bladeGirando) return;
+
+        let cor;
+        let visParado, visGirando;
+
+        switch (estado) {
+            case 0: // desligado
+                cor = "#c5c5c5";
+                visParado = "visible";
+                visGirando = "hidden";
+                break;
+            case 1: // ligado
+                cor = "#31dd0f";
+                visParado = "hidden";
+                visGirando = "visible";
+                break;
+            case 2: // falha
+                cor = "#ff0000";
+                visParado = "visible";
+                visGirando = "hidden";
+                break;
+            default:
+                cor = "#c5c5c5";
+                visParado = "visible";
+                visGirando = "hidden";
+        }
+
+        fundo.setAttribute("fill", cor);
+        bladePrado.style.visibility = visParado;
+        bladeGirando.style.visibility = visGirando;
     }
 
     function corTemperatura(temp) {
