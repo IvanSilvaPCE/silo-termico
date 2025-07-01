@@ -18,8 +18,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             try {
                 setCarregando(true);
                 
-                // Usar dados do arquivo
+                // Usar dados do arquivo ou configuração
                 const pendulos = dadosArmazemTopo.pendulos;
+                const config = dadosArmazemTopo.configuracao?.layout_topo;
+                
                 setDadosPendulos(pendulos);
                 
                 // Converter dados dos pêndulos para formato do topo
@@ -34,8 +36,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 });
                 setDadosTopo(dadosConvertidos);
                 
-                // Gerar layout automático baseado nos dados
-                const layout = gerarLayoutAutomatico(pendulos);
+                // Usar layout da configuração ou gerar automaticamente
+                const layout = config || gerarLayoutAutomatico(pendulos);
                 setLayoutTopo(layout);
                 
             } catch (error) {
@@ -68,8 +70,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     function gerarLayoutAutomatico(pendulos) {
         const totalPendulos = Object.keys(pendulos).length;
-        const totalArcos = Math.ceil(totalPendulos / 3); // 3 pêndulos por arco
-        const totalCelulas = 3;
+        const pendulosPorArco = 3;
+        const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
         
         const layout = {
             celulas: {
@@ -85,23 +87,39 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             }
         };
 
-        // Distribuir pêndulos em arcos
+        // Distribuir arcos entre as 3 células
+        const arcosParaCelula = Math.ceil(totalArcos / 3);
+        
+        // Distribuir pêndulos em arcos com posicionamento alternado
         const pendulosArray = Object.entries(pendulos);
         let posX = 30;
-        const espacamentoArco = 35;
-
+        const espacamentoArco = 30;
+        
         for (let arco = 1; arco <= totalArcos; arco++) {
-            const celula = Math.ceil(arco / Math.ceil(totalArcos / totalCelulas));
-            const pendulosDoArco = pendulosArray.slice((arco - 1) * 3, arco * 3);
+            // Determinar qual célula (1, 2 ou 3)
+            let celula;
+            if (arco <= arcosParaCelula) celula = 1;
+            else if (arco <= arcosParaCelula * 2) celula = 2;
+            else celula = 3;
+            
+            const pendulosDoArco = pendulosArray.slice((arco - 1) * pendulosPorArco, arco * pendulosPorArco);
             
             const sensores = {};
             pendulosDoArco.forEach(([id], index) => {
-                const posY = 80 + (index * 60);
+                // Alternância de posição: arcos ímpares para cima, pares para baixo
+                let posY;
+                if (arco % 2 === 1) {
+                    // Arcos ímpares: posições mais para cima
+                    posY = 80 + (index * 40);
+                } else {
+                    // Arcos pares: posições mais para baixo
+                    posY = 140 + (index * 40);
+                }
                 sensores[id] = posY;
             });
 
             layout[arco] = {
-                celula: Math.min(celula, totalCelulas),
+                celula: celula,
                 pos_x: posX,
                 sensores: sensores
             };
@@ -126,7 +144,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
         container.appendChild(svgEl);
 
-        // Desenhar elementos
+        // Desenhar elementos na ordem correta
         desenharFundo();
         desenharCelulas();
         desenharArcos();
@@ -146,7 +164,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         rect.setAttribute("y", fundo[1]);
         rect.setAttribute("width", fundo[2]);
         rect.setAttribute("height", fundo[3]);
-        rect.setAttribute("fill", "#B3B3B3");
+        rect.setAttribute("fill", "#D3D3D3");
+        rect.setAttribute("stroke", "#999999");
         rect.setAttribute("stroke-width", "2");
         rect.setAttribute("rx", "5");
         rect.setAttribute("ry", "5");
@@ -167,13 +186,25 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             rect.setAttribute("width", celulaData[2]);
             rect.setAttribute("height", celulaData[3]);
             rect.setAttribute("fill", "#B3B3B3");
-            rect.setAttribute("stroke", "#B3B3B3");
+            rect.setAttribute("stroke", "#666666");
             rect.setAttribute("stroke-width", "2");
             rect.setAttribute("rx", "5");
             rect.setAttribute("ry", "5");
             rect.style.cursor = "pointer";
 
             svgEl.appendChild(rect);
+
+            // Adicionar número da célula
+            const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            texto.setAttribute("x", celulaData[0] + 10);
+            texto.setAttribute("y", celulaData[1] + 20);
+            texto.setAttribute("font-family", "Arial");
+            texto.setAttribute("font-size", "14");
+            texto.setAttribute("font-weight", "bold");
+            texto.setAttribute("fill", "white");
+            texto.textContent = celula;
+
+            svgEl.appendChild(texto);
         }
     }
 
@@ -198,14 +229,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         grupoArco.setAttribute("id", `arco_${idArco}`);
         grupoArco.style.cursor = "pointer";
 
-        // Retângulo de seleção
-        const rectSelecao = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rectSelecao.setAttribute("id", `rec_arco_${idArco}`);
-        rectSelecao.setAttribute("x", posX - 8.5);
-        rectSelecao.setAttribute("y", 49);
-        rectSelecao.setAttribute("width", 17);
-        rectSelecao.setAttribute("height", 254);
-        rectSelecao.setAttribute("fill", "#B3B3B3");
+        // Linha vertical do arco
+        const linha = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        linha.setAttribute("x1", posX);
+        linha.setAttribute("y1", 58);
+        linha.setAttribute("x2", posX);
+        linha.setAttribute("y2", 295);
+        linha.setAttribute("stroke", "#666666");
+        linha.setAttribute("stroke-width", "3");
 
         // Botão superior
         const botaoSup = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -217,6 +248,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         botaoSup.setAttribute("rx", 4.2);
         botaoSup.setAttribute("ry", 4.2);
         botaoSup.setAttribute("fill", "#999999");
+        botaoSup.setAttribute("stroke", "white");
+        botaoSup.setAttribute("stroke-width", "1");
 
         // Texto botão superior
         const textoSup = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -225,7 +258,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         textoSup.setAttribute("text-anchor", "middle");
         textoSup.setAttribute("dominant-baseline", "central");
         textoSup.setAttribute("font-weight", "bold");
-        textoSup.setAttribute("font-size", "10.5");
+        textoSup.setAttribute("font-size", "9");
         textoSup.setAttribute("font-family", "Arial");
         textoSup.setAttribute("fill", "white");
         textoSup.textContent = idArco;
@@ -240,6 +273,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         botaoInf.setAttribute("rx", 4.2);
         botaoInf.setAttribute("ry", 4.2);
         botaoInf.setAttribute("fill", "#999999");
+        botaoInf.setAttribute("stroke", "white");
+        botaoInf.setAttribute("stroke-width", "1");
 
         // Texto botão inferior
         const textoInf = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -248,12 +283,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         textoInf.setAttribute("text-anchor", "middle");
         textoInf.setAttribute("dominant-baseline", "central");
         textoInf.setAttribute("font-weight", "bold");
-        textoInf.setAttribute("font-size", "10.5");
+        textoInf.setAttribute("font-size", "9");
         textoInf.setAttribute("font-family", "Arial");
         textoInf.setAttribute("fill", "white");
         textoInf.textContent = idArco;
 
-        grupoArco.appendChild(rectSelecao);
+        grupoArco.appendChild(linha);
         grupoArco.appendChild(botaoSup);
         grupoArco.appendChild(textoSup);
         grupoArco.appendChild(botaoInf);
@@ -280,10 +315,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         circulo.setAttribute("id", `c_cabo_${idCabo}`);
         circulo.setAttribute("cx", posX);
         circulo.setAttribute("cy", posY);
-        circulo.setAttribute("r", 9);
+        circulo.setAttribute("r", 12);
         circulo.setAttribute("fill", "white");
         circulo.setAttribute("stroke", "black");
-        circulo.setAttribute("stroke-width", "0.4");
+        circulo.setAttribute("stroke-width", "1");
 
         // Texto do cabo
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -293,7 +328,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         texto.setAttribute("text-anchor", "middle");
         texto.setAttribute("dominant-baseline", "central");
         texto.setAttribute("font-weight", "bold");
-        texto.setAttribute("font-size", "7.75");
+        texto.setAttribute("font-size", "8");
         texto.setAttribute("font-family", "Arial");
         texto.textContent = `C${idCabo}`;
 
@@ -302,7 +337,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         circuloFalha.setAttribute("id", `f_cabo_${idCabo}`);
         circuloFalha.setAttribute("cx", posX);
         circuloFalha.setAttribute("cy", posY);
-        circuloFalha.setAttribute("r", 11);
+        circuloFalha.setAttribute("r", 14);
         circuloFalha.setAttribute("fill", "red");
         circuloFalha.setAttribute("fill-opacity", "0.6");
         circuloFalha.setAttribute("visibility", "hidden");
@@ -312,7 +347,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         circuloPQ.setAttribute("id", `pq_cabo_${idCabo}`);
         circuloPQ.setAttribute("cx", posX);
         circuloPQ.setAttribute("cy", posY);
-        circuloPQ.setAttribute("r", 13);
+        circuloPQ.setAttribute("r", 16);
         circuloPQ.setAttribute("fill", "red");
         circuloPQ.setAttribute("visibility", "hidden");
 
@@ -321,8 +356,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         animacao.setAttribute("attributeName", "r");
         animacao.setAttribute("begin", "0s");
         animacao.setAttribute("dur", "1s");
-        animacao.setAttribute("from", "13");
-        animacao.setAttribute("to", "8");
+        animacao.setAttribute("from", "16");
+        animacao.setAttribute("to", "10");
         animacao.setAttribute("repeatCount", "indefinite");
         circuloPQ.appendChild(animacao);
 
@@ -348,34 +383,35 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
         const grupo = document.createElementNS("http://www.w3.org/2000/svg", "g");
         grupo.setAttribute("id", `aerador_${idAerador}`);
-        grupo.setAttribute("transform", `translate(${posX - 70}, ${posY})`);
 
         // Círculo principal
         const circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
         circulo.setAttribute("id", `fundo_aerador_${idAerador}`);
-        circulo.setAttribute("cx", 86.35);
-        circulo.setAttribute("cy", 24);
-        circulo.setAttribute("r", 10.5);
+        circulo.setAttribute("cx", posX);
+        circulo.setAttribute("cy", posY);
+        circulo.setAttribute("r", 15);
         circulo.setAttribute("fill", "#c5c5c5");
+        circulo.setAttribute("stroke", "#666666");
+        circulo.setAttribute("stroke-width", "2");
 
         // Retângulo do nome
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rect.setAttribute("x", 73.5);
-        rect.setAttribute("y", textoAcima ? 2 : 36);
-        rect.setAttribute("width", 25);
-        rect.setAttribute("height", 10);
-        rect.setAttribute("rx", 6.4);
-        rect.setAttribute("ry", 5);
+        rect.setAttribute("x", posX - 15);
+        rect.setAttribute("y", textoAcima ? posY - 35 : posY + 20);
+        rect.setAttribute("width", 30);
+        rect.setAttribute("height", 12);
+        rect.setAttribute("rx", 6);
+        rect.setAttribute("ry", 6);
         rect.setAttribute("fill", "#3A78FD");
 
         // Texto do nome
         const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        texto.setAttribute("x", 86);
-        texto.setAttribute("y", textoAcima ? 7 : 41);
+        texto.setAttribute("x", posX);
+        texto.setAttribute("y", textoAcima ? posY - 29 : posY + 26);
         texto.setAttribute("text-anchor", "middle");
         texto.setAttribute("dominant-baseline", "central");
         texto.setAttribute("font-weight", "bold");
-        texto.setAttribute("font-size", "6.5");
+        texto.setAttribute("font-size", "8");
         texto.setAttribute("font-family", "Arial");
         texto.setAttribute("fill", "white");
         texto.textContent = `AE-${idAerador}`;
@@ -406,11 +442,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             const elemento = document.getElementById(`rec_celula${celula}`);
             if (elemento) {
                 if (celula === celulaSelecionada) {
-                    elemento.setAttribute("fill", "#E6E6E6");
-                    elemento.setAttribute("stroke", "#438AF6");
+                    elemento.setAttribute("fill", "#87CEEB");
+                    elemento.setAttribute("stroke", "#4169E1");
+                    elemento.setAttribute("stroke-width", "3");
                 } else {
                     elemento.setAttribute("fill", "#B3B3B3");
-                    elemento.setAttribute("stroke", "#B3B3B3");
+                    elemento.setAttribute("stroke", "#666666");
+                    elemento.setAttribute("stroke-width", "2");
                 }
             }
         }
@@ -420,17 +458,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             if (key !== 'celulas' && key !== 'aeradores') {
                 const arcoNum = parseInt(key);
                 const arcoData = layoutTopo[key];
-
-                const rectArco = document.getElementById(`rec_arco_${arcoNum}`);
-                if (rectArco) {
-                    if (arcoNum === arcoSelecionado) {
-                        rectArco.setAttribute("fill", "#438AF6");
-                    } else if (arcoData.celula === celulaSelecionada) {
-                        rectArco.setAttribute("fill", "#E6E6E6");
-                    } else {
-                        rectArco.setAttribute("fill", "#B3B3B3");
-                    }
-                }
 
                 const botaoSup = document.getElementById(`arco${arcoNum}_botsup`);
                 const botaoInf = document.getElementById(`arco${arcoNum}_botinf`);
@@ -582,7 +609,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                             </h5>
                             <button 
                                 className="btn btn-outline-light btn-sm"
-                                onClick={() => setMostrarTopo ? setMostrarTopo(false) : onFecharTopo && onFecharTopo()}
+                                onClick={() => onFecharTopo && onFecharTopo()}
                                 title="Fechar Topo"
                             >
                                 <i className="fas fa-times"></i> Fechar Topo
