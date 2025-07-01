@@ -48,12 +48,12 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
       {/* Nome do pêndulo FORA do silo, na base */}
       <Billboard position={[0, baseSilo - 0.8, 0]}>
         <mesh>
-          <planeGeometry args={[0.8, 0.3]} />
+          <planeGeometry args={[0.6, 0.25]} />
           <meshStandardMaterial color="#2E86AB" />
         </mesh>
         <Text
           position={[0, 0, 0.01]}
-          fontSize={0.12}
+          fontSize={0.1}
           color="white"
           anchorX="center"
           anchorY="middle"
@@ -87,18 +87,32 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
               <meshStandardMaterial color="#666666" />
             </mesh>
 
-            {/* Display do valor */}
+            {/* Display do valor na frente do sensor */}
             <Billboard position={[0, 0, 0.08]}>
               <mesh>
-                <planeGeometry args={[0.2, 0.06]} />
+                <planeGeometry args={[0.25, 0.08]} />
                 <meshStandardMaterial color="#000000" />
               </mesh>
               <Text
                 position={[0, 0, 0.001]}
-                fontSize={0.04}
+                fontSize={0.035}
                 color="#00ff00"
                 anchorX="center"
                 anchorY="middle"
+              >
+                {sensor.falha ? "ERR" : sensor.temp.toFixed(1) + "°C"}
+              </Text>
+            </Billboard>
+
+            {/* Número da temperatura flutuante */}
+            <Billboard position={[0.4, 0, 0]}>
+              <Text
+                fontSize={0.08}
+                color={sensor.falha ? "#ff0000" : "#ffffff"}
+                anchorX="center"
+                anchorY="middle"
+                outlineWidth={0.02}
+                outlineColor="#000000"
               >
                 {sensor.falha ? "ERR" : sensor.temp.toFixed(1) + "°"}
               </Text>
@@ -135,9 +149,19 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
 
   return (
     <group ref={grupoRef} position={position}>
-      {/* Base do aerador */}
+      {/* Base do motor - mais robusta */}
       <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[0.35, 0.35, 0.15, 24]} />
+        <cylinderGeometry args={[0.4, 0.45, 0.2, 24]} />
+        <meshStandardMaterial 
+          color="#666666" 
+          metalness={0.7} 
+          roughness={0.3}
+        />
+      </mesh>
+
+      {/* Corpo do motor principal */}
+      <mesh position={[0, 0.15, 0]}>
+        <cylinderGeometry args={[0.25, 0.3, 0.3, 16]} />
         <meshStandardMaterial 
           color={cores[status] || cores[0]} 
           metalness={0.6} 
@@ -145,14 +169,30 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
         />
       </mesh>
 
-      {/* Motor central */}
-      <mesh position={[0, 0.1, 0]}>
-        <cylinderGeometry args={[0.12, 0.12, 0.08, 16]} />
-        <meshStandardMaterial color="#333333" metalness={0.8} roughness={0.2} />
+      {/* Aletas de refrigeração */}
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, index) => (
+        <mesh
+          key={index}
+          position={[
+            Math.cos((angle * Math.PI) / 180) * 0.32,
+            0.15,
+            Math.sin((angle * Math.PI) / 180) * 0.32
+          ]}
+          rotation={[0, (angle * Math.PI) / 180, 0]}
+        >
+          <boxGeometry args={[0.03, 0.25, 0.08]} />
+          <meshStandardMaterial color="#555555" metalness={0.8} roughness={0.2} />
+        </mesh>
+      ))}
+
+      {/* Eixo do motor */}
+      <mesh position={[0, 0.35, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.1, 12]} />
+        <meshStandardMaterial color="#222222" metalness={0.9} roughness={0.1} />
       </mesh>
 
-      {/* Hélices */}
-      <group ref={heliceRef} position={[0, 0.15, 0]}>
+      {/* Hélices - mais realistas */}
+      <group ref={heliceRef} position={[0, 0.42, 0]}>
         {[0, 60, 120, 180, 240, 300].map((angle, index) => (
           <mesh
             key={index}
@@ -161,21 +201,44 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
               0,
               Math.sin((angle * Math.PI) / 180) * 0.25
             ]}
-            rotation={[0, (angle * Math.PI) / 180, 0]}
+            rotation={[0, (angle * Math.PI) / 180, Math.PI / 12]}
           >
-            <boxGeometry args={[0.08, 0.04, 0.3]} />
-            <meshStandardMaterial color="#ffffff" metalness={0.3} roughness={0.7} />
+            <boxGeometry args={[0.06, 0.02, 0.35]} />
+            <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.6} />
           </mesh>
         ))}
+        
+        {/* Hub central das hélices */}
+        <mesh>
+          <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
+          <meshStandardMaterial color="#333333" metalness={0.8} roughness={0.2} />
+        </mesh>
       </group>
 
-      {/* Indicador de status */}
-      <mesh position={[0, 0.25, 0]}>
-        <sphereGeometry args={[0.03, 16, 16]} />
+      {/* Placa de identificação */}
+      <Billboard position={[0, 0.05, 0.4]}>
+        <mesh>
+          <planeGeometry args={[0.3, 0.1]} />
+          <meshStandardMaterial color="#2E86AB" />
+        </mesh>
+        <Text
+          position={[0, 0, 0.001]}
+          fontSize={0.04}
+          color="white"
+          anchorX="center"
+          anchorY="middle"
+        >
+          AE-{id}
+        </Text>
+      </Billboard>
+
+      {/* LED indicador de status */}
+      <mesh position={[0, 0.32, 0.32]}>
+        <sphereGeometry args={[0.02, 16, 16]} />
         <meshStandardMaterial 
           color={cores[status] || cores[0]}
-          emissive={status === 3 ? "#31dd0f" : "#000000"}
-          emissiveIntensity={status === 3 ? 0.5 : 0}
+          emissive={status === 3 ? cores[status] : "#000000"}
+          emissiveIntensity={status === 3 ? 0.8 : 0}
         />
       </mesh>
     </group>
@@ -183,7 +246,7 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
 };
 
 const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
-  const alturaTopo = alturaSilo * 0.3;
+  const alturaTopo = 0.4; // Topo mais fino e baixo
 
   return (
     <group>
@@ -206,23 +269,21 @@ const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
         <meshStandardMaterial color="#999999" metalness={0.5} roughness={0.5} />
       </mesh>
 
-      {/* Topo cônico do silo */}
+      {/* Topo plano do silo - mais fino e da mesma cor */}
       <mesh position={[0, alturaSilo + alturaTopo / 2, 0]} castShadow>
-        <coneGeometry args={[raioSilo * 1.1, alturaTopo, 32]} />
+        <cylinderGeometry args={[raioSilo * 0.95, raioSilo * 0.95, alturaTopo, 32]} />
         <meshStandardMaterial 
-          color="#CCCCCC" 
-          metalness={0.3} 
-          roughness={0.6}
+          color="#E5E5E5" 
+          metalness={0.1} 
+          roughness={0.8}
         />
       </mesh>
 
-      {/* Saída superior */}
-      <mesh position={[0, alturaSilo + alturaTopo + 0.15, 0]}>
-        <cylinderGeometry args={[raioSilo * 0.15, raioSilo * 0.2, 0.3, 16]} />
+      {/* Saída superior - mais baixa e junta com o topo */}
+      <mesh position={[0, alturaSilo + alturaTopo + 0.1, 0]}>
+        <cylinderGeometry args={[raioSilo * 0.15, raioSilo * 0.2, 0.2, 16]} />
         <meshStandardMaterial color="#888888" metalness={0.7} roughness={0.3} />
       </mesh>
-
-      
     </group>
   );
 };
@@ -384,11 +445,23 @@ const Silo3D = ({ dados }) => {
           maxDistance={raioSilo * 12}
         />
 
-        {/* Plano do chão */}
-        <mesh position={[0, -0.5, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[raioSilo * 6, raioSilo * 6]} />
-          <meshStandardMaterial color="#A0A0A0" />
-        </mesh>
+        {/* Grade do chão */}
+        <group position={[0, -0.5, 0]}>
+          {/* Linhas horizontais */}
+          {Array.from({ length: 21 }, (_, i) => (
+            <mesh key={`h-${i}`} position={[0, 0, (i - 10) * raioSilo * 0.6]} rotation={[0, 0, 0]}>
+              <boxGeometry args={[raioSilo * 12, 0.02, 0.02]} />
+              <meshStandardMaterial color="#666666" />
+            </mesh>
+          ))}
+          {/* Linhas verticais */}
+          {Array.from({ length: 21 }, (_, i) => (
+            <mesh key={`v-${i}`} position={[(i - 10) * raioSilo * 0.6, 0, 0]} rotation={[0, 0, 0]}>
+              <boxGeometry args={[0.02, 0.02, raioSilo * 12]} />
+              <meshStandardMaterial color="#666666" />
+            </mesh>
+          ))}
+        </group>
       </Canvas>
     </div>
   );
