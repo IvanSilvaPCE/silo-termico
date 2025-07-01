@@ -1,0 +1,943 @@
+<!--SVG inserido dentro do html para facilitar os testes-->
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Topo Armazem</title>
+    </head>
+
+    <body>
+
+    </body>
+ 
+<!-- Script **********************************************************************************************************************************************************-->
+    <script>
+
+        //variaveis usadas pelo script
+        let arco_selecionado = 1;    //variavel que indica o arco selecionado
+        let celula_selecionada = 1;  //variavel que indica a celula selecionada
+
+        //***********************************************************************************************************
+        //Funcao: atualizar o desenho
+        function fun_atualizar()
+        {
+            //seleciona a celula
+            fun_seleciona_celula(celula_selecionada, layout_topo);
+            
+            //seleciona o arco
+            fun_seleciona_arco(arco_selecionado, layout_topo);
+
+            //define a cor dos cabos
+            fun_escreve_temp_cabo(dados_topo);
+        }
+
+        //***********************************************************************************************************
+        //Funcao: aplica efeitos na celula selecionada
+        //
+        //Entradas:
+        //_celula = celula deve ser selecionada
+        function fun_seleciona_celula(_celula_selecionada, _layout_topo)
+        {
+            let _num_arcos, _arco, _num_celulas, _celula;
+
+            //numero de arcos e celulas
+            _num_arcos = (Object.keys(_layout_topo).length) - 2;
+            _num_celulas = Object.keys(_layout_topo["celulas"]).length - 2;
+
+            //para cada arco
+            for (_arco = 1; _arco <= _num_arcos; _arco++)
+            {
+                //se o arco pertence a celula selecionada
+                //altera a cor do preenchimento
+                if (Number(_layout_topo[String(_arco)].celula) == _celula_selecionada)
+                {
+                    document.getElementById("rec_arco_" + String(_arco)).setAttribute('fill', "#E6E6E6");
+                }
+                else
+                {
+                    document.getElementById("rec_arco_" + String(_arco)).setAttribute('fill', "#B3B3B3");
+                }
+            }
+
+            //para cada celula
+            for (_celula = 1; _celula <= _num_celulas; _celula++)
+            {
+                //se a celula estiver selecionada
+                //altera a cor do preenchimento
+                if (_celula_selecionada == _celula)
+                {
+                    document.getElementById("rec_celula" + String(_celula)).setAttribute('fill', "#E6E6E6");
+                    document.getElementById("rec_celula" + String(_celula)).setAttribute("stroke", "#438AF6");
+                }
+                else
+                {
+                    document.getElementById("rec_celula" + String(_celula)).setAttribute('fill', "#B3B3B3");
+                    document.getElementById("rec_celula" + String(_celula)).setAttribute("stroke", "#B3B3B3");
+                }
+            }
+        }
+
+        //***********************************************************************************************************
+        //Funcao: aplica efeitos no arco selecionado
+        //
+        //Entradas:
+        //_arco = arco que deve ser selecionado
+
+        function fun_seleciona_arco(_arco, _layout_topo)
+        {
+            let _num_arcos, _arco_looping;
+
+            _num_arcos = (Object.keys(_layout_topo).length) - 2;
+            arco_selecionado = _arco;
+
+            for (_arco_looping = 1; _arco_looping <= _num_arcos; _arco_looping++)
+            {
+                document.getElementById("arco" + String(_arco_looping) + "_botsup").setAttribute('fill', "#999999");
+                document.getElementById("arco" + String(_arco_looping) + "_botinf").setAttribute('fill', "#999999");
+            }
+
+            //altera a cor do retangulo de selecao
+            document.getElementById("rec_arco_" + String(_arco)).setAttribute('fill', "#438AF6");
+
+            //altera a cor dos botoes de selecao
+            document.getElementById("arco" + String(_arco) + "_botsup").setAttribute('fill', "#33CC33");
+            document.getElementById("arco" + String(_arco) + "_botinf").setAttribute('fill', "#33CC33");
+        }
+
+        //***********************************************************************************************************
+        //Funcao: altera as indicacoes dos cabos
+        //
+        //Entradas:
+        // _dados = dados de entrada
+        function fun_escreve_temp_cabo(_dados)
+        {
+            //lista com as configurações dos elementos visuais dos cabos
+            //            cor retangulo, cor texto, cor do contorno, opacidade retangulo, opacidade texto, espessura do contorno
+            let _visual = ["white", "black" , "black", "1", "1", "1.5"];
+            let _valor = 0; //temperatura maxima em cada cabo
+            let _nivel = false; //se o sensor esta dentro do nivel
+            let _falha = false; //se o cabo estiver em falha
+            let _i, _j; //usada no loopin
+
+            //para cada cabo
+            for (_i = 1; _i <= fun_numero_cabos(); _i++)
+            {
+                //variaveis
+                _falha = _dados[String(_i)][0];
+                _ponto_quente = _dados[String(_i)][1];
+                _nivel = _dados[String(_i)][2];
+                _valor = _dados[String(_i)][3];
+                _visual = ["white", "black" , "black", "1", "1", "0.4"];
+
+                //esconde animacao de falha
+                _id = "f_cabo_" + _i;
+                document.getElementById(_id).style.visibility = "hidden";
+
+                //esconde animacao de ponto quente
+                _id = "pq_cabo_" + _i;
+                document.getElementById(_id).style.visibility = "hidden";
+               
+                //calcula a escala de cores conforme a temperatura
+                //temperatura < 12 graus
+                if (_valor < 12)
+                {
+                    _visual[0] = "#0384fc";  //cor retangulo
+                    _visual[1] = "white";    //cor texto
+                }
+                //temperatura >= 12 e < 15
+                else if (_valor < 15)
+                {
+                    _visual[0] = "#03e8fc";//cor retangulo
+                    _visual[1] = "black";  //cor texto
+                }
+                //temperatura >= 15 e < 17
+                else if (_valor < 17)
+                {
+                    _visual[0] = "#03fcbe";//cor retangulo
+                    _visual[1] = "black";  //cor texto
+                }
+                //temperatura >= 17 e < 21
+                else if (_valor < 21)
+                {
+                    _visual[0] = "#07fc03"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                } 
+                //temperatura >= 21 e < 25
+                else if(_valor < 25)
+                {
+                    _visual[0] = "#c3ff00"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                } 
+                //temperatura >= 25 e < 27
+                else if(_valor < 27)
+                {
+                    _visual[0] = "#fcf803"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                }
+                //temperatura >= 27 e < 30
+                else if(_valor < 30)
+                {
+                    _visual[0] = "#ffb300"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                }
+                //temperatura >= 30 e < 35
+                else if(_valor < 35)
+                {
+                    _visual[0] = "#ff2200";   //cor retangulo
+                    _visual[1] = "white";     //cor texto
+                }
+                //temperatura >= 35 e < 50
+                else if(_valor < 50)
+                {
+                    _visual[0] = "#ff0090"; //cor retangulo
+                    _visual[1] = "white";   //cor texto
+                } 
+                //temperatura > 50
+                else if(_valor >= 50)
+                {
+                    _visual[0] = "#f700ff"; //cor retangulo
+                    _visual[1] = "white";   //cor texto
+                }
+
+                //se todo o cabo estiver fora do nivel
+                if (_nivel == false)
+                {
+                    _visual[0] = "#c7c7c7"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                    _visual[2] = "black";   //cor contorno
+                    _visual[3] = "0.78";    //opacidade retangulo
+                    _visual[4] = "0.4";     //opacidade texto
+                }
+                
+                //se todos os sensores do cabo apresentarem falha
+                //erro no cabo inteiro
+                if (_ponto_quente == true)
+                {
+                    //mostra a animacaoo de ponto quente
+                    _id = "pq_cabo_" + _i;
+                    document.getElementById(_id).style.visibility = "visible";
+                }
+                
+                //se todos os sensores do cabo apresentarem falha
+                //erro no cabo inteiro
+                if (_falha == true)
+                {
+                    //mostra animacao de falha
+                    _id = "f_cabo_" + _i;
+                    document.getElementById(_id).style.visibility = "visible";
+
+                    //esconde a animacao de ponto quente
+                    _id = "pq_cabo_" + _i;
+                    document.getElementById(_id).style.visibility = "hidden";
+                }
+
+                //altera a cor e a opacidade do texto
+                _id = "t_cabo_" + _i;
+                document.getElementById(_id).setAttribute('fill', _visual[1]);
+                document.getElementById(_id).setAttribute("fill-opacity", _visual[4]);
+
+                //altera o preenchimento, cor, contorno e opacidade do retangulo
+                _id = "c_cabo_" + _i;
+                document.getElementById(_id).setAttribute('fill', _visual[0]);
+                document.getElementById(_id).setAttribute("stroke", _visual[2]);
+                document.getElementById(_id).setAttribute("stroke-width", _visual[5]);
+                document.getElementById(_id).setAttribute("fill-opacity", _visual[3]);
+            }
+        }
+
+        //***********************************************************************************************************
+        //Funcao: altera o estado do aerador
+        //
+        //Entradas:
+        //_aerador = numero do aerador
+        //_estado = 0: desligado, 1: ligado, 2: falha
+        function fun_seta_aerador(_aerador, _estado)
+        {
+            let _id, _id_blade, _cor;
+
+            _id = "fundo_aerador_" + String(_aerador);
+            _id_blade = "blade_aerador_" + + String(_aerador) + "_";
+
+            //seleciona o estado
+            switch (_estado)
+            {
+                //desligado
+                case 0:
+                    _cor = "#c5c5c5";
+                    document.getElementById(_id_blade + "parado").style.visibility = "visible";
+                    document.getElementById(_id_blade + "girando").style.visibility = "hidden";
+                    break;
+
+                //ligado
+                case 1:
+                    _cor = "#31dd0f";
+                    document.getElementById(_id_blade + "parado").style.visibility = "hidden";
+                    document.getElementById(_id_blade + "girando").style.visibility = "visible";
+                    break;
+
+                //falha
+                case 2:
+                    _cor = "#ff0000";
+                    document.getElementById(_id_blade + "parado").style.visibility = "visible";
+                    document.getElementById(_id_blade + "girando").style.visibility = "hidden";
+                    break;
+            }
+
+            //seta a cor do aerador
+            document.getElementById(_id).setAttribute('fill', _cor);
+        }
+
+        //***********************************************************************************************************
+        //Funcao: oculta o desenho de todos os aeradores (usada no IOT / IHM)
+        function fun_ocultar_aerador()
+        {
+            let _num_aeradores, _aerador;
+            
+            _num_aeradores = Object.keys(arcos["aeradores"]).length;
+
+            for (_aerador = 1; _aerador <= _num_aeradores; _aerador++)
+            {
+                document.getElementById("aerador_" + String(_aerador)).style.visibility = "hidden";
+            }
+        }
+    
+        //***********************************************************************************************************
+        //Funcao: cria o desenho do arco
+        function fun_desenha_arco(_id_arco, _cabos)
+        {
+            let _pos_x, _num_cabos, _cabo, _pos_y;
+            
+            //posicao x do arco e numero de cabos
+            _pos_x = _cabos.pos_x;
+            _num_cabos = Object.keys(_cabos.sensores).length;
+
+            //pega a referencia do desenho svg
+            _desenho = document.getElementById("des_topo_armazem");
+            
+            //cria o grupo do desenho do arco
+            _grupo_arco = document.createElementNS("http://www.w3.org/2000/svg","g");
+            _grupo_arco.setAttribute("id","arco_" + String(_id_arco));
+
+            //cria o desenho do retangulo de selecao
+            _des_rec_selecao = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            _des_rec_selecao.setAttribute("id", "rec_arco_" + String(_id_arco));
+            _des_rec_selecao.setAttribute("x", String(_pos_x - 8.5));
+            _des_rec_selecao.setAttribute("y", String(49));
+            _des_rec_selecao.setAttribute("width", "17");
+            _des_rec_selecao.setAttribute("height", "254");
+
+            //cria o desenho do box/botao superior
+            _des_box_sup = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            _des_box_sup.setAttribute("id", "arco" + String(_id_arco) + "_botsup");
+            _des_box_sup.setAttribute("x", String(_pos_x - 8.5));
+            _des_box_sup.setAttribute("y", String(41));
+            _des_box_sup.setAttribute("rx", String(4.2));
+            _des_box_sup.setAttribute("ry", String(4.2));
+            _des_box_sup.setAttribute("width", "17");
+            _des_box_sup.setAttribute("height", "17");
+
+            //cria o desenho do box/botao inferior
+            _des_box_inf = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            _des_box_inf.setAttribute("id", "arco" + String(_id_arco) + "_botinf");
+            _des_box_inf.setAttribute("x", String(_pos_x - 8.5));
+            _des_box_inf.setAttribute("y", String(295));
+            _des_box_inf.setAttribute("rx", String(4.2));
+            _des_box_inf.setAttribute("ry", String(4.2));
+            _des_box_inf.setAttribute("width", "17");
+            _des_box_inf.setAttribute("height", "17");
+
+            //cria o texto do box/botao superior
+            _des_text_box_sup = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            _des_text_box_sup.setAttribute("text-anchor", "middle");
+            _des_text_box_sup.setAttribute("dominant-baseline", "central");
+            _des_text_box_sup.setAttribute("font-weight", "bold");
+            _des_text_box_sup.setAttribute("font-size", "10.5");
+            _des_text_box_sup.setAttribute("font-family", "Arial");
+            _des_text_box_sup.setAttribute("fill", "white");
+            _des_text_box_sup.setAttribute("x", String(_pos_x));
+            _des_text_box_sup.setAttribute("y", String(41 + 8.5));
+            _des_text_box_sup.textContent = String(_id_arco);
+
+            //cria o texto do box/botao inferior
+            _des_text_box_inf = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            _des_text_box_inf.setAttribute("text-anchor", "middle");
+            _des_text_box_inf.setAttribute("dominant-baseline", "central");
+            _des_text_box_inf.setAttribute("font-weight", "bold");
+            _des_text_box_inf.setAttribute("font-size", "10.5");
+            _des_text_box_inf.setAttribute("font-family", "Arial");
+            _des_text_box_inf.setAttribute("fill", "white");
+            _des_text_box_inf.setAttribute("x", String(_pos_x));
+            _des_text_box_inf.setAttribute("y", String(295 + 8.5));
+            _des_text_box_inf.textContent = String(_id_arco);
+
+            //faz o append dos desenhos
+            _grupo_arco.appendChild(_des_rec_selecao);
+            _grupo_arco.appendChild(_des_box_sup);
+            _grupo_arco.appendChild(_des_text_box_sup);
+            _grupo_arco.appendChild(_des_box_inf);
+            _grupo_arco.appendChild(_des_text_box_inf);
+
+            //cria o desenhos dos cabos
+            for (_cabo = 1; _cabo <= _num_cabos; _cabo++)
+            {
+                _pos_y = _cabos.sensores[Object.keys(_cabos.sensores)[_cabo - 1]];
+                _grupo_arco.appendChild(fun_desenha_cabo(Object.keys(_cabos.sensores)[_cabo - 1], _pos_x, _pos_y));
+            }
+
+            //faz o append dos desenhos
+            _desenho.appendChild(_grupo_arco);
+        }
+
+        //***********************************************************************************************************
+        //Funcao: cria o desenho do cabo
+        function fun_desenha_cabo(_id_cabo, _pos_x, _pos_y)
+        {
+            //cria o grupo do desenho do cabo
+            _grupo = document.createElementNS("http://www.w3.org/2000/svg","g");
+            _grupo.setAttribute("id","cabo_" + String(_id_cabo))
+
+            //cria o desenho do circulo do cabo
+            _des_circulo_cabo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            _des_circulo_cabo.setAttribute("id", "c_cabo_" + String(_id_cabo));
+            _des_circulo_cabo.setAttribute("cx", String(_pos_x));
+            _des_circulo_cabo.setAttribute("cy", String(_pos_y));
+            _des_circulo_cabo.setAttribute("r", "9");
+            _des_circulo_cabo.setAttribute("fill", "white");
+
+            //cria o desenho do texto
+            _des_texto_cabo = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            _des_texto_cabo.setAttribute("id", "t_cabo_" + String(_id_cabo));
+            _des_texto_cabo.setAttribute("text-anchor", "middle");
+            _des_texto_cabo.setAttribute("dominant-baseline", "central");
+            _des_texto_cabo.setAttribute("font-weight", "bold");
+            _des_texto_cabo.setAttribute("font-size", "7.75");
+            _des_texto_cabo.setAttribute("font-family", "Arial");
+            _des_texto_cabo.setAttribute("x", String(_pos_x));
+            _des_texto_cabo.setAttribute("y", String(_pos_y));
+            _des_texto_cabo.textContent = "C" + String(_id_cabo);
+
+            //cria o desenho do circulo do cabo com erro
+            _des_erro_cabo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            _des_erro_cabo.setAttribute("id", "f_cabo_" + String(_id_cabo));
+            _des_erro_cabo.setAttribute("cx", String(_pos_x));
+            _des_erro_cabo.setAttribute("cy", String(_pos_y));
+            _des_erro_cabo.setAttribute("r", "11");
+            _des_erro_cabo.setAttribute("fill", "red");
+            _des_erro_cabo.setAttribute("fill-opacity", "0.6");
+            _des_erro_cabo.setAttribute("visibility", "hidden");
+
+            //cria o desenho do circulo do cabo com ponto quente
+            _des_pontoquente_cabo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            _des_pontoquente_cabo.setAttribute("id", "pq_cabo_" + String(_id_cabo));
+            _des_pontoquente_cabo.setAttribute("cx", String(_pos_x));
+            _des_pontoquente_cabo.setAttribute("cy", String(_pos_y));
+            _des_pontoquente_cabo.setAttribute("r", "13");
+            _des_pontoquente_cabo.setAttribute("fill", "red");
+            _des_pontoquente_cabo.setAttribute("visibility", "hidden");
+
+            //cria a animacao do ponto quente
+            _animacao_pontoquente = document.createElementNS("http://www.w3.org/2000/svg", "animate")
+            _animacao_pontoquente.setAttribute("attributeName", "r")
+            _animacao_pontoquente.setAttribute("begin", "0s")
+            _animacao_pontoquente.setAttribute("dur", "1s")
+            _animacao_pontoquente.setAttribute("from", "13")
+            _animacao_pontoquente.setAttribute("to", "8")
+            _animacao_pontoquente.setAttribute("repeatCount", "indefinite")
+
+            //faz o append dos desenhos e animacao
+            _des_pontoquente_cabo.appendChild(_animacao_pontoquente);
+            _grupo.appendChild(_des_pontoquente_cabo);
+            _grupo.appendChild(_des_circulo_cabo);
+            _grupo.appendChild(_des_texto_cabo);
+            _grupo.appendChild(_des_erro_cabo);
+
+            //retorna a referencia do grupo criado
+            return _grupo;
+        }
+
+        //***********************************************************************************************************
+        //Funcao: cria desenho da celula e do fundo
+        function fun_desenha_rec_celula(_id, _x, _y, _width, _height)
+        {
+            //pega a referencia do desenho svg
+            _desenho = document.getElementById("des_topo_armazem");
+
+            //cria o desenho do retangulo de fundo
+            _des_rec = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            _des_rec.setAttribute("id", "rec_celula" + String(_id));
+            _des_rec.setAttribute("x", String(_x));
+            _des_rec.setAttribute("y", String(_y));
+            _des_rec.setAttribute("width", String(_width));
+            _des_rec.setAttribute("height", String(_height));
+            _des_rec.setAttribute("fill", "#B3B3B3");
+            _des_rec.setAttribute("stroke-width", "2");
+            _des_rec.setAttribute("stroke-miterlimit", "23");
+            _des_rec.setAttribute("rx", "5");
+            _des_rec.setAttribute("ry", "5");
+
+            //faz o append dos desenhos
+            _desenho.appendChild(_des_rec);
+        }
+
+        //***********************************************************************************************************
+        //Funcao: cria o desenho do topo do armazem
+        function fun_desenha_topo(_dados)
+        {
+            let _num_arcos, _num_sensores, _arco, _num_aeradores, _aerador, _num_celulas, _celula;
+            
+            _num_arcos = (Object.keys(_dados).length) - 2;
+            _num_aeradores = Object.keys(_dados["aeradores"]).length;
+            _num_celulas = Object.keys(_dados["celulas"]).length - 2;
+
+            //pega a referencia do desenho svg
+            _desenho = document.getElementById("des_topo_armazem");
+
+            //deleta o desenho svg se existir
+            if (_desenho != null)
+            {
+                _desenho.remove();
+            }
+            
+            //cria desenho svg
+            _desenho = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            _desenho.setAttribute("id", "des_topo_armazem");
+            _desenho.setAttribute("xml", "preserve");
+            _desenho.setAttribute("version", "1.0");
+            _desenho.setAttribute("style", "shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd");
+            _desenho.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+            _desenho.setAttribute("width", String(_dados["celulas"]["tamanho_svg"][0]) + "mm");
+            _desenho.setAttribute("height", String(_dados["celulas"]["tamanho_svg"][1]) + "mm");
+            _desenho.setAttribute("viewBox", "0 0 " + String(_dados["celulas"]["tamanho_svg"][0]) + " " + String(_dados["celulas"]["tamanho_svg"][1]));
+
+            //faz o append do desenho no body
+            document.body.appendChild(_desenho);
+
+            //cria desenho do fundo do armazem
+            fun_desenha_rec_celula(0, _dados["celulas"]["fundo"][0], _dados["celulas"]["fundo"][1], _dados["celulas"]["fundo"][2], _dados["celulas"]["fundo"][3]);
+
+            //cria desenhos das celulas
+            for (_celula = 1; _celula <= _num_celulas; _celula++)
+            {
+                fun_desenha_rec_celula(_celula, _dados["celulas"][String(_celula)][0], _dados["celulas"][String(_celula)][1], _dados["celulas"][String(_celula)][2], _dados["celulas"][String(_celula)][3]);
+            }
+        
+            //cria desenhos dos arcos
+            for (_arco = 1; _arco <= _num_arcos; _arco++)
+            {
+                fun_desenha_arco(_arco, _dados[String(_arco)]);
+            }
+
+            //cria desenhos dos aeradores
+            for (_aerador = 1; _aerador <= _num_aeradores; _aerador++)
+            {
+                fun_desenha_aerador(_aerador, _dados["aeradores"][String(_aerador)][0], _dados["aeradores"][String(_aerador)][1], _dados["aeradores"][String(_aerador)][2]);
+                fun_seta_aerador(_aerador,0);
+            }
+        }
+
+        //***********************************************************************************************************
+        //Funcao: cria o desenho do aerador
+        function fun_desenha_aerador(_id_aerador, _pos_x, _pos_y, _texto_acima)
+        {
+            //pega a referencia do desenho svg
+            _desenho = document.getElementById("des_topo_armazem");
+            
+            //cria o grupo do desenho do aerador
+            _grupo_aerador = document.createElementNS("http://www.w3.org/2000/svg","g");
+            _grupo_aerador.setAttribute("id", "aerador_" + String(_id_aerador));
+
+            //cria o grupo do desenho da blade parada
+            _grupo_blade_parado = document.createElementNS("http://www.w3.org/2000/svg","g");
+            _grupo_blade_parado.setAttribute("id", "blade_aerador_" + String(_id_aerador) + "_parado");
+
+            //cria o grupo do desenho do blade girando
+            _grupo_blade_girando = document.createElementNS("http://www.w3.org/2000/svg","g");
+            _grupo_blade_girando.setAttribute("id", "blade_aerador_" + String(_id_aerador) + "_girando");
+
+            //cria o desenho do retangulo com o nome
+            _des_rec_nome = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            _des_rec_nome.setAttribute("width", "25");
+            _des_rec_nome.setAttribute("height", "10");
+            _des_rec_nome.setAttribute("rx", "6.4");
+            _des_rec_nome.setAttribute("ry", "5");
+            _des_rec_nome.setAttribute("fill", "#3A78FD");
+
+            //posiciona texto acima ou abaixo
+            if (_texto_acima == 1)
+            {
+                _des_rec_nome.setAttribute("x", String(70 + 3.5));
+                _des_rec_nome.setAttribute("y", String(2));
+            }
+            else
+            {
+                _des_rec_nome.setAttribute("x", String(70 + 3.5));
+                _des_rec_nome.setAttribute("y", String(36));
+            }
+
+            //cria o desenho do texto do nome
+            _des_text_nome = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            _des_text_nome.setAttribute("text-anchor", "middle");
+            _des_text_nome.setAttribute("dominant-baseline", "central");
+            _des_text_nome.setAttribute("font-weight", "bold");
+            _des_text_nome.setAttribute("font-size", "6.5");
+            _des_text_nome.setAttribute("font-family", "Arial");
+            _des_text_nome.setAttribute("fill", "white");
+            _des_text_nome.textContent = "AE-" + String(_id_aerador);
+
+            //posiciona texto acima ou abaixo
+            if (_texto_acima == 1)
+            {
+                _des_text_nome.setAttribute("x", String(70 + 12.5 + 3.5));
+                _des_text_nome.setAttribute("y", String(0 + 7));
+            }
+            else
+            {
+                _des_text_nome.setAttribute("x", String(70 + 12.5 + 3.5));
+                _des_text_nome.setAttribute("y", String(0 + 5 + 36));
+            }
+
+            //cria o desenho do circulo 
+            _des_circulo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            _des_circulo.setAttribute("id", "fundo_aerador_" + String(_id_aerador));
+            _des_circulo.setAttribute("cx", String(70 + 12.5 + 3.5));
+            _des_circulo.setAttribute("cy", String(0 + 24));
+            _des_circulo.setAttribute("r", "10.5");
+            _des_circulo.setAttribute("fill", "red");
+
+            //cria o desenho da blade parada
+            _des_blade_parada = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            _des_blade_parada.setAttribute("d", "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z");
+            _des_blade_parada.setAttribute("fill", "white");
+        
+            //cria o desenho da blade girando
+            _des_blade_girando = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            _des_blade_girando.setAttribute("d", "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z");
+            _des_blade_girando.setAttribute("fill", "white");
+
+            //cria a animacao
+            _animacao_blade = document.createElementNS("http://www.w3.org/2000/svg", "animateTransform");
+            _animacao_blade.setAttribute("attributeName", "transform");
+            _animacao_blade.setAttribute("type", "rotate");
+            _animacao_blade.setAttribute("dur", "2s");
+            _animacao_blade.setAttribute("values", "0 86.35 24.05; 360 86.35 24.05;");
+            _animacao_blade.setAttribute("repeatCount", "indefinite");
+
+            //faz o append dos desenhos
+            _grupo_arco.appendChild(_grupo_aerador);
+            _grupo_blade_parado.appendChild(_des_blade_parada);
+            _grupo_blade_girando.appendChild(_des_blade_girando);
+            _grupo_blade_girando.appendChild(_animacao_blade);
+            _grupo_aerador.appendChild(_des_circulo);
+            _grupo_aerador.appendChild(_des_rec_nome);
+            _grupo_aerador.appendChild(_des_text_nome);
+            _grupo_aerador.appendChild(_grupo_blade_parado);
+            _grupo_aerador.appendChild(_grupo_blade_girando);
+            _desenho.appendChild(_grupo_aerador);
+
+            //posiciona o desenho do aerador
+            document.getElementById("aerador_" + String(_id_aerador)).setAttribute("transform", "translate(" + String(_pos_x - 70) + " " + String(_pos_y) + ")");
+        }
+
+        //***********************************************************************************************************
+        //Funcao: retorna o numero de cabos configurados
+        function fun_numero_cabos()
+        {
+            let _num_arcos, _arco, _num_cabos;
+            
+            _num_arcos = (Object.keys(layout_topo).length) - 2;
+            _num_cabos = 0;
+            
+            for (_arco = 1; _arco <= _num_arcos; _arco++)
+            {
+                _num_cabos = _num_cabos + Object.keys(layout_topo[String(_arco)].sensores).length;
+            }
+
+            return _num_cabos;
+        }
+
+        //***********************************************************************************************************
+        //Funcao: retorna o arco que o cabo pertence
+        function fun_qual_arco(_cabo)
+        {
+            let _num_arcos, _arco, _num_cabos, _cabos;
+
+            _num_arcos = Object.keys(layout_topo).length;
+            _num_cabos = fun_numero_cabos(layout_topo);
+
+            for (_arco = 1; _arco <= _num_arcos; _arco++)
+            {
+                _cabos = Object.keys(layout_topo[String(_arco)].sensores);
+
+                if (_cabos.includes(String(_cabo)) == true)
+                {
+                    return Number(_arco);
+                }
+            }
+            return null;
+        }
+
+        //***********************************************************************************************************
+        //Evento: clique do mouse sobre um arco
+        window.addEventListener
+        ( 
+            'mouseup', (_objeto) => { 
+                
+                let _id_obj, _tipo, _numero;
+                
+                //verifica se o clique foi em um objeto valido
+                //retorna o objeto pai ou null se nao houver objeto
+                try {
+                    _objeto.target.parentElement.id;
+                }
+                catch {
+                    _objeto = null;
+                }
+                
+                //se retornou um objeto valido
+                if (_objeto != null)
+                {
+                    //ID do grupo do elemento
+                    _id_obj = _objeto.target.parentElement.id;
+
+                    //tipo: arco ou cabo numero: numero sequencial
+                    _tipo = String(_id_obj).slice(0, 4);
+                    _numero = String(_id_obj).slice(5);
+
+                    if (_tipo == "arco")
+                    {
+                        arco_selecionado = Number(_numero);
+                        celula_selecionada = layout_topo[_numero].celula;
+                    }
+                    else if (_tipo == "cabo")
+                    {
+                        arco_selecionado = fun_qual_arco(_numero);
+                        celula_selecionada = layout_topo[fun_qual_arco(_numero)].celula;
+                    }
+
+                    //atualiza o desenho 
+                    fun_atualizar();
+                }   
+            }
+        ); 
+
+        //--------------------------------------------------------------------------------------------------------------------
+        //topo armazem Fazendao Alvorada
+        //dados de entrada
+        //numero do cabo: [falha, ponto quente, nivel, temperatura maxima do cabo,arco,celula]
+        let dados_topo  = { 
+                      "3": [false, false, true, 17.0 ,1, 1],
+                      "2": [false, false, true, 17.0 ,1, 1],
+                      "1": [false, false, true, 17.0 ,1, 1],
+                      "4": [false, false, true, 17.0 ,1, 1],
+                      "5": [false, false, true, 17.0 ,1, 1],
+                      "6": [false, false, true, 17.0 ,1, 1],
+                      "7": [false, false, true, 17.0 ,1, 1],
+                      "8": [false, false, true, 17.0 ,1, 1],
+                      "9": [false, false, true, 17.0 ,1, 1],
+                      "10": [false, false, true, 17.0 ,1, 1],
+                      "11": [false, false, true, 17.0 ,1, 1],
+                      "12": [false, false, true, 17.0 ,1, 1],
+                      "13": [false, false, true, 17.0 ,1, 1],
+                      "14": [false, false, true, 17.0 ,1, 1],
+                      "15": [false, false, true, 17.0 ,1, 1],
+                      "16": [false, false, true, 17.0 ,1, 1],
+                      "17": [false, false, true, 17.0 ,1, 1],
+                      "18": [false, false, true, 17.0 ,1, 1],
+                      "19": [false, false, true, 17.0 ,1, 1],
+                      "20": [false, false, true, 17.0 ,1, 1],
+                      "21": [false, false, true, 17.0 ,1, 1],
+                      "22": [false, false, true, 17.0 ,1, 1],
+                      "23": [false, false, true, 17.0 ,1, 1],
+                      "24": [false, false, true, 17.0 ,1, 1],
+                      "25": [false, false, true, 17.0 ,1, 1],
+                      "26": [false, false, true, 17.0 ,1, 1],
+                      "27": [false, false, true, 17.0 ,1, 1],
+                      "28": [false, false, true, 17.0 ,1, 1],
+                      "29": [false, false, true, 17.0 ,1, 1],
+                      "30": [false, false, true, 17.0 ,1, 1],
+                      "31": [false, false, true, 17.0 ,1, 1],
+                      "32": [false, false, true, 17.0 ,1, 1],
+                      "33": [false, false, true, 17.0 ,1, 1],
+                      "34": [false, false, true, 17.0 ,1, 1],
+                      "35": [false, false, true, 17.0 ,1, 1],
+                      "36": [false, false, true, 17.0 ,1, 1],
+                      "37": [false, false, true, 17.0 ,1, 1],
+                      "38": [false, false, true, 17.0 ,1, 1],
+                      "39": [false, false, true, 17.0 ,1, 1],
+                      "40": [false, false, true, 17.0 ,1, 1],
+                      "41": [false, false, true, 17.0 ,1, 1],
+                      "42": [false, false, true, 17.0 ,1, 1]
+                     }
+
+        let layout_topo = {
+            "1" : {
+                "celula": 1,
+                "pos_x" : 30,
+                "sensores": {
+                    "1": 75,
+                    "2": 150,
+                    "3": 240
+                }
+            },
+            "2" : {
+                "celula": 1,
+                "pos_x" : 65,
+                "sensores": {
+                    "4": 110,
+                    "5": 200,
+                    "6": 275
+                }
+            },
+            "3" : {
+                "celula": 1,
+                "pos_x" : 100,
+                "sensores": {
+                    "7": 75,
+                    "8": 150,
+                    "9": 240
+                }
+            },
+            "4" : {
+                "celula": 1,
+                "pos_x" : 135,
+                "sensores": {
+                    "10": 110,
+                    "11": 200,
+                    "12": 275
+                }
+            },
+            "5" : {
+                "celula": 1,
+                "pos_x" : 170,
+                "sensores": {
+                    "13": 75,
+                    "14": 150,
+                    "15": 240
+                }
+            },
+            "6" : {
+                "celula": 2,
+                "pos_x" : 205,
+                "sensores": {
+                    "16": 110,
+                    "17": 200,
+                    "18": 275
+                }
+            },
+            "7" : {
+                "celula": 2,
+                "pos_x" : 240,
+                "sensores": {
+                    "19": 75,
+                    "20": 150,
+                    "21": 240
+                }
+            },
+            "8" : {
+                "celula": 2,
+                "pos_x" : 275,
+                "sensores": {
+                    "22": 110,
+                    "23": 200,
+                    "24": 275
+                }
+            },
+            "9" : {
+                "celula": 2,
+                "pos_x" : 310,
+                "sensores": {
+                    "25": 75,
+                    "26": 150,
+                    "27": 240
+                }
+            },
+            "10" : {
+                "celula": 2,
+                "pos_x" : 345,
+                "sensores": {
+                    "28": 110,
+                    "29": 200,
+                    "30": 275
+                }
+            },
+            "11" : {
+                "celula": 3,
+                "pos_x" : 380,
+                "sensores": {
+                    "31": 75,
+                    "32": 150,
+                    "33": 240
+                }
+            },
+            "12" : {
+                "celula": 3,
+                "pos_x" : 415,
+                "sensores": {
+                    "34": 110,
+                    "35": 200,
+                    "36": 275
+                }
+            },
+            "13" : {
+                "celula": 3,
+                "pos_x" : 450,
+                "sensores": {
+                    "37": 75,
+                    "38": 150,
+                    "39": 240
+                }
+            },
+            "14" : {
+                "celula": 3,
+                "pos_x" : 485,
+                "sensores": {
+                    "40": 110,
+                    "41": 200,
+                    "42": 275
+                }
+            },
+            "aeradores": {
+                "1": [65, 0, 1],
+                "2": [154, 0, 1],
+                "3": [240, 0, 1],
+                "4": [329, 0, 1],
+                "5": [416, 0, 1],
+                "6": [65, 305, 0],
+                "7": [154, 305, 0],
+                "8": [240, 305, 0],
+                "9": [329, 305, 0],
+                "10": [416, 305, 0]
+            },
+            "celulas": {
+                "tamanho_svg": [600, 388],
+                "fundo": [5, 49, 501, 256],
+                "1": [5, 50, 180, 254],
+                "2": [190, 50, 170, 254],
+                "3": [364, 50, 150, 254]
+            }
+        }
+       
+        //cria elementos do desenho SVG
+        fun_desenha_topo(layout_topo);
+        
+        //atualiza o desenho 
+        fun_atualizar();
+
+        //seta os aeradores
+        fun_seta_aerador(1,1);
+        fun_seta_aerador(2,1);
+        fun_seta_aerador(3,1);
+        fun_seta_aerador(4,1);
+        fun_seta_aerador(5,2);
+        fun_seta_aerador(6,2);
+        fun_seta_aerador(7,0);
+        fun_seta_aerador(8,0);
+        fun_seta_aerador(9,0);
+        fun_seta_aerador(10,0);
+
+        //ocultar aeradores
+        //fun_ocultar_aerador()
+
+    </script>
+<!-- Fim do script ***************************************************************************************************************************************************-->
+    
+</html>
