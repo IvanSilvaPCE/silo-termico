@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame, useLoader } from '@react-three/fiber';
 import { OrbitControls, Text, Billboard } from '@react-three/drei';
@@ -8,7 +7,7 @@ import LayoutManager from "../utils/layoutManager";
 
 const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) => {
   const grupoRef = useRef();
-  
+
   // Função para determinar cor baseada na temperatura
   const corFaixaExata = (t) => {
     if (t === -1000) return "#ff0000";
@@ -57,7 +56,7 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
         const [temp, , , falha, nivel] = valores;
         const yPos = alturaArmazem * 0.65 - (s * espacamentoSensores);
         const cor = nivel ? corFaixaExata(temp) : "#cccccc";
-        
+
         return (
           <group key={s} position={[0, yPos, 0]}>
             {/* Corpo do sensor - mais detalhado */}
@@ -71,13 +70,13 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
                 roughness={0.7}
               />
             </mesh>
-            
+
             {/* Antena do sensor */}
             <mesh position={[0, 0.07, 0]}>
               <cylinderGeometry args={[0.008, 0.008, 0.06, 8]} />
               <meshStandardMaterial color="#666666" />
             </mesh>
-            
+
             {/* Display do valor */}
             <Billboard position={[0, 0, 0.07]}>
               <mesh>
@@ -94,7 +93,7 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
                 {falha ? "ERR" : temp.toFixed(1) + "°"}
               </Text>
             </Billboard>
-            
+
             {/* Label lateral do sensor */}
             <Billboard position={[-0.15, 0, 0]}>
               <Text
@@ -120,9 +119,9 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
 };
 
 const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) => {
-  const texturaParede = useLoader(THREE.TextureLoader, "/texturas/paredeArmazem.jpg").catch(() => null);
-  const texturaTelhado = useLoader(THREE.TextureLoader, "/texturas/telhadoArmazem.jpg").catch(() => null);
-  
+  //const texturaParede = useLoader(THREE.TextureLoader, "/texturas/paredeArmazem.jpg").catch(() => null);
+  //const texturaTelhado = useLoader(THREE.TextureLoader, "/texturas/telhadoArmazem.jpg").catch(() => null);
+
   const totalArcos = analiseArcos.totalArcos;
   const larguraArmazem = totalArcos * 5; // 5 metros por arco
   const profundidadeArmazem = 6;
@@ -145,7 +144,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
             color="#E0E0E0" 
             transparent 
             opacity={0.9}
-            map={texturaParede}
             roughness={0.7}
             metalness={0.1}
           />
@@ -156,7 +154,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
             color="#E0E0E0" 
             transparent 
             opacity={0.9}
-            map={texturaParede}
             roughness={0.7}
             metalness={0.1}
           />
@@ -169,7 +166,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
             color="#E0E0E0" 
             transparent 
             opacity={0.8}
-            map={texturaParede}
             roughness={0.7}
             metalness={0.1}
           />
@@ -180,7 +176,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
             color="#E0E0E0" 
             transparent 
             opacity={0.8}
-            map={texturaParede}
             roughness={0.7}
             metalness={0.1}
           />
@@ -193,7 +188,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
             <boxGeometry args={[larguraArmazem + 0.5, 0.1, profundidadeArmazem/2 + 0.2]} />
             <meshStandardMaterial 
               color="#8B4513" 
-              map={texturaTelhado}
               roughness={0.9}
               metalness={0.1}
             />
@@ -203,7 +197,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
             <boxGeometry args={[larguraArmazem + 0.5, 0.1, profundidadeArmazem/2 + 0.2]} />
             <meshStandardMaterial 
               color="#8B4513" 
-              map={texturaTelhado}
               roughness={0.9}
               metalness={0.1}
             />
@@ -224,13 +217,13 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
                   roughness={0.4}
                 />
               </mesh>
-              
+
               {/* Viga horizontal superior */}
               <mesh position={[x, alturaArmazem, 0]}>
                 <boxGeometry args={[0.15, 0.15, profundidadeArmazem]} />
                 <meshStandardMaterial color="#999999" metalness={0.6} roughness={0.4} />
               </mesh>
-              
+
               {/* Label do arco */}
               {i > 0 && i <= totalArcos && (
                 <Billboard position={[x - 2.5, alturaArmazem + alturaTelhado + 0.5, 0]}>
@@ -292,32 +285,32 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
 const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado, alturaArmazem }) => {
   const pendulosPositions = useMemo(() => {
     if (!analiseArcos || !dadosPortal) return {};
-    
+
     const posicoesPorArco = {};
     const larguraArmazem = analiseArcos.totalArcos * 5;
-    
+
     Object.keys(analiseArcos.arcos).forEach(arcoNum => {
       const arcoInfo = analiseArcos.arcos[arcoNum];
       const arcoIndex = parseInt(arcoNum) - 1;
-      
+
       if (arcoInfo) {
         const positions = [];
         const xArco = -larguraArmazem/2 + arcoIndex * 5 + 2.5;
         const larguraArco = 4;
         const espacamentoPendulo = arcoInfo.totalPendulos > 1 ? 
           larguraArco / (arcoInfo.totalPendulos + 1) : larguraArco / 2;
-        
+
         arcoInfo.pendulos.forEach((pendulo, index) => {
           const xLocal = -larguraArco/2 + (index + 1) * espacamentoPendulo;
           const xGlobal = xArco + xLocal;
           const z = (index % 2 === 0 ? -1.2 : 1.2);
           positions.push([xGlobal, 0, z]);
         });
-        
+
         posicoesPorArco[arcoNum] = positions;
       }
     });
-    
+
     return posicoesPorArco;
   }, [analiseArcos, dadosPortal]);
 
@@ -334,16 +327,16 @@ const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado, alturaA
       {Object.entries(pendulosPositions).map(([arcoNum, positions]) => {
         const arcoInfo = analiseArcos.arcos[arcoNum];
         if (!arcoInfo) return null;
-        
+
         const dadosArco = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, parseInt(arcoNum));
-        
+
         return positions.map((position, index) => {
           const pendulo = arcoInfo.pendulos[index];
           if (!pendulo) return null;
-          
+
           const penduloKey = Object.keys(dadosArco.leitura)[index];
           const sensoresData = dadosArco.leitura[penduloKey];
-          
+
           return (
             <Pendulo3D
               key={`${arcoNum}-${pendulo.numero}`}
@@ -388,13 +381,13 @@ const Armazem3D = () => {
     const inicializarDados = async () => {
       try {
         setCarregando(true);
-        
+
         const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
         setDadosPortal(dadosExemplo);
 
         const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
         setAnaliseArcos(analise);
-        
+
       } catch (error) {
         console.error('Erro ao inicializar dados 3D:', error);
       } finally {
@@ -429,7 +422,7 @@ const Armazem3D = () => {
       <div className="row">
         <div className="col-12">
           <h1 className="text-center mb-3 fs-4 fs-md-1">Armazém 3D - Modelo Industrial Realista</h1>
-          
+
           {/* Controles */}
           <div className="row mb-3">
             <div className="col-12">
@@ -617,7 +610,6 @@ const Armazem3D = () => {
                     </div>
                     <div className="col-md-3">
                       <small><strong>Recursos Avançados:</strong><br/>
-                      • Texturas aplicadas nas superfícies<br/>
                       • Sistema de sombras realistas<br/>
                       • Iluminação dinâmica<br/>
                       • Controles de câmera profissionais</small>

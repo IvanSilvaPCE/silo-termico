@@ -206,8 +206,7 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
 };
 
 const SiloStructure3D = ({ layout, numCabos, alturaSilo, raioSilo }) => {
-  const texturaCorpo = useLoader(THREE.TextureLoader, "/texturas/siloTextura.jpg").catch(() => null);
-  const texturaTopo = useLoader(THREE.TextureLoader, "/texturas/texturaTopo.jpg").catch(() => null);
+  // Removido carregamento de texturas - usando cores sólidas
   
   const alturaTopo = alturaSilo * 0.3;
   
@@ -223,7 +222,6 @@ const SiloStructure3D = ({ layout, numCabos, alturaSilo, raioSilo }) => {
           side={THREE.DoubleSide}
           metalness={0.1}
           roughness={0.8}
-          map={texturaCorpo}
         />
       </mesh>
       
@@ -240,7 +238,6 @@ const SiloStructure3D = ({ layout, numCabos, alturaSilo, raioSilo }) => {
           color="#CCCCCC" 
           metalness={0.3} 
           roughness={0.6}
-          map={texturaTopo}
         />
       </mesh>
 
