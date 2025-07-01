@@ -138,7 +138,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         svgEl.setAttribute("id", "des_topo_armazem");
         svgEl.setAttribute("width", "100%");
-        svgEl.setAttribute("height", "400px");
+        svgEl.setAttribute("height", "750px");
         svgEl.setAttribute("viewBox", `0 0 ${layoutTopo.celulas.tamanho_svg[0]} ${layoutTopo.celulas.tamanho_svg[1]}`);
         svgEl.setAttribute("style", "background: #f8f9fa; border-radius: 8px; shape-rendering:geometricPrecision; text-rendering:geometricPrecision;");
 
@@ -677,7 +677,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     if (carregando || !dadosPendulos || !layoutTopo) {
         return (
-            <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+            <div className="d-flex justify-content-center align-items-center" style={{ height: '750px' }}>
                 <div className="spinner-border" role="status">
                     <span className="visually-hidden">Carregando vista de topo...</span>
                 </div>
@@ -707,7 +707,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                             <div 
                                 ref={containerRef} 
                                 className="d-flex justify-content-center"
-                                style={{ minHeight: '400px' }}
+                                style={{ minHeight: '750px' }}
                             />
 
                             
