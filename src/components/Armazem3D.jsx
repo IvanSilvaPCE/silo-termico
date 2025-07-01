@@ -1,8 +1,7 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import { Canvas, useFrame, useLoader } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Billboard } from '@react-three/drei';
 import * as THREE from 'three';
-import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
 
 const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) => {
@@ -27,7 +26,7 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
 
   return (
     <group ref={grupoRef} position={position}>
-      {/* Cabo principal - mais realista */}
+      {/* Cabo principal */}
       <mesh position={[0, alturaArmazem / 3, 0]}>
         <cylinderGeometry args={[0.018, 0.018, alturaArmazem * 0.7, 12]} />
         <meshStandardMaterial color="#2c2c2c" metalness={0.7} roughness={0.3} />
@@ -59,7 +58,7 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
 
         return (
           <group key={s} position={[0, yPos, 0]}>
-            {/* Corpo do sensor - mais detalhado */}
+            {/* Corpo do sensor */}
             <mesh>
               <boxGeometry args={[0.2, 0.1, 0.1]} />
               <meshStandardMaterial 
@@ -93,18 +92,6 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
                 {falha ? "ERR" : temp.toFixed(1) + "°"}
               </Text>
             </Billboard>
-
-            {/* Label lateral do sensor */}
-            <Billboard position={[-0.15, 0, 0]}>
-              <Text
-                fontSize={0.025}
-                color="#333333"
-                anchorX="center"
-                anchorY="middle"
-              >
-                S{s}
-              </Text>
-            </Billboard>
           </group>
         );
       })}
@@ -119,11 +106,8 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
 };
 
 const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) => {
-  //const texturaParede = useLoader(THREE.TextureLoader, "/texturas/paredeArmazem.jpg").catch(() => null);
-  //const texturaTelhado = useLoader(THREE.TextureLoader, "/texturas/telhadoArmazem.jpg").catch(() => null);
-
   const totalArcos = analiseArcos.totalArcos;
-  const larguraArmazem = totalArcos * 5; // 5 metros por arco
+  const larguraArmazem = totalArcos * 5;
   const profundidadeArmazem = 6;
   const alturaTelhado = alturaArmazem * 0.4;
 
@@ -232,7 +216,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
                     color={i === arcoSelecionado ? "#FF6B35" : "#333333"}
                     anchorX="center"
                     anchorY="middle"
-                    font="/fonts/inter-bold.woff"
                   >
                     ARCO {i}
                   </Text>
@@ -267,17 +250,6 @@ const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado, alturaArmazem }) =>
           />
         </mesh>
       )}
-
-      {/* Portões de acesso */}
-      {[0, totalArcos + 1].map((arcoIndex, i) => {
-        const x = -larguraArmazem/2 + arcoIndex * 5;
-        return (
-          <mesh key={i} position={[x, alturaArmazem * 0.4, profundidadeArmazem/2 + 0.05]}>
-            <boxGeometry args={[3, alturaArmazem * 0.8, 0.1]} />
-            <meshStandardMaterial color="#654321" roughness={0.8} metalness={0.2} />
-          </mesh>
-        );
-      })}
     </group>
   );
 };
@@ -367,15 +339,12 @@ const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado, alturaA
 
 const Armazem3D = () => {
   const [autoRotate, setAutoRotate] = useState(true);
-  const [mostrarMapaCalor, setMostrarMapaCalor] = useState(false);
   const [arcoSelecionado, setArcoSelecionado] = useState(1);
   const [dadosPortal, setDadosPortal] = useState(null);
   const [analiseArcos, setAnaliseArcos] = useState(null);
   const [carregando, setCarregando] = useState(true);
-  const [visaoCompleta, setVisaoCompleta] = useState(true);
 
-  // Altura baseada nos dados reais
-  const alturaArmazem = 8; // metros
+  const alturaArmazem = 8;
 
   useEffect(() => {
     const inicializarDados = async () => {
@@ -398,19 +367,16 @@ const Armazem3D = () => {
     inicializarDados();
   }, []);
 
-  const mudarArco = (novoArco) => {
-    setArcoSelecionado(novoArco);
-  };
-
   if (carregando || !analiseArcos || !dadosPortal) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '70vh' }}>
-        <div className="text-center">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando visualização 3D...</span>
-          </div>
-          <p className="mt-2">Carregando Armazém 3D Realista...</p>
-        </div>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        fontSize: '18px'
+      }}>
+        Carregando Armazém 3D...
       </div>
     );
   }
@@ -418,209 +384,89 @@ const Armazem3D = () => {
   const larguraTotal = analiseArcos.totalArcos * 5;
 
   return (
-    <div className="container-fluid p-1 p-md-2" style={{ minHeight: '100vh' }}>
-      <div className="row">
-        <div className="col-12">
-          <h1 className="text-center mb-3 fs-4 fs-md-1">Armazém 3D - Modelo Industrial Realista</h1>
-
-          {/* Controles */}
-          <div className="row mb-3">
-            <div className="col-12">
-              <div className="card">
-                <div className="card-header bg-primary text-white">
-                  <h6 className="mb-0">Controles de Visualização 3D Avançada</h6>
-                </div>
-                <div className="card-body">
-                  <div className="row align-items-center">
-                    <div className="col-md-2">
-                      <div className="form-check form-switch">
-                        <input 
-                          className="form-check-input" 
-                          type="checkbox" 
-                          id="autoRotate"
-                          checked={autoRotate}
-                          onChange={(e) => setAutoRotate(e.target.checked)}
-                        />
-                        <label className="form-check-label" htmlFor="autoRotate">
-                          Auto Rotação
-                        </label>
-                      </div>
-                    </div>
-                    <div className="col-md-2">
-                      <div className="form-check form-switch">
-                        <input 
-                          className="form-check-input" 
-                          type="checkbox" 
-                          id="visaoCompleta"
-                          checked={visaoCompleta}
-                          onChange={(e) => setVisaoCompleta(e.target.checked)}
-                        />
-                        <label className="form-check-label" htmlFor="visaoCompleta">
-                          Visão Ampla
-                        </label>
-                      </div>
-                    </div>
-                    <div className="col-md-5">
-                      <label className="form-label">Arco Destacado:</label>
-                      <div className="d-flex gap-2 align-items-center">
-                        <button 
-                          className="btn btn-outline-primary btn-sm"
-                          onClick={() => mudarArco(Math.max(1, arcoSelecionado - 1))}
-                          disabled={arcoSelecionado <= 1}
-                        >
-                          ← Anterior
-                        </button>
-                        <select 
-                          className="form-select form-select-sm"
-                          value={arcoSelecionado}
-                          onChange={(e) => mudarArco(parseInt(e.target.value))}
-                        >
-                          {Object.keys(analiseArcos.arcos).map(numeroArco => {
-                            const arco = analiseArcos.arcos[numeroArco];
-                            return (
-                              <option key={numeroArco} value={numeroArco}>
-                                Arco {numeroArco} ({arco.totalPendulos}P/{arco.totalSensores}S)
-                              </option>
-                            );
-                          })}
-                        </select>
-                        <button 
-                          className="btn btn-outline-primary btn-sm"
-                          onClick={() => mudarArco(Math.min(analiseArcos.totalArcos, arcoSelecionado + 1))}
-                          disabled={arcoSelecionado >= analiseArcos.totalArcos}
-                        >
-                          Próximo →
-                        </button>
-                      </div>
-                    </div>
-                    <div className="col-md-3">
-                      <span className="badge bg-info me-1">{larguraTotal}m × {alturaArmazem}m</span>
-                      <span className="badge bg-success me-1">{analiseArcos.estatisticas.totalPendulos}P</span>
-                      <span className="badge bg-warning">{analiseArcos.estatisticas.totalSensores}S</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Canvas 3D */}
-          <div className="card" style={{ height: '75vh' }}>
-            <div className="card-body p-0">
-              <Canvas 
-                camera={{ 
-                  position: visaoCompleta ? [larguraTotal * 0.8, alturaArmazem * 1.2, larguraTotal * 0.6] : [larguraTotal * 0.4, alturaArmazem * 0.8, larguraTotal * 0.4], 
-                  fov: 60 
-                }}
-                style={{ height: '100%', background: 'linear-gradient(to bottom, #87CEEB, #E0F6FF)' }}
-                shadows
-              >
-                {/* Iluminação realista */}
-                <ambientLight intensity={0.3} />
-                <directionalLight 
-                  position={[larguraTotal, alturaArmazem * 2, larguraTotal * 0.5]} 
-                  intensity={1.2} 
-                  castShadow
-                  shadow-mapSize-width={4096}
-                  shadow-mapSize-height={4096}
-                  shadow-camera-far={larguraTotal * 2}
-                  shadow-camera-left={-larguraTotal}
-                  shadow-camera-right={larguraTotal}
-                  shadow-camera-top={alturaArmazem * 2}
-                  shadow-camera-bottom={-alturaArmazem}
-                />
-                <directionalLight 
-                  position={[-larguraTotal * 0.5, alturaArmazem * 1.5, -larguraTotal * 0.3]} 
-                  intensity={0.6} 
-                  color="#fff8dc"
-                />
-                <spotLight 
-                  position={[0, alturaArmazem * 2, 0]} 
-                  angle={1.2} 
-                  penumbra={0.3} 
-                  intensity={0.8} 
-                  castShadow 
-                />
-
-                {/* Estrutura completa do armazém */}
-                <ArmazemCompleto3D 
-                  dadosPortal={dadosPortal}
-                  analiseArcos={analiseArcos}
-                  arcoSelecionado={arcoSelecionado}
-                  alturaArmazem={alturaArmazem}
-                />
-
-                {/* Controles de câmera */}
-                <OrbitControls 
-                  autoRotate={autoRotate}
-                  autoRotateSpeed={0.3}
-                  enablePan={true}
-                  enableZoom={true}
-                  enableRotate={true}
-                  minDistance={visaoCompleta ? larguraTotal * 0.5 : larguraTotal * 0.3}
-                  maxDistance={visaoCompleta ? larguraTotal * 2 : larguraTotal * 1.2}
-                  maxPolarAngle={Math.PI / 2 + 0.2}
-                />
-
-                {/* Plano do terreno */}
-                <mesh position={[0, -1, 0]} receiveShadow>
-                  <planeGeometry args={[larguraTotal * 2, larguraTotal * 1.5]} />
-                  <meshStandardMaterial color="#8FBC8F" />
-                  <primitive object={new THREE.Mesh().rotateX(-Math.PI / 2)} />
-                </mesh>
-
-                {/* Grid de referência expandido */}
-                <gridHelper 
-                  args={[larguraTotal * 1.5, larguraTotal, '#555555', '#888888']} 
-                  position={[0, -0.9, 0]} 
-                />
-              </Canvas>
-            </div>
-          </div>
-
-          {/* Informações detalhadas */}
-          <div className="row mt-3">
-            <div className="col-12">
-              <div className="card">
-                <div className="card-header bg-info text-white">
-                  <h6 className="mb-0">Armazém 3D - Modelo Industrial com Estrutura Realista Tipo Galpão</h6>
-                </div>
-                <div className="card-body">
-                  <div className="row">
-                    <div className="col-md-3">
-                      <small><strong>Estrutura Industrial:</strong><br/>
-                      • Dimensões: {larguraTotal}m × 6m × {alturaArmazem}m<br/>
-                      • Telhado duas águas<br/>
-                      • Vigas de sustentação<br/>
-                      • Portões de acesso</small>
-                    </div>
-                    <div className="col-md-3">
-                      <small><strong>Sistema de Monitoramento:</strong><br/>
-                      • {analiseArcos.totalArcos} arcos independentes<br/>
-                      • {analiseArcos.estatisticas.totalPendulos} pêndulos termométricos<br/>
-                      • {analiseArcos.estatisticas.totalSensores} sensores distribuídos<br/>
-                      • Iluminação interna automatizada</small>
-                    </div>
-                    <div className="col-md-3">
-                      <small><strong>Arco Destacado ({arcoSelecionado}):</strong><br/>
-                      • Pêndulos: {analiseArcos.arcos[arcoSelecionado]?.totalPendulos}<br/>
-                      • Sensores: {analiseArcos.arcos[arcoSelecionado]?.totalSensores}<br/>
-                      • Estrutura destacada em laranja<br/>
-                      • Posicionamento otimizado</small>
-                    </div>
-                    <div className="col-md-3">
-                      <small><strong>Recursos Avançados:</strong><br/>
-                      • Sistema de sombras realistas<br/>
-                      • Iluminação dinâmica<br/>
-                      • Controles de câmera profissionais</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+    <div style={{ width: '100%', height: '100vh' }}>
+      {/* Controles simples */}
+      <div style={{ 
+        position: 'absolute', 
+        top: '10px', 
+        left: '10px', 
+        zIndex: 1000,
+        background: 'rgba(255,255,255,0.9)',
+        padding: '10px',
+        borderRadius: '5px'
+      }}>
+        <label style={{ marginRight: '20px' }}>
+          <input 
+            type="checkbox" 
+            checked={autoRotate}
+            onChange={(e) => setAutoRotate(e.target.checked)}
+          />
+          Rotação Automática
+        </label>
+        <label>
+          Arco: 
+          <select 
+            value={arcoSelecionado}
+            onChange={(e) => setArcoSelecionado(parseInt(e.target.value))}
+            style={{ marginLeft: '5px' }}
+          >
+            {Object.keys(analiseArcos.arcos).map(numeroArco => (
+              <option key={numeroArco} value={numeroArco}>
+                {numeroArco}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+
+      {/* Canvas 3D */}
+      <Canvas 
+        camera={{ 
+          position: [larguraTotal * 0.8, alturaArmazem * 1.2, larguraTotal * 0.6], 
+          fov: 60 
+        }}
+        style={{ height: '100%', background: 'linear-gradient(to bottom, #87CEEB, #E0F6FF)' }}
+        shadows
+      >
+        {/* Iluminação */}
+        <ambientLight intensity={0.3} />
+        <directionalLight 
+          position={[larguraTotal, alturaArmazem * 2, larguraTotal * 0.5]} 
+          intensity={1.2} 
+          castShadow
+        />
+        <directionalLight 
+          position={[-larguraTotal * 0.5, alturaArmazem * 1.5, -larguraTotal * 0.3]} 
+          intensity={0.6} 
+          color="#fff8dc"
+        />
+
+        {/* Estrutura completa do armazém */}
+        <ArmazemCompleto3D 
+          dadosPortal={dadosPortal}
+          analiseArcos={analiseArcos}
+          arcoSelecionado={arcoSelecionado}
+          alturaArmazem={alturaArmazem}
+        />
+
+        {/* Controles de câmera */}
+        <OrbitControls 
+          autoRotate={autoRotate}
+          autoRotateSpeed={0.3}
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+          minDistance={larguraTotal * 0.5}
+          maxDistance={larguraTotal * 2}
+        />
+
+        {/* Plano do terreno */}
+        <mesh position={[0, -1, 0]} receiveShadow>
+          <planeGeometry args={[larguraTotal * 2, larguraTotal * 1.5]} />
+          <meshStandardMaterial color="#8FBC8F" />
+          <primitive object={new THREE.Mesh().rotateX(-Math.PI / 2)} />
+        </mesh>
+      </Canvas>
     </div>
   );
 };
