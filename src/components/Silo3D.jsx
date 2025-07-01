@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Text, Billboard } from '@react-three/drei';
@@ -30,36 +31,40 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
     ativo: valores[4]
   }));
 
-  const espacamentoSensores = (alturaSilo * 0.8) / (sensoresArray.length + 1);
+  // Cabo vai do topo até a base
+  const topoSilo = alturaSilo + (alturaSilo * 0.3); // altura do silo + altura do topo cônico
+  const baseSilo = 0.3; // altura da base
+  const alturaCabo = topoSilo - baseSilo;
+  const espacamentoSensores = alturaCabo / (sensoresArray.length + 1);
 
   return (
     <group ref={grupoRef} position={position}>
-      {/* Cabo principal */}
-      <mesh position={[0, alturaSilo / 4, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, alturaSilo * 0.8, 12]} />
+      {/* Cabo principal - do topo à base */}
+      <mesh position={[0, (topoSilo + baseSilo) / 2, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, alturaCabo, 12]} />
         <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Placa de identificação do pêndulo */}
-      <Billboard position={[0, alturaSilo * 0.7, 0]}>
+      {/* Nome do pêndulo FORA do silo, na base */}
+      <Billboard position={[position[0] > 0 ? raioSilo * 1.3 : -raioSilo * 1.3, baseSilo - 0.5, position[2] > 0 ? raioSilo * 1.3 : -raioSilo * 1.3]}>
         <mesh>
-          <planeGeometry args={[0.8, 0.3]} />
+          <planeGeometry args={[1.2, 0.4]} />
           <meshStandardMaterial color="#2E86AB" />
         </mesh>
         <Text
           position={[0, 0, 0.01]}
-          fontSize={0.12}
+          fontSize={0.15}
           color="white"
           anchorX="center"
           anchorY="middle"
         >
-          {pendulo}
+          PÊNDULO {pendulo}
         </Text>
       </Billboard>
 
       {/* Sensores ao longo do cabo */}
       {sensoresArray.map((sensor, index) => {
-        const yPos = alturaSilo * 0.6 - (index * espacamentoSensores);
+        const yPos = topoSilo - ((index + 1) * espacamentoSensores);
         const cor = sensor.ativo ? corFaixaExata(sensor.temp) : "#cccccc";
 
         return (
@@ -103,7 +108,7 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
       })}
 
       {/* Peso na extremidade do cabo */}
-      <mesh position={[0, -alturaSilo * 0.2, 0]}>
+      <mesh position={[0, baseSilo + 0.1, 0]}>
         <cylinderGeometry args={[0.08, 0.06, 0.2, 16]} />
         <meshStandardMaterial color="#444444" metalness={0.8} roughness={0.3} />
       </mesh>
@@ -392,10 +397,9 @@ const Silo3D = ({ dados }) => {
         />
 
         {/* Plano do chão */}
-        <mesh position={[0, -0.5, 0]} receiveShadow>
+        <mesh position={[0, -0.5, 0]} receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[raioSilo * 6, raioSilo * 6]} />
           <meshStandardMaterial color="#A0A0A0" />
-          <primitive object={new THREE.Mesh().rotateX(-Math.PI / 2)} />
         </mesh>
       </Canvas>
     </div>
