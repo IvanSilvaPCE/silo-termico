@@ -114,7 +114,7 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
                 outlineWidth={0.02}
                 outlineColor="#000000"
               >
-                {sensor.falha ? "ERR" : sensor.temp.toFixed(1) + "°"}
+                {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
               </Text>
             </Billboard>
           </group>
@@ -191,27 +191,59 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
         <meshStandardMaterial color="#222222" metalness={0.9} roughness={0.1} />
       </mesh>
 
-      {/* Hélices - mais realistas */}
+      {/* Hélices - design mais bonito e aerodinâmico */}
       <group ref={heliceRef} position={[0, 0.42, 0]}>
-        {[0, 60, 120, 180, 240, 300].map((angle, index) => (
-          <mesh
-            key={index}
-            position={[
-              Math.cos((angle * Math.PI) / 180) * 0.25,
-              0,
-              Math.sin((angle * Math.PI) / 180) * 0.25
-            ]}
-            rotation={[0, (angle * Math.PI) / 180, Math.PI / 12]}
-          >
-            <boxGeometry args={[0.06, 0.02, 0.35]} />
-            <meshStandardMaterial color="#ffffff" metalness={0.4} roughness={0.6} />
-          </mesh>
+        {/* Hub central das hélices - mais robusto */}
+        <mesh>
+          <cylinderGeometry args={[0.12, 0.08, 0.06, 16]} />
+          <meshStandardMaterial color="#2c2c2c" metalness={0.9} roughness={0.1} />
+        </mesh>
+        
+        {/* Hélices curvadas e aerodinâmicas */}
+        {[0, 72, 144, 216, 288].map((angle, index) => (
+          <group key={index} rotation={[0, (angle * Math.PI) / 180, 0]}>
+            {/* Pá principal da hélice */}
+            <mesh
+              position={[0.2, 0, 0]}
+              rotation={[0, 0, Math.PI / 8]}
+            >
+              <boxGeometry args={[0.3, 0.03, 0.08]} />
+              <meshStandardMaterial 
+                color="#f0f0f0" 
+                metalness={0.6} 
+                roughness={0.3}
+              />
+            </mesh>
+            
+            {/* Curva aerodinâmica da pá */}
+            <mesh
+              position={[0.32, 0, 0]}
+              rotation={[0, 0, Math.PI / 6]}
+            >
+              <boxGeometry args={[0.12, 0.025, 0.06]} />
+              <meshStandardMaterial 
+                color="#e8e8e8" 
+                metalness={0.6} 
+                roughness={0.3}
+              />
+            </mesh>
+            
+            {/* Ponta arredondada */}
+            <mesh position={[0.38, 0, 0]}>
+              <sphereGeometry args={[0.03, 8, 8]} />
+              <meshStandardMaterial 
+                color="#d0d0d0" 
+                metalness={0.7} 
+                roughness={0.2}
+              />
+            </mesh>
+          </group>
         ))}
         
-        {/* Hub central das hélices */}
-        <mesh>
-          <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
-          <meshStandardMaterial color="#333333" metalness={0.8} roughness={0.2} />
+        {/* Anel protetor do hub */}
+        <mesh position={[0, 0.035, 0]}>
+          <torusGeometry args={[0.14, 0.02, 8, 16]} />
+          <meshStandardMaterial color="#444444" metalness={0.8} roughness={0.2} />
         </mesh>
       </group>
 
@@ -246,7 +278,7 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
 };
 
 const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
-  const alturaTopo = 0.4; // Topo mais fino e baixo
+  const alturaTopo = 1.2; // Altura do cone
 
   return (
     <group>
@@ -269,9 +301,9 @@ const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
         <meshStandardMaterial color="#999999" metalness={0.5} roughness={0.5} />
       </mesh>
 
-      {/* Topo plano do silo - mais fino e da mesma cor */}
+      {/* Teto cônico do silo - como estava antes */}
       <mesh position={[0, alturaSilo + alturaTopo / 2, 0]} castShadow>
-        <cylinderGeometry args={[raioSilo * 0.95, raioSilo * 0.95, alturaTopo, 32]} />
+        <coneGeometry args={[raioSilo * 0.95, alturaTopo, 32]} />
         <meshStandardMaterial 
           color="#E5E5E5" 
           metalness={0.1} 
@@ -279,10 +311,10 @@ const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
         />
       </mesh>
 
-      {/* Saída superior - mais baixa e junta com o topo */}
-      <mesh position={[0, alturaSilo + alturaTopo + 0.1, 0]}>
-        <cylinderGeometry args={[raioSilo * 0.15, raioSilo * 0.2, 0.2, 16]} />
-        <meshStandardMaterial color="#888888" metalness={0.7} roughness={0.3} />
+      {/* Tampa preta no topo do cone */}
+      <mesh position={[0, alturaSilo + alturaTopo + 0.05, 0]}>
+        <cylinderGeometry args={[raioSilo * 0.2, raioSilo * 0.25, 0.1, 16]} />
+        <meshStandardMaterial color="#333333" metalness={0.7} roughness={0.3} />
       </mesh>
     </group>
   );
