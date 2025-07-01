@@ -301,9 +301,9 @@ const SiloStructure3D = ({ numCabos, alturaSilo, raioSilo }) => {
         <meshStandardMaterial color="#999999" metalness={0.5} roughness={0.5} />
       </mesh>
 
-      {/* Teto cônico do silo - pontudo como na segunda imagem */}
+      {/* Teto cônico do silo - pontudo e se estendendo para fora */}
       <mesh position={[0, alturaSilo + alturaTopo / 2, 0]} castShadow>
-        <coneGeometry args={[raioSilo * 0.95, alturaTopo, 32]} />
+        <coneGeometry args={[raioSilo * 1.1, alturaTopo, 32]} />
         <meshStandardMaterial 
           color="#999999" 
           metalness={0.3} 
