@@ -9,7 +9,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     const [dadosPortal, setDadosPortal] = useState(null);
     const [analiseArcos, setAnaliseArcos] = useState(null);
     const [celulaAtual, setCelulaAtual] = useState(1);
-    const [layoutTopo, setLayoutTopo] = useState(null);
 
     // Carregar dados de exemplo
     useEffect(() => {
@@ -21,10 +20,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                 const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
                 setAnaliseArcos(analise);
 
-                // Gerar layout topo baseado na análise
-                const layoutTopoGerado = gerarLayoutTopo(analise);
-                setLayoutTopo(layoutTopoGerado);
-
+                // Converter dados para formato compatível
                 const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo);
                 setDados(dadosConvertidos);
             } catch (error) {
@@ -35,62 +31,9 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         inicializarDados();
     }, []);
 
-    // Gerar layout de topo baseado na estrutura dos arcos
-    const gerarLayoutTopo = (analise) => {
-        if (!analise) return null;
-
-        const layout = {
-            celulas: {
-                tamanho_svg: [600, 388],
-                fundo: [5, 49, 590, 256],
-                1: [5, 50, 180, 254],
-                2: [190, 50, 170, 254], 
-                3: [365, 50, 150, 254]
-            }
-        };
-
-        // Distribuir arcos nas células
-        const totalArcos = analise.totalArcos;
-        const arcosPorCelula = Math.ceil(totalArcos / 3);
-        let posX = 30;
-        const espacamentoArcos = 35;
-
-        Object.keys(analise.arcos).forEach((numeroArco, index) => {
-            const arco = analise.arcos[numeroArco];
-            const celula = Math.floor(index / arcosPorCelula) + 1;
-            
-            // Gerar sensores para o arco
-            const sensores = {};
-            let contadorSensor = 1;
-            
-            arco.pendulos.forEach(pendulo => {
-                for (let s = 1; s <= pendulo.totalSensores; s++) {
-                    const ySensor = 75 + (s - 1) * 50; // Distribuir sensores verticalmente
-                    sensores[contadorSensor] = ySensor;
-                    contadorSensor++;
-                }
-            });
-
-            layout[numeroArco] = {
-                celula: Math.min(celula, 3),
-                pos_x: posX,
-                sensores: sensores
-            };
-
-            posX += espacamentoArcos;
-            
-            // Resetar posição para próxima célula
-            if ((index + 1) % arcosPorCelula === 0) {
-                posX = 30 + (celula * 185); // Próxima célula
-            }
-        });
-
-        return layout;
-    };
-
     // Atualizar SVG quando dados mudarem
     useEffect(() => {
-        if (!dados || !analiseArcos || !layoutTopo) return;
+        if (!dados || !analiseArcos) return;
 
         const container = containerRef.current;
         if (!container) return;
@@ -100,7 +43,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
 
         criarSVGTopo();
         atualizarVisualizacao();
-    }, [dados, analiseArcos, layoutTopo, arcoAtual, celulaAtual]);
+    }, [dados, analiseArcos, arcoAtual, celulaAtual]);
 
     function criarSVGTopo() {
         const container = containerRef.current;
@@ -109,203 +52,188 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
         svgEl.setAttribute("id", "des_topo_armazem");
         svgEl.setAttribute("width", "100%");
         svgEl.setAttribute("height", "400px");
-        svgEl.setAttribute("viewBox", "0 0 600 388");
+        svgEl.setAttribute("viewBox", "0 0 600 400");
         svgEl.setAttribute("style", "background: #f8f9fa; border-radius: 8px;");
         
         container.appendChild(svgEl);
 
-        // Desenhar estrutura do armazém
-        desenharFundoArmazem();
+        // Desenhar fundo circular
+        desenharFundoCircular();
+        
+        // Desenhar arcos como fatias
+        desenharFatiasArcos();
+        
+        // Desenhar células
         desenharCelulas();
-        desenharArcos();
     }
 
-    function desenharFundoArmazem() {
+    function desenharFundoCircular() {
         const svgEl = document.getElementById("des_topo_armazem");
-        
-        // Fundo do armazém
-        const fundoRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        fundoRect.setAttribute("id", "rec_celula0");
-        fundoRect.setAttribute("x", layoutTopo.celulas.fundo[0]);
-        fundoRect.setAttribute("y", layoutTopo.celulas.fundo[1]);
-        fundoRect.setAttribute("width", layoutTopo.celulas.fundo[2]);
-        fundoRect.setAttribute("height", layoutTopo.celulas.fundo[3]);
-        fundoRect.setAttribute("fill", "#B3B3B3");
-        fundoRect.setAttribute("stroke", "#999999");
-        fundoRect.setAttribute("stroke-width", "2");
-        fundoRect.setAttribute("rx", "5");
-        fundoRect.setAttribute("ry", "5");
-        
-        svgEl.appendChild(fundoRect);
+        const centerX = 300, centerY = 200, radius = 150;
+
+        // Círculo de fundo
+        const circuloFundo = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circuloFundo.setAttribute("cx", centerX);
+        circuloFundo.setAttribute("cy", centerY);
+        circuloFundo.setAttribute("r", radius);
+        circuloFundo.setAttribute("fill", "#e9ecef");
+        circuloFundo.setAttribute("stroke", "#dee2e6");
+        circuloFundo.setAttribute("stroke-width", "2");
+        svgEl.appendChild(circuloFundo);
+    }
+
+    function desenharFatiasArcos() {
+        if (!analiseArcos) return;
+
+        const svgEl = document.getElementById("des_topo_armazem");
+        const centerX = 300, centerY = 200, radius = 140;
+        const totalArcos = analiseArcos.totalArcos;
+        const anguloFatia = (2 * Math.PI) / totalArcos;
+
+        Object.entries(analiseArcos.arcos).forEach(([numeroArco, infoArco], index) => {
+            const anguloInicio = index * anguloFatia - Math.PI / 2; // Começar do topo
+            const anguloFim = anguloInicio + anguloFatia;
+
+            // Criar grupo para a fatia
+            const grupoFatia = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            grupoFatia.setAttribute("id", `arco_${numeroArco}`);
+            grupoFatia.setAttribute("class", "fatia-arco");
+            grupoFatia.style.cursor = "pointer";
+
+            // Calcular pontos da fatia
+            const x1 = centerX + radius * Math.cos(anguloInicio);
+            const y1 = centerY + radius * Math.sin(anguloInicio);
+            const x2 = centerX + radius * Math.cos(anguloFim);
+            const y2 = centerY + radius * Math.sin(anguloFim);
+
+            // Desenhar fatia
+            const pathFatia = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            const largeArcFlag = anguloFatia > Math.PI ? 1 : 0;
+            const pathD = `M ${centerX} ${centerY} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
+            
+            pathFatia.setAttribute("d", pathD);
+            pathFatia.setAttribute("fill", arcoAtual == numeroArco ? "#438AF6" : "#B3B3B3");
+            pathFatia.setAttribute("stroke", "#fff");
+            pathFatia.setAttribute("stroke-width", "2");
+
+            // Calcular posição da bolinha (centro da fatia)
+            const anguloMedio = anguloInicio + anguloFatia / 2;
+            const raioMedio = radius * 0.7;
+            const bolinhaCenterX = centerX + raioMedio * Math.cos(anguloMedio);
+            const bolinhaCenterY = centerY + raioMedio * Math.sin(anguloMedio);
+
+            // Obter temperatura máxima do arco
+            const tempMaxima = obterTemperaturaMaximaArco(numeroArco);
+            const corBolinha = corFaixaExata(tempMaxima);
+
+            // Desenhar bolinha de temperatura
+            const bolinha = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            bolinha.setAttribute("cx", bolinhaCenterX);
+            bolinha.setAttribute("cy", bolinhaCenterY);
+            bolinha.setAttribute("r", "12");
+            bolinha.setAttribute("fill", corBolinha);
+            bolinha.setAttribute("stroke", "#fff");
+            bolinha.setAttribute("stroke-width", "2");
+
+            // Texto da temperatura
+            const textoTemp = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textoTemp.setAttribute("x", bolinhaCenterX);
+            textoTemp.setAttribute("y", bolinhaCenterY);
+            textoTemp.setAttribute("text-anchor", "middle");
+            textoTemp.setAttribute("dominant-baseline", "central");
+            textoTemp.setAttribute("font-size", "8");
+            textoTemp.setAttribute("font-weight", "bold");
+            textoTemp.setAttribute("fill", tempMaxima >= 30 ? "white" : "black");
+            textoTemp.textContent = tempMaxima.toFixed(1);
+
+            // Número do arco
+            const anguloTexto = anguloMedio;
+            const raioTexto = radius + 20;
+            const textoX = centerX + raioTexto * Math.cos(anguloTexto);
+            const textoY = centerY + raioTexto * Math.sin(anguloTexto);
+
+            const textoArco = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textoArco.setAttribute("x", textoX);
+            textoArco.setAttribute("y", textoY);
+            textoArco.setAttribute("text-anchor", "middle");
+            textoArco.setAttribute("dominant-baseline", "central");
+            textoArco.setAttribute("font-size", "12");
+            textoArco.setAttribute("font-weight", "bold");
+            textoArco.setAttribute("fill", "#495057");
+            textoArco.textContent = numeroArco;
+
+            // Adicionar elementos ao grupo
+            grupoFatia.appendChild(pathFatia);
+            grupoFatia.appendChild(bolinha);
+            grupoFatia.appendChild(textoTemp);
+            grupoFatia.appendChild(textoArco);
+
+            // Evento de clique
+            grupoFatia.addEventListener('click', () => {
+                if (onArcoSelecionado) {
+                    onArcoSelecionado(parseInt(numeroArco));
+                }
+                atualizarVisualizacao();
+            });
+
+            svgEl.appendChild(grupoFatia);
+        });
     }
 
     function desenharCelulas() {
         const svgEl = document.getElementById("des_topo_armazem");
         
-        [1, 2, 3].forEach(numCelula => {
-            const celula = layoutTopo.celulas[numCelula];
+        // Desenhar indicadores de células (caixas na parte inferior)
+        const celulas = [1, 2, 3]; // Baseado no exemplo
+        const larguraCelula = 80;
+        const alturaCelula = 30;
+        const inicioX = 200;
+        const inicioY = 360;
+
+        celulas.forEach((numCelula, index) => {
+            const x = inicioX + index * (larguraCelula + 10);
             
-            const celulaRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            celulaRect.setAttribute("id", `rec_celula${numCelula}`);
-            celulaRect.setAttribute("x", celula[0]);
-            celulaRect.setAttribute("y", celula[1]);
-            celulaRect.setAttribute("width", celula[2]);
-            celulaRect.setAttribute("height", celula[3]);
-            celulaRect.setAttribute("fill", celulaAtual === numCelula ? "#E6E6E6" : "#B3B3B3");
-            celulaRect.setAttribute("stroke", celulaAtual === numCelula ? "#438AF6" : "#B3B3B3");
-            celulaRect.setAttribute("stroke-width", "2");
-            celulaRect.setAttribute("rx", "5");
-            celulaRect.setAttribute("ry", "5");
-            celulaRect.style.cursor = "pointer";
+            // Retângulo da célula
+            const rectCelula = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rectCelula.setAttribute("id", `rec_celula${numCelula}`);
+            rectCelula.setAttribute("x", x);
+            rectCelula.setAttribute("y", inicioY);
+            rectCelula.setAttribute("width", larguraCelula);
+            rectCelula.setAttribute("height", alturaCelula);
+            rectCelula.setAttribute("rx", "5");
+            rectCelula.setAttribute("ry", "5");
+            rectCelula.setAttribute("fill", celulaAtual === numCelula ? "#E6E6E6" : "#B3B3B3");
+            rectCelula.setAttribute("stroke", celulaAtual === numCelula ? "#438AF6" : "#B3B3B3");
+            rectCelula.setAttribute("stroke-width", "2");
+            rectCelula.style.cursor = "pointer";
 
             // Texto da célula
             const textoCelula = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            textoCelula.setAttribute("x", celula[0] + celula[2] / 2);
-            textoCelula.setAttribute("y", celula[1] + 20);
+            textoCelula.setAttribute("x", x + larguraCelula / 2);
+            textoCelula.setAttribute("y", inicioY + alturaCelula / 2);
             textoCelula.setAttribute("text-anchor", "middle");
+            textoCelula.setAttribute("dominant-baseline", "central");
             textoCelula.setAttribute("font-size", "12");
             textoCelula.setAttribute("font-weight", "bold");
             textoCelula.setAttribute("fill", "#495057");
             textoCelula.textContent = `Célula ${numCelula}`;
             textoCelula.style.cursor = "pointer";
 
-            // Eventos de clique
+            // Evento de clique para célula
             const clickHandler = () => {
                 setCelulaAtual(numCelula);
                 atualizarVisualizacao();
             };
 
-            celulaRect.addEventListener('click', clickHandler);
+            rectCelula.addEventListener('click', clickHandler);
             textoCelula.addEventListener('click', clickHandler);
 
-            svgEl.appendChild(celulaRect);
+            svgEl.appendChild(rectCelula);
             svgEl.appendChild(textoCelula);
         });
     }
 
-    function desenharArcos() {
-        if (!analiseArcos || !layoutTopo) return;
-
-        const svgEl = document.getElementById("des_topo_armazem");
-
-        Object.keys(analiseArcos.arcos).forEach(numeroArco => {
-            const arcoInfo = analiseArcos.arcos[numeroArco];
-            const layoutArco = layoutTopo[numeroArco];
-            
-            if (!layoutArco) return;
-
-            // Criar grupo do arco
-            const grupoArco = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            grupoArco.setAttribute("id", `arco_${numeroArco}`);
-            grupoArco.style.cursor = "pointer";
-
-            // Retângulo de seleção do arco
-            const rectSelecao = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            rectSelecao.setAttribute("id", `rec_arco_${numeroArco}`);
-            rectSelecao.setAttribute("x", layoutArco.pos_x - 8.5);
-            rectSelecao.setAttribute("y", 49);
-            rectSelecao.setAttribute("width", "17");
-            rectSelecao.setAttribute("height", "254");
-            rectSelecao.setAttribute("fill", arcoAtual == numeroArco ? "#438AF6" : "#B3B3B3");
-            rectSelecao.setAttribute("stroke", "#fff");
-            rectSelecao.setAttribute("stroke-width", "1");
-
-            // Botão superior
-            const botaoSup = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            botaoSup.setAttribute("id", `arco${numeroArco}_botsup`);
-            botaoSup.setAttribute("x", layoutArco.pos_x - 8.5);
-            botaoSup.setAttribute("y", 41);
-            botaoSup.setAttribute("width", "17");
-            botaoSup.setAttribute("height", "17");
-            botaoSup.setAttribute("rx", "4.2");
-            botaoSup.setAttribute("ry", "4.2");
-            botaoSup.setAttribute("fill", arcoAtual == numeroArco ? "#33CC33" : "#999999");
-
-            // Texto do botão superior
-            const textoSup = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            textoSup.setAttribute("x", layoutArco.pos_x);
-            textoSup.setAttribute("y", 49.5);
-            textoSup.setAttribute("text-anchor", "middle");
-            textoSup.setAttribute("dominant-baseline", "central");
-            textoSup.setAttribute("font-size", "10.5");
-            textoSup.setAttribute("font-weight", "bold");
-            textoSup.setAttribute("fill", "white");
-            textoSup.textContent = numeroArco;
-
-            // Botão inferior
-            const botaoInf = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-            botaoInf.setAttribute("id", `arco${numeroArco}_botinf`);
-            botaoInf.setAttribute("x", layoutArco.pos_x - 8.5);
-            botaoInf.setAttribute("y", 295);
-            botaoInf.setAttribute("width", "17");
-            botaoInf.setAttribute("height", "17");
-            botaoInf.setAttribute("rx", "4.2");
-            botaoInf.setAttribute("ry", "4.2");
-            botaoInf.setAttribute("fill", arcoAtual == numeroArco ? "#33CC33" : "#999999");
-
-            // Texto do botão inferior
-            const textoInf = document.createElementNS("http://www.w3.org/2000/svg", "text");
-            textoInf.setAttribute("x", layoutArco.pos_x);
-            textoInf.setAttribute("y", 303.5);
-            textoInf.setAttribute("text-anchor", "middle");
-            textoInf.setAttribute("dominant-baseline", "central");
-            textoInf.setAttribute("font-size", "10.5");
-            textoInf.setAttribute("font-weight", "bold");
-            textoInf.setAttribute("fill", "white");
-            textoInf.textContent = numeroArco;
-
-            // Desenhar sensores (círculos dos cabos)
-            Object.entries(layoutArco.sensores).forEach(([numSensor, posY]) => {
-                const tempMaxima = obterTemperaturaSensor(numeroArco, numSensor);
-                const corSensor = corFaixaExata(tempMaxima);
-
-                // Círculo do sensor
-                const circuloSensor = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-                circuloSensor.setAttribute("id", `c_cabo_${numSensor}`);
-                circuloSensor.setAttribute("cx", layoutArco.pos_x);
-                circuloSensor.setAttribute("cy", posY);
-                circuloSensor.setAttribute("r", "9");
-                circuloSensor.setAttribute("fill", corSensor);
-                circuloSensor.setAttribute("stroke", "black");
-                circuloSensor.setAttribute("stroke-width", "1");
-
-                // Texto do sensor
-                const textoSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
-                textoSensor.setAttribute("id", `t_cabo_${numSensor}`);
-                textoSensor.setAttribute("x", layoutArco.pos_x);
-                textoSensor.setAttribute("y", posY);
-                textoSensor.setAttribute("text-anchor", "middle");
-                textoSensor.setAttribute("dominant-baseline", "central");
-                textoSensor.setAttribute("font-size", "7.75");
-                textoSensor.setAttribute("font-weight", "bold");
-                textoSensor.setAttribute("fill", tempMaxima >= 30 ? "white" : "black");
-                textoSensor.textContent = `C${numSensor}`;
-
-                grupoArco.appendChild(circuloSensor);
-                grupoArco.appendChild(textoSensor);
-            });
-
-            // Adicionar elementos ao grupo
-            grupoArco.appendChild(rectSelecao);
-            grupoArco.appendChild(botaoSup);
-            grupoArco.appendChild(textoSup);
-            grupoArco.appendChild(botaoInf);
-            grupoArco.appendChild(textoInf);
-
-            // Evento de clique no arco
-            grupoArco.addEventListener('click', () => {
-                if (onArcoSelecionado) {
-                    onArcoSelecionado(parseInt(numeroArco));
-                }
-                setCelulaAtual(layoutArco.celula);
-                atualizarVisualizacao();
-            });
-
-            svgEl.appendChild(grupoArco);
-        });
-    }
-
-    function obterTemperaturaSensor(numeroArco, numSensor) {
+    function obterTemperaturaMaximaArco(numeroArco) {
         if (!dadosPortal?.arcos?.[numeroArco]) return 20;
 
         let tempMaxima = 20;
@@ -335,46 +263,18 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
     }
 
     function atualizarVisualizacao() {
-        if (!analiseArcos || !layoutTopo) return;
+        if (!analiseArcos) return;
 
-        // Atualizar cores dos arcos
+        // Atualizar cores das fatias
         Object.keys(analiseArcos.arcos).forEach(numeroArco => {
-            const layoutArco = layoutTopo[numeroArco];
-            if (!layoutArco) return;
-
-            const rectArco = document.querySelector(`#rec_arco_${numeroArco}`);
-            const botaoSup = document.querySelector(`#arco${numeroArco}_botsup`);
-            const botaoInf = document.querySelector(`#arco${numeroArco}_botinf`);
-
-            if (rectArco) {
-                // Destacar arco baseado na célula selecionada
-                if (layoutArco.celula === celulaAtual) {
-                    rectArco.setAttribute("fill", arcoAtual == numeroArco ? "#438AF6" : "#E6E6E6");
-                } else {
-                    rectArco.setAttribute("fill", "#B3B3B3");
-                }
-            }
-
-            if (botaoSup && botaoInf) {
-                const corBotao = arcoAtual == numeroArco ? "#33CC33" : "#999999";
-                botaoSup.setAttribute("fill", corBotao);
-                botaoInf.setAttribute("fill", corBotao);
-            }
-        });
-
-        // Atualizar cores das células
-        [1, 2, 3].forEach(numCelula => {
-            const rectCelula = document.querySelector(`#rec_celula${numCelula}`);
-            if (rectCelula) {
-                const cor = celulaAtual === numCelula ? "#E6E6E6" : "#B3B3B3";
-                const stroke = celulaAtual === numCelula ? "#438AF6" : "#B3B3B3";
-                rectCelula.setAttribute("fill", cor);
-                rectCelula.setAttribute("stroke", stroke);
+            const fatia = document.querySelector(`#arco_${numeroArco} path`);
+            if (fatia) {
+                fatia.setAttribute("fill", arcoAtual == numeroArco ? "#438AF6" : "#B3B3B3");
             }
         });
     }
 
-    if (!dados || !analiseArcos || !layoutTopo) {
+    if (!dados || !analiseArcos) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
                 <div className="spinner-border" role="status">
@@ -390,7 +290,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                 <div className="col-12">
                     <div className="card">
                         <div className="card-header bg-info text-white">
-                            <h6 className="mb-0">Vista de Topo - Armazém (Layout Retangular)</h6>
+                            <h6 className="mb-0">Vista de Topo - Armazém</h6>
                         </div>
                         <div className="card-body">
                             <div 
@@ -419,9 +319,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual }) => {
                                             <small className="fw-bold">Célula Selecionada: {celulaAtual}</small>
                                             <div className="mt-1">
                                                 <small>
-                                                    Total: {analiseArcos.totalArcos} arcos, {' '}
-                                                    {analiseArcos.estatisticas.totalPendulos} pêndulos, {' '}
-                                                    {analiseArcos.estatisticas.totalSensores} sensores
+                                                    Total Geral: {analiseArcos.totalArcos} arcos, {' '}
+                                                    {analiseArcos.estatisticas.totalPendulos} pêndulos
                                                 </small>
                                             </div>
                                         </div>
