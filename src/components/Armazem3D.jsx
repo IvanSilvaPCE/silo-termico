@@ -1,15 +1,15 @@
 
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Box } from '@react-three/drei';
+import { OrbitControls, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
 
-const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
+const Pendulo3D = ({ position, numero, sensores, arcoNumero }) => {
   const grupoRef = useRef();
   
-  // Função para determiner cor baseada na temperatura
+  // Função para determinar cor baseada na temperatura
   const corFaixaExata = (t) => {
     if (t === -1000) return "#ff0000";
     if (t < 12) return "#0384fc";
@@ -26,20 +26,20 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
 
   return (
     <group ref={grupoRef} position={position}>
-      {/* Cabo principal (cilindro vertical) - mais fino */}
-      <mesh position={[0, 1.5, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, 4, 8]} />
-        <meshStandardMaterial color="#444444" />
+      {/* Cabo principal - mais fino */}
+      <mesh position={[0, 2, 0]}>
+        <cylinderGeometry args={[0.012, 0.012, 4.5, 8]} />
+        <meshStandardMaterial color="#333333" transparent opacity={0.8} />
       </mesh>
 
       {/* Nome do pêndulo na base */}
-      <mesh position={[0, -0.8, 0]}>
-        <boxGeometry args={[0.6, 0.2, 0.08]} />
+      <mesh position={[0, -0.5, 0]}>
+        <boxGeometry args={[0.5, 0.12, 0.06]} />
         <meshStandardMaterial color="#3A78FD" />
       </mesh>
       <Text
-        position={[0, -0.8, 0.05]}
-        fontSize={0.1}
+        position={[0, -0.5, 0.04]}
+        fontSize={0.06}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -51,14 +51,14 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
       {Object.entries(sensores).map(([sensorKey, valores], index) => {
         const s = parseInt(sensorKey);
         const [temp, , , falha, nivel] = valores;
-        const yPos = 3.2 - (s * 0.25);
+        const yPos = 4.2 - (s * 0.22);
         const cor = nivel ? corFaixaExata(temp) : "#e6e6e6";
         
         return (
           <group key={s} position={[0, yPos, 0]}>
             {/* Caixa do sensor */}
             <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[0.2, 0.1, 0.1]} />
+              <boxGeometry args={[0.15, 0.08, 0.08]} />
               <meshStandardMaterial 
                 color={cor}
                 emissive={falha ? "#ff0000" : "#000000"}
@@ -68,19 +68,19 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
             
             {/* Texto do valor */}
             <Text
-              position={[0, 0, 0.08]}
-              fontSize={0.05}
+              position={[0, 0, 0.05]}
+              fontSize={0.035}
               color={cor === "#ff2200" ? "white" : "black"}
               anchorX="center"
               anchorY="middle"
             >
-              {falha ? "ERRO" : temp.toFixed(1)}
+              {falha ? "ERR" : temp.toFixed(1)}
             </Text>
             
             {/* Label do sensor */}
             <Text
-              position={[-0.15, 0, 0]}
-              fontSize={0.04}
+              position={[-0.1, 0, 0]}
+              fontSize={0.025}
               color="black"
               anchorX="center"
               anchorY="middle"
@@ -94,101 +94,141 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
   );
 };
 
-const ArcoStructure3D = ({ posicaoX, largura, altura, numeroArco, selecionado }) => {
-  const profundidade = 3;
-  const corArco = selecionado ? "#438AF6" : "#E6E6E6";
-  const opacidade = selecionado ? 0.8 : 0.5;
-  
+const ArmazemStructure3D = ({ analiseArcos, arcoSelecionado }) => {
+  const totalArcos = analiseArcos.totalArcos;
+  const larguraArmazem = totalArcos * 4; // 4 metros por arco
+  const alturaArmazem = 6;
+  const profundidadeArmazem = 4;
+
   return (
-    <group position={[posicaoX, 0, 0]}>
-      {/* Base do arco */}
-      <mesh position={[0, -0.5, 0]}>
-        <boxGeometry args={[largura, 0.3, profundidade]} />
-        <meshStandardMaterial color="#999999" transparent opacity={0.8} />
-      </mesh>
-      
-      {/* Paredes laterais do arco */}
-      <mesh position={[-largura/2, altura/2, 0]}>
-        <boxGeometry args={[0.15, altura, profundidade]} />
-        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
-      </mesh>
-      <mesh position={[largura/2, altura/2, 0]}>
-        <boxGeometry args={[0.15, altura, profundidade]} />
-        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
-      </mesh>
-      
-      {/* Teto do arco (formato triangular) */}
-      <mesh position={[0, altura + 0.3, 0]} rotation={[0, 0, 0]}>
-        <coneGeometry args={[largura/3, 0.6, 4]} />
-        <meshStandardMaterial color="#CCCCCC" transparent opacity={0.7} />
-      </mesh>
-      
-      {/* Paredes das extremidades */}
-      <mesh position={[0, altura/2, -profundidade/2]}>
-        <boxGeometry args={[largura, altura, 0.15]} />
-        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
-      </mesh>
-      <mesh position={[0, altura/2, profundidade/2]}>
-        <boxGeometry args={[largura, altura, 0.15]} />
-        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
+    <group>
+      {/* Base/Piso do armazém */}
+      <mesh position={[0, -1, 0]}>
+        <boxGeometry args={[larguraArmazem, 0.2, profundidadeArmazem]} />
+        <meshStandardMaterial color="#999999" />
       </mesh>
 
-      {/* Label do arco */}
-      <Text
-        position={[0, altura + 1, 0]}
-        fontSize={0.3}
-        color="#333333"
-        anchorX="center"
-        anchorY="middle"
-      >
-        Arco {numeroArco}
-      </Text>
+      {/* Estrutura principal do armazém - formato casa */}
+      <group>
+        {/* Paredes laterais */}
+        <mesh position={[-larguraArmazem/2, alturaArmazem/2, 0]}>
+          <boxGeometry args={[0.2, alturaArmazem, profundidadeArmazem]} />
+          <meshStandardMaterial color="#E6E6E6" transparent opacity={0.8} />
+        </mesh>
+        <mesh position={[larguraArmazem/2, alturaArmazem/2, 0]}>
+          <boxGeometry args={[0.2, alturaArmazem, profundidadeArmazem]} />
+          <meshStandardMaterial color="#E6E6E6" transparent opacity={0.8} />
+        </mesh>
+
+        {/* Paredes das extremidades */}
+        <mesh position={[0, alturaArmazem/2, -profundidadeArmazem/2]}>
+          <boxGeometry args={[larguraArmazem, alturaArmazem, 0.2]} />
+          <meshStandardMaterial color="#E6E6E6" transparent opacity={0.6} />
+        </mesh>
+        <mesh position={[0, alturaArmazem/2, profundidadeArmazem/2]}>
+          <boxGeometry args={[larguraArmazem, alturaArmazem, 0.2]} />
+          <meshStandardMaterial color="#E6E6E6" transparent opacity={0.6} />
+        </mesh>
+
+        {/* Telhado em formato de "chapéu" - usando geometria customizada */}
+        <mesh position={[0, alturaArmazem + 1, 0]} rotation={[0, 0, 0]}>
+          <coneGeometry args={[larguraArmazem * 0.6, 2, 4]} />
+          <meshStandardMaterial color="#CCCCCC" transparent opacity={0.7} />
+        </mesh>
+
+        {/* Estruturas de divisão entre arcos (pilares internos) */}
+        {Array.from({length: totalArcos - 1}, (_, i) => {
+          const x = -larguraArmazem/2 + (i + 1) * 4;
+          return (
+            <group key={i}>
+              <mesh position={[x, alturaArmazem/2, 0]}>
+                <boxGeometry args={[0.1, alturaArmazem, 0.1]} />
+                <meshStandardMaterial 
+                  color={i + 2 === arcoSelecionado ? "#438AF6" : "#BBBBBB"} 
+                  transparent 
+                  opacity={0.8} 
+                />
+              </mesh>
+              
+              {/* Label do arco */}
+              <Text
+                position={[x, alturaArmazem + 0.5, 0]}
+                fontSize={0.3}
+                color="#333333"
+                anchorX="center"
+                anchorY="middle"
+              >
+                A{i + 2}
+              </Text>
+            </group>
+          );
+        })}
+
+        {/* Labels dos arcos das extremidades */}
+        <Text
+          position={[-larguraArmazem/2 + 2, alturaArmazem + 0.5, 0]}
+          fontSize={0.3}
+          color="#333333"
+          anchorX="center"
+          anchorY="middle"
+        >
+          A1
+        </Text>
+        <Text
+          position={[larguraArmazem/2 - 2, alturaArmazem + 0.5, 0]}
+          fontSize={0.3}
+          color="#333333"  
+          anchorX="center"
+          anchorY="middle"
+        >
+          A{totalArcos}
+        </Text>
+      </group>
+
+      {/* Highlight do arco selecionado */}
+      {arcoSelecionado && (
+        <mesh position={[
+          -larguraArmazem/2 + (arcoSelecionado - 1) * 4 + 2,
+          alturaArmazem/2,
+          0
+        ]}>
+          <boxGeometry args={[3.8, alturaArmazem + 0.5, profundidadeArmazem + 0.5]} />
+          <meshStandardMaterial 
+            color="#438AF6" 
+            transparent 
+            opacity={0.15}
+            wireframe={false}
+          />
+        </mesh>
+      )}
     </group>
   );
 };
 
 const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado }) => {
-  // Calcular posições dos arcos lado a lado
-  const arcosPositions = useMemo(() => {
-    if (!analiseArcos) return [];
-    
-    const totalArcos = analiseArcos.totalArcos;
-    const espacamentoArcos = 6; // Espaçamento entre arcos
-    const larguraTotal = (totalArcos - 1) * espacamentoArcos;
-    const posicaoInicial = -larguraTotal / 2;
-    
-    const positions = [];
-    for (let i = 1; i <= totalArcos; i++) {
-      positions.push({
-        arco: i,
-        posicaoX: posicaoInicial + (i - 1) * espacamentoArcos,
-        largura: 4,
-        altura: 3
-      });
-    }
-    
-    return positions;
-  }, [analiseArcos]);
-
   // Calcular posições dos pêndulos para todos os arcos
   const pendulosPositions = useMemo(() => {
     if (!analiseArcos || !dadosPortal) return {};
     
     const posicoesPorArco = {};
+    const larguraArmazem = analiseArcos.totalArcos * 4;
     
     Object.keys(analiseArcos.arcos).forEach(arcoNum => {
       const arcoInfo = analiseArcos.arcos[arcoNum];
-      const arcoPos = arcosPositions.find(a => a.arco === parseInt(arcoNum));
+      const arcoIndex = parseInt(arcoNum) - 1;
       
-      if (arcoPos && arcoInfo) {
+      if (arcoInfo) {
         const positions = [];
-        const larguraArco = arcoPos.largura;
-        const espacamentoPendulo = larguraArco / (arcoInfo.totalPendulos + 1);
+        const xArco = -larguraArmazem/2 + arcoIndex * 4 + 2; // Centro do arco
+        const larguraArco = 3.5;
+        const espacamentoPendulo = arcoInfo.totalPendulos > 1 ? 
+          larguraArco / (arcoInfo.totalPendulos - 1) : 0;
         
         arcoInfo.pendulos.forEach((pendulo, index) => {
-          const xLocal = -larguraArco/2 + espacamentoPendulo * (index + 1);
-          const xGlobal = arcoPos.posicaoX + xLocal;
-          const z = (index % 2 === 0 ? -1 : 1) * 0.5;
+          const xLocal = arcoInfo.totalPendulos === 1 ? 0 : 
+            -larguraArco/2 + espacamentoPendulo * index;
+          const xGlobal = xArco + xLocal;
+          const z = (index % 2 === 0 ? -0.8 : 0.8); // Alternância em Z
           positions.push([xGlobal, 0, z]);
         });
         
@@ -197,21 +237,15 @@ const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado }) => {
     });
     
     return posicoesPorArco;
-  }, [analiseArcos, arcosPositions, dadosPortal]);
+  }, [analiseArcos, dadosPortal]);
 
   return (
     <group>
-      {/* Renderizar estrutura de todos os arcos */}
-      {arcosPositions.map(arcoPos => (
-        <ArcoStructure3D
-          key={arcoPos.arco}
-          posicaoX={arcoPos.posicaoX}
-          largura={arcoPos.largura}
-          altura={arcoPos.altura}
-          numeroArco={arcoPos.arco}
-          selecionado={arcoPos.arco === arcoSelecionado}
-        />
-      ))}
+      {/* Estrutura do armazém */}
+      <ArmazemStructure3D 
+        analiseArcos={analiseArcos} 
+        arcoSelecionado={arcoSelecionado}
+      />
 
       {/* Renderizar pêndulos para todos os arcos */}
       {Object.entries(pendulosPositions).map(([arcoNum, positions]) => {
@@ -235,6 +269,7 @@ const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado }) => {
               position={position}
               numero={pendulo.numero}
               sensores={sensoresData || {}}
+              arcoNumero={parseInt(arcoNum)}
             />
           );
         });
@@ -250,6 +285,7 @@ const Armazem3D = () => {
   const [dadosPortal, setDadosPortal] = useState(null);
   const [analiseArcos, setAnaliseArcos] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [visaoCompleta, setVisaoCompleta] = useState(true);
 
   // Carregar dados automaticamente
   useEffect(() => {
@@ -296,7 +332,7 @@ const Armazem3D = () => {
     <div className="container-fluid p-1 p-md-2" style={{ minHeight: '100vh' }}>
       <div className="row">
         <div className="col-12">
-          <h1 className="text-center mb-3 fs-4 fs-md-1">Armazém 3D - Todos os Arcos</h1>
+          <h1 className="text-center mb-3 fs-4 fs-md-1">Armazém 3D - Estrutura Completa Tipo Casa</h1>
           
           {/* Controles */}
           <div className="row mb-3">
@@ -307,7 +343,7 @@ const Armazem3D = () => {
                 </div>
                 <div className="card-body">
                   <div className="row align-items-center">
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <div className="form-check form-switch">
                         <input 
                           className="form-check-input" 
@@ -321,15 +357,29 @@ const Armazem3D = () => {
                         </label>
                       </div>
                     </div>
+                    <div className="col-md-3">
+                      <div className="form-check form-switch">
+                        <input 
+                          className="form-check-input" 
+                          type="checkbox" 
+                          id="visaoCompleta"
+                          checked={visaoCompleta}
+                          onChange={(e) => setVisaoCompleta(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="visaoCompleta">
+                          Visão Completa
+                        </label>
+                      </div>
+                    </div>
                     <div className="col-md-4">
-                      <label className="form-label">Arco Selecionado:</label>
+                      <label className="form-label">Destacar Arco:</label>
                       <div className="d-flex gap-2 align-items-center">
                         <button 
                           className="btn btn-outline-primary btn-sm"
                           onClick={() => mudarArco(Math.max(1, arcoSelecionado - 1))}
                           disabled={arcoSelecionado <= 1}
                         >
-                          ← Anterior
+                          ← Ant
                         </button>
                         <select 
                           className="form-select form-select-sm"
@@ -340,7 +390,7 @@ const Armazem3D = () => {
                             const arco = analiseArcos.arcos[numeroArco];
                             return (
                               <option key={numeroArco} value={numeroArco}>
-                                Arco {numeroArco} - {arco.totalPendulos}P
+                                Arco {numeroArco} ({arco.totalPendulos}P/{arco.totalSensores}S)
                               </option>
                             );
                           })}
@@ -350,16 +400,16 @@ const Armazem3D = () => {
                           onClick={() => mudarArco(Math.min(analiseArcos.totalArcos, arcoSelecionado + 1))}
                           disabled={arcoSelecionado >= analiseArcos.totalArcos}
                         >
-                          Próximo →
+                          Prox →
                         </button>
                       </div>
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-2">
                       <button 
-                        className={`btn ${mostrarMapaCalor ? 'btn-success' : 'btn-outline-primary'}`}
+                        className={`btn ${mostrarMapaCalor ? 'btn-success' : 'btn-outline-primary'} btn-sm`}
                         onClick={() => setMostrarMapaCalor(!mostrarMapaCalor)}
                       >
-                        {mostrarMapaCalor ? 'Modo Normal' : 'Mapa de Calor'}
+                        {mostrarMapaCalor ? 'Normal' : 'Mapa Calor'}
                       </button>
                     </div>
                   </div>
@@ -372,19 +422,24 @@ const Armazem3D = () => {
           <div className="card" style={{ height: '70vh' }}>
             <div className="card-body p-0">
               <Canvas 
-                camera={{ position: [15, 8, 15], fov: 60 }}
+                camera={{ 
+                  position: visaoCompleta ? [25, 12, 20] : [12, 8, 12], 
+                  fov: 60 
+                }}
                 style={{ height: '100%', background: 'linear-gradient(to bottom, #87CEEB, #f0f8ff)' }}
               >
-                {/* Iluminação */}
+                {/* Iluminação aprimorada */}
                 <ambientLight intensity={0.6} />
                 <directionalLight 
-                  position={[20, 15, 10]} 
-                  intensity={1} 
+                  position={[30, 20, 15]} 
+                  intensity={1.2} 
                   castShadow
                   shadow-mapSize-width={2048}
                   shadow-mapSize-height={2048}
                 />
-                <pointLight position={[0, 8, 0]} intensity={0.5} />
+                <pointLight position={[0, 10, 0]} intensity={0.6} />
+                <pointLight position={[-15, 8, 10]} intensity={0.4} color="#ffffff" />
+                <pointLight position={[15, 8, -10]} intensity={0.4} color="#ffffff" />
 
                 {/* Estrutura completa do armazém */}
                 <ArmazemCompleto3D 
@@ -396,16 +451,19 @@ const Armazem3D = () => {
                 {/* Controles de câmera */}
                 <OrbitControls 
                   autoRotate={autoRotate}
-                  autoRotateSpeed={0.5}
+                  autoRotateSpeed={0.4}
                   enablePan={true}
                   enableZoom={true}
                   enableRotate={true}
-                  minDistance={8}
-                  maxDistance={35}
+                  minDistance={visaoCompleta ? 15 : 8}
+                  maxDistance={visaoCompleta ? 60 : 35}
                 />
 
                 {/* Grid de referência expandido */}
-                <gridHelper args={[30, 30, '#444444', '#888888']} position={[0, -2, 0]} />
+                <gridHelper 
+                  args={[analiseArcos.totalArcos * 6, analiseArcos.totalArcos * 2, '#444444', '#888888']} 
+                  position={[0, -2, 0]} 
+                />
               </Canvas>
             </div>
           </div>
@@ -415,32 +473,42 @@ const Armazem3D = () => {
             <div className="col-12">
               <div className="card">
                 <div className="card-header bg-info text-white">
-                  <h6 className="mb-0">Visão Completa do Armazém - Todos os Arcos</h6>
+                  <h6 className="mb-0">Armazém 3D - Estrutura Completa Tipo Casa com Todos os Arcos</h6>
                 </div>
                 <div className="card-body">
                   <div className="row">
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <small><strong>Controles 3D:</strong><br/>
                       • Clique e arraste para rotacionar<br/>
                       • Scroll para zoom<br/>
                       • Clique direito e arraste para mover<br/>
                       • Use seletor para destacar arcos</small>
                     </div>
-                    <div className="col-md-4">
-                      <small><strong>Estrutura do Armazém:</strong><br/>
+                    <div className="col-md-3">
+                      <small><strong>Estrutura Casa:</strong><br/>
                       • Total: {analiseArcos.totalArcos} arcos<br/>
                       • Pêndulos: {analiseArcos.estatisticas.totalPendulos}<br/>
                       • Sensores: {analiseArcos.estatisticas.totalSensores}<br/>
-                      • Vista lateral e topo combinadas</small>
+                      • Telhado tipo "chapéu"</small>
                     </div>
-                    <div className="col-md-4">
-                      <small><strong>Arco Selecionado ({arcoSelecionado}):</strong><br/>
+                    <div className="col-md-3">
+                      <small><strong>Arco Destacado ({arcoSelecionado}):</strong><br/>
+                      • Pêndulos: {analiseArcos.arcos[arcoSelecionado]?.totalPendulos}<br/>
+                      • Sensores: {analiseArcos.arcos[arcoSelecionado]?.totalSensores}<br/>
+                      • Distribuição automática<br/>
+                      • Visão topo + lateral</small>
+                    </div>
+                    <div className="col-md-3">
+                      <small><strong>Distribuição por Arco:</strong><br/>
                       {analiseArcos.arcos[arcoSelecionado] && 
-                        analiseArcos.arcos[arcoSelecionado].pendulos.map(pendulo => (
+                        analiseArcos.arcos[arcoSelecionado].pendulos.slice(0,3).map(pendulo => (
                           <span key={pendulo.numero} className="badge bg-primary me-1 mb-1">
                             P{pendulo.numero}: {pendulo.totalSensores}S
                           </span>
                         ))
+                      }
+                      {analiseArcos.arcos[arcoSelecionado]?.pendulos.length > 3 && 
+                        <span className="badge bg-secondary">+{analiseArcos.arcos[arcoSelecionado].pendulos.length - 3}</span>
                       }
                       </small>
                     </div>
