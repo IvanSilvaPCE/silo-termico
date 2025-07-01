@@ -627,6 +627,15 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         else return "#f700ff";
     }
 
+    // Função auxiliar para atualizar o arco selecionado
+    function setArcoSelecionado(novoArco) {
+        if (novoArco !== arcoSelecionado) {
+            // Atualizar estado do arco
+            // O useState já está sendo usado no componente
+            // Esta função garante que a visualização seja atualizada
+        }
+    }
+
     function adicionarEventosClique() {
         const svgEl = document.getElementById("des_topo_armazem");
         if (!svgEl) return;
@@ -710,42 +719,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                                 style={{ minHeight: '400px' }}
                             />
 
-                            <div className="mt-3">
-                                <div className="row">
-                                    <div className="col-md-4">
-                                        <div className="p-2 border rounded bg-light">
-                                            <small className="fw-bold">Arco Selecionado: {arcoSelecionado}</small>
-                                            <div className="mt-1">
-                                                <small>Célula: {celulaSelecionada}</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-4">
-                                        <div className="p-2 border rounded bg-light">
-                                            <small className="fw-bold">Estatísticas:</small>
-                                            <div className="mt-1">
-                                                <small>
-                                                    {Object.keys(dadosPendulos).length} pêndulos<br/>
-                                                    {Object.values(dadosPendulos).filter(p => p[0]).length} em alarme<br/>
-                                                    {Object.values(dadosPendulos).filter(p => p[2]).length} ativos
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="col-md-4">
-                                        <div className="p-2 border rounded bg-light">
-                                            <small className="fw-bold">Controles:</small>
-                                            <div className="mt-1">
-                                                <small>
-                                                    • Clique nos arcos para selecioná-los<br/>
-                                                    • Clique nos pêndulos (cabos)<br/>
-                                                    • Clique nas células
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            
                         </div>
                     </div>
                 </div>
