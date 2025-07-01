@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
+import TopoArmazem from "./TopoArmazem";
 
 const ArmazemSVG = ({ dados: dadosExternos }) => {
     const containerRef = useRef(null);
@@ -11,6 +12,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const [arcoAtual, setArcoAtual] = useState(1);
     const [analiseArcos, setAnaliseArcos] = useState(null);
     const [layoutsAutomaticos, setLayoutsAutomaticos] = useState(null);
+    const [mostrarTopo, setMostrarTopo] = useState(false);
 
     // Carregar dados de exemplo automaticamente
     useEffect(() => {
@@ -373,9 +375,23 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         }
     };
 
+    const handleArcoSelecionadoTopo = (numeroArco) => {
+        mudarArco(numeroArco);
+        setMostrarTopo(false); // Fechar topo após seleção
+    };
+
     const BotaoTrocaModo = () => (
         <button className="btn btn-primary" onClick={trocarModo}>
             {modo === "temperatura" ? "Ver Mapa de Calor" : "Ver Temperatura"}
+        </button>
+    );
+
+    const BotaoTopo = () => (
+        <button 
+            className={`btn ${mostrarTopo ? 'btn-success' : 'btn-outline-info'} ms-2`} 
+            onClick={() => setMostrarTopo(!mostrarTopo)}
+        >
+            {mostrarTopo ? "Fechar Topo" : "Vista de Topo"}
         </button>
     );
 
@@ -395,6 +411,11 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                                 <span className="visually-hidden">Carregando...</span>
                             </div>
                         </div>
+                    ) : mostrarTopo ? (
+                        <TopoArmazem 
+                            onArcoSelecionado={handleArcoSelecionadoTopo}
+                            arcoAtual={arcoAtual}
+                        />
                     ) : (
                         <div className="svg-container mb-1 mb-md-2" style={{ 
                             display: 'flex', 
@@ -481,6 +502,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
 
                     <div className="d-flex justify-content-center py-2">
                         <BotaoTrocaModo />
+                        <BotaoTopo />
                     </div>
                 </div>
             </div>
