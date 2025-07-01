@@ -60,6 +60,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         }
     }, [arcoAtual, layoutTopo]);
 
+    // Função para definir arco selecionado
+    const setArcoSelecionado = (novoArco) => {
+        setArcoSelecionado(novoArco);
+        if (layoutTopo && layoutTopo[novoArco]) {
+            setCelulaSelecionada(layoutTopo[novoArco].celula);
+        }
+    };
+
     // Atualizar SVG quando dados mudarem
     useEffect(() => {
         if (!layoutTopo || !dadosTopo || !containerRef.current) return;
@@ -473,7 +481,45 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function atualizarSelecoes() {
-        // Atualizar células
+        // Primeiro: atualizar arcos baseado na célula selecionada (seguindo modelo HTML)
+        Object.keys(layoutTopo).forEach(key => {
+            if (key !== 'celulas' && key !== 'aeradores') {
+                const arcoNum = parseInt(key);
+                const arcoRect = document.getElementById(`rec_arco_${arcoNum}`);
+                
+                if (arcoRect) {
+                    // Se o arco pertence à célula selecionada
+                    if (layoutTopo[key].celula === celulaSelecionada) {
+                        arcoRect.setAttribute("fill", "#E6E6E6");
+                    } else {
+                        arcoRect.setAttribute("fill", "#B3B3B3");
+                    }
+                }
+            }
+        });
+
+        // Segundo: destacar o arco selecionado especificamente
+        const arcoSelecionadoRect = document.getElementById(`rec_arco_${arcoSelecionado}`);
+        if (arcoSelecionadoRect) {
+            arcoSelecionadoRect.setAttribute("fill", "#438AF6");
+        }
+
+        // Terceiro: atualizar botões dos arcos
+        Object.keys(layoutTopo).forEach(key => {
+            if (key !== 'celulas' && key !== 'aeradores') {
+                const arcoNum = parseInt(key);
+                const botaoSup = document.getElementById(`arco${arcoNum}_botsup`);
+                const botaoInf = document.getElementById(`arco${arcoNum}_botinf`);
+                
+                if (botaoSup && botaoInf) {
+                    const cor = arcoNum === arcoSelecionado ? "#33CC33" : "#999999";
+                    botaoSup.setAttribute("fill", cor);
+                    botaoInf.setAttribute("fill", cor);
+                }
+            }
+        });
+
+        // Quarto: atualizar células
         for (let celula = 1; celula <= 3; celula++) {
             const elemento = document.getElementById(`rec_celula${celula}`);
             if (elemento) {
@@ -486,34 +532,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 }
             }
         }
-
-        // Atualizar arcos
-        Object.keys(layoutTopo).forEach(key => {
-            if (key !== 'celulas' && key !== 'aeradores') {
-                const arcoNum = parseInt(key);
-
-                // Primeiro, definir cor base baseada na célula selecionada
-                const pertenceCelulaSelecionada = layoutTopo[key].celula === celulaSelecionada;
-                const corBase = pertenceCelulaSelecionada ? "#E6E6E6" : "#B3B3B3";
-                
-                const arcoRect = document.getElementById(`rec_arco_${arcoNum}`);
-                if (arcoRect) {
-                    if (arcoNum === arcoSelecionado) {
-                        arcoRect.setAttribute("fill", "#438AF6");
-                    } else {
-                        arcoRect.setAttribute("fill", corBase);
-                    }
-                }
-
-                const botaoSup = document.getElementById(`arco${arcoNum}_botsup`);
-                const botaoInf = document.getElementById(`arco${arcoNum}_botinf`);
-                if (botaoSup && botaoInf) {
-                    const cor = arcoNum === arcoSelecionado ? "#33CC33" : "#999999";
-                    botaoSup.setAttribute("fill", cor);
-                    botaoInf.setAttribute("fill", cor);
-                }
-            }
-        });
     }
 
     function atualizarCabos() {
@@ -631,9 +649,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 if (tipo === 'arco') {
                     const novoArco = parseInt(numero);
                     setArcoSelecionado(novoArco);
-                    if (layoutTopo[novoArco]) {
-                        setCelulaSelecionada(layoutTopo[novoArco].celula);
-                    }
+                    setCelulaSelecionada(layoutTopo[novoArco].celula);
                     if (onArcoSelecionado) {
                         onArcoSelecionado(novoArco);
                     }
