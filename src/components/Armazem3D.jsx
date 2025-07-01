@@ -9,7 +9,7 @@ import LayoutManager from "../utils/layoutManager";
 const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
   const grupoRef = useRef();
   
-  // Função para determinar cor baseada na temperatura
+  // Função para determiner cor baseada na temperatura
   const corFaixaExata = (t) => {
     if (t === -1000) return "#ff0000";
     if (t < 12) return "#0384fc";
@@ -26,20 +26,20 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
 
   return (
     <group ref={grupoRef} position={position}>
-      {/* Cabo principal (cilindro vertical) */}
-      <mesh position={[0, 2, 0]}>
-        <cylinderGeometry args={[0.03, 0.03, 6, 8]} />
-        <meshStandardMaterial color="#666666" />
+      {/* Cabo principal (cilindro vertical) - mais fino */}
+      <mesh position={[0, 1.5, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 4, 8]} />
+        <meshStandardMaterial color="#444444" />
       </mesh>
 
       {/* Nome do pêndulo na base */}
-      <mesh position={[0, -1, 0]}>
-        <boxGeometry args={[0.8, 0.25, 0.1]} />
+      <mesh position={[0, -0.8, 0]}>
+        <boxGeometry args={[0.6, 0.2, 0.08]} />
         <meshStandardMaterial color="#3A78FD" />
       </mesh>
       <Text
-        position={[0, -1, 0.1]}
-        fontSize={0.15}
+        position={[0, -0.8, 0.05]}
+        fontSize={0.1}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -51,14 +51,14 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
       {Object.entries(sensores).map(([sensorKey, valores], index) => {
         const s = parseInt(sensorKey);
         const [temp, , , falha, nivel] = valores;
-        const yPos = 4.5 - (s * 0.3);
+        const yPos = 3.2 - (s * 0.25);
         const cor = nivel ? corFaixaExata(temp) : "#e6e6e6";
         
         return (
           <group key={s} position={[0, yPos, 0]}>
             {/* Caixa do sensor */}
             <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[0.3, 0.15, 0.15]} />
+              <boxGeometry args={[0.2, 0.1, 0.1]} />
               <meshStandardMaterial 
                 color={cor}
                 emissive={falha ? "#ff0000" : "#000000"}
@@ -68,8 +68,8 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
             
             {/* Texto do valor */}
             <Text
-              position={[0, 0, 0.1]}
-              fontSize={0.06}
+              position={[0, 0, 0.08]}
+              fontSize={0.05}
               color={cor === "#ff2200" ? "white" : "black"}
               anchorX="center"
               anchorY="middle"
@@ -79,8 +79,8 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
             
             {/* Label do sensor */}
             <Text
-              position={[-0.2, 0, 0]}
-              fontSize={0.05}
+              position={[-0.15, 0, 0]}
+              fontSize={0.04}
               color="black"
               anchorX="center"
               anchorY="middle"
@@ -94,46 +94,151 @@ const Pendulo3D = ({ position, numero, sensores, escala = 0.3 }) => {
   );
 };
 
-const ArmazemStructure3D = ({ dimensoes }) => {
-  const profundidade = 6; // Profundidade fixa para dar volume ao armazém
+const ArcoStructure3D = ({ posicaoX, largura, altura, numeroArco, selecionado }) => {
+  const profundidade = 3;
+  const corArco = selecionado ? "#438AF6" : "#E6E6E6";
+  const opacidade = selecionado ? 0.8 : 0.5;
   
   return (
-    <group>
-      {/* Base do armazém */}
+    <group position={[posicaoX, 0, 0]}>
+      {/* Base do arco */}
       <mesh position={[0, -0.5, 0]}>
-        <boxGeometry args={[dimensoes.largura/50, 1, profundidade]} />
-        <meshStandardMaterial 
-          color="#999999" 
-          transparent 
-          opacity={0.8}
-        />
+        <boxGeometry args={[largura, 0.3, profundidade]} />
+        <meshStandardMaterial color="#999999" transparent opacity={0.8} />
       </mesh>
       
-      {/* Paredes laterais */}
-      <mesh position={[-dimensoes.largura/100, 1.5, 0]}>
-        <boxGeometry args={[0.2, 3, profundidade]} />
-        <meshStandardMaterial color="#E6E6E6" transparent opacity={0.7} />
+      {/* Paredes laterais do arco */}
+      <mesh position={[-largura/2, altura/2, 0]}>
+        <boxGeometry args={[0.15, altura, profundidade]} />
+        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
       </mesh>
-      <mesh position={[dimensoes.largura/100, 1.5, 0]}>
-        <boxGeometry args={[0.2, 3, profundidade]} />
-        <meshStandardMaterial color="#E6E6E6" transparent opacity={0.7} />
+      <mesh position={[largura/2, altura/2, 0]}>
+        <boxGeometry args={[0.15, altura, profundidade]} />
+        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
       </mesh>
       
-      {/* Telhado (formato triangular) */}
-      <mesh position={[0, 3.5, 0]} rotation={[0, 0, 0]}>
-        <coneGeometry args={[dimensoes.largura/80, 1, 4]} />
-        <meshStandardMaterial color="#CCCCCC" transparent opacity={0.8} />
+      {/* Teto do arco (formato triangular) */}
+      <mesh position={[0, altura + 0.3, 0]} rotation={[0, 0, 0]}>
+        <coneGeometry args={[largura/3, 0.6, 4]} />
+        <meshStandardMaterial color="#CCCCCC" transparent opacity={0.7} />
       </mesh>
       
       {/* Paredes das extremidades */}
-      <mesh position={[0, 1.5, -profundidade/2]}>
-        <boxGeometry args={[dimensoes.largura/50, 3, 0.2]} />
-        <meshStandardMaterial color="#E6E6E6" transparent opacity={0.7} />
+      <mesh position={[0, altura/2, -profundidade/2]}>
+        <boxGeometry args={[largura, altura, 0.15]} />
+        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
       </mesh>
-      <mesh position={[0, 1.5, profundidade/2]}>
-        <boxGeometry args={[dimensoes.largura/50, 3, 0.2]} />
-        <meshStandardMaterial color="#E6E6E6" transparent opacity={0.7} />
+      <mesh position={[0, altura/2, profundidade/2]}>
+        <boxGeometry args={[largura, altura, 0.15]} />
+        <meshStandardMaterial color={corArco} transparent opacity={opacidade} />
       </mesh>
+
+      {/* Label do arco */}
+      <Text
+        position={[0, altura + 1, 0]}
+        fontSize={0.3}
+        color="#333333"
+        anchorX="center"
+        anchorY="middle"
+      >
+        Arco {numeroArco}
+      </Text>
+    </group>
+  );
+};
+
+const ArmazemCompleto3D = ({ dadosPortal, analiseArcos, arcoSelecionado }) => {
+  // Calcular posições dos arcos lado a lado
+  const arcosPositions = useMemo(() => {
+    if (!analiseArcos) return [];
+    
+    const totalArcos = analiseArcos.totalArcos;
+    const espacamentoArcos = 6; // Espaçamento entre arcos
+    const larguraTotal = (totalArcos - 1) * espacamentoArcos;
+    const posicaoInicial = -larguraTotal / 2;
+    
+    const positions = [];
+    for (let i = 1; i <= totalArcos; i++) {
+      positions.push({
+        arco: i,
+        posicaoX: posicaoInicial + (i - 1) * espacamentoArcos,
+        largura: 4,
+        altura: 3
+      });
+    }
+    
+    return positions;
+  }, [analiseArcos]);
+
+  // Calcular posições dos pêndulos para todos os arcos
+  const pendulosPositions = useMemo(() => {
+    if (!analiseArcos || !dadosPortal) return {};
+    
+    const posicoesPorArco = {};
+    
+    Object.keys(analiseArcos.arcos).forEach(arcoNum => {
+      const arcoInfo = analiseArcos.arcos[arcoNum];
+      const arcoPos = arcosPositions.find(a => a.arco === parseInt(arcoNum));
+      
+      if (arcoPos && arcoInfo) {
+        const positions = [];
+        const larguraArco = arcoPos.largura;
+        const espacamentoPendulo = larguraArco / (arcoInfo.totalPendulos + 1);
+        
+        arcoInfo.pendulos.forEach((pendulo, index) => {
+          const xLocal = -larguraArco/2 + espacamentoPendulo * (index + 1);
+          const xGlobal = arcoPos.posicaoX + xLocal;
+          const z = (index % 2 === 0 ? -1 : 1) * 0.5;
+          positions.push([xGlobal, 0, z]);
+        });
+        
+        posicoesPorArco[arcoNum] = positions;
+      }
+    });
+    
+    return posicoesPorArco;
+  }, [analiseArcos, arcosPositions, dadosPortal]);
+
+  return (
+    <group>
+      {/* Renderizar estrutura de todos os arcos */}
+      {arcosPositions.map(arcoPos => (
+        <ArcoStructure3D
+          key={arcoPos.arco}
+          posicaoX={arcoPos.posicaoX}
+          largura={arcoPos.largura}
+          altura={arcoPos.altura}
+          numeroArco={arcoPos.arco}
+          selecionado={arcoPos.arco === arcoSelecionado}
+        />
+      ))}
+
+      {/* Renderizar pêndulos para todos os arcos */}
+      {Object.entries(pendulosPositions).map(([arcoNum, positions]) => {
+        const arcoInfo = analiseArcos.arcos[arcoNum];
+        if (!arcoInfo) return null;
+        
+        // Converter dados do portal para o arco específico
+        const dadosArco = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, parseInt(arcoNum));
+        
+        return positions.map((position, index) => {
+          const pendulo = arcoInfo.pendulos[index];
+          if (!pendulo) return null;
+          
+          // Encontrar dados do pêndulo
+          const penduloKey = Object.keys(dadosArco.leitura)[index];
+          const sensoresData = dadosArco.leitura[penduloKey];
+          
+          return (
+            <Pendulo3D
+              key={`${arcoNum}-${pendulo.numero}`}
+              position={position}
+              numero={pendulo.numero}
+              sensores={sensoresData || {}}
+            />
+          );
+        });
+      })}
     </group>
   );
 };
@@ -141,17 +246,17 @@ const ArmazemStructure3D = ({ dimensoes }) => {
 const Armazem3D = () => {
   const [autoRotate, setAutoRotate] = useState(true);
   const [mostrarMapaCalor, setMostrarMapaCalor] = useState(false);
-  const [arcoAtual, setArcoAtual] = useState(1);
-  const [dados, setDados] = useState(null);
+  const [arcoSelecionado, setArcoSelecionado] = useState(1);
   const [dadosPortal, setDadosPortal] = useState(null);
   const [analiseArcos, setAnaliseArcos] = useState(null);
-  const [layoutsAutomaticos, setLayoutsAutomaticos] = useState(null);
-  const [dimensoesSVG, setDimensoesSVG] = useState({ largura: 350, altura: 200 });
+  const [carregando, setCarregando] = useState(true);
 
   // Carregar dados automaticamente
   useEffect(() => {
     const inicializarDados = async () => {
       try {
+        setCarregando(true);
+        
         // Gerar dados de exemplo do ArmazemPortal
         const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
         setDadosPortal(dadosExemplo);
@@ -159,81 +264,22 @@ const Armazem3D = () => {
         // Analisar estrutura dos arcos
         const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
         setAnaliseArcos(analise);
-
-        // Gerar layouts automáticos
-        const layouts = LayoutManager.gerarLayoutAutomatico(analise);
-        setLayoutsAutomaticos(layouts);
-
-        // Calcular dimensões ideais
-        const dimensoes = calcularDimensoesIdeais(analise);
-        setDimensoesSVG(dimensoes);
-
-        // Converter dados para o formato do armazém (arco 1 inicialmente)
-        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo, 1);
-        setDados(dadosConvertidos);
+        
       } catch (error) {
         console.error('Erro ao inicializar dados 3D:', error);
+      } finally {
+        setCarregando(false);
       }
     };
 
     inicializarDados();
   }, []);
 
-  // Calcular dimensões ideais
-  function calcularDimensoesIdeais(analiseArcos) {
-    if (!analiseArcos) return { largura: 350, altura: 200 };
-
-    let maxSensores = 0;
-    let maxPendulos = 0;
-
-    Object.values(analiseArcos.arcos).forEach(arco => {
-      maxPendulos = Math.max(maxPendulos, arco.totalPendulos);
-      arco.pendulos.forEach(pendulo => {
-        maxSensores = Math.max(maxSensores, pendulo.totalSensores);
-      });
-    });
-
-    const larguraCalculada = Math.max(350, (maxPendulos * 50) + 100);
-    const alturaCalculada = Math.max(250, maxSensores * 12 + 100);
-
-    return {
-      largura: larguraCalculada,
-      altura: alturaCalculada
-    };
-  }
-
-  // Calcular posições dos pêndulos em 3D
-  const pendulosPositions = useMemo(() => {
-    if (!layoutsAutomaticos || !analiseArcos || !dados) return [];
-
-    const layoutArco = layoutsAutomaticos[`arco_${arcoAtual}`];
-    const arcoInfo = analiseArcos.arcos[arcoAtual];
-    
-    if (!layoutArco || !arcoInfo) return [];
-
-    const positions = [];
-    const profundidade = 6;
-    
-    arcoInfo.pendulos.forEach((pendulo, index) => {
-      const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
-      // Converter coordenadas 2D para 3D
-      const x = (xCabo - dimensoesSVG.largura/2) / 50;
-      const z = (index % 2 === 0 ? -profundidade/4 : profundidade/4);
-      positions.push([x, 0, z]);
-    });
-
-    return positions;
-  }, [layoutsAutomaticos, analiseArcos, dados, arcoAtual, dimensoesSVG]);
-
   const mudarArco = (novoArco) => {
-    setArcoAtual(novoArco);
-    if (dadosPortal) {
-      const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, novoArco);
-      setDados(dadosConvertidos);
-    }
+    setArcoSelecionado(novoArco);
   };
 
-  if (!dados || !analiseArcos) {
+  if (carregando || !analiseArcos || !dadosPortal) {
     return (
       <div className="d-flex justify-content-center align-items-center" style={{ height: '70vh' }}>
         <div className="text-center">
@@ -246,13 +292,11 @@ const Armazem3D = () => {
     );
   }
 
-  const arcoInfo = analiseArcos.arcos[arcoAtual];
-
   return (
     <div className="container-fluid p-1 p-md-2" style={{ minHeight: '100vh' }}>
       <div className="row">
         <div className="col-12">
-          <h1 className="text-center mb-3 fs-4 fs-md-1">Armazém 3D - Visualização Tridimensional</h1>
+          <h1 className="text-center mb-3 fs-4 fs-md-1">Armazém 3D - Todos os Arcos</h1>
           
           {/* Controles */}
           <div className="row mb-3">
@@ -278,18 +322,18 @@ const Armazem3D = () => {
                       </div>
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label">Arco Atual:</label>
+                      <label className="form-label">Arco Selecionado:</label>
                       <div className="d-flex gap-2 align-items-center">
                         <button 
                           className="btn btn-outline-primary btn-sm"
-                          onClick={() => mudarArco(Math.max(1, arcoAtual - 1))}
-                          disabled={arcoAtual <= 1}
+                          onClick={() => mudarArco(Math.max(1, arcoSelecionado - 1))}
+                          disabled={arcoSelecionado <= 1}
                         >
                           ← Anterior
                         </button>
                         <select 
                           className="form-select form-select-sm"
-                          value={arcoAtual}
+                          value={arcoSelecionado}
                           onChange={(e) => mudarArco(parseInt(e.target.value))}
                         >
                           {Object.keys(analiseArcos.arcos).map(numeroArco => {
@@ -303,8 +347,8 @@ const Armazem3D = () => {
                         </select>
                         <button 
                           className="btn btn-outline-primary btn-sm"
-                          onClick={() => mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1))}
-                          disabled={arcoAtual >= analiseArcos.totalArcos}
+                          onClick={() => mudarArco(Math.min(analiseArcos.totalArcos, arcoSelecionado + 1))}
+                          disabled={arcoSelecionado >= analiseArcos.totalArcos}
                         >
                           Próximo →
                         </button>
@@ -328,61 +372,50 @@ const Armazem3D = () => {
           <div className="card" style={{ height: '70vh' }}>
             <div className="card-body p-0">
               <Canvas 
-                camera={{ position: [10, 5, 10], fov: 60 }}
+                camera={{ position: [15, 8, 15], fov: 60 }}
                 style={{ height: '100%', background: 'linear-gradient(to bottom, #87CEEB, #f0f8ff)' }}
               >
                 {/* Iluminação */}
                 <ambientLight intensity={0.6} />
                 <directionalLight 
-                  position={[10, 10, 5]} 
+                  position={[20, 15, 10]} 
                   intensity={1} 
                   castShadow
                   shadow-mapSize-width={2048}
                   shadow-mapSize-height={2048}
                 />
-                <pointLight position={[0, 5, 0]} intensity={0.5} />
+                <pointLight position={[0, 8, 0]} intensity={0.5} />
 
-                {/* Estrutura do armazém */}
-                <ArmazemStructure3D dimensoes={dimensoesSVG} />
-
-                {/* Pêndulos e sensores */}
-                {arcoInfo && Object.entries(dados.leitura).map(([pendulo, sensores], index) => {
-                  if (index < pendulosPositions.length) {
-                    return (
-                      <Pendulo3D
-                        key={pendulo}
-                        position={pendulosPositions[index]}
-                        numero={arcoInfo.pendulos[index]?.numero || index + 1}
-                        sensores={sensores}
-                      />
-                    );
-                  }
-                  return null;
-                })}
+                {/* Estrutura completa do armazém */}
+                <ArmazemCompleto3D 
+                  dadosPortal={dadosPortal}
+                  analiseArcos={analiseArcos}
+                  arcoSelecionado={arcoSelecionado}
+                />
 
                 {/* Controles de câmera */}
                 <OrbitControls 
                   autoRotate={autoRotate}
-                  autoRotateSpeed={1}
+                  autoRotateSpeed={0.5}
                   enablePan={true}
                   enableZoom={true}
                   enableRotate={true}
-                  minDistance={5}
-                  maxDistance={25}
+                  minDistance={8}
+                  maxDistance={35}
                 />
 
-                {/* Grid de referência */}
-                <gridHelper args={[15, 15, '#444444', '#888888']} position={[0, -2, 0]} />
+                {/* Grid de referência expandido */}
+                <gridHelper args={[30, 30, '#444444', '#888888']} position={[0, -2, 0]} />
               </Canvas>
             </div>
           </div>
 
-          {/* Informações do Arco Atual */}
+          {/* Informações da Visualização */}
           <div className="row mt-3">
             <div className="col-12">
               <div className="card">
                 <div className="card-header bg-info text-white">
-                  <h6 className="mb-0">Estrutura do Arco {arcoAtual} - Visualização 3D</h6>
+                  <h6 className="mb-0">Visão Completa do Armazém - Todos os Arcos</h6>
                 </div>
                 <div className="card-body">
                   <div className="row">
@@ -390,23 +423,26 @@ const Armazem3D = () => {
                       <small><strong>Controles 3D:</strong><br/>
                       • Clique e arraste para rotacionar<br/>
                       • Scroll para zoom<br/>
-                      • Clique direito e arraste para mover</small>
+                      • Clique direito e arraste para mover<br/>
+                      • Use seletor para destacar arcos</small>
                     </div>
                     <div className="col-md-4">
-                      <small><strong>Pêndulos no Arco:</strong><br/>
-                      {arcoInfo && arcoInfo.pendulos.map(pendulo => (
-                        <span key={pendulo.numero} className="badge bg-primary me-1 mb-1">
-                          P{pendulo.numero}: {pendulo.totalSensores}S
-                        </span>
-                      ))}
+                      <small><strong>Estrutura do Armazém:</strong><br/>
+                      • Total: {analiseArcos.totalArcos} arcos<br/>
+                      • Pêndulos: {analiseArcos.estatisticas.totalPendulos}<br/>
+                      • Sensores: {analiseArcos.estatisticas.totalSensores}<br/>
+                      • Vista lateral e topo combinadas</small>
+                    </div>
+                    <div className="col-md-4">
+                      <small><strong>Arco Selecionado ({arcoSelecionado}):</strong><br/>
+                      {analiseArcos.arcos[arcoSelecionado] && 
+                        analiseArcos.arcos[arcoSelecionado].pendulos.map(pendulo => (
+                          <span key={pendulo.numero} className="badge bg-primary me-1 mb-1">
+                            P{pendulo.numero}: {pendulo.totalSensores}S
+                          </span>
+                        ))
+                      }
                       </small>
-                    </div>
-                    <div className="col-md-4">
-                      <small><strong>Cores dos Sensores:</strong><br/>
-                      • Azul: Frio (&lt;15°C)<br/>
-                      • Verde: Normal (15-25°C)<br/>
-                      • Amarelo/Laranja: Quente (25-35°C)<br/>
-                      • Vermelho: Crítico (&gt;35°C)</small>
                     </div>
                   </div>
                 </div>

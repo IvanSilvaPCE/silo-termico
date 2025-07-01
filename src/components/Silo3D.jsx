@@ -8,7 +8,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 const Cabo3D = ({ position, pendulo, sensores, escala = 0.3 }) => {
   const grupoRef = useRef();
   
-  // Função para determinar cor baseada na temperatura
+  // Função para determiner cor baseada na temperatura
   const corFaixaExata = (t) => {
     if (t === -1000) return "#ff0000";
     if (t < 12) return "#0384fc";
@@ -34,20 +34,20 @@ const Cabo3D = ({ position, pendulo, sensores, escala = 0.3 }) => {
 
   return (
     <group ref={grupoRef} position={position}>
-      {/* Cabo principal (cilindro vertical) */}
+      {/* Cabo principal (cilindro vertical) - mais fino */}
       <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 8, 8]} />
-        <meshStandardMaterial color="#666666" />
+        <cylinderGeometry args={[0.02, 0.02, 6, 8]} />
+        <meshStandardMaterial color="#333333" />
       </mesh>
 
       {/* Nome do pêndulo na base */}
-      <mesh position={[0, -4.5, 0]}>
-        <boxGeometry args={[1, 0.3, 0.1]} />
+      <mesh position={[0, -3.5, 0]}>
+        <boxGeometry args={[0.8, 0.2, 0.1]} />
         <meshStandardMaterial color="#3A78FD" />
       </mesh>
       <Text
-        position={[0, -4.5, 0.1]}
-        fontSize={0.2}
+        position={[0, -3.5, 0.1]}
+        fontSize={0.12}
         color="white"
         anchorX="center"
         anchorY="middle"
@@ -57,14 +57,14 @@ const Cabo3D = ({ position, pendulo, sensores, escala = 0.3 }) => {
 
       {/* Sensores ao longo do cabo */}
       {sensoresArray.map((sensor, index) => {
-        const yPos = -3 + (index * 0.8);
+        const yPos = -2.5 + (index * 0.5);
         const cor = sensor.ativo ? corFaixaExata(sensor.temp) : "#e6e6e6";
         
         return (
           <group key={sensor.numero} position={[0, yPos, 0]}>
             {/* Caixa do sensor */}
             <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[0.4, 0.2, 0.2]} />
+              <boxGeometry args={[0.25, 0.12, 0.12]} />
               <meshStandardMaterial 
                 color={cor} 
                 emissive={sensor.alarme ? "#ff0000" : "#000000"}
@@ -74,8 +74,8 @@ const Cabo3D = ({ position, pendulo, sensores, escala = 0.3 }) => {
             
             {/* Texto do valor */}
             <Text
-              position={[0, 0, 0.15]}
-              fontSize={0.08}
+              position={[0, 0, 0.1]}
+              fontSize={0.06}
               color={cor === "#ff2200" ? "white" : "black"}
               anchorX="center"
               anchorY="middle"
@@ -85,8 +85,8 @@ const Cabo3D = ({ position, pendulo, sensores, escala = 0.3 }) => {
             
             {/* Label do sensor */}
             <Text
-              position={[-0.3, 0, 0]}
-              fontSize={0.06}
+              position={[-0.2, 0, 0]}
+              fontSize={0.05}
               color="black"
               anchorX="center"
               anchorY="middle"
@@ -122,23 +122,23 @@ const Aerador3D = ({ position, id, status }) => {
     <group ref={grupoRef} position={position}>
       {/* Base do aerador */}
       <mesh position={[0, 0, 0]}>
-        <cylinderGeometry args={[0.4, 0.4, 0.2, 16]} />
+        <cylinderGeometry args={[0.3, 0.3, 0.15, 16]} />
         <meshStandardMaterial color={cores[status] || cores[0]} />
       </mesh>
 
       {/* Hélice */}
-      <group ref={heliceRef} position={[0, 0.15, 0]}>
+      <group ref={heliceRef} position={[0, 0.1, 0]}>
         {[0, 60, 120, 180, 240, 300].map((angle, index) => (
           <mesh
             key={index}
             position={[
-              Math.cos((angle * Math.PI) / 180) * 0.25,
+              Math.cos((angle * Math.PI) / 180) * 0.2,
               0,
-              Math.sin((angle * Math.PI) / 180) * 0.25
+              Math.sin((angle * Math.PI) / 180) * 0.2
             ]}
             rotation={[0, (angle * Math.PI) / 180, 0]}
           >
-            <boxGeometry args={[0.1, 0.05, 0.3]} />
+            <boxGeometry args={[0.08, 0.03, 0.25]} />
             <meshStandardMaterial color="white" />
           </mesh>
         ))}
@@ -146,8 +146,8 @@ const Aerador3D = ({ position, id, status }) => {
 
       {/* Label */}
       <Text
-        position={[0, -0.3, 0]}
-        fontSize={0.1}
+        position={[0, -0.2, 0]}
+        fontSize={0.08}
         color="black"
         anchorX="center"
         anchorY="middle"
@@ -161,34 +161,44 @@ const Aerador3D = ({ position, id, status }) => {
 const SiloStructure3D = ({ layout }) => {
   const { lb, hs, hb } = layout.desenho_corte_silo;
   
-  // Converter dimensões 2D para 3D (escala reduzida)
-  const largura = lb / 50;
-  const altura = hs / 50;
-  const alturaBase = hb / 50;
+  // Converter dimensões 2D para 3D (escala apropriada)
+  const raio = lb / 100; // Raio do cilindro
+  const alturaCilindro = hs / 100; // Altura da parte cilíndrica
+  const alturaBase = hb / 80; // Altura da base cônica
   
   return (
     <group>
-      {/* Corpo principal do silo (cone truncado) */}
-      <mesh position={[0, altura/2, 0]}>
-        <coneGeometry args={[largura/2, altura, 12, 1, false, 0, Math.PI * 2]} />
+      {/* Corpo principal do silo (cilindro) */}
+      <mesh position={[0, alturaCilindro/2, 0]}>
+        <cylinderGeometry args={[raio, raio, alturaCilindro, 32]} />
         <meshStandardMaterial 
           color="#E7E7E7" 
           transparent 
-          opacity={0.8}
+          opacity={0.6}
           side={THREE.DoubleSide}
         />
       </mesh>
       
-      {/* Base elipsoidal */}
+      {/* Base cônica do silo */}
       <mesh position={[0, -alturaBase/2, 0]}>
-        <sphereGeometry args={[largura/2, 16, 8, 0, Math.PI * 2, 0, Math.PI/2]} />
-        <meshStandardMaterial color="#999999" />
+        <coneGeometry args={[raio, alturaBase, 16]} />
+        <meshStandardMaterial 
+          color="#D0D0D0" 
+          transparent 
+          opacity={0.8}
+        />
       </mesh>
       
       {/* Topo do silo */}
-      <mesh position={[0, altura + 0.1, 0]}>
-        <cylinderGeometry args={[largura/2, largura/2, 0.2, 16]} />
+      <mesh position={[0, alturaCilindro + 0.1, 0]}>
+        <cylinderGeometry args={[raio, raio, 0.2, 32]} />
         <meshStandardMaterial color="#CCCCCC" />
+      </mesh>
+
+      {/* Borda superior */}
+      <mesh position={[0, alturaCilindro + 0.05, 0]}>
+        <torusGeometry args={[raio, 0.05, 16, 32]} />
+        <meshStandardMaterial color="#999999" />
       </mesh>
     </group>
   );
@@ -204,38 +214,35 @@ const Silo3D = ({ dados }) => {
   const leitura = dados.leitura;
   const motorStatus = dados.motor?.statusMotor || [];
 
-  // Calcular posições dos cabos em 3D
+  // Calcular posições dos cabos em 3D de forma circular dentro do silo
   const cabosPositions = useMemo(() => {
-    const ds = layout.desenho_sensores;
-    const posXCabo = ds.pos_x_cabo;
-    const posXUniforme = Number(ds.pos_x_cabos_uniforme);
     const nCabos = Object.keys(leitura).length;
     const positions = [];
+    const raio = (layout.desenho_corte_silo.lb / 100) * 0.7; // Posicionar cabos dentro do silo
 
     Object.keys(leitura).forEach((pend, index) => {
-      const baseX = posXUniforme === 0 ? posXCabo[index] : posXCabo[0] + posXCabo[1] * index;
-      // Converter coordenadas 2D para 3D (escala e centralização)
-      const x = (baseX - layout.desenho_corte_silo.lb/2) / 50;
-      const z = (index % 2 === 0 ? -1 : 1) * (index * 0.3);
+      const angle = (index / nCabos) * Math.PI * 2;
+      const x = Math.cos(angle) * raio;
+      const z = Math.sin(angle) * raio;
       positions.push([x, 0, z]);
     });
 
     return positions;
   }, [layout, leitura]);
 
-  // Calcular posições dos aeradores
+  // Calcular posições dos aeradores na base do silo
   const aeradoresPositions = useMemo(() => {
     if (!layout.aeradores || layout.aeradores.na <= 0) return [];
     
     const numAeradores = layout.aeradores.na;
     const positions = [];
-    const raio = layout.desenho_corte_silo.lb / 100;
+    const raio = (layout.desenho_corte_silo.lb / 100) * 0.8;
     
     for (let i = 0; i < numAeradores; i++) {
       const angle = (i / numAeradores) * Math.PI * 2;
       const x = Math.cos(angle) * raio;
       const z = Math.sin(angle) * raio;
-      const y = -2 + Math.floor(i / 2) * 0.8;
+      const y = -1.5; // Na base do silo
       positions.push([x, y, z]);
     }
     
@@ -345,7 +352,7 @@ const Silo3D = ({ dados }) => {
             <div className="col-12">
               <div className="card">
                 <div className="card-header bg-info text-white">
-                  <h6 className="mb-0">Informações da Visualização 3D</h6>
+                  <h6 className="mb-0">Informações da Visualização 3D do Silo</h6>
                 </div>
                 <div className="card-body">
                   <div className="row">
@@ -356,10 +363,10 @@ const Silo3D = ({ dados }) => {
                       • Clique direito e arraste para mover</small>
                     </div>
                     <div className="col-md-4">
-                      <small><strong>Elementos:</strong><br/>
-                      • Cabos com sensores de temperatura<br/>
-                      • Aeradores animados<br/>
-                      • Estrutura transparente do silo</small>
+                      <small><strong>Estrutura:</strong><br/>
+                      • Silo cilíndrico com base cônica<br/>
+                      • Cabos distribuídos circularmente<br/>
+                      • Aeradores na base do silo</small>
                     </div>
                     <div className="col-md-4">
                       <small><strong>Cores dos Sensores:</strong><br/>
