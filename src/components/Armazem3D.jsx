@@ -108,7 +108,7 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem }) =>
 const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => {
   const larguraArmazem = numeroArcos * 6; // Aumentei o espaço por arco
   const profundidadeArmazem = 8;
-  const alturaTelhado = alturaArmazem * 0.5;
+  const alturaTelhado = alturaArmazem * 0.4;
 
   return (
     <group>
@@ -164,26 +164,100 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
           />
         </mesh>
 
-        {/* Telhado em formato de casa - duas águas */}
-        <group position={[0, alturaArmazem + alturaTelhado/2, 0]}>
-          {/* Lado esquerdo do telhado */}
-          <mesh position={[0, 0, -profundidadeArmazem/4]} rotation={[0, 0, Math.PI/6]} castShadow>
-            <boxGeometry args={[larguraArmazem + 1, 0.2, profundidadeArmazem/2 + 0.4]} />
+        {/* Telhado estilo galpão - cobrindo todo o armazém */}
+        <group position={[0, alturaArmazem, 0]}>
+          {/* Estrutura principal do telhado - duas águas */}
+          
+          {/* Lado esquerdo do telhado - inclinado */}
+          <mesh position={[0, alturaTelhado/3, -profundidadeArmazem/2 - 0.5]} rotation={[Math.PI/6, 0, 0]} castShadow>
+            <boxGeometry args={[larguraArmazem + 4, 0.15, profundidadeArmazem/1.5]} />
             <meshStandardMaterial 
               color="#8B4513" 
-              roughness={0.9}
+              roughness={0.8}
               metalness={0.1}
             />
           </mesh>
-          {/* Lado direito do telhado */}
-          <mesh position={[0, 0, profundidadeArmazem/4]} rotation={[0, 0, -Math.PI/6]} castShadow>
-            <boxGeometry args={[larguraArmazem + 1, 0.2, profundidadeArmazem/2 + 0.4]} />
+          
+          {/* Lado direito do telhado - inclinado */}
+          <mesh position={[0, alturaTelhado/3, profundidadeArmazem/2 + 0.5]} rotation={[-Math.PI/6, 0, 0]} castShadow>
+            <boxGeometry args={[larguraArmazem + 4, 0.15, profundidadeArmazem/1.5]} />
             <meshStandardMaterial 
               color="#8B4513" 
-              roughness={0.9}
+              roughness={0.8}
               metalness={0.1}
             />
           </mesh>
+
+          {/* Cumeeira central - viga no topo */}
+          <mesh position={[0, alturaTelhado * 0.8, 0]} castShadow>
+            <boxGeometry args={[larguraArmazem + 4, 0.3, 0.3]} />
+            <meshStandardMaterial 
+              color="#654321" 
+              roughness={0.9}
+              metalness={0.2}
+            />
+          </mesh>
+
+          {/* Estruturas de apoio do telhado - tesouras */}
+          {Array.from({length: Math.floor(larguraArmazem/12) + 1}, (_, i) => {
+            const x = -larguraArmazem/2 + i * 12;
+            return (
+              <group key={i} position={[x, 0, 0]}>
+                {/* Viga diagonal esquerda */}
+                <mesh position={[0, alturaTelhado/2, -profundidadeArmazem/3]} rotation={[0, 0, Math.PI/6]} castShadow>
+                  <boxGeometry args={[0.2, profundidadeArmazem/1.2, 0.2]} />
+                  <meshStandardMaterial color="#444444" metalness={0.6} roughness={0.4} />
+                </mesh>
+                
+                {/* Viga diagonal direita */}
+                <mesh position={[0, alturaTelhado/2, profundidadeArmazem/3]} rotation={[0, 0, -Math.PI/6]} castShadow>
+                  <boxGeometry args={[0.2, profundidadeArmazem/1.2, 0.2]} />
+                  <meshStandardMaterial color="#444444" metalness={0.6} roughness={0.4} />
+                </mesh>
+
+                {/* Tirante horizontal */}
+                <mesh position={[0, alturaTelhado/4, 0]} castShadow>
+                  <boxGeometry args={[0.15, 0.15, profundidadeArmazem + 1]} />
+                  <meshStandardMaterial color="#555555" metalness={0.7} roughness={0.3} />
+                </mesh>
+              </group>
+            );
+          })}
+
+          {/* Calhas laterais */}
+          <mesh position={[0, 0, -profundidadeArmazem/2 - 1.2]} castShadow>
+            <boxGeometry args={[larguraArmazem + 4, 0.3, 0.4]} />
+            <meshStandardMaterial color="#333333" metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, profundidadeArmazem/2 + 1.2]} castShadow>
+            <boxGeometry args={[larguraArmazem + 4, 0.3, 0.4]} />
+            <meshStandardMaterial color="#333333" metalness={0.8} roughness={0.2} />
+          </mesh>
+
+          {/* Telhas metálicas - detalhes decorativos */}
+          {Array.from({length: Math.floor(larguraArmazem/3)}, (_, i) => (
+            <group key={`telhas-${i}`}>
+              {/* Telhas lado esquerdo */}
+              <mesh position={[-larguraArmazem/2 + i * 3 + 1.5, alturaTelhado/3 + 0.08, -profundidadeArmazem/2 - 0.5]} rotation={[Math.PI/6, 0, 0]}>
+                <boxGeometry args={[2.8, 0.02, profundidadeArmazem/1.5]} />
+                <meshStandardMaterial 
+                  color="#A0522D" 
+                  roughness={0.7}
+                  metalness={0.3}
+                />
+              </mesh>
+              
+              {/* Telhas lado direito */}
+              <mesh position={[-larguraArmazem/2 + i * 3 + 1.5, alturaTelhado/3 + 0.08, profundidadeArmazem/2 + 0.5]} rotation={[-Math.PI/6, 0, 0]}>
+                <boxGeometry args={[2.8, 0.02, profundidadeArmazem/1.5]} />
+                <meshStandardMaterial 
+                  color="#A0522D" 
+                  roughness={0.7}
+                  metalness={0.3}
+                />
+              </mesh>
+            </group>
+          ))}
         </group>
 
         {/* Estruturas de divisão entre arcos (vigas) */}
@@ -211,7 +285,7 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
 
               {/* Label do arco */}
               {i > 0 && i <= numeroArcos && (
-                <Billboard position={[x - 3, alturaArmazem + alturaTelhado + 0.8, 0]}>
+                <Billboard position={[x - 3, alturaArmazem + alturaTelhado + 1.2, 0]}>
                   <Text
                     fontSize={0.5}
                     color={isSelected ? "#FF6B35" : "#333333"}
@@ -226,13 +300,7 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
           );
         })}
 
-        {/* Vigas de apoio do telhado */}
-        {Array.from({length: 5}, (_, i) => (
-          <mesh key={i} position={[0, alturaArmazem + 0.1, -profundidadeArmazem/2 + i * profundidadeArmazem/4]}>
-            <boxGeometry args={[larguraArmazem, 0.15, 0.15]} />
-            <meshStandardMaterial color="#666666" metalness={0.7} roughness={0.3} />
-          </mesh>
-        ))}
+        
       </group>
 
       {/* Highlight do arco selecionado */}
