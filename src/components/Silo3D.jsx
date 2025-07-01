@@ -86,33 +86,18 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
               <meshStandardMaterial color="#666666" />
             </mesh>
 
-            {/* Display do valor na frente do sensor */}
-            <Billboard position={[0, 0, 0.08]}>
-              <mesh>
-                <planeGeometry args={[0.25, 0.08]} />
-                <meshStandardMaterial color="#000000" transparent opacity={0.5} />
-              </mesh>
-              <Text
-                position={[0, 0, 0.001]}
-                fontSize={0.035}
-                color="#00ff00"
-                anchorX="center"
-                anchorY="middle"
-              >
-                {sensor.falha ? "ERR" : sensor.temp.toFixed(1) + "°C"}
-              </Text>
-            </Billboard>
-
-            {/* Número da temperatura flutuante */}
+            {/* Temperatura flutuante sempre visível */}
             <Billboard position={[0.4, 0, 0]}>
               <Text
                 fontSize={0.08}
                 color={sensor.falha ? "#ff0000" : "#ffffff"}
                 anchorX="center"
                 anchorY="middle"
-                outlineWidth={0.02}
+                outlineWidth={0.03}
                 outlineColor="#000000"
-                
+                material-depthTest={false}
+                material-depthWrite={false}
+                renderOrder={1000}
               >
                 {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
               </Text>
@@ -311,7 +296,8 @@ const NivelGrao3D = ({ nivel, raioSilo, alturaSilo }) => {
 const Silo3D = ({ dados }) => {
   const [autoRotate, setAutoRotate] = useState(true);
   const [inactivityTimeout, setInactivityTimeout] = useState(null);
-  const [cameraTarget, setCameraTarget] = useState(new THREE.Vector3(0, 0, 0));
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
+  const [lastInteractionTime, setLastInteractionTime] = useState(Date.now());
   const orbitRef = useRef(null);
 
   if (!dados) return <div>Carregando dados 3D...</div>;
@@ -366,53 +352,51 @@ const Silo3D = ({ dados }) => {
     return positions;
   }, [layout, raioSilo]);
 
-  // Auto Zoom Functionality
-  const resetInactivityTimeout = () => {
-    clearTimeout(inactivityTimeout);
-    setInactivityTimeout(
-      setTimeout(() => {
-        setCameraTarget(new THREE.Vector3(0, alturaSilo / 2, 0));
-        if (orbitRef.current) {
-          orbitRef.current.target.copy(cameraTarget);
-           // Zoom in closer
-          orbitRef.current.minDistance = raioSilo * 0.8;
-          orbitRef.current.maxDistance = raioSilo * 3;
-
-          orbitRef.current.update();
-        }
-
-        setTimeout(() => {
-            if (orbitRef.current) {
-              orbitRef.current.minDistance = raioSilo * 1.5;
-              orbitRef.current.maxDistance = raioSilo * 12;
-              orbitRef.current.update();
-            }
-        }, 5000);
-
-      }, 15000)
-    );
+  // Função para zoom no miolo
+  const zoomToCenter = () => {
+    if (orbitRef.current && !isZoomedIn) {
+      setIsZoomedIn(true);
+      orbitRef.current.target.set(0, alturaSilo / 2, 0);
+      orbitRef.current.minDistance = raioSilo * 0.3;
+      orbitRef.current.maxDistance = raioSilo * 1.5;
+      orbitRef.current.update();
+    }
   };
 
+  // Função para voltar ao zoom normal
+  const resetZoom = () => {
+    if (orbitRef.current && isZoomedIn) {
+      setIsZoomedIn(false);
+      orbitRef.current.target.set(0, 0, 0);
+      orbitRef.current.minDistance = raioSilo * 1.5;
+      orbitRef.current.maxDistance = raioSilo * 12;
+      orbitRef.current.update();
+    }
+  };
+
+  // Auto zoom após inatividade
   useEffect(() => {
-    resetInactivityTimeout();
+    const timer = setTimeout(() => {
+      if (Date.now() - lastInteractionTime >= 15000 && !isZoomedIn) {
+        zoomToCenter();
+        
+        // Volta ao normal após 5 segundos
+        setTimeout(() => {
+          resetZoom();
+        }, 5000);
+      }
+    }, 15000);
 
-    const handleUserActivity = () => {
-      resetInactivityTimeout();
-    };
+    return () => clearTimeout(timer);
+  }, [lastInteractionTime, isZoomedIn, alturaSilo, raioSilo]);
 
-    window.addEventListener('mousemove', handleUserActivity);
-    window.addEventListener('keydown', handleUserActivity);
-    window.addEventListener('mousedown', handleUserActivity);
-    window.addEventListener('touchstart', handleUserActivity);
-
-    return () => {
-      clearTimeout(inactivityTimeout);
-      window.removeEventListener('mousemove', handleUserActivity);
-      window.removeEventListener('keydown', handleUserActivity);
-      window.removeEventListener('mousedown', handleUserActivity);
-      window.removeEventListener('touchstart', handleUserActivity);
-    };
-  }, [alturaSilo, raioSilo]);
+  // Reset timer na interação do usuário
+  const handleInteraction = () => {
+    setLastInteractionTime(Date.now());
+    if (isZoomedIn) {
+      resetZoom();
+    }
+  };
 
   return (
     <div style={{ width: '100%', height: '100vh' }}>
@@ -498,7 +482,8 @@ const Silo3D = ({ dados }) => {
           enableRotate={true}
           minDistance={raioSilo * 1.5}
           maxDistance={raioSilo * 12}
-          target={cameraTarget}
+          onStart={handleInteraction}
+          onChange={handleInteraction}
         />
 
         {/* Grade do chão */}
