@@ -1,7 +1,6 @@
-
 import React, { useRef, useState, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Billboard } from '@react-three/drei';
+import { OrbitControls, Text, Billboard, Instances, Instance } from '@react-three/drei';
 import * as THREE from 'three';
 
 const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
@@ -169,82 +168,53 @@ const Aerador3D = ({ position, id, status, raioSilo }) => {
         />
       </mesh>
 
-      {/* Aletas de refrigeração */}
-      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, index) => (
-        <mesh
-          key={index}
-          position={[
-            Math.cos((angle * Math.PI) / 180) * 0.32,
-            0.15,
-            Math.sin((angle * Math.PI) / 180) * 0.32
-          ]}
-          rotation={[0, (angle * Math.PI) / 180, 0]}
-        >
-          <boxGeometry args={[0.03, 0.25, 0.08]} />
-          <meshStandardMaterial color="#555555" metalness={0.8} roughness={0.2} />
-        </mesh>
-      ))}
+      {/* Aletas de refrigeração simplificadas */}
+      <Instances>
+        <boxGeometry args={[0.03, 0.25, 0.08]} />
+        <meshStandardMaterial color="#555555" metalness={0.8} roughness={0.2} />
+        {[0, 90, 180, 270].map((angle, index) => (
+          <Instance
+            key={index}
+            position={[
+              Math.cos((angle * Math.PI) / 180) * 0.32,
+              0.15,
+              Math.sin((angle * Math.PI) / 180) * 0.32
+            ]}
+            rotation={[0, (angle * Math.PI) / 180, 0]}
+          />
+        ))}
+      </Instances>
 
       {/* Eixo do motor */}
       <mesh position={[0, 0.35, 0]}>
-        <cylinderGeometry args={[0.05, 0.05, 0.1, 12]} />
+        <cylinderGeometry args={[0.05, 0.05, 0.1, 8]} />
         <meshStandardMaterial color="#222222" metalness={0.9} roughness={0.1} />
       </mesh>
 
-      {/* Hélices - design mais bonito e aerodinâmico */}
+      {/* Hélices simplificadas */}
       <group ref={heliceRef} position={[0, 0.42, 0]}>
-        {/* Hub central das hélices - mais robusto */}
+        {/* Hub central */}
         <mesh>
-          <cylinderGeometry args={[0.12, 0.08, 0.06, 16]} />
+          <cylinderGeometry args={[0.12, 0.08, 0.06, 8]} />
           <meshStandardMaterial color="#2c2c2c" metalness={0.9} roughness={0.1} />
         </mesh>
-        
-        {/* Hélices curvadas e aerodinâmicas */}
-        {[0, 72, 144, 216, 288].map((angle, index) => (
-          <group key={index} rotation={[0, (angle * Math.PI) / 180, 0]}>
-            {/* Pá principal da hélice */}
-            <mesh
-              position={[0.2, 0, 0]}
-              rotation={[0, 0, Math.PI / 8]}
-            >
-              <boxGeometry args={[0.3, 0.03, 0.08]} />
-              <meshStandardMaterial 
-                color="#f0f0f0" 
-                metalness={0.6} 
-                roughness={0.3}
-              />
-            </mesh>
-            
-            {/* Curva aerodinâmica da pá */}
-            <mesh
-              position={[0.32, 0, 0]}
-              rotation={[0, 0, Math.PI / 6]}
-            >
-              <boxGeometry args={[0.12, 0.025, 0.06]} />
-              <meshStandardMaterial 
-                color="#e8e8e8" 
-                metalness={0.6} 
-                roughness={0.3}
-              />
-            </mesh>
-            
-            {/* Ponta arredondada */}
-            <mesh position={[0.38, 0, 0]}>
-              <sphereGeometry args={[0.03, 8, 8]} />
-              <meshStandardMaterial 
-                color="#d0d0d0" 
-                metalness={0.7} 
-                roughness={0.2}
-              />
-            </mesh>
-          </group>
-        ))}
-        
-        {/* Anel protetor do hub */}
-        <mesh position={[0, 0.035, 0]}>
-          <torusGeometry args={[0.14, 0.02, 8, 16]} />
-          <meshStandardMaterial color="#444444" metalness={0.8} roughness={0.2} />
-        </mesh>
+
+        {/* Pás da hélice simplificadas */}
+        <Instances>
+          <boxGeometry args={[0.3, 0.03, 0.08]} />
+          <meshStandardMaterial color="#f0f0f0" metalness={0.6} roughness={0.3} />
+          {[0, 72, 144, 216, 288].map((angle, index) => (
+            <Instance
+              key={index}
+              position={[
+                Math.cos((angle * Math.PI) / 180) * 0.2,
+                0,
+                Math.sin((angle * Math.PI) / 180) * 0.2
+              ]}
+              rotation={[0, (angle * Math.PI) / 180, Math.PI / 8]}
+            />
+          ))}
+        </Instances>
       </group>
 
       {/* Placa de identificação */}

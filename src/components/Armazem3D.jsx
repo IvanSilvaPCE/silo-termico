@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Text, Billboard } from '@react-three/drei';
+import { OrbitControls, Text, Billboard, Instances, Instance } from '@react-three/drei';
 import * as THREE from 'three';
 
 const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celulaNumero }) => {
@@ -48,50 +48,43 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
         </Text>
       </Billboard>
 
-      {/* Sensores ao longo do cabo */}
-      {Object.entries(sensores).map(([sensorKey, valores], index) => {
+      {/* Sensores ao longo do cabo com instancing */}
+      <Instances>
+        <boxGeometry args={[0.2, 0.1, 0.1]} />
+        <meshStandardMaterial />
+        {Object.entries(sensores).map(([sensorKey, valores], index) => {
+          const s = parseInt(sensorKey);
+          const [temp, , , falha, nivel] = valores;
+          const yPos = alturaArmazem * 0.8 - (s * espacamentoSensores);
+          const cor = nivel ? corFaixaExata(temp) : "#cccccc";
+
+          return (
+            <Instance 
+              key={s} 
+              position={[0, yPos, 0]}
+              color={cor}
+            />
+          );
+        })}
+      </Instances>
+
+      {/* Apenas textos dos sensores importantes */}
+      {Object.entries(sensores).slice(0, 3).map(([sensorKey, valores], index) => {
         const s = parseInt(sensorKey);
-        const [temp, , , falha, nivel] = valores;
+        const [temp, , , falha] = valores;
         const yPos = alturaArmazem * 0.8 - (s * espacamentoSensores);
-        const cor = nivel ? corFaixaExata(temp) : "#cccccc";
 
         return (
-          <group key={s} position={[0, yPos, 0]}>
-            {/* Corpo do sensor */}
-            <mesh>
-              <boxGeometry args={[0.2, 0.1, 0.1]} />
-              <meshStandardMaterial 
-                color={cor}
-                emissive={falha ? "#ff0000" : "#000000"}
-                emissiveIntensity={falha ? 0.25 : 0}
-                metalness={0.3}
-                roughness={0.7}
-              />
-            </mesh>
-
-            {/* Antena do sensor */}
-            <mesh position={[0, 0.07, 0]}>
-              <cylinderGeometry args={[0.008, 0.008, 0.06, 8]} />
-              <meshStandardMaterial color="#666666" />
-            </mesh>
-
-            {/* Display do valor */}
-            <Billboard position={[0, 0, 0.07]}>
-              <mesh>
-                <planeGeometry args={[0.15, 0.05]} />
-                <meshStandardMaterial color="#000000" />
-              </mesh>
-              <Text
-                position={[0, 0, 0.001]}
-                fontSize={0.03}
-                color="#00ff00"
-                anchorX="center"
-                anchorY="middle"
-              >
-                {falha ? "ERR" : temp.toFixed(1) + "°"}
-              </Text>
-            </Billboard>
-          </group>
+          <Billboard key={`text-${s}`} position={[0.2, yPos, 0]}>
+            <Text
+              fontSize={0.04}
+              color={falha ? "#ff0000" : "#ffffff"}
+              anchorX="center"
+              anchorY="middle"
+            >
+              {falha ? "ERR" : temp.toFixed(0) + "°"}
+            </Text>
+          </Billboard>
         );
       })}
 
@@ -143,30 +136,30 @@ const Motor3D = ({ position, id, status }) => {
         />
       </mesh>
 
-      {/* Hélices */}
+      {/* Hélices simplificadas */}
       <group ref={heliceRef} position={[0, 0.3, 0]}>
-        {/* Hub central das hélices */}
+        {/* Hub central */}
         <mesh>
-          <cylinderGeometry args={[0.08, 0.06, 0.04, 16]} />
+          <cylinderGeometry args={[0.08, 0.06, 0.04, 8]} />
           <meshStandardMaterial color="#2c2c2c" metalness={0.9} roughness={0.1} />
         </mesh>
 
-        {/* Pás da hélice */}
-        {[0, 72, 144, 216, 288].map((angle, index) => (
-          <group key={index} rotation={[0, (angle * Math.PI) / 180, 0]}>
-            <mesh
-              position={[0.15, 0, 0]}
-              rotation={[0, 0, Math.PI / 8]}
-            >
-              <boxGeometry args={[0.25, 0.025, 0.06]} />
-              <meshStandardMaterial 
-                color="#f0f0f0" 
-                metalness={0.6} 
-                roughness={0.3}
-              />
-            </mesh>
-          </group>
-        ))}
+        {/* Pás da hélice com instancing */}
+        <Instances>
+          <boxGeometry args={[0.25, 0.025, 0.06]} />
+          <meshStandardMaterial color="#f0f0f0" metalness={0.6} roughness={0.3} />
+          {[0, 120, 240].map((angle, index) => (
+            <Instance
+              key={index}
+              position={[
+                Math.cos((angle * Math.PI) / 180) * 0.15,
+                0,
+                Math.sin((angle * Math.PI) / 180) * 0.15
+              ]}
+              rotation={[0, (angle * Math.PI) / 180, Math.PI / 8]}
+            />
+          ))}
+        </Instances>
       </group>
 
       {/* Placa de identificação */}
@@ -290,45 +283,41 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
           </mesh>
         </group>
 
-        {/* Divisões entre arcos - compactadas */}
-        {Array.from({length: numeroArcos + 1}, (_, i) => {
-          const x = -larguraArmazem/2 + i * larguraArco;
-          const isSelected = i === arcoSelecionado;
+        {/* Vigas verticais com instancing */}
+        <Instances>
+          <boxGeometry args={[0.15, alturaArmazem + 0.3, 0.15]} />
+          <meshStandardMaterial color="#999999" metalness={0.6} roughness={0.4} />
+          {Array.from({length: numeroArcos + 1}, (_, i) => {
+            const x = -larguraArmazem/2 + i * larguraArco;
+            const isSelected = i === arcoSelecionado;
+            
+            return (
+              <Instance 
+                key={i} 
+                position={[x, alturaArmazem/2, 0]}
+                color={isSelected ? "#FF6B35" : "#999999"}
+              />
+            );
+          })}
+        </Instances>
 
-          return (
-            <group key={i}>
-              {/* Viga vertical */}
-              <mesh position={[x, alturaArmazem/2, 0]} castShadow>
-                <boxGeometry args={[0.15, alturaArmazem + 0.3, 0.15]} />
-                <meshStandardMaterial 
-                  color={isSelected ? "#FF6B35" : "#999999"} 
-                  metalness={0.6}
-                  roughness={0.4}
-                />
-              </mesh>
-
-              {/* Viga horizontal superior */}
-              <mesh position={[x, alturaArmazem, 0]}>
-                <boxGeometry args={[0.15, 0.15, profundidadeArmazem]} />
-                <meshStandardMaterial color="#999999" metalness={0.6} roughness={0.4} />
-              </mesh>
-
-              {/* Label do arco */}
-              {i > 0 && i <= numeroArcos && (
-                <Billboard position={[x - larguraArco/2, alturaArmazem + alturaTelhado + 0.8, 0]}>
-                  <Text
-                    fontSize={0.3}
-                    color={isSelected ? "#FF6B35" : "#333333"}
-                    anchorX="center"
-                    anchorY="middle"
-                  >
-                    {i}
-                  </Text>
-                </Billboard>
-              )}
-            </group>
-          );
-        })}
+        {/* Labels apenas para arcos selecionados */}
+        {arcoSelecionado && (
+          <Billboard position={[
+            -larguraArmazem/2 + (arcoSelecionado - 1) * larguraArco + larguraArco/2,
+            alturaArmazem + alturaTelhado + 0.8,
+            0
+          ]}>
+            <Text
+              fontSize={0.3}
+              color="#FF6B35"
+              anchorX="center"
+              anchorY="middle"
+            >
+              {arcoSelecionado}
+            </Text>
+          </Billboard>
+        )}
 
         {/* Divisões das 3 células por arco */}
         {/* Removendo as divisórias */}
@@ -659,20 +648,22 @@ const Armazem3D = () => {
           maxDistance={larguraTotal * 1.2}
         />
 
-        {/* Grade do chão compacta */}
+        {/* Grade simplificada do chão */}
         <group position={[0, -1, 0]}>
-          {Array.from({ length: Math.ceil(larguraTotal / 4) + 1 }, (_, i) => (
-            <mesh key={`h-${i}`} position={[0, 0, (i - Math.ceil(larguraTotal / 8)) * 4]} rotation={[0, 0, 0]}>
-              <boxGeometry args={[larguraTotal * 1.1, 0.015, 0.015]} />
-              <meshStandardMaterial color="#666666" />
-            </mesh>
-          ))}
-          {Array.from({ length: Math.ceil(larguraTotal / 4) + 1 }, (_, i) => (
-            <mesh key={`v-${i}`} position={[(i - Math.ceil(larguraTotal / 8)) * 4, 0, 0]} rotation={[0, 0, 0]}>
-              <boxGeometry args={[0.015, 0.015, larguraTotal * 0.8]} />
-              <meshStandardMaterial color="#666666" />
-            </mesh>
-          ))}
+          <Instances>
+            <boxGeometry args={[larguraTotal * 1.1, 0.015, 0.015]} />
+            <meshStandardMaterial color="#666666" />
+            {Array.from({ length: Math.ceil(larguraTotal / 8) + 1 }, (_, i) => (
+              <Instance key={`h-${i}`} position={[0, 0, (i - Math.ceil(larguraTotal / 16)) * 8]} />
+            ))}
+          </Instances>
+          <Instances>
+            <boxGeometry args={[0.015, 0.015, larguraTotal * 0.8]} />
+            <meshStandardMaterial color="#666666" />
+            {Array.from({ length: Math.ceil(larguraTotal / 8) + 1 }, (_, i) => (
+              <Instance key={`v-${i}`} position={[(i - Math.ceil(larguraTotal / 16)) * 8, 0, 0]} />
+            ))}
+          </Instances>
         </group>
       </Canvas>
     </div>
