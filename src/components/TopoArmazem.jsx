@@ -60,14 +60,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         }
     }, [arcoAtual, layoutTopo]);
 
-    // Função para definir arco selecionado
-    const setArcoSelecionado = (novoArco) => {
-        setArcoSelecionado(novoArco);
-        if (layoutTopo && layoutTopo[novoArco]) {
-            setCelulaSelecionada(layoutTopo[novoArco].celula);
-        }
-    };
-
     // Atualizar SVG quando dados mudarem
     useEffect(() => {
         if (!layoutTopo || !dadosTopo || !containerRef.current) return;
@@ -649,7 +641,9 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 if (tipo === 'arco') {
                     const novoArco = parseInt(numero);
                     setArcoSelecionado(novoArco);
-                    setCelulaSelecionada(layoutTopo[novoArco].celula);
+                    if (layoutTopo && layoutTopo[novoArco]) {
+                        setCelulaSelecionada(layoutTopo[novoArco].celula);
+                    }
                     if (onArcoSelecionado) {
                         onArcoSelecionado(novoArco);
                     }
