@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import dadosArmazemTopo from '../dadosArmazemTopo';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
@@ -13,127 +14,40 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     // Carregar e processar dados
     useEffect(() => {
-        const carregarDados = async () => {
+        const processarDados = () => {
             try {
                 setCarregando(true);
                 
-                // Carregar dados do JSON via fetch
-                const response = await fetch('/dadosArmazemTopo.json');
-                if (!response.ok) {
-                    throw new Error(`Erro ao carregar dados: ${response.status}`);
-                }
-                const dadosArmazemTopo = await response.json();
-                
-                // Processar dados com suporte para ambas as estruturas
-                let pendulos = {};
-                let dadosConvertidos = {};
-                
-                // Verificar se tem a nova estrutura com arcos
-                if (dadosArmazemTopo.arcos) {
-                    // Processar nova estrutura
-                    Object.entries(dadosArmazemTopo.arcos).forEach(([arcoId, arcoData]) => {
-                        Object.entries(arcoData).forEach(([celulaId, celulaData]) => {
-                            Object.entries(celulaData).forEach(([penduloId, penduloData]) => {
-                                Object.entries(penduloData).forEach(([sensorId, sensorData]) => {
-                                    const penduloUnicoId = `${arcoId}_${celulaId}_${penduloId}_${sensorId}`;
-                                    
-                                    // Verificar se sensorData é array válido
-                                    if (Array.isArray(sensorData) && sensorData.length >= 5) {
-                                        const temperatura = sensorData[0] || 0;
-                                        const ativo = sensorData[4] !== undefined ? sensorData[4] : true;
-                                        const falha = temperatura === 0 || temperatura === -1000;
-                                        const pontoQuente = temperatura > 35;
-                                        
-                                        pendulos[penduloUnicoId] = [
-                                            falha,      // falha
-                                            pontoQuente, // ponto quente
-                                            ativo,      // ativo
-                                            temperatura // temperatura
-                                        ];
-                                        
-                                        dadosConvertidos[penduloUnicoId] = [
-                                            falha,
-                                            pontoQuente,
-                                            ativo,
-                                            temperatura
-                                        ];
-                                    } else {
-                                        // Dados inválidos - usar padrão
-                                        pendulos[penduloUnicoId] = [true, false, false, 0]; // falha, sem ponto quente, inativo, temp 0
-                                        dadosConvertidos[penduloUnicoId] = [true, false, false, 0];
-                                    }
-                                });
-                            });
-                        });
-                    });
-                }
-                
-                // Se não há arcos ou se arcos estão vazios, usar estrutura antiga
-                if (Object.keys(pendulos).length === 0 && dadosArmazemTopo.pendulos) {
-                    Object.entries(dadosArmazemTopo.pendulos).forEach(([id, dados]) => {
-                        // Verificar se dados é array válido
-                        if (Array.isArray(dados) && dados.length >= 4) {
-                            pendulos[id] = dados;
-                            dadosConvertidos[id] = [
-                                dados[0] || false, // falha
-                                dados[1] || false, // ponto quente
-                                dados[2] !== undefined ? dados[2] : true, // ativo
-                                dados[3] || 0      // temperatura
-                            ];
-                        } else {
-                            // Dados inválidos - usar padrão
-                            pendulos[id] = [false, false, true, 20];
-                            dadosConvertidos[id] = [false, false, true, 20];
-                        }
-                    });
-                }
-                
-                // Se ainda não há dados, gerar dados de exemplo
-                if (Object.keys(pendulos).length === 0) {
-                    for (let i = 1; i <= 20; i++) {
-                        const temp = 20 + Math.random() * 15;
-                        const falha = Math.random() < 0.1;
-                        const pontoQuente = temp > 35;
-                        
-                        pendulos[i.toString()] = [falha, pontoQuente, true, temp];
-                        dadosConvertidos[i.toString()] = [falha, pontoQuente, true, temp];
-                    }
-                }
+                // Usar dados do arquivo ou configuração
+                const pendulos = dadosArmazemTopo.pendulos;
+                const config = dadosArmazemTopo.configuracao?.layout_topo;
                 
                 setDadosPendulos(pendulos);
+                
+                // Converter dados dos pêndulos para formato do topo
+                const dadosConvertidos = {};
+                Object.entries(pendulos).forEach(([id, dados]) => {
+                    dadosConvertidos[id] = [
+                        dados[0], // falha
+                        dados[0], // ponto quente (usando mesmo valor de falha por simplicidade)
+                        dados[2], // nivel (ativo)
+                        dados[3]  // temperatura
+                    ];
+                });
                 setDadosTopo(dadosConvertidos);
                 
                 // Usar layout da configuração ou gerar automaticamente
-                const config = dadosArmazemTopo.configuracao?.layout_topo;
                 const layout = config || gerarLayoutAutomatico(pendulos);
                 setLayoutTopo(layout);
                 
             } catch (error) {
-                console.error('Erro ao carregar dados:', error);
-                
-                // Fallback para dados de exemplo em caso de erro
-                const pendulos = {};
-                const dadosConvertidos = {};
-                
-                for (let i = 1; i <= 20; i++) {
-                    const temp = 20 + Math.random() * 15;
-                    const falha = Math.random() < 0.1;
-                    const pontoQuente = temp > 35;
-                    
-                    pendulos[i.toString()] = [falha, pontoQuente, true, temp];
-                    dadosConvertidos[i.toString()] = [falha, pontoQuente, true, temp];
-                }
-                
-                setDadosPendulos(pendulos);
-                setDadosTopo(dadosConvertidos);
-                setLayoutTopo(gerarLayoutAutomatico(pendulos));
-                
+                console.error('Erro ao processar dados:', error);
             } finally {
                 setCarregando(false);
             }
         };
 
-        carregarDados();
+        processarDados();
     }, []);
 
     // Atualizar quando arco atual mudar
@@ -614,9 +528,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     function atualizarCabos() {
         Object.entries(dadosTopo).forEach(([idCabo, dados]) => {
-            // Verificar se dados é array válido
-            if (!Array.isArray(dados) || dados.length < 4) return;
-            
             const [falha, pontoQuente, nivel, temperatura] = dados;
             
             const circulo = document.getElementById(`c_cabo_${idCabo}`);
@@ -704,7 +615,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function corTemperatura(temp) {
-        if (temp === -1000 || temp === 0) return "#ff0000"; // erro
         if (temp < 12) return "#0384fc";
         else if (temp < 15) return "#03e8fc";
         else if (temp < 17) return "#03fcbe";
@@ -799,6 +709,8 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                                 className="d-flex justify-content-center"
                                 style={{ minHeight: '750px' }}
                             />
+
+                            
                         </div>
                     </div>
                 </div>
