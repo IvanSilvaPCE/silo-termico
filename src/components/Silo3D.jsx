@@ -86,22 +86,7 @@ const Cabo3D = ({ position, pendulo, sensores, alturaSilo, raioSilo }) => {
               <meshStandardMaterial color="#666666" />
             </mesh>
 
-            {/* Temperatura flutuante sempre visível */}
-            <Billboard position={[0.4, 0, 0]}>
-              <Text
-                fontSize={0.08}
-                color={sensor.falha ? "#ff0000" : "#ffffff"}
-                anchorX="center"
-                anchorY="middle"
-                outlineWidth={0.03}
-                outlineColor="#000000"
-                material-depthTest={false}
-                material-depthWrite={false}
-                renderOrder={1000}
-              >
-                {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
-              </Text>
-            </Billboard>
+            
           </group>
         );
       })}
@@ -460,6 +445,53 @@ const Silo3D = ({ dados }) => {
             raioSilo={raioSilo}
           />
         ))}
+
+        {/* Grupo especial para temperaturas sempre visíveis */}
+        <group renderOrder={1000}>
+          {Object.entries(leitura).map(([pendulo, sensores], index) => {
+            const sensoresArray = Object.entries(sensores).map(([key, valores]) => ({
+              numero: parseInt(key),
+              temp: parseFloat(valores[0]),
+              falha: valores[3],
+              ativo: valores[4]
+            }));
+
+            const topoSilo = alturaSilo;
+            const baseSilo = 0.3;
+            const alturaCabo = topoSilo - baseSilo;
+            const espacamentoSensores = alturaCabo / (sensoresArray.length + 1);
+
+            return sensoresArray.map((sensor, sensorIndex) => {
+              const yPos = topoSilo - ((sensorIndex + 1) * espacamentoSensores);
+              const position = [
+                cabosPositions[index][0] + 0.6,
+                yPos,
+                cabosPositions[index][2]
+              ];
+
+              return (
+                <Billboard key={`temp-${pendulo}-${sensor.numero}`} position={position}>
+                  <Text
+                    fontSize={0.15}
+                    color={sensor.falha ? "#ff0000" : "#00ff00"}
+                    anchorX="center"
+                    anchorY="middle"
+                    outlineWidth={0.05}
+                    outlineColor="#000000"
+                  >
+                    <meshBasicMaterial 
+                      attach="material" 
+                      transparent 
+                      depthTest={false}
+                      depthWrite={false}
+                    />
+                    {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
+                  </Text>
+                </Billboard>
+              );
+            });
+          })}
+        </group>
 
         {/* Aeradores */}
         {aeradoresPositions.map((position, index) => (
