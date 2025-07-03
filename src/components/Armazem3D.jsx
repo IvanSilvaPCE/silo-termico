@@ -27,67 +27,63 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
     <group ref={grupoRef} position={position}>
       {/* Cabo principal - do teto até próximo ao chão */}
       <mesh position={[0, alturaArmazem / 2, 0]}>
-        <cylinderGeometry args={[0.018, 0.018, alturaArmazem * 0.9, 12]} />
-        <meshStandardMaterial color="#2c2c2c" metalness={0.7} roughness={0.3} />
+        <cylinderGeometry args={[0.025, 0.025, alturaArmazem * 0.9, 12]} />
+        <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
       </mesh>
 
       {/* Nome do pêndulo na base, fora do armazém */}
       <Billboard position={[0, -0.8, 0]}>
         <mesh>
-          <planeGeometry args={[0.6, 0.25]} />
-          <meshStandardMaterial color="#3A78FD" />
+          <planeGeometry args={[0.8, 0.3]} />
+          <meshStandardMaterial 
+            color="#3A78FD" 
+            metalness={0.2}
+            roughness={0.8}
+          />
         </mesh>
         <Text
           position={[0, 0, 0.01]}
-          fontSize={0.08}
+          fontSize={0.1}
           color="white"
           anchorX="center"
           anchorY="middle"
+          fontWeight="bold"
         >
           C{numero}
         </Text>
       </Billboard>
 
-      {/* Sensores ao longo do cabo com instancing */}
-      <Instances>
-        <boxGeometry args={[0.2, 0.1, 0.1]} />
-        <meshStandardMaterial />
-        {Object.entries(sensores).map(([sensorKey, valores], index) => {
-          const s = parseInt(sensorKey);
-          const [temp, , , falha, nivel] = valores;
-          const yPos = alturaArmazem * 0.8 - (s * espacamentoSensores);
-          const cor = nivel ? corFaixaExata(temp) : "#cccccc";
-
-          return (
-            <Instance 
-              key={s} 
-              position={[0, yPos, 0]}
-              color={cor}
-            />
-          );
-        })}
-      </Instances>
-
-      {/* Apenas textos dos sensores importantes */}
-      {Object.entries(sensores).slice(0, 3).map(([sensorKey, valores], index) => {
+      {/* Sensores ao longo do cabo com geometria individual para melhor visualização */}
+      {Object.entries(sensores).map(([sensorKey, valores], index) => {
         const s = parseInt(sensorKey);
-        const [temp, , , falha] = valores;
+        const [temp, , , falha, nivel] = valores;
         const yPos = alturaArmazem * 0.8 - (s * espacamentoSensores);
+        const cor = nivel ? corFaixaExata(temp) : "#cccccc";
 
         return (
-          <Billboard key={`text-${s}`} position={[0.2, yPos, 0]}>
-            <Text
-              fontSize={0.04}
-              color={falha ? "#ff0000" : "#ffffff"}
-              anchorX="center"
-              anchorY="middle"
-              depthTest={false} // Garante que o texto sempre apareça na frente
-            >
-              {falha ? "ERR" : temp.toFixed(0) + "°"}
-            </Text>
-          </Billboard>
+          <group key={s} position={[0, yPos, 0]}>
+            {/* Corpo do sensor */}
+            <mesh>
+              <boxGeometry args={[0.25, 0.12, 0.12]} />
+              <meshStandardMaterial 
+                color={cor}
+                emissive={falha ? "#ff0000" : cor}
+                emissiveIntensity={falha ? 0.5 : 0.2}
+                metalness={0.3}
+                roughness={0.7}
+              />
+            </mesh>
+
+            {/* Antena do sensor */}
+            <mesh position={[0, 0.08, 0]}>
+              <cylinderGeometry args={[0.01, 0.01, 0.08, 8]} />
+              <meshStandardMaterial color="#666666" />
+            </mesh>
+          </group>
         );
       })}
+
+      
 
       {/* Peso na extremidade */}
       <mesh position={[0, 0.2, 0]}>
@@ -472,6 +468,46 @@ const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
           />
         );
       })}
+
+      {/* Grupo especial para temperaturas sempre visíveis */}
+      <group renderOrder={1000}>
+        {celulaPositions.map((celulaInfo) => {
+          const sensoresData = dados.leitura[celulaInfo.numero.toString()] || {};
+          const espacamentoSensores = (alturaArmazem * 0.7) / (Object.keys(sensoresData).length + 1);
+
+          return Object.entries(sensoresData).map(([sensorKey, valores], index) => {
+            const s = parseInt(sensorKey);
+            const [temp, , , falha] = valores;
+            const yPos = alturaArmazem * 0.8 - (s * espacamentoSensores);
+            const position = [
+              celulaInfo.position[0] + 0.4,
+              yPos,
+              celulaInfo.position[2]
+            ];
+
+            return (
+              <Billboard key={`temp-${celulaInfo.numero}-${s}`} position={position}>
+                <Text
+                  fontSize={0.12}
+                  color={falha ? "#ff0000" : "#00ff00"}
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.04}
+                  outlineColor="#000000"
+                >
+                  <meshBasicMaterial 
+                    attach="material" 
+                    transparent 
+                    depthTest={false}
+                    depthWrite={false}
+                  />
+                  {falha ? "ERR" : `${temp.toFixed(1)}°C`}
+                </Text>
+              </Billboard>
+            );
+          });
+        })}
+      </group>
 
       {/* Motores */}
       {motoresPositions.map((motorInfo, index) => (
