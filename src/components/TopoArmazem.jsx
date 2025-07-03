@@ -24,25 +24,59 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 }
                 const dadosArmazemTopo = await response.json();
                 
-                // Usar dados do arquivo JSON
-                const pendulos = dadosArmazemTopo.pendulos;
-                const config = dadosArmazemTopo.configuracao?.layout_topo;
+                // Processar nova estrutura de dados com arcos
+                let pendulos = {};
+                let dadosConvertidos = {};
+                
+                if (dadosArmazemTopo.arcos) {
+                    // Nova estrutura com arcos
+                    Object.entries(dadosArmazemTopo.arcos).forEach(([arcoId, arcoData]) => {
+                        Object.entries(arcoData).forEach(([celulaId, celulaData]) => {
+                            Object.entries(celulaData).forEach(([penduloId, penduloData]) => {
+                                Object.entries(penduloData).forEach(([sensorId, sensorData]) => {
+                                    const penduloUnicoId = `${arcoId}_${celulaId}_${penduloId}_${sensorId}`;
+                                    
+                                    // sensorData = [temperatura, nivel1, nivel2, nivel3, ativo]
+                                    const temperatura = sensorData[0] || 0;
+                                    const ativo = sensorData[4] !== undefined ? sensorData[4] : true;
+                                    const falha = temperatura === 0 || temperatura === -1000;
+                                    const pontoQuente = temperatura > 35;
+                                    
+                                    pendulos[penduloUnicoId] = [
+                                        falha,
+                                        pontoQuente,
+                                        ativo,
+                                        temperatura
+                                    ];
+                                    
+                                    dadosConvertidos[penduloUnicoId] = [
+                                        falha,
+                                        pontoQuente,
+                                        ativo,
+                                        temperatura
+                                    ];
+                                });
+                            });
+                        });
+                    });
+                } else if (dadosArmazemTopo.pendulos) {
+                    // Estrutura antiga com pendulos
+                    pendulos = dadosArmazemTopo.pendulos;
+                    Object.entries(pendulos).forEach(([id, dados]) => {
+                        dadosConvertidos[id] = [
+                            dados[0], // falha
+                            dados[0], // ponto quente (usando mesmo valor de falha por simplicidade)
+                            dados[2], // nivel (ativo)
+                            dados[3]  // temperatura
+                        ];
+                    });
+                }
                 
                 setDadosPendulos(pendulos);
-                
-                // Converter dados dos pêndulos para formato do topo
-                const dadosConvertidos = {};
-                Object.entries(pendulos).forEach(([id, dados]) => {
-                    dadosConvertidos[id] = [
-                        dados[0], // falha
-                        dados[0], // ponto quente (usando mesmo valor de falha por simplicidade)
-                        dados[2], // nivel (ativo)
-                        dados[3]  // temperatura
-                    ];
-                });
                 setDadosTopo(dadosConvertidos);
                 
                 // Usar layout da configuração ou gerar automaticamente
+                const config = dadosArmazemTopo.configuracao?.layout_topo;
                 const layout = config || gerarLayoutAutomatico(pendulos);
                 setLayoutTopo(layout);
                 
@@ -621,6 +655,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function corTemperatura(temp) {
+        if (temp === -1000 || temp === 0) return "#ff0000"; // erro
         if (temp < 12) return "#0384fc";
         else if (temp < 15) return "#03e8fc";
         else if (temp < 17) return "#03fcbe";
