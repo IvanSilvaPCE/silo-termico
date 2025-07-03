@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import dadosArmazemTopo from '../dadosArmazemTopo';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
@@ -14,65 +13,91 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     // Carregar e processar dados
     useEffect(() => {
-        const processarDados = async () => {
+        const carregarDados = async () => {
             try {
                 setCarregando(true);
                 
-                // Carregar dados do arquivo JSON
+                // Carregar dados do JSON via fetch
                 const response = await fetch('/dadosArmazemTopo.json');
                 if (!response.ok) {
-                    throw new Error('Erro ao carregar dados');
+                    throw new Error(`Erro ao carregar dados: ${response.status}`);
                 }
                 const dadosArmazemTopo = await response.json();
                 
-                // Processar nova estrutura de dados com arcos
+                // Processar dados com suporte para ambas as estruturas
                 let pendulos = {};
                 let dadosConvertidos = {};
                 
+                // Verificar se tem a nova estrutura com arcos
                 if (dadosArmazemTopo.arcos) {
-                    // Nova estrutura com arcos
+                    // Processar nova estrutura
                     Object.entries(dadosArmazemTopo.arcos).forEach(([arcoId, arcoData]) => {
                         Object.entries(arcoData).forEach(([celulaId, celulaData]) => {
                             Object.entries(celulaData).forEach(([penduloId, penduloData]) => {
                                 Object.entries(penduloData).forEach(([sensorId, sensorData]) => {
                                     const penduloUnicoId = `${arcoId}_${celulaId}_${penduloId}_${sensorId}`;
                                     
-                                    // sensorData = [temperatura, nivel1, nivel2, nivel3, ativo]
-                                    const temperatura = sensorData[0] || 0;
-                                    const ativo = sensorData[4] !== undefined ? sensorData[4] : true;
-                                    const falha = temperatura === 0 || temperatura === -1000;
-                                    const pontoQuente = temperatura > 35;
-                                    
-                                    pendulos[penduloUnicoId] = [
-                                        falha ? 1 : 0,
-                                        pontoQuente ? 1 : 0,
-                                        ativo ? 1 : 0,
-                                        temperatura
-                                    ];
-                                    
-                                    dadosConvertidos[penduloUnicoId] = [
-                                        falha ? 1 : 0,
-                                        pontoQuente ? 1 : 0,
-                                        ativo ? 1 : 0,
-                                        temperatura
-                                    ];
+                                    // Verificar se sensorData é array válido
+                                    if (Array.isArray(sensorData) && sensorData.length >= 5) {
+                                        const temperatura = sensorData[0] || 0;
+                                        const ativo = sensorData[4] !== undefined ? sensorData[4] : true;
+                                        const falha = temperatura === 0 || temperatura === -1000;
+                                        const pontoQuente = temperatura > 35;
+                                        
+                                        pendulos[penduloUnicoId] = [
+                                            falha,      // falha
+                                            pontoQuente, // ponto quente
+                                            ativo,      // ativo
+                                            temperatura // temperatura
+                                        ];
+                                        
+                                        dadosConvertidos[penduloUnicoId] = [
+                                            falha,
+                                            pontoQuente,
+                                            ativo,
+                                            temperatura
+                                        ];
+                                    } else {
+                                        // Dados inválidos - usar padrão
+                                        pendulos[penduloUnicoId] = [true, false, false, 0]; // falha, sem ponto quente, inativo, temp 0
+                                        dadosConvertidos[penduloUnicoId] = [true, false, false, 0];
+                                    }
                                 });
                             });
                         });
                     });
-                } else if (dadosArmazemTopo.pendulos) {
-                    // Estrutura antiga com pendulos
-                    pendulos = dadosArmazemTopo.pendulos;
-                    Object.entries(pendulos).forEach(([id, dados]) => {
-                        if (dados && dados.length >= 4) {
+                }
+                
+                // Se não há arcos ou se arcos estão vazios, usar estrutura antiga
+                if (Object.keys(pendulos).length === 0 && dadosArmazemTopo.pendulos) {
+                    Object.entries(dadosArmazemTopo.pendulos).forEach(([id, dados]) => {
+                        // Verificar se dados é array válido
+                        if (Array.isArray(dados) && dados.length >= 4) {
+                            pendulos[id] = dados;
                             dadosConvertidos[id] = [
-                                dados[0] ? 1 : 0, // falha
-                                dados[1] ? 1 : 0, // ponto quente 
-                                dados[2] ? 1 : 0, // nivel (ativo)
-                                dados[3] || 0  // temperatura
+                                dados[0] || false, // falha
+                                dados[1] || false, // ponto quente
+                                dados[2] !== undefined ? dados[2] : true, // ativo
+                                dados[3] || 0      // temperatura
                             ];
+                        } else {
+                            // Dados inválidos - usar padrão
+                            pendulos[id] = [false, false, true, 20];
+                            dadosConvertidos[id] = [false, false, true, 20];
                         }
                     });
+                }
+                
+                // Se ainda não há dados, gerar dados de exemplo
+                if (Object.keys(pendulos).length === 0) {
+                    for (let i = 1; i <= 20; i++) {
+                        const temp = 20 + Math.random() * 15;
+                        const falha = Math.random() < 0.1;
+                        const pontoQuente = temp > 35;
+                        
+                        pendulos[i.toString()] = [falha, pontoQuente, true, temp];
+                        dadosConvertidos[i.toString()] = [falha, pontoQuente, true, temp];
+                    }
                 }
                 
                 setDadosPendulos(pendulos);
@@ -84,13 +109,31 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 setLayoutTopo(layout);
                 
             } catch (error) {
-                console.error('Erro ao processar dados:', error);
+                console.error('Erro ao carregar dados:', error);
+                
+                // Fallback para dados de exemplo em caso de erro
+                const pendulos = {};
+                const dadosConvertidos = {};
+                
+                for (let i = 1; i <= 20; i++) {
+                    const temp = 20 + Math.random() * 15;
+                    const falha = Math.random() < 0.1;
+                    const pontoQuente = temp > 35;
+                    
+                    pendulos[i.toString()] = [falha, pontoQuente, true, temp];
+                    dadosConvertidos[i.toString()] = [falha, pontoQuente, true, temp];
+                }
+                
+                setDadosPendulos(pendulos);
+                setDadosTopo(dadosConvertidos);
+                setLayoutTopo(gerarLayoutAutomatico(pendulos));
+                
             } finally {
                 setCarregando(false);
             }
         };
 
-        processarDados();
+        carregarDados();
     }, []);
 
     // Atualizar quando arco atual mudar
@@ -112,103 +155,60 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }, [layoutTopo, dadosTopo, arcoSelecionado, celulaSelecionada]);
 
     function gerarLayoutAutomatico(pendulos) {
-        if (!pendulos || Object.keys(pendulos).length === 0) {
-            // Layout padrão mínimo se não houver dados
-            return {
-                celulas: {
-                    tamanho_svg: [345, 355],
-                    fundo: [5, 49, 310, 256],
-                    "1": [5, 50, 173, 254],
-                    "2": [182, 50, 132, 254]
-                },
-                aeradores: {
-                    "1": [64, 0, 1],
-                    "2": [64, 305, 0],
-                    "3": [224, 0, 1],
-                    "4": [224, 305, 0]
-                }
-            };
-        }
-
         const totalPendulos = Object.keys(pendulos).length;
+        const pendulosPorArco = 3;
+        const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
         
-        // Estimativa de arcos baseada na quantidade de sensores
-        // Se for estrutura nova (ID complexo), contar arcos únicos
-        const idsComplexos = Object.keys(pendulos).filter(id => id.includes('_'));
-        let totalArcos;
-        
-        if (idsComplexos.length > 0) {
-            // Extrair números únicos de arcos dos IDs
-            const arcosUnicos = new Set();
-            idsComplexos.forEach(id => {
-                const arcoId = id.split('_')[0];
-                arcosUnicos.add(parseInt(arcoId));
-            });
-            totalArcos = arcosUnicos.size;
-        } else {
-            // Estrutura antiga - estimar arcos
-            totalArcos = Math.min(Math.ceil(totalPendulos / 5), 7); // Máximo 7 arcos baseado nos novos dados
-        }
-
-        // Layout com 2 células (conforme novos dados)
-        const larguraTotal = Math.max(345, totalArcos * 40 + 50);
         const layout = {
             celulas: {
-                tamanho_svg: [larguraTotal, 355],
-                fundo: [5, 49, larguraTotal - 35, 256],
-                "1": [5, 50, Math.floor((larguraTotal - 35) * 0.55), 254],
-                "2": [Math.floor((larguraTotal - 35) * 0.55) + 10, 50, Math.floor((larguraTotal - 35) * 0.45), 254]
+                tamanho_svg: [600, 388],
+                fundo: [5, 49, 590, 256],
+                "1": [10, 50, 188, 254],
+                "2": [207, 50, 186, 254], 
+                "3": [402, 50, 188, 254]
             },
             aeradores: {
-                "1": [64, 0, 1],
-                "2": [64, 305, 0],
-                "3": [Math.floor(larguraTotal * 0.65), 0, 1],
-                "4": [Math.floor(larguraTotal * 0.65), 305, 0]
+                "1": [65, 0, 1], "2": [154, 0, 1], "3": [240, 0, 1], "4": [329, 0, 1], "5": [416, 0, 1],
+                "6": [65, 305, 0], "7": [154, 305, 0], "8": [240, 305, 0], "9": [329, 305, 0], "10": [416, 305, 0]
             }
         };
 
-        // Distribuir arcos entre as 2 células
-        const arcosParaCelula1 = Math.ceil(totalArcos / 2);
+        // Distribuir arcos entre as 3 células
+        const arcosParaCelula = Math.ceil(totalArcos / 3);
         
-        // Distribuir sensores em arcos
+        // Distribuir pêndulos em arcos com posicionamento alternado
         const pendulosArray = Object.entries(pendulos);
-        let posX = 40;
-        const espacamentoArco = 40;
+        let posX = 30;
+        const espacamentoArco = 30;
         
         for (let arco = 1; arco <= totalArcos; arco++) {
-            // Determinar célula (1 ou 2)
-            const celula = arco <= arcosParaCelula1 ? 1 : 2;
+            // Determinar qual célula (1, 2 ou 3)
+            let celula;
+            if (arco <= arcosParaCelula) celula = 1;
+            else if (arco <= arcosParaCelula * 2) celula = 2;
+            else celula = 3;
             
-            // Pegar sensores deste arco
-            const sensoresDoArco = pendulosArray.filter(([id]) => {
-                if (id.includes('_')) {
-                    return id.startsWith(`${arco}_`);
-                }
-                // Para estrutura antiga, distribuir sequencialmente
-                const index = pendulosArray.findIndex(([pid]) => pid === id);
-                const arcoEstimado = Math.floor(index / 5) + 1;
-                return arcoEstimado === arco;
-            });
+            const pendulosDoArco = pendulosArray.slice((arco - 1) * pendulosPorArco, arco * pendulosPorArco);
             
             const sensores = {};
-            sensoresDoArco.forEach(([id], index) => {
-                // Posicionamento vertical alternado
+            pendulosDoArco.forEach(([id], index) => {
+                // Alternância de posição: arcos ímpares para cima, pares para baixo
                 let posY;
                 if (arco % 2 === 1) {
-                    posY = 75 + (index * 50);
+                    // Arcos ímpares: posições mais para cima
+                    posY = 80 + (index * 40);
                 } else {
-                    posY = 100 + (index * 50);
+                    // Arcos pares: posições mais para baixo
+                    posY = 140 + (index * 40);
                 }
                 sensores[id] = posY;
             });
 
-            if (Object.keys(sensores).length > 0) {
-                layout[arco] = {
-                    celula: celula,
-                    pos_x: posX,
-                    sensores: sensores
-                };
-            }
+            layout[arco] = {
+                celula: celula,
+                pos_x: posX,
+                sensores: sensores
+            };
 
             posX += espacamentoArco;
         }
@@ -614,6 +614,9 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     function atualizarCabos() {
         Object.entries(dadosTopo).forEach(([idCabo, dados]) => {
+            // Verificar se dados é array válido
+            if (!Array.isArray(dados) || dados.length < 4) return;
+            
             const [falha, pontoQuente, nivel, temperatura] = dados;
             
             const circulo = document.getElementById(`c_cabo_${idCabo}`);
@@ -796,8 +799,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                                 className="d-flex justify-content-center"
                                 style={{ minHeight: '750px' }}
                             />
-
-                            
                         </div>
                     </div>
                 </div>
