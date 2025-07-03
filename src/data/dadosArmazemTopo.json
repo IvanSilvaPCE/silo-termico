@@ -1,0 +1,157 @@
+
+{
+  "metadata": {
+    "timestamp": "2025-06-30 10:02:23",
+    "version": "1.0"
+  },
+  "ambiente": {
+    "temperatura_ambiente": 27.8,
+    "umidade": 14.5,
+    "temperatura_maxima": 29,
+    "temperatura_minima": 20.5
+  },
+  "armazem": {
+    "nivel_horizontal": "992",
+    "volume_horizontal": "1000",
+    "cultura": "2",
+    "fluxo_cv": "0",
+    "controle_ma": "0",
+    "nivel": 99.2,
+    "volume": "1000",
+    "fluxo_ma": "",
+    "estado_ma": "",
+    "aeracao": "30,30,30,30"
+  },
+  "sensores": {
+    "1": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "2": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "3": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "4": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "5": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "6": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "7": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "8": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28 },
+    "9": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "10": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28 },
+    "11": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 29 },
+    "12": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "13": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "14": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "15": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "16": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "17": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "18": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "19": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "20": { "falha": true, "ponto_quente": false, "ativo": true, "temperatura": 28 },
+    "21": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "22": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "23": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28 },
+    "24": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27 },
+    "25": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 26.5 },
+    "26": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28 },
+    "27": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28 },
+    "28": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "29": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "30": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "31": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27 },
+    "32": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27 },
+    "33": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 26.5 },
+    "34": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 26.5 },
+    "35": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27.5 },
+    "36": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 26 },
+    "37": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 26 },
+    "38": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27 },
+    "39": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 27 },
+    "40": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "41": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 29 },
+    "42": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "43": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "44": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 29 },
+    "45": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 29 },
+    "46": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "47": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 29.5 },
+    "48": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "49": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "50": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 29.5 },
+    "51": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "52": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 34 },
+    "53": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "54": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 30.5 },
+    "55": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 },
+    "56": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 28.5 },
+    "57": { "falha": false, "ponto_quente": false, "ativo": true, "temperatura": 0 }
+  },
+  "layout": {
+    "dimensoes": {
+      "largura_svg": 600,
+      "altura_svg": 388
+    },
+    "fundo": {
+      "x": 5,
+      "y": 49,
+      "largura": 590,
+      "altura": 256
+    },
+    "celulas": [
+      {
+        "id": 1,
+        "x": 5,
+        "y": 50,
+        "largura": 188,
+        "altura": 254
+      },
+      {
+        "id": 2,
+        "x": 197,
+        "y": 50,
+        "largura": 206,
+        "altura": 254
+      },
+      {
+        "id": 3,
+        "x": 407,
+        "y": 50,
+        "largura": 188,
+        "altura": 254
+      }
+    ],
+    "arcos": [
+      { "id": 1, "celula": 1, "pos_x": 30, "sensores": [{ "id": 1, "pos_y": 75 }, { "id": 2, "pos_y": 150 }, { "id": 3, "pos_y": 225 }] },
+      { "id": 2, "celula": 1, "pos_x": 60, "sensores": [{ "id": 4, "pos_y": 125 }, { "id": 5, "pos_y": 200 }, { "id": 6, "pos_y": 275 }] },
+      { "id": 3, "celula": 1, "pos_x": 90, "sensores": [{ "id": 7, "pos_y": 75 }, { "id": 8, "pos_y": 150 }, { "id": 9, "pos_y": 225 }] },
+      { "id": 4, "celula": 1, "pos_x": 120, "sensores": [{ "id": 10, "pos_y": 125 }, { "id": 11, "pos_y": 200 }, { "id": 12, "pos_y": 275 }] },
+      { "id": 5, "celula": 1, "pos_x": 150, "sensores": [{ "id": 13, "pos_y": 75 }, { "id": 14, "pos_y": 150 }, { "id": 15, "pos_y": 225 }] },
+      { "id": 6, "celula": 1, "pos_x": 180, "sensores": [{ "id": 16, "pos_y": 125 }, { "id": 17, "pos_y": 200 }, { "id": 18, "pos_y": 275 }] },
+      { "id": 7, "celula": 2, "pos_x": 210, "sensores": [{ "id": 19, "pos_y": 75 }, { "id": 20, "pos_y": 150 }, { "id": 21, "pos_y": 225 }] },
+      { "id": 8, "celula": 2, "pos_x": 240, "sensores": [{ "id": 22, "pos_y": 125 }, { "id": 23, "pos_y": 200 }, { "id": 24, "pos_y": 275 }] },
+      { "id": 9, "celula": 2, "pos_x": 270, "sensores": [{ "id": 25, "pos_y": 75 }, { "id": 26, "pos_y": 150 }, { "id": 27, "pos_y": 225 }] },
+      { "id": 10, "celula": 2, "pos_x": 300, "sensores": [{ "id": 28, "pos_y": 125 }, { "id": 29, "pos_y": 200 }, { "id": 30, "pos_y": 275 }] },
+      { "id": 11, "celula": 2, "pos_x": 330, "sensores": [{ "id": 31, "pos_y": 75 }, { "id": 32, "pos_y": 150 }, { "id": 33, "pos_y": 225 }] },
+      { "id": 12, "celula": 2, "pos_x": 360, "sensores": [{ "id": 34, "pos_y": 125 }, { "id": 35, "pos_y": 200 }, { "id": 36, "pos_y": 275 }] },
+      { "id": 13, "celula": 2, "pos_x": 390, "sensores": [{ "id": 37, "pos_y": 75 }, { "id": 38, "pos_y": 150 }, { "id": 39, "pos_y": 225 }] },
+      { "id": 14, "celula": 3, "pos_x": 420, "sensores": [{ "id": 40, "pos_y": 125 }, { "id": 41, "pos_y": 200 }, { "id": 42, "pos_y": 275 }] },
+      { "id": 15, "celula": 3, "pos_x": 450, "sensores": [{ "id": 43, "pos_y": 75 }, { "id": 44, "pos_y": 150 }, { "id": 45, "pos_y": 225 }] },
+      { "id": 16, "celula": 3, "pos_x": 480, "sensores": [{ "id": 46, "pos_y": 125 }, { "id": 47, "pos_y": 200 }, { "id": 48, "pos_y": 275 }] },
+      { "id": 17, "celula": 3, "pos_x": 510, "sensores": [{ "id": 49, "pos_y": 75 }, { "id": 50, "pos_y": 150 }, { "id": 51, "pos_y": 225 }] },
+      { "id": 18, "celula": 3, "pos_x": 540, "sensores": [{ "id": 52, "pos_y": 125 }, { "id": 53, "pos_y": 200 }, { "id": 54, "pos_y": 275 }] },
+      { "id": 19, "celula": 3, "pos_x": 570, "sensores": [{ "id": 55, "pos_y": 75 }, { "id": 56, "pos_y": 150 }, { "id": 57, "pos_y": 225 }] }
+    ],
+    "aeradores": [
+      { "id": 1, "x": 28, "y": 305, "tipo": 0 },
+      { "id": 2, "x": 104, "y": 305, "tipo": 0 },
+      { "id": 3, "x": 165, "y": 305, "tipo": 0 },
+      { "id": 4, "x": 88, "y": 340, "tipo": 0 },
+      { "id": 5, "x": 88, "y": 0, "tipo": 1 },
+      { "id": 6, "x": 224, "y": 305, "tipo": 0 },
+      { "id": 7, "x": 284, "y": 305, "tipo": 0 },
+      { "id": 8, "x": 344, "y": 305, "tipo": 0 },
+      { "id": 9, "x": 284, "y": 340, "tipo": 0 },
+      { "id": 10, "x": 284, "y": 0, "tipo": 1 },
+      { "id": 11, "x": 404, "y": 305, "tipo": 0 },
+      { "id": 12, "x": 464, "y": 305, "tipo": 0 },
+      { "id": 13, "x": 538, "y": 305, "tipo": 0 },
+      { "id": 14, "x": 478, "y": 340, "tipo": 0 },
+      { "id": 15, "x": 478, "y": 0, "tipo": 1 }
+    ]
+  }
+}

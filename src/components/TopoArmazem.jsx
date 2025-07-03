@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import dadosArmazemTopo from '../dadosArmazemTopo';
+import armazemDataLoader from '../utils/armazemDataLoader';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
@@ -14,34 +14,31 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     // Carregar e processar dados
     useEffect(() => {
-        const processarDados = () => {
+        const processarDados = async () => {
             try {
                 setCarregando(true);
                 
-                // Usar dados do arquivo ou configuração
-                const pendulos = dadosArmazemTopo.pendulos;
-                const config = dadosArmazemTopo.configuracao?.layout_topo;
+                // Carregar dados do JSON (simulando API)
+                const dadosJSON = await armazemDataLoader.carregarDados();
                 
-                setDadosPendulos(pendulos);
+                if (!armazemDataLoader.validarEstrutura(dadosJSON)) {
+                    throw new Error('Estrutura de dados inválida');
+                }
                 
-                // Converter dados dos pêndulos para formato do topo
-                const dadosConvertidos = {};
-                Object.entries(pendulos).forEach(([id, dados]) => {
-                    dadosConvertidos[id] = [
-                        dados[0], // falha
-                        dados[0], // ponto quente (usando mesmo valor de falha por simplicidade)
-                        dados[2], // nivel (ativo)
-                        dados[3]  // temperatura
-                    ];
-                });
-                setDadosTopo(dadosConvertidos);
+                // Processar dados para o componente de topo
+                const dadosProcessados = armazemDataLoader.processarParaTopo(dadosJSON);
                 
-                // Usar layout da configuração ou gerar automaticamente
-                const layout = config || gerarLayoutAutomatico(pendulos);
-                setLayoutTopo(layout);
+                setDadosPendulos(dadosProcessados.sensores);
+                setDadosTopo(dadosProcessados.sensores);
+                setLayoutTopo(dadosProcessados.layout);
                 
             } catch (error) {
                 console.error('Erro ao processar dados:', error);
+                
+                // Usar layout automático como fallback
+                const dadosFallback = armazemDataLoader.getDadosFallback();
+                const layoutFallback = gerarLayoutAutomatico({ "1": [false, false, true, 25] });
+                setLayoutTopo(layoutFallback);
             } finally {
                 setCarregando(false);
             }
