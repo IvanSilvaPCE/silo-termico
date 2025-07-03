@@ -413,20 +413,26 @@ const ArmazemStructure3D = ({
       {tipoSelecao === "celula" && celulaSelecionada && (
         <mesh
           position={[
-            0,
-            alturaArmazem / 2,
+            // Posição X baseada na célula selecionada (divisão lateral)
             celulaSelecionada === 1
-              ? -profundidadeArmazem / 3
+              ? -larguraArmazem / 2 + (larguraArco * 3) // Célula 1: arcos 1-6
               : celulaSelecionada === 2
-                ? 0
-                : profundidadeArmazem / 3,
+                ? -larguraArco * 3.5 // Célula 2: arcos 7-13  
+                : larguraArmazem / 2 - (larguraArco * 3), // Célula 3: arcos 14-19
+            alturaArmazem / 2,
+            0, // Centrado em Z
           ]}
         >
           <boxGeometry
             args={[
-              larguraArmazem + 0.5,
+              // Largura baseada no número de arcos por célula
+              celulaSelecionada === 1
+                ? larguraArco * 6 + 0.5 // 6 arcos (1-6)
+                : celulaSelecionada === 2
+                  ? larguraArco * 7 + 0.5 // 7 arcos (7-13)
+                  : larguraArco * 6 + 0.5, // 6 arcos (14-19)
               alturaArmazem + 0.5,
-              profundidadeArmazem / 3 + 0.2,
+              profundidadeArmazem + 0.5,
             ]}
           />
           <meshStandardMaterial
@@ -487,23 +493,24 @@ const ArmazemCompleto3D = ({
       const xArco =
         -larguraArmazem / 2 + (arco - 1) * larguraArco + larguraArco / 2;
 
-      // 3 pêndulos por arco
+      // Determinar célula baseado no arco (seguindo a lógica da visão topo)
+      let celulaDoArco;
+      if (arco <= 6) celulaDoArco = 1;        // Arcos 1-6: Célula 1
+      else if (arco <= 13) celulaDoArco = 2;  // Arcos 7-13: Célula 2
+      else celulaDoArco = 3;                  // Arcos 14-19: Célula 3
+
+      // 3 pêndulos por arco, todos na mesma célula
       for (let p = 0; p < pendulosPorArco; p++) {
         const numeroPendulo = (arco - 1) * pendulosPorArco + p + 1;
-        let zLocal;
-
-        // Posições dos 3 pêndulos no arco (distribuídos pelas 3 células)
-        if (p === 0)
-          zLocal = -profundidadeArmazem / 3; // Célula 1
-        else if (p === 1)
-          zLocal = 0; // Célula 2
-        else zLocal = profundidadeArmazem / 3; // Célula 3
+        
+        // Distribuir os 3 pêndulos em profundidade dentro da mesma célula
+        const zLocal = -profundidadeArmazem / 3 + (p * profundidadeArmazem / 3);
 
         positions.push({
           position: [xArco, 0, zLocal],
           numero: numeroPendulo,
           arco: arco,
-          celula: p + 1, // Célula do pêndulo (1, 2 ou 3)
+          celula: celulaDoArco, // Todos os pêndulos do arco pertencem à mesma célula
         });
       }
     }
@@ -842,10 +849,11 @@ const Armazem3D = () => {
         }}
       >
         <div>19 Arcos</div>
-        <div>3 Células</div>
-        <div>57 Pêndulos (3 por arco)</div>
+        <div>3 Células (divisão lateral)</div>
+        <div>• Célula 1: Arcos 1-6 (18 pêndulos)</div>
+        <div>• Célula 2: Arcos 7-13 (21 pêndulos)</div>
+        <div>• Célula 3: Arcos 14-19 (18 pêndulos)</div>
         <div>~12 Motores aeradores (fora do armazém)</div>
-        <div>~400 Sensores total</div>
         {tipoSelecao === "arco" && (
           <div style={{ color: "#FF6B35" }}>
             <strong>Arco {arcoSelecionado} selecionado</strong>
