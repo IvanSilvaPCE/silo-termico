@@ -217,39 +217,78 @@ export default function Silo({ dados }) {
       return somaPesos === 0 ? -1000 : somaTemp / somaPesos;
     }
 
-    // Função para verificar se um ponto está na área com grão
-    function temGraoNaPosicao(cx, cy) {
-      // Se não há nível detectado, considera toda área como sem grão
-      if (nivelMaisAlto === 0) return false;
+    // Criar mapa de níveis por cabo para contorno ondulado
+    const niveisPorCabo = {};
+    Object.entries(leitura).forEach(([pend, objSensores], idxCabo) => {
+      const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo;
+      let nivelMaisAltoNesteCabo = 0;
       
+      Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
+        const sensorIdx = parseInt(sensorKey, 10);
+        const t = parseFloat(dadosSensor[0]);
+        const ySensor = posYCabo[idxCabo] - distYSensores * sensorIdx;
+        
+        if (dadosSensor[4] && t !== -1000) { // Sensor ativo com grão
+          if (ySensor < nivelMaisAltoNesteCabo || nivelMaisAltoNesteCabo === 0) {
+            nivelMaisAltoNesteCabo = ySensor;
+          }
+        }
+      });
+      
+      niveisPorCabo[xCabo] = nivelMaisAltoNesteCabo;
+    });
+
+    // Função para verificar se um ponto está na área com grão (com contorno ondulado)
+    function temGraoNaPosicao(cx, cy) {
       const { hs } = layout.desenho_corte_silo;
       
-      // Área sempre com grão: da base até um pouco abaixo do nível mais alto
-      const margemSeguranca = 20; // pixels de margem
-      if (cy >= nivelMaisAlto + margemSeguranca && cy <= hs) {
-        return true;
+      // Encontrar os dois cabos mais próximos horizontalmente
+      const cabosOrdenados = Object.keys(niveisPorCabo)
+        .map(x => ({ x: parseFloat(x), nivel: niveisPorCabo[x] }))
+        .sort((a, b) => a.x - b.x);
+      
+      if (cabosOrdenados.length === 0) return false;
+      
+      let nivelInterpolado = 0;
+      
+      if (cabosOrdenados.length === 1) {
+        // Só tem um cabo
+        nivelInterpolado = cabosOrdenados[0].nivel;
+      } else {
+        // Interpolar entre cabos
+        let caboEsquerda = cabosOrdenados[0];
+        let caboDireita = cabosOrdenados[cabosOrdenados.length - 1];
+        
+        // Encontrar os cabos que cercam o ponto cx
+        for (let i = 0; i < cabosOrdenados.length - 1; i++) {
+          if (cx >= cabosOrdenados[i].x && cx <= cabosOrdenados[i + 1].x) {
+            caboEsquerda = cabosOrdenados[i];
+            caboDireita = cabosOrdenados[i + 1];
+            break;
+          }
+        }
+        
+        // Se cx está fora do range, usar o cabo mais próximo
+        if (cx < cabosOrdenados[0].x) {
+          nivelInterpolado = cabosOrdenados[0].nivel;
+        } else if (cx > cabosOrdenados[cabosOrdenados.length - 1].x) {
+          nivelInterpolado = cabosOrdenados[cabosOrdenados.length - 1].nivel;
+        } else {
+          // Interpolação linear entre os dois cabos
+          const distTotal = caboDireita.x - caboEsquerda.x;
+          const distAtual = cx - caboEsquerda.x;
+          const fator = distTotal === 0 ? 0 : distAtual / distTotal;
+          
+          nivelInterpolado = caboEsquerda.nivel + (caboDireita.nivel - caboEsquerda.nivel) * fator;
+        }
       }
       
-      // Área de transição: verificar sensores próximos para detectar contorno
-      if (cy >= nivelMaisAlto && cy < nivelMaisAlto + margemSeguranca) {
-        // Encontrar sensores próximos horizontalmente
-        const sensoresProximos = sensores.filter(sensor => {
-          const distHorizontal = Math.abs(sensor.x - cx);
-          return distHorizontal <= 40; // raio de influência horizontal
-        });
-        
-        if (sensoresProximos.length === 0) return false;
-        
-        // Verificar se há pelo menos um sensor ativo próximo e abaixo deste ponto
-        const temSensorAbaixo = sensoresProximos.some(sensor => {
-          const distVertical = sensor.y - cy;
-          return distVertical >= -10 && distVertical <= 30; // permite pequena variação
-        });
-        
-        return temSensorAbaixo;
-      }
+      // Se não há nível detectado nesta posição horizontal
+      if (nivelInterpolado === 0) return false;
       
-      return false;
+      // Verificar se o ponto está na área com grão
+      const margemSeguranca = 15; // pixels de margem para suavizar transição
+      return cy >= nivelInterpolado - margemSeguranca && cy <= hs;
     }
 
     for (let i = 0; i < resolucao; i++) {
