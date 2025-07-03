@@ -19,12 +19,27 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     useEffect(() => {
         const inicializarDados = async () => {
             try {
-                // Gerar dados de exemplo do ArmazemPortal
-                const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
-                setDadosPortal(dadosExemplo);
+                // Carregar dados do arquivo JSON
+                const response = await fetch('/dadosArmazemTopo.json');
+                if (!response.ok) {
+                    throw new Error(`Erro ao carregar dados: ${response.status}`);
+                }
+                const dadosArmazemReal = await response.json();
+                
+                let dadosProcessados = null;
+                
+                if (dadosArmazemReal.arcos) {
+                    // Nova estrutura com arcos - processar para formato Portal
+                    dadosProcessados = processarArcosParaPortal(dadosArmazemReal.arcos);
+                } else {
+                    // Gerar dados de exemplo se não houver arcos
+                    dadosProcessados = LayoutManager.gerarDadosExemploPortal();
+                }
+                
+                setDadosPortal(dadosProcessados);
 
                 // Analisar estrutura dos arcos
-                const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
+                const analise = LayoutManager.analisarEstruturaArcos(dadosProcessados);
                 setAnaliseArcos(analise);
 
                 // Gerar layouts automáticos
@@ -36,15 +51,66 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 setDimensoesSVG(dimensoes);
 
                 // Converter dados para o formato do armazém (arco 1 inicialmente)
-                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo, 1);
+                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosProcessados, 1);
                 setDados(dadosConvertidos);
             } catch (error) {
                 console.error('Erro ao inicializar dados:', error);
+                // Fallback para dados de exemplo
+                const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
+                setDadosPortal(dadosExemplo);
+                const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
+                setAnaliseArcos(analise);
+                const layouts = LayoutManager.gerarLayoutAutomatico(analise);
+                setLayoutsAutomaticos(layouts);
+                const dimensoes = calcularDimensoesIdeais(analise);
+                setDimensoesSVG(dimensoes);
+                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo, 1);
+                setDados(dadosConvertidos);
             }
         };
 
         inicializarDados();
     }, []);
+
+    // Função para processar estrutura de arcos para formato Portal
+    function processarArcosParaPortal(arcos) {
+        const dadosPortal = { leitura: {} };
+        
+        Object.entries(arcos).forEach(([arcoId, arcoData]) => {
+            Object.entries(arcoData).forEach(([celulaId, celulaData]) => {
+                Object.entries(celulaData).forEach(([penduloId, penduloData]) => {
+                    Object.entries(penduloData).forEach(([sensorId, sensorData]) => {
+                        // sensorData = [temperatura, nivel1, nivel2, nivel3, ativo]
+                        const temperatura = sensorData[0] || 0;
+                        const ativo = sensorData[4] !== undefined ? sensorData[4] : true;
+                        const falha = temperatura === 0 || temperatura === -1000;
+                        const pontoQuente = temperatura > 35;
+                        
+                        // Criar estrutura compatível com LayoutManager
+                        if (!dadosPortal.leitura[arcoId]) {
+                            dadosPortal.leitura[arcoId] = {};
+                        }
+                        if (!dadosPortal.leitura[arcoId][celulaId]) {
+                            dadosPortal.leitura[arcoId][celulaId] = {};
+                        }
+                        if (!dadosPortal.leitura[arcoId][celulaId][penduloId]) {
+                            dadosPortal.leitura[arcoId][celulaId][penduloId] = {};
+                        }
+                        
+                        dadosPortal.leitura[arcoId][celulaId][penduloId][sensorId] = [
+                            temperatura,
+                            falha,
+                            pontoQuente,
+                            falha,
+                            ativo
+                        ];
+                    });
+                });
+            });
+        });
+        
+        return dadosPortal;
+    }
 
     // Atualizar SVG quando dados ou modo mudarem
     useEffect(() => {
@@ -121,7 +187,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     }
 
     function corFaixaExata(t) {
-        if (t === -1000) return "#ff0000";
+        if (t === -1000 || t === 0) return "#ff0000"; // erro
         if (t < 12) return "#0384fc";
         else if (t < 15) return "#03e8fc";
         else if (t < 17) return "#03fcbe";
@@ -395,19 +461,26 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         if (!dadosArco?.leitura || !analiseArcos) return;
 
         Object.entries(dadosArco.leitura).forEach(([idCabo, sensores], penduloIndex) => {
-            Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
+            Object.entries(sensores).forEach(([s, dadosSensor]) => {
+                const [temp, falha, , , nivel] = dadosSensor;
                 const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
                 const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
                 if (!rec || !txt) return;
 
-                txt.textContent = falha ? "ERRO" : temp.toFixed(1);
+                // Se temperatura é 0 ou -1000, é erro
+                const isErro = temp === 0 || temp === -1000 || falha;
+                
+                txt.textContent = isErro ? "ERRO" : temp.toFixed(1);
+                
                 if (!nivel) {
+                    // Sensor inativo - cor cinza
                     rec.setAttribute("fill", "#e6e6e6");
                     txt.setAttribute("fill", "black");
                 } else {
+                    // Sensor ativo - usar cor baseada na temperatura
                     const cor = corFaixaExata(temp);
                     rec.setAttribute("fill", cor);
-                    txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
+                    txt.setAttribute("fill", cor === "#ff2200" || cor === "#ff0000" ? "white" : "black");
                 }
             });
         });
