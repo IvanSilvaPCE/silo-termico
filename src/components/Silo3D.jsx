@@ -476,6 +476,21 @@ const Silo3D = ({ dados }) => {
                 const espacamentoSensores = (alturaSilo - 0.3) / (sensoresArray.length + 1);
                 const yPos = alturaSilo - ((sensorIndex + 1) * espacamentoSensores);
                 
+                // Função para determinar cor baseada na temperatura
+                const corFaixaExata = (t) => {
+                  if (t === -1000) return "#ff0000";
+                  if (t < 12) return "#0384fc";
+                  else if (t < 15) return "#03e8fc";
+                  else if (t < 17) return "#03fcbe";
+                  else if (t < 21) return "#07fc03";
+                  else if (t < 25) return "#c3ff00";
+                  else if (t < 27) return "#fcf803";
+                  else if (t < 30) return "#ffb300";
+                  else if (t < 35) return "#ff2200";
+                  else if (t < 50) return "#ff0090";
+                  else return "#f700ff";
+                };
+                
                 // Só renderiza se estiver abaixo da altura do silo
                 if (yPos <= alturaSilo) {
                   const cor = ativo ? corFaixaExata(temp) : "#cccccc";
@@ -525,6 +540,21 @@ const Silo3D = ({ dados }) => {
             }));
 
             const espacamentoSensores = (alturaSilo - 0.3) / (sensoresArray.length + 1);
+
+            // Função para determinar cor baseada na temperatura
+            const corFaixaExata = (t) => {
+              if (t === -1000) return "#ff0000";
+              if (t < 12) return "#0384fc";
+              else if (t < 15) return "#03e8fc";
+              else if (t < 17) return "#03fcbe";
+              else if (t < 21) return "#07fc03";
+              else if (t < 25) return "#c3ff00";
+              else if (t < 27) return "#fcf803";
+              else if (t < 30) return "#ffb300";
+              else if (t < 35) return "#ff2200";
+              else if (t < 50) return "#ff0090";
+              else return "#f700ff";
+            };
 
             return sensoresArray.map((sensor, sensorIndex) => {
               const yPos = alturaSilo - ((sensorIndex + 1) * espacamentoSensores);

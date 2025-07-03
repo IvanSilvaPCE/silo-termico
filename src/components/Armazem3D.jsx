@@ -189,7 +189,7 @@ const Motor3D = ({ position, id, status }) => {
   );
 };
 
-const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => {
+const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, celulaSelecionada, tipoSelecao, alturaArmazem }) => {
   const larguraArco = 3.5; // Compactado de 6 para 3.5
   const larguraArmazem = numeroArcos * larguraArco;
   const profundidadeArmazem = 6; // Reduzido de 8 para 6
@@ -321,7 +321,7 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
       </group>
 
       {/* Highlight do arco selecionado */}
-      {arcoSelecionado && arcoSelecionado <= numeroArcos && (
+      {tipoSelecao === 'arco' && arcoSelecionado && arcoSelecionado <= numeroArcos && (
         <mesh position={[
           -larguraArmazem/2 + (arcoSelecionado - 1) * larguraArco + larguraArco/2,
           alturaArmazem/2,
@@ -332,6 +332,24 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
             color="#FF6B35" 
             transparent 
             opacity={0.12}
+            wireframe={false}
+          />
+        </mesh>
+      )}
+
+      {/* Highlight da célula selecionada */}
+      {tipoSelecao === 'celula' && celulaSelecionada && (
+        <mesh position={[
+          0,
+          alturaArmazem/2,
+          celulaSelecionada === 1 ? -profundidadeArmazem/3 : 
+          celulaSelecionada === 2 ? 0 : profundidadeArmazem/3
+        ]}>
+          <boxGeometry args={[larguraArmazem + 0.5, alturaArmazem + 0.5, profundidadeArmazem/3 + 0.2]} />
+          <meshStandardMaterial 
+            color="#35FF6B" 
+            transparent 
+            opacity={0.15}
             wireframe={false}
           />
         </mesh>
@@ -401,33 +419,31 @@ const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
     return positions;
   }, []);
 
-  // Posições dos motores baseado na imagem
+  // Posições dos motores baseado na imagem do topo 2D - FORA do armazém
   const motoresPositions = useMemo(() => {
     const positions = [];
     const larguraArmazem = numeroArcos * larguraArco;
 
-    // Organização dos cabos: 3 esquerda, 3 direita, intercalando
+    // Baseado no layout do topo 2D: motores nas bordas superior e inferior
     const motoresConfig = [
-      { arco: 1, pos: 'esquerda' }, { arco: 2, pos: 'esquerda' }, { arco: 3, pos: 'esquerda' },
-      { arco: 6, pos: 'direita' }, { arco: 7, pos: 'direita' }, { arco: 8, pos: 'direita' },
-      { arco: 11, pos: 'esquerda' }, { arco: 12, pos: 'esquerda' }, { arco: 13, pos: 'esquerda' },
-      { arco: 16, pos: 'direita' }, { arco: 17, pos: 'direita' }, { arco: 18, pos: 'direita' },
-       // Motor extra
-      { arco: 4, pos: 'extra' }, { arco: 9, pos: 'extra' }, { arco: 14, pos: 'extra' }, { arco: 5, pos: 'extra' }, { arco: 10, pos: 'extra' }, { arco: 15, pos: 'extra' }, { arco: 19, pos: 'extra' }
+      // Motores na borda superior (fora do armazém)
+      { arco: 2, pos: 'superior' }, { arco: 5, pos: 'superior' }, { arco: 8, pos: 'superior' }, 
+      { arco: 11, pos: 'superior' }, { arco: 14, pos: 'superior' }, { arco: 17, pos: 'superior' },
+      
+      // Motores na borda inferior (fora do armazém)
+      { arco: 3, pos: 'inferior' }, { arco: 6, pos: 'inferior' }, { arco: 9, pos: 'inferior' }, 
+      { arco: 12, pos: 'inferior' }, { arco: 15, pos: 'inferior' }, { arco: 18, pos: 'inferior' }
     ];
 
     motoresConfig.forEach((config, index) => {
       const xMotor = -larguraArmazem/2 + (config.arco - 1) * larguraArco + larguraArco/2;
       let zMotor, yMotor;
 
-      if (config.pos === 'esquerda') {
-        zMotor = profundidadeArmazem/2 + 0.8;
+      if (config.pos === 'superior') {
+        zMotor = profundidadeArmazem/2 + 1.2; // Bem fora do armazém
         yMotor = 0.2;
-      } else if (config.pos === 'direita') {
-        zMotor = -profundidadeArmazem/2 - 0.8;
-        yMotor = 0.2;
-      } else { // extra
-        zMotor = 0;
+      } else if (config.pos === 'inferior') {
+        zMotor = -profundidadeArmazem/2 - 1.2; // Bem fora do armazém
         yMotor = 0.2;
       }
 
@@ -447,6 +463,8 @@ const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
       <ArmazemStructure3D 
         numeroArcos={numeroArcos}
         arcoSelecionado={arcoSelecionado}
+        celulaSelecionada={celulaSelecionada}
+        tipoSelecao={tipoSelecao}
         alturaArmazem={alturaArmazem}
       />
 
@@ -535,6 +553,7 @@ const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
 const Armazem3D = () => {
   const [autoRotate, setAutoRotate] = useState(true);
   const [arcoSelecionado, setArcoSelecionado] = useState(1);
+  const [celulaSelecionada, setCelulaSelecionada] = useState(1);
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
   const [tipoSelecao, setTipoSelecao] = useState('arco'); // 'arco' ou 'celula'
@@ -543,6 +562,7 @@ const Armazem3D = () => {
 
   const alturaArmazem = 8; // Reduzido de 10 para 8
   const numeroArcos = 19;
+  const numCelulas = 3; // 3 células por arco
   const larguraTotal = numeroArcos * 3.5;
   const canvasRef = useRef();
 
@@ -669,6 +689,23 @@ const Armazem3D = () => {
             </select>
           </label>
         )}
+
+        {tipoSelecao === 'celula' && (
+          <label>
+            Célula: 
+            <select 
+              value={celulaSelecionada}
+              onChange={(e) => setCelulaSelecionada(parseInt(e.target.value))}
+              style={{ marginLeft: '5px' }}
+            >
+              {Array.from({length: numCelulas}, (_, i) => (
+                <option key={i + 1} value={i + 1}>
+                  {i + 1}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
       </div>
 
       {/* Informações dos dados */}
@@ -685,8 +722,10 @@ const Armazem3D = () => {
         <div>19 Arcos</div>
         <div>3 Células</div>
         <div>57 Pêndulos (3 por arco)</div>
-        <div>~14 Motores aeradores</div>
+        <div>~12 Motores aeradores (fora do armazém)</div>
         <div>~400 Sensores total</div>
+        {tipoSelecao === 'arco' && <div style={{color: '#FF6B35'}}><strong>Arco {arcoSelecionado} selecionado</strong></div>}
+        {tipoSelecao === 'celula' && <div style={{color: '#35FF6B'}}><strong>Célula {celulaSelecionada} selecionada</strong></div>}
       </div>
 
       {/* Canvas 3D */}
