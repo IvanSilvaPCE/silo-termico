@@ -340,28 +340,26 @@ const ArmazemStructure3D = ({ numeroArcos, arcoSelecionado, alturaArmazem }) => 
   );
 };
 
-// Função para gerar dados de exemplo com 19 arcos e 3 células por arco (57 células total)
+// Função para gerar dados de exemplo com 19 arcos e 3 pêndulos por arco (57 pêndulos total, divididos em 3 células)
 const gerarDadosArmazem = () => {
   const dados = { leitura: {} };
 
-  for (let arco = 1; arco <= 19; arco++) {
-    for (let celula = 1; celula <= 3; celula++) {
-      const numeroCelula = ((arco - 1) * 3) + celula;
-      dados.leitura[numeroCelula.toString()] = {};
+  // Gerar dados para 57 pêndulos (numeração de 1 a 57)
+  for (let pendulo = 1; pendulo <= 57; pendulo++) {
+    dados.leitura[pendulo.toString()] = {};
 
-      // Cada célula tem entre 6-10 sensores
-      const numSensores = 6 + Math.floor(Math.random() * 5);
+    // Cada pêndulo tem entre 6-10 sensores
+    const numSensores = 6 + Math.floor(Math.random() * 5);
 
-      for (let sensor = 1; sensor <= numSensores; sensor++) {
-        const temp = 15 + Math.random() * 20; // Temperatura entre 15-35°C
-        dados.leitura[numeroCelula.toString()][sensor.toString()] = [
-          temp, // temperatura
-          false, // alarme
-          'OK', // qualidade
-          false, // falha
-          true // ativo
-        ];
-      }
+    for (let sensor = 1; sensor <= numSensores; sensor++) {
+      const temp = 15 + Math.random() * 20; // Temperatura entre 15-35°C
+      dados.leitura[pendulo.toString()][sensor.toString()] = [
+        temp, // temperatura
+        false, // alarme
+        'OK', // qualidade
+        false, // falha
+        true // ativo
+      ];
     }
   }
 
@@ -370,32 +368,32 @@ const gerarDadosArmazem = () => {
 
 const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
   const numeroArcos = 19;
-  const celulasPorArco = 3;
+  const pendulosPorArco = 3;
   const larguraArco = 3.5;
   const profundidadeArmazem = 6;
 
-  const celulaPositions = useMemo(() => {
+  const penduloPositions = useMemo(() => {
     const positions = [];
     const larguraArmazem = numeroArcos * larguraArco;
 
     for (let arco = 1; arco <= numeroArcos; arco++) {
       const xArco = -larguraArmazem/2 + (arco - 1) * larguraArco + larguraArco/2;
 
-      // 3 células por arco
-      for (let c = 0; c < celulasPorArco; c++) {
-        const numeroCelula = ((arco - 1) * celulasPorArco) + c + 1;
+      // 3 pêndulos por arco
+      for (let p = 0; p < pendulosPorArco; p++) {
+        const numeroPendulo = ((arco - 1) * pendulosPorArco) + p + 1;
         let zLocal;
 
-        // Posições das 3 células
-        if (c === 0) zLocal = -profundidadeArmazem/3; // Célula superior
-        else if (c === 1) zLocal = 0; // Célula central
-        else zLocal = profundidadeArmazem/3; // Célula inferior
+        // Posições dos 3 pêndulos no arco (distribuídos pelas 3 células)
+        if (p === 0) zLocal = -profundidadeArmazem/3; // Célula 1
+        else if (p === 1) zLocal = 0; // Célula 2  
+        else zLocal = profundidadeArmazem/3; // Célula 3
 
         positions.push({
           position: [xArco, 0, zLocal],
-          numero: numeroCelula,
+          numero: numeroPendulo,
           arco: arco,
-          celula: c + 1
+          celula: p + 1 // Célula do pêndulo (1, 2 ou 3)
         });
       }
     }
@@ -452,27 +450,27 @@ const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
         alturaArmazem={alturaArmazem}
       />
 
-      {/* Renderizar células */}
-      {celulaPositions.map((celulaInfo) => {
-        const sensoresData = dados.leitura[celulaInfo.numero.toString()] || {};
+      {/* Renderizar pêndulos */}
+      {penduloPositions.map((penduloInfo) => {
+        const sensoresData = dados.leitura[penduloInfo.numero.toString()] || {};
 
         return (
           <Pendulo3D
-            key={celulaInfo.numero}
-            position={celulaInfo.position}
-            numero={celulaInfo.numero}
+            key={penduloInfo.numero}
+            position={penduloInfo.position}
+            numero={penduloInfo.numero}
             sensores={sensoresData}
-            arcoNumero={celulaInfo.arco}
+            arcoNumero={penduloInfo.arco}
             alturaArmazem={alturaArmazem}
-            celulaNumero={celulaInfo.celula}
+            celulaNumero={penduloInfo.celula}
           />
         );
       })}
 
       {/* Grupo especial para temperaturas sempre visíveis */}
       <group renderOrder={1000}>
-        {celulaPositions.map((celulaInfo) => {
-          const sensoresData = dados.leitura[celulaInfo.numero.toString()] || {};
+        {penduloPositions.map((penduloInfo) => {
+          const sensoresData = dados.leitura[penduloInfo.numero.toString()] || {};
           const espacamentoSensores = (alturaArmazem * 0.7) / (Object.keys(sensoresData).length + 1);
 
           return Object.entries(sensoresData).map(([sensorKey, valores], index) => {
@@ -480,13 +478,13 @@ const ArmazemCompleto3D = ({ dados, arcoSelecionado, alturaArmazem }) => {
             const [temp, , , falha] = valores;
             const yPos = alturaArmazem * 0.8 - (s * espacamentoSensores);
             const position = [
-              celulaInfo.position[0] + 0.4,
+              penduloInfo.position[0] + 0.4,
               yPos,
-              celulaInfo.position[2]
+              penduloInfo.position[2]
             ];
 
             return (
-              <Billboard key={`temp-${celulaInfo.numero}-${s}`} position={position}>
+              <Billboard key={`temp-${penduloInfo.numero}-${s}`} position={position}>
                 <Text
                   fontSize={0.12}
                   color={falha ? "#ff0000" : "#00ff00"}
@@ -685,7 +683,8 @@ const Armazem3D = () => {
         fontSize: '14px'
       }}>
         <div>19 Arcos</div>
-        <div>57 Células (3 por arco)</div>
+        <div>3 Células</div>
+        <div>57 Pêndulos (3 por arco)</div>
         <div>~14 Motores aeradores</div>
         <div>~400 Sensores total</div>
       </div>

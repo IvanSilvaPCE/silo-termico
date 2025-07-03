@@ -434,19 +434,87 @@ const Silo3D = ({ dados }) => {
           alturaSilo={alturaSilo}
         />
 
-        {/* Cabos e sensores */}
-        {Object.entries(leitura).map(([pendulo, sensores], index) => (
-          <Cabo3D
-            key={pendulo}
-            position={cabosPositions[index]}
-            pendulo={pendulo}
-            sensores={sensores}
-            alturaSilo={alturaSilo}
-            raioSilo={raioSilo}
-          />
-        ))}
+        {/* Grupo com clipping para cabos e sensores (limitado pela altura do silo) */}
+        <group>
+          {/* Plano de clipping invisível na altura do silo */}
+          <mesh position={[0, alturaSilo + 0.1, 0]} visible={false}>
+            <planeGeometry args={[raioSilo * 4, raioSilo * 4]} />
+            <meshBasicMaterial side={THREE.DoubleSide} />
+          </mesh>
 
-        {/* Grupo especial para temperaturas sempre visíveis */}
+          {/* Cabos e sensores com limite de altura */}
+          {Object.entries(leitura).map(([pendulo, sensores], index) => (
+            <group key={`cabo-group-${pendulo}`}>
+              {/* Cabo com altura limitada */}
+              <mesh position={[cabosPositions[index][0], (alturaSilo + 0.3) / 2, cabosPositions[index][2]]}>
+                <cylinderGeometry args={[0.02, 0.02, alturaSilo - 0.3, 12]} />
+                <meshStandardMaterial color="#1a1a1a" metalness={0.8} roughness={0.2} />
+              </mesh>
+
+              {/* Nome do pêndulo FORA do silo, na base */}
+              <Billboard position={[cabosPositions[index][0], 0.3 - 0.8, cabosPositions[index][2]]}>
+                <mesh>
+                  <planeGeometry args={[0.6, 0.25]} />
+                  <meshStandardMaterial color="#2E86AB" />
+                </mesh>
+                <Text
+                  position={[0, 0, 0.01]}
+                  fontSize={0.1}
+                  color="white"
+                  anchorX="center"
+                  anchorY="middle"
+                >
+                  P{pendulo}
+                </Text>
+              </Billboard>
+
+              {/* Sensores limitados pela altura do silo */}
+              {Object.entries(sensores).map(([sensorKey, valores], sensorIndex) => {
+                const s = parseInt(sensorKey);
+                const [temp, , , falha, ativo] = valores;
+                const sensoresArray = Object.entries(sensores);
+                const espacamentoSensores = (alturaSilo - 0.3) / (sensoresArray.length + 1);
+                const yPos = alturaSilo - ((sensorIndex + 1) * espacamentoSensores);
+                
+                // Só renderiza se estiver abaixo da altura do silo
+                if (yPos <= alturaSilo) {
+                  const cor = ativo ? corFaixaExata(temp) : "#cccccc";
+                  
+                  return (
+                    <group key={`sensor-${pendulo}-${s}`} position={[cabosPositions[index][0], yPos, cabosPositions[index][2]]}>
+                      {/* Corpo do sensor */}
+                      <mesh>
+                        <boxGeometry args={[0.25, 0.12, 0.12]} />
+                        <meshStandardMaterial 
+                          color={cor}
+                          emissive={falha ? "#ff0000" : "#000000"}
+                          emissiveIntensity={falha ? 0.3 : 0}
+                          metalness={0.3}
+                          roughness={0.7}
+                        />
+                      </mesh>
+
+                      {/* Antena do sensor */}
+                      <mesh position={[0, 0.08, 0]}>
+                        <cylinderGeometry args={[0.01, 0.01, 0.08, 8]} />
+                        <meshStandardMaterial color="#666666" />
+                      </mesh>
+                    </group>
+                  );
+                }
+                return null;
+              })}
+
+              {/* Peso na extremidade */}
+              <mesh position={[cabosPositions[index][0], 0.3 + 0.1, cabosPositions[index][2]]}>
+                <cylinderGeometry args={[0.08, 0.06, 0.2, 16]} />
+                <meshStandardMaterial color="#444444" metalness={0.8} roughness={0.3} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+
+        {/* Grupo especial para temperaturas sempre visíveis (limitado pela altura do silo) */}
         <group renderOrder={1000}>
           {Object.entries(leitura).map(([pendulo, sensores], index) => {
             const sensoresArray = Object.entries(sensores).map(([key, valores]) => ({
@@ -456,39 +524,41 @@ const Silo3D = ({ dados }) => {
               ativo: valores[4]
             }));
 
-            const topoSilo = alturaSilo;
-            const baseSilo = 0.3;
-            const alturaCabo = topoSilo - baseSilo;
-            const espacamentoSensores = alturaCabo / (sensoresArray.length + 1);
+            const espacamentoSensores = (alturaSilo - 0.3) / (sensoresArray.length + 1);
 
             return sensoresArray.map((sensor, sensorIndex) => {
-              const yPos = topoSilo - ((sensorIndex + 1) * espacamentoSensores);
-              const position = [
-                cabosPositions[index][0] + 0.6,
-                yPos,
-                cabosPositions[index][2]
-              ];
+              const yPos = alturaSilo - ((sensorIndex + 1) * espacamentoSensores);
+              
+              // Só renderiza temperaturas se estiver abaixo da altura do silo
+              if (yPos <= alturaSilo) {
+                const position = [
+                  cabosPositions[index][0] + 0.6,
+                  yPos,
+                  cabosPositions[index][2]
+                ];
 
-              return (
-                <Billboard key={`temp-${pendulo}-${sensor.numero}`} position={position}>
-                  <Text
-                    fontSize={0.15}
-                    color={sensor.falha ? "#ff0000" : "#00ff00"}
-                    anchorX="center"
-                    anchorY="middle"
-                    outlineWidth={0.05}
-                    outlineColor="#000000"
-                  >
-                    <meshBasicMaterial 
-                      attach="material" 
-                      transparent 
-                      depthTest={false}
-                      depthWrite={false}
-                    />
-                    {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
-                  </Text>
-                </Billboard>
-              );
+                return (
+                  <Billboard key={`temp-${pendulo}-${sensor.numero}`} position={position}>
+                    <Text
+                      fontSize={0.15}
+                      color={sensor.falha ? "#ff0000" : "#00ff00"}
+                      anchorX="center"
+                      anchorY="middle"
+                      outlineWidth={0.05}
+                      outlineColor="#000000"
+                    >
+                      <meshBasicMaterial 
+                        attach="material" 
+                        transparent 
+                        depthTest={false}
+                        depthWrite={false}
+                      />
+                      {sensor.falha ? "ERR" : `${sensor.temp.toFixed(1)}°C`}
+                    </Text>
+                  </Billboard>
+                );
+              }
+              return null;
             });
           })}
         </group>
