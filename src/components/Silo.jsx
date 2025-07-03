@@ -218,13 +218,38 @@ export default function Silo({ dados }) {
     }
 
     // Função para verificar se um ponto está na área com grão
-    function temGraoNaPosicao(cy) {
+    function temGraoNaPosicao(cx, cy) {
       // Se não há nível detectado, considera toda área como sem grão
       if (nivelMaisAlto === 0) return false;
       
-      // Área com grão: da base do silo até o nível mais alto detectado
       const { hs } = layout.desenho_corte_silo;
-      return cy >= nivelMaisAlto && cy <= hs;
+      
+      // Área sempre com grão: da base até um pouco abaixo do nível mais alto
+      const margemSeguranca = 20; // pixels de margem
+      if (cy >= nivelMaisAlto + margemSeguranca && cy <= hs) {
+        return true;
+      }
+      
+      // Área de transição: verificar sensores próximos para detectar contorno
+      if (cy >= nivelMaisAlto && cy < nivelMaisAlto + margemSeguranca) {
+        // Encontrar sensores próximos horizontalmente
+        const sensoresProximos = sensores.filter(sensor => {
+          const distHorizontal = Math.abs(sensor.x - cx);
+          return distHorizontal <= 40; // raio de influência horizontal
+        });
+        
+        if (sensoresProximos.length === 0) return false;
+        
+        // Verificar se há pelo menos um sensor ativo próximo e abaixo deste ponto
+        const temSensorAbaixo = sensoresProximos.some(sensor => {
+          const distVertical = sensor.y - cy;
+          return distVertical >= -10 && distVertical <= 30; // permite pequena variação
+        });
+        
+        return temSensorAbaixo;
+      }
+      
+      return false;
     }
 
     for (let i = 0; i < resolucao; i++) {
@@ -233,7 +258,7 @@ export default function Silo({ dados }) {
         const cy = j * hCell + hCell / 2;
         
         let cor;
-        if (temGraoNaPosicao(cy)) {
+        if (temGraoNaPosicao(cx, cy)) {
           // Área com grão: aplica interpolação térmica
           const tempInterpolada = idw(cx, cy);
           cor = tempInterpolada === null ? "#e7e7e7" : corFaixaExata(tempInterpolada);
