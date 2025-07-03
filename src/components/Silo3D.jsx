@@ -388,7 +388,7 @@ const Silo3D = ({ dados }) => {
       {/* Controles simples */}
       <div style={{ 
         position: 'absolute', 
-        top: '10px', 
+        bottom: '10px', 
         left: '10px', 
         zIndex: 1000,
         background: 'rgba(255,255,255,0.9)',
