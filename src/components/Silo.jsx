@@ -168,16 +168,24 @@ export default function Silo({ dados }) {
     const posXCabo = ds.pos_x_cabo;
     const posXUniforme = Number(ds.pos_x_cabos_uniforme);
     
-    // Memoizar sensores ativos para evitar recálculos
+    // Memoizar sensores ativos e calcular nível de grão para evitar recálculos
     const sensores = [];
+    let nivelMaisAlto = 0; // Nível mais alto com grão (sensor ativo)
+    
     Object.entries(leitura).forEach(([pend, objSensores], idxCabo) => {
       const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo;
       const yCabo = posYCabo[idxCabo];
       Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
         const sensorIdx = parseInt(sensorKey, 10);
         const t = parseFloat(dadosSensor[0]);
-        if (dadosSensor[4] && t !== -1000) { // Filtrar apenas sensores ativos
-          sensores.push({ x: xCabo, y: yCabo - distYSensores * sensorIdx, t, ativo: true });
+        const ySensor = yCabo - distYSensores * sensorIdx;
+        
+        if (dadosSensor[4] && t !== -1000) { // Sensor ativo com grão
+          sensores.push({ x: xCabo, y: ySensor, t, ativo: true });
+          // Atualizar o nível mais alto (menor Y = mais alto no silo)
+          if (ySensor < nivelMaisAlto || nivelMaisAlto === 0) {
+            nivelMaisAlto = ySensor;
+          }
         }
       });
     });
@@ -189,6 +197,7 @@ export default function Silo({ dados }) {
     const wCell = largura / resolucao;
     const hCell = altura / resolucao;
     const blocos = [];
+    
     function idw(cx, cy) {
       let somaPesos = 0;
       let somaTemp = 0;
@@ -208,12 +217,30 @@ export default function Silo({ dados }) {
       return somaPesos === 0 ? -1000 : somaTemp / somaPesos;
     }
 
+    // Função para verificar se um ponto está na área com grão
+    function temGraoNaPosicao(cy) {
+      // Se não há nível detectado, considera toda área como sem grão
+      if (nivelMaisAlto === 0) return false;
+      
+      // Área com grão: da base do silo até o nível mais alto detectado
+      const { hs } = layout.desenho_corte_silo;
+      return cy >= nivelMaisAlto && cy <= hs;
+    }
+
     for (let i = 0; i < resolucao; i++) {
       for (let j = 0; j < resolucao; j++) {
         const cx = i * wCell + wCell / 2;
         const cy = j * hCell + hCell / 2;
-        const tempInterpolada = idw(cx, cy);
-        const cor = tempInterpolada === null ? "#ffffff" : corFaixaExata(tempInterpolada);
+        
+        let cor;
+        if (temGraoNaPosicao(cy)) {
+          // Área com grão: aplica interpolação térmica
+          const tempInterpolada = idw(cx, cy);
+          cor = tempInterpolada === null ? "#e7e7e7" : corFaixaExata(tempInterpolada);
+        } else {
+          // Área sem grão: cor cinza
+          cor = "#e7e7e7";
+        }
 
         blocos.push(
           <rect
