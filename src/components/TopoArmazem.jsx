@@ -14,29 +14,72 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     // Carregar e processar dados
     useEffect(() => {
-        const processarDados = () => {
+        const processarDados = async () => {
             try {
                 setCarregando(true);
                 
-                // Usar dados do arquivo ou configuração
-                const pendulos = dadosArmazemTopo.pendulos;
-                const config = dadosArmazemTopo.configuracao?.layout_topo;
+                // Carregar dados do arquivo JSON
+                const response = await fetch('/dadosArmazemTopo.json');
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar dados');
+                }
+                const dadosArmazemTopo = await response.json();
+                
+                // Processar nova estrutura de dados com arcos
+                let pendulos = {};
+                let dadosConvertidos = {};
+                
+                if (dadosArmazemTopo.arcos) {
+                    // Nova estrutura com arcos
+                    Object.entries(dadosArmazemTopo.arcos).forEach(([arcoId, arcoData]) => {
+                        Object.entries(arcoData).forEach(([celulaId, celulaData]) => {
+                            Object.entries(celulaData).forEach(([penduloId, penduloData]) => {
+                                Object.entries(penduloData).forEach(([sensorId, sensorData]) => {
+                                    const penduloUnicoId = `${arcoId}_${celulaId}_${penduloId}_${sensorId}`;
+                                    
+                                    // sensorData = [temperatura, nivel1, nivel2, nivel3, ativo]
+                                    const temperatura = sensorData[0] || 0;
+                                    const ativo = sensorData[4] !== undefined ? sensorData[4] : true;
+                                    const falha = temperatura === 0 || temperatura === -1000;
+                                    const pontoQuente = temperatura > 35;
+                                    
+                                    pendulos[penduloUnicoId] = [
+                                        falha ? 1 : 0,
+                                        pontoQuente ? 1 : 0,
+                                        ativo ? 1 : 0,
+                                        temperatura
+                                    ];
+                                    
+                                    dadosConvertidos[penduloUnicoId] = [
+                                        falha ? 1 : 0,
+                                        pontoQuente ? 1 : 0,
+                                        ativo ? 1 : 0,
+                                        temperatura
+                                    ];
+                                });
+                            });
+                        });
+                    });
+                } else if (dadosArmazemTopo.pendulos) {
+                    // Estrutura antiga com pendulos
+                    pendulos = dadosArmazemTopo.pendulos;
+                    Object.entries(pendulos).forEach(([id, dados]) => {
+                        if (dados && dados.length >= 4) {
+                            dadosConvertidos[id] = [
+                                dados[0] ? 1 : 0, // falha
+                                dados[1] ? 1 : 0, // ponto quente 
+                                dados[2] ? 1 : 0, // nivel (ativo)
+                                dados[3] || 0  // temperatura
+                            ];
+                        }
+                    });
+                }
                 
                 setDadosPendulos(pendulos);
-                
-                // Converter dados dos pêndulos para formato do topo
-                const dadosConvertidos = {};
-                Object.entries(pendulos).forEach(([id, dados]) => {
-                    dadosConvertidos[id] = [
-                        dados[0], // falha
-                        dados[0], // ponto quente (usando mesmo valor de falha por simplicidade)
-                        dados[2], // nivel (ativo)
-                        dados[3]  // temperatura
-                    ];
-                });
                 setDadosTopo(dadosConvertidos);
                 
                 // Usar layout da configuração ou gerar automaticamente
+                const config = dadosArmazemTopo.configuracao?.layout_topo;
                 const layout = config || gerarLayoutAutomatico(pendulos);
                 setLayoutTopo(layout);
                 
@@ -69,60 +112,103 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }, [layoutTopo, dadosTopo, arcoSelecionado, celulaSelecionada]);
 
     function gerarLayoutAutomatico(pendulos) {
+        if (!pendulos || Object.keys(pendulos).length === 0) {
+            // Layout padrão mínimo se não houver dados
+            return {
+                celulas: {
+                    tamanho_svg: [345, 355],
+                    fundo: [5, 49, 310, 256],
+                    "1": [5, 50, 173, 254],
+                    "2": [182, 50, 132, 254]
+                },
+                aeradores: {
+                    "1": [64, 0, 1],
+                    "2": [64, 305, 0],
+                    "3": [224, 0, 1],
+                    "4": [224, 305, 0]
+                }
+            };
+        }
+
         const totalPendulos = Object.keys(pendulos).length;
-        const pendulosPorArco = 3;
-        const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
         
+        // Estimativa de arcos baseada na quantidade de sensores
+        // Se for estrutura nova (ID complexo), contar arcos únicos
+        const idsComplexos = Object.keys(pendulos).filter(id => id.includes('_'));
+        let totalArcos;
+        
+        if (idsComplexos.length > 0) {
+            // Extrair números únicos de arcos dos IDs
+            const arcosUnicos = new Set();
+            idsComplexos.forEach(id => {
+                const arcoId = id.split('_')[0];
+                arcosUnicos.add(parseInt(arcoId));
+            });
+            totalArcos = arcosUnicos.size;
+        } else {
+            // Estrutura antiga - estimar arcos
+            totalArcos = Math.min(Math.ceil(totalPendulos / 5), 7); // Máximo 7 arcos baseado nos novos dados
+        }
+
+        // Layout com 2 células (conforme novos dados)
+        const larguraTotal = Math.max(345, totalArcos * 40 + 50);
         const layout = {
             celulas: {
-                tamanho_svg: [600, 388],
-                fundo: [5, 49, 590, 256],
-                "1": [10, 50, 188, 254],
-                "2": [207, 50, 186, 254], 
-                "3": [402, 50, 188, 254]
+                tamanho_svg: [larguraTotal, 355],
+                fundo: [5, 49, larguraTotal - 35, 256],
+                "1": [5, 50, Math.floor((larguraTotal - 35) * 0.55), 254],
+                "2": [Math.floor((larguraTotal - 35) * 0.55) + 10, 50, Math.floor((larguraTotal - 35) * 0.45), 254]
             },
             aeradores: {
-                "1": [65, 0, 1], "2": [154, 0, 1], "3": [240, 0, 1], "4": [329, 0, 1], "5": [416, 0, 1],
-                "6": [65, 305, 0], "7": [154, 305, 0], "8": [240, 305, 0], "9": [329, 305, 0], "10": [416, 305, 0]
+                "1": [64, 0, 1],
+                "2": [64, 305, 0],
+                "3": [Math.floor(larguraTotal * 0.65), 0, 1],
+                "4": [Math.floor(larguraTotal * 0.65), 305, 0]
             }
         };
 
-        // Distribuir arcos entre as 3 células
-        const arcosParaCelula = Math.ceil(totalArcos / 3);
+        // Distribuir arcos entre as 2 células
+        const arcosParaCelula1 = Math.ceil(totalArcos / 2);
         
-        // Distribuir pêndulos em arcos com posicionamento alternado
+        // Distribuir sensores em arcos
         const pendulosArray = Object.entries(pendulos);
-        let posX = 30;
-        const espacamentoArco = 30;
+        let posX = 40;
+        const espacamentoArco = 40;
         
         for (let arco = 1; arco <= totalArcos; arco++) {
-            // Determinar qual célula (1, 2 ou 3)
-            let celula;
-            if (arco <= arcosParaCelula) celula = 1;
-            else if (arco <= arcosParaCelula * 2) celula = 2;
-            else celula = 3;
+            // Determinar célula (1 ou 2)
+            const celula = arco <= arcosParaCelula1 ? 1 : 2;
             
-            const pendulosDoArco = pendulosArray.slice((arco - 1) * pendulosPorArco, arco * pendulosPorArco);
+            // Pegar sensores deste arco
+            const sensoresDoArco = pendulosArray.filter(([id]) => {
+                if (id.includes('_')) {
+                    return id.startsWith(`${arco}_`);
+                }
+                // Para estrutura antiga, distribuir sequencialmente
+                const index = pendulosArray.findIndex(([pid]) => pid === id);
+                const arcoEstimado = Math.floor(index / 5) + 1;
+                return arcoEstimado === arco;
+            });
             
             const sensores = {};
-            pendulosDoArco.forEach(([id], index) => {
-                // Alternância de posição: arcos ímpares para cima, pares para baixo
+            sensoresDoArco.forEach(([id], index) => {
+                // Posicionamento vertical alternado
                 let posY;
                 if (arco % 2 === 1) {
-                    // Arcos ímpares: posições mais para cima
-                    posY = 80 + (index * 40);
+                    posY = 75 + (index * 50);
                 } else {
-                    // Arcos pares: posições mais para baixo
-                    posY = 140 + (index * 40);
+                    posY = 100 + (index * 50);
                 }
                 sensores[id] = posY;
             });
 
-            layout[arco] = {
-                celula: celula,
-                pos_x: posX,
-                sensores: sensores
-            };
+            if (Object.keys(sensores).length > 0) {
+                layout[arco] = {
+                    celula: celula,
+                    pos_x: posX,
+                    sensores: sensores
+                };
+            }
 
             posX += espacamentoArco;
         }
@@ -615,6 +701,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function corTemperatura(temp) {
+        if (temp === -1000 || temp === 0) return "#ff0000"; // erro
         if (temp < 12) return "#0384fc";
         else if (temp < 15) return "#03e8fc";
         else if (temp < 17) return "#03fcbe";
