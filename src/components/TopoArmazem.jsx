@@ -141,10 +141,15 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             // Extrair números únicos de arcos dos IDs
             const arcosUnicos = new Set();
             idsComplexos.forEach(id => {
-                const arcoId = id.split('_')[0];
-                arcosUnicos.add(parseInt(arcoId));
+                const partes = id.split('_');
+                if (partes.length > 0) {
+                    const arcoId = partes[0];
+                    if (arcoId && !isNaN(parseInt(arcoId))) {
+                        arcosUnicos.add(parseInt(arcoId));
+                    }
+                }
             });
-            totalArcos = arcosUnicos.size;
+            totalArcos = arcosUnicos.size || 1; // Mínimo 1 arco
         } else {
             // Estrutura antiga - estimar arcos
             totalArcos = Math.min(Math.ceil(totalPendulos / 5), 7); // Máximo 7 arcos baseado nos novos dados
@@ -181,25 +186,33 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             
             // Pegar sensores deste arco
             const sensoresDoArco = pendulosArray.filter(([id]) => {
-                if (id.includes('_')) {
-                    return id.startsWith(`${arco}_`);
+                if (id && id.includes('_')) {
+                    const partes = id.split('_');
+                    if (partes.length > 0 && partes[0]) {
+                        return parseInt(partes[0]) === arco;
+                    }
                 }
                 // Para estrutura antiga, distribuir sequencialmente
                 const index = pendulosArray.findIndex(([pid]) => pid === id);
-                const arcoEstimado = Math.floor(index / 5) + 1;
-                return arcoEstimado === arco;
+                if (index >= 0) {
+                    const arcoEstimado = Math.floor(index / 5) + 1;
+                    return arcoEstimado === arco;
+                }
+                return false;
             });
             
             const sensores = {};
             sensoresDoArco.forEach(([id], index) => {
-                // Posicionamento vertical alternado
-                let posY;
-                if (arco % 2 === 1) {
-                    posY = 75 + (index * 50);
-                } else {
-                    posY = 100 + (index * 50);
+                if (id) {
+                    // Posicionamento vertical alternado
+                    let posY;
+                    if (arco % 2 === 1) {
+                        posY = 75 + (index * 50);
+                    } else {
+                        posY = 100 + (index * 50);
+                    }
+                    sensores[id] = posY;
                 }
-                sensores[id] = posY;
             });
 
             if (Object.keys(sensores).length > 0) {
@@ -613,7 +626,11 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function atualizarCabos() {
+        if (!dadosTopo) return;
+        
         Object.entries(dadosTopo).forEach(([idCabo, dados]) => {
+            if (!dados || !Array.isArray(dados) || dados.length < 4) return;
+            
             const [falha, pontoQuente, nivel, temperatura] = dados;
             
             const circulo = document.getElementById(`c_cabo_${idCabo}`);
@@ -623,8 +640,9 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
             if (circulo && texto) {
                 // Definir cor baseada na temperatura
-                let cor = corTemperatura(temperatura);
-                let corTexto = temperatura >= 30 ? "white" : "black";
+                const tempValue = typeof temperatura === 'number' ? temperatura : 0;
+                let cor = corTemperatura(tempValue);
+                let corTexto = tempValue >= 30 ? "white" : "black";
                 let opacidade = "1";
 
                 if (!nivel) {
@@ -723,39 +741,47 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             const grupo = elemento.parentElement;
 
             if (grupo && grupo.id) {
-                const [tipo, numero] = grupo.id.split('_');
+                const partes = grupo.id.split('_');
+                if (partes.length >= 2) {
+                    const [tipo, numero] = partes;
 
-                if (tipo === 'arco') {
-                    const novoArco = parseInt(numero);
-                    setArcoSelecionado(novoArco);
-                    if (layoutTopo && layoutTopo[novoArco]) {
-                        setCelulaSelecionada(layoutTopo[novoArco].celula);
-                    }
-                    if (onArcoSelecionado) {
-                        onArcoSelecionado(novoArco);
-                    }
-                } else if (tipo === 'cabo') {
-                    // Encontrar qual arco pertence este cabo
-                    const caboNum = parseInt(numero);
-                    Object.entries(layoutTopo).forEach(([arcoKey, arcoData]) => {
-                        if (arcoKey !== 'celulas' && arcoKey !== 'aeradores') {
-                            if (arcoData.sensores && arcoData.sensores[caboNum]) {
-                                const novoArco = parseInt(arcoKey);
-                                setArcoSelecionado(novoArco);
-                                setCelulaSelecionada(arcoData.celula);
-                                if (onArcoSelecionado) {
-                                    onArcoSelecionado(novoArco);
-                                }
+                    if (tipo === 'arco' && numero) {
+                        const novoArco = parseInt(numero);
+                        if (!isNaN(novoArco)) {
+                            setArcoSelecionado(novoArco);
+                            if (layoutTopo && layoutTopo[novoArco]) {
+                                setCelulaSelecionada(layoutTopo[novoArco].celula);
+                            }
+                            if (onArcoSelecionado) {
+                                onArcoSelecionado(novoArco);
                             }
                         }
-                    });
+                    } else if (tipo === 'cabo' && numero) {
+                        // Encontrar qual arco pertence este cabo
+                        const caboNum = numero;
+                        Object.entries(layoutTopo).forEach(([arcoKey, arcoData]) => {
+                            if (arcoKey !== 'celulas' && arcoKey !== 'aeradores' && arcoData && arcoData.sensores) {
+                                if (arcoData.sensores[caboNum]) {
+                                    const novoArco = parseInt(arcoKey);
+                                    if (!isNaN(novoArco)) {
+                                        setArcoSelecionado(novoArco);
+                                        setCelulaSelecionada(arcoData.celula);
+                                        if (onArcoSelecionado) {
+                                            onArcoSelecionado(novoArco);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
                 }
             }
 
             // Clique em células
             if (elemento.id && elemento.id.startsWith('rec_celula')) {
-                const numeroCelula = parseInt(elemento.id.replace('rec_celula', ''));
-                if (numeroCelula > 0) {
+                const numeroCelulaStr = elemento.id.replace('rec_celula', '');
+                const numeroCelula = parseInt(numeroCelulaStr);
+                if (!isNaN(numeroCelula) && numeroCelula > 0) {
                     setCelulaSelecionada(numeroCelula);
                 }
             }
