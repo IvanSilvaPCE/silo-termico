@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import dadosArmazemTopo from '../dadosArmazemTopo';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
@@ -14,11 +13,18 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     // Carregar e processar dados
     useEffect(() => {
-        const processarDados = () => {
+        const carregarDados = async () => {
             try {
                 setCarregando(true);
                 
-                // Usar dados do arquivo ou configuração
+                // Carregar dados do JSON via fetch
+                const response = await fetch('/dadosArmazemTopo.json');
+                if (!response.ok) {
+                    throw new Error(`Erro ao carregar dados: ${response.status}`);
+                }
+                const dadosArmazemTopo = await response.json();
+                
+                // Usar dados do arquivo JSON
                 const pendulos = dadosArmazemTopo.pendulos;
                 const config = dadosArmazemTopo.configuracao?.layout_topo;
                 
@@ -41,13 +47,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 setLayoutTopo(layout);
                 
             } catch (error) {
-                console.error('Erro ao processar dados:', error);
+                console.error('Erro ao carregar dados:', error);
             } finally {
                 setCarregando(false);
             }
         };
 
-        processarDados();
+        carregarDados();
     }, []);
 
     // Atualizar quando arco atual mudar
