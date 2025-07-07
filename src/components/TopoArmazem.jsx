@@ -777,19 +777,33 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             if (circulo && texto) {
                 // Definir cor baseada na temperatura
                 let cor = corTemperatura(temperatura);
-                let corTexto = temperatura >= 30 ? "white" : "black";
+                let corTexto;
                 let opacidade = "1";
+                let opacidadeTexto = "1";
 
+                // Definir cor do texto conforme a lógica fornecida
+                if (temperatura === 0) {
+                    corTexto = "black";
+                } else if (temperatura < 12) {
+                    corTexto = "white";
+                } else if (temperatura < 30) {
+                    corTexto = "black";
+                } else {
+                    corTexto = "white";
+                }
+
+                // Se cabo estiver fora do nível
                 if (!nivel) {
                     cor = "#c7c7c7";
                     corTexto = "black";
                     opacidade = "0.78";
+                    opacidadeTexto = "0.4";
                 }
 
                 circulo.setAttribute("fill", cor);
                 circulo.setAttribute("fill-opacity", opacidade);
                 texto.setAttribute("fill", corTexto);
-                texto.setAttribute("fill-opacity", nivel ? "1" : "0.4");
+                texto.setAttribute("fill-opacity", opacidadeTexto);
 
                 // Controlar animações
                 if (falhaEl) {
@@ -859,6 +873,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function corTemperatura(temp) {
+        // Se temperatura for 0, retorna cinza
+        if (temp === 0) return "#c7c7c7";
+        
+        // Seguir a lógica exata das faixas de temperatura
         if (temp < 12) return "#0384fc";
         else if (temp < 15) return "#03e8fc";
         else if (temp < 17) return "#03fcbe";
