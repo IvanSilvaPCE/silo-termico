@@ -775,24 +775,23 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             const pontoQuenteEl = document.getElementById(`pq_cabo_${idCabo}`);
 
             if (circulo && texto) {
-                // Definir cor baseada na temperatura
-                let cor = corTemperatura(temperatura);
-                let corTexto;
+                let cor, corTexto;
                 let opacidade = "1";
                 let opacidadeTexto = "1";
 
-                // Definir cor do texto conforme a lógica fornecida
+                // Aplicar lógica de cores baseada na temperatura
                 if (temperatura === 0) {
-                    corTexto = "black";
-                } else if (temperatura < 12) {
-                    corTexto = "white";
-                } else if (temperatura < 30) {
+                    // Temperatura 0 - cinza
+                    cor = "#c7c7c7";
                     corTexto = "black";
                 } else {
-                    corTexto = "white";
+                    // Usar função de cores para temperaturas normais
+                    const [corFundo, corFonte] = corTemperatura(temperatura);
+                    cor = corFundo;
+                    corTexto = corFonte;
                 }
 
-                // Se cabo estiver fora do nível
+                // Se cabo estiver fora do nível, aplicar regra especial
                 if (!nivel) {
                     cor = "#c7c7c7";
                     corTexto = "black";
@@ -873,20 +872,17 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     }
 
     function corTemperatura(temp) {
-        // Se temperatura for 0, retorna cinza
-        if (temp === 0) return "#c7c7c7";
-        
-        // Seguir a lógica exata das faixas de temperatura
-        if (temp < 12) return "#0384fc";
-        else if (temp < 15) return "#03e8fc";
-        else if (temp < 17) return "#03fcbe";
-        else if (temp < 21) return "#07fc03";
-        else if (temp < 25) return "#c3ff00";
-        else if (temp < 27) return "#fcf803";
-        else if (temp < 30) return "#ffb300";
-        else if (temp < 35) return "#ff2200";
-        else if (temp < 50) return "#ff0090";
-        else return "#f700ff";
+        // Implementar lógica exata fornecida
+        if (temp < 12) return ["#0384fc", "white"];
+        else if (temp < 15) return ["#03e8fc", "black"];
+        else if (temp < 17) return ["#03fcbe", "black"];
+        else if (temp < 21) return ["#07fc03", "black"];
+        else if (temp < 25) return ["#c3ff00", "black"];
+        else if (temp < 27) return ["#fcf803", "black"];
+        else if (temp < 30) return ["#ffb300", "black"];
+        else if (temp < 35) return ["#ff2200", "white"];
+        else if (temp < 50) return ["#ff0090", "white"];
+        else return ["#f700ff", "white"];
     }
 
     function adicionarEventosClique() {
