@@ -515,4 +515,175 @@ class LayoutManager {
   }
 }
 
+// Utilitário para processar dados da API no novo formato
+export const processarDadosAPI = (dadosAPI) => {
+  if (!dadosAPI || !dadosAPI.pendulos) {
+    console.error('Dados da API inválidos:', dadosAPI);
+    return null;
+  }
+
+  try {
+    // Converter dados da API para formato interno
+    const dadosProcessados = {
+      ambiente: {
+        temperatura_ambiente: dadosAPI.TMS || 0,
+        umidade: dadosAPI.UMC || 0,
+        temperatura_maxima: dadosAPI.TMA || 0,
+        temperatura_minima: dadosAPI.TMI || 0
+      },
+      armazem: {
+        nivel: dadosAPI.NIV || 0,
+        volume: dadosAPI.VOL || "0",
+        aeracao: dadosAPI.AER || "",
+        data: dadosAPI.DAT || ""
+      },
+      sensores: {}
+    };
+
+    // Processar sensores (pêndulos)
+    Object.entries(dadosAPI.pendulos).forEach(([id, dados]) => {
+      if (Array.isArray(dados) && dados.length >= 4) {
+        dadosProcessados.sensores[id] = {
+          falha: dados[0] || false,
+          ponto_quente: dados[1] || false,
+          ativo: dados[2] || false,
+          temperatura: dados[3] || 0
+        };
+      }
+    });
+
+    return dadosProcessados;
+  } catch (error) {
+    console.error('Erro ao processar dados da API:', error);
+    return null;
+  }
+};
+
+// Layout para armazém 3D
+export const gerarLayoutArmazem3D = (numSensores = 57) => {
+  const layout = {
+    numeroArcos: 19,
+    numeroCelulas: 3,
+    larguraArmazem: 66.5,
+    alturaArmazem: 8,
+    profundidadeArmazem: 6,
+    espacamentoArcos: 30,
+    sensoresPorArco: 3
+  };
+
+  // Distribuir sensores por arcos
+  const sensoresPorArco = Math.ceil(numSensores / layout.numeroArcos);
+  layout.sensoresPorArco = Math.min(sensoresPorArco, 3);
+
+  return layout;
+};
+
+// Layout para topo do armazém
+export const gerarLayoutTopo = () => {
+  return {
+    layout_topo: {
+      celulas: {
+        tamanho_svg: [600, 388],
+        fundo: [5, 50, 590, 288],
+        "1": [5, 50, 188, 254],
+        "2": [201, 50, 188, 254], 
+        "3": [397, 50, 188, 254]
+      },
+      // 19 arcos distribuídos nas 3 células
+      "1": { celula: 1, pos_x: 30, sensores: { "1": 75, "2": 150, "3": 225 } },
+      "2": { celula: 1, pos_x: 60, sensores: { "4": 75, "5": 150, "6": 225 } },
+      "3": { celula: 1, pos_x: 90, sensores: { "7": 75, "8": 150, "9": 225 } },
+      "4": { celula: 1, pos_x: 120, sensores: { "10": 75, "11": 150, "12": 225 } },
+      "5": { celula: 1, pos_x: 150, sensores: { "13": 75, "14": 150, "15": 225 } },
+      "6": { celula: 1, pos_x: 180, sensores: { "16": 75, "17": 150, "18": 225 } },
+      "7": { celula: 2, pos_x: 230, sensores: { "19": 75, "20": 150, "21": 225 } },
+      "8": { celula: 2, pos_x: 260, sensores: { "22": 75, "23": 150, "24": 225 } },
+      "9": { celula: 2, pos_x: 290, sensores: { "25": 75, "26": 150, "27": 225 } },
+      "10": { celula: 2, pos_x: 320, sensores: { "28": 75, "29": 150, "30": 225 } },
+      "11": { celula: 2, pos_x: 350, sensores: { "31": 75, "32": 150, "33": 225 } },
+      "12": { celula: 2, pos_x: 380, sensores: { "34": 75, "35": 150, "36": 225 } },
+      "13": { celula: 3, pos_x: 430, sensores: { "37": 75, "38": 150, "39": 225 } },
+      "14": { celula: 3, pos_x: 460, sensores: { "40": 75, "41": 150, "42": 225 } },
+      "15": { celula: 3, pos_x: 490, sensores: { "43": 75, "44": 150, "45": 225 } },
+      "16": { celula: 3, pos_x: 520, sensores: { "46": 75, "47": 150, "48": 225 } },
+      "17": { celula: 3, pos_x: 550, sensores: { "49": 75, "50": 150, "51": 225 } },
+      "18": { celula: 3, pos_x: 580, sensores: { "52": 75, "53": 150, "54": 225 } },
+      "19": { celula: 3, pos_x: 585, sensores: { "55": 75, "56": 150, "57": 225 } },
+      aeradores: {
+        "1": [99, 180, 1],
+        "2": [295, 180, 1],
+        "3": [491, 180, 1],
+        "4": [99, 270, 1],
+        "5": [295, 270, 1],
+        "6": [491, 270, 1]
+      }
+    }
+  };
+};
+
+// Converter dados para formato do componente TopoArmazem
+export const converterParaTopo = (dadosAPI) => {
+  const dadosProcessados = processarDadosAPI(dadosAPI);
+  if (!dadosProcessados) return null;
+
+  const layout = gerarLayoutTopo();
+
+  // Converter sensores para formato do TopoArmazem
+  const sensoresFormatados = {};
+  Object.entries(dadosProcessados.sensores).forEach(([id, sensor]) => {
+    sensoresFormatados[id] = [
+      sensor.falha,
+      sensor.ponto_quente, 
+      sensor.ativo,
+      sensor.temperatura
+    ];
+  });
+
+  return {
+    configuracao: layout,
+    sensores: sensoresFormatados,
+    ambiente: dadosProcessados.ambiente,
+    armazem: dadosProcessados.armazem
+  };
+};
+
+// Converter dados para formato do componente Armazem3D
+export const converterParaArmazem3D = (dadosAPI) => {
+  const dadosProcessados = processarDadosAPI(dadosAPI);
+  if (!dadosProcessados) return null;
+
+  const layout = gerarLayoutArmazem3D(Object.keys(dadosProcessados.sensores).length);
+
+  // Distribuir sensores pelos arcos
+  const sensoresPorArco = {};
+  const sensores = Object.entries(dadosProcessados.sensores);
+
+  for (let arco = 1; arco <= layout.numeroArcos; arco++) {
+    const celula = Math.ceil(arco / (layout.numeroArcos / layout.numeroCelulas));
+    sensoresPorArco[arco] = {
+      celula: celula,
+      sensores: []
+    };
+
+    // Adicionar até 3 sensores por arco
+    for (let i = 0; i < layout.sensoresPorArco; i++) {
+      const sensorIndex = (arco - 1) * layout.sensoresPorArco + i;
+      if (sensorIndex < sensores.length) {
+        const [id, dados] = sensores[sensorIndex];
+        sensoresPorArco[arco].sensores.push({
+          id: parseInt(id),
+          ...dados
+        });
+      }
+    }
+  }
+
+  return {
+    ...layout,
+    sensores: sensoresPorArco,
+    ambiente: dadosProcessados.ambiente,
+    armazem: dadosProcessados.armazem
+  };
+};
+
 export default LayoutManager;

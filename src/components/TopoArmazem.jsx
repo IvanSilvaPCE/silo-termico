@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import "bootstrap/dist/css/bootstrap.min.css";
+import { converterParaTopo } from '../utils/layoutManager';
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     const containerRef = useRef(null);
@@ -22,11 +22,11 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 const dadosJSON = await response.json();
 
                 // Processar dados para o componente de topo usando estrutura da API
-                const dadosProcessados = processarDadosAPI(dadosJSON);
+                const dadosConvertidos = converterParaTopo(dadosJSON);
 
-                setDadosPendulos(dadosProcessados.sensores);
-                setDadosTopo(dadosProcessados.sensores);
-                setLayoutTopo(dadosProcessados.layout);
+                setDadosPendulos(dadosConvertidos.sensores);
+                setDadosTopo(dadosConvertidos.sensores);
+                setLayoutTopo(dadosConvertidos.layout);
 
             } catch (error) {
                 console.error('Erro ao processar dados:', error);
@@ -104,12 +104,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             else celula = 3;
 
             const sensoresDoArco = {};
-            
+
             for (let p = 0; p < pendulosPorArco; p++) {
                 // Gerar variação na temperatura baseada na posição
                 const variacaoTemp = (Math.random() - 0.5) * 4; // ±2°C de variação
                 const tempSensor = Math.max(10, Math.min(50, temperatura + variacaoTemp));
-                
+
                 // Simular estados baseados na temperatura e outros parâmetros
                 const pontoQuente = tempSensor > 30;
                 const preAlarme = tempSensor > 35;
@@ -125,10 +125,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 }
 
                 sensoresDoArco[penduloId] = posY;
-                
+
                 // Dados do sensor no formato esperado: [falha, pontoQuente, ativo, temperatura]
                 sensores[penduloId] = [falha, pontoQuente, ativo, tempSensor];
-                
+
                 penduloId++;
             }
 
@@ -611,7 +611,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
             const circulo = document.getElementById(`c_cabo_${idCabo}`);
             const texto = document.getElementById(`t_cabo_${idCabo}`);
-            const falhaEl = document.getElementById(`f_cabo_${idCabo}`);
+            const falhaEl = documentgetElementById(`f_cabo_${idCabo}`);
             const pontoQuenteEl = document.getElementById(`pq_cabo_${idCabo}`);
 
             if (circulo && texto) {

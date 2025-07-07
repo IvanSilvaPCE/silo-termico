@@ -4,8 +4,9 @@ import ArmazemSVG from './components/Armazem';
 import ModeladorSVG from './components/ModeladorSVG';
 import Silo3D from './components/Silo3D';
 import Armazem3D from './components/Armazem3D';
-import dadosSimulados from "./dados";
-import dadosSimuladosSilo from "./dadosSilo";
+import dadosSimulados from "./dados.js";
+import dadosSimuladosSilo from "./dadosSilo.js";
+import exemploArmazemAPI from "./data/exemploArmazemAPI.json";
 
 const App = () => {
   const [dados, setDados] = useState(null);
@@ -82,9 +83,9 @@ const App = () => {
       case "silo3d":
         return <Silo3D dados={dadosSilo} />;
       case "armazem":
-        return <ArmazemSVG dados={dadosArm} />;
+        return <ArmazemSVG dados={dadosArm} dadosAPI={exemploArmazemAPI} />;
       case "armazem3d":
-        return <Armazem3D />;
+        return <Armazem3D dadosAPI={exemploArmazemAPI} />;
       default:
         return <ModeladorSVG />;
     }

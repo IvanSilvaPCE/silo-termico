@@ -3,7 +3,10 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
 import TopoArmazem from "./TopoArmazem";
 
-const ArmazemSVG = ({ dados: dadosExternos }) => {
+const ArmazemSVG = ({ dados: dadosExternos, dadosAPI }) => {
+    // Usar dados da API se disponível, senão usar dados simulados
+    const dadosParaUsar = dadosAPI || dadosExternos;
+
     const containerRef = useRef(null);
     const [modo, setModo] = useState("temperatura");
     const [carregandoModo, setCarregandoModo] = useState(false);
@@ -452,6 +455,8 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const RenderArmazem = () => (
         <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '85vh', minHeight: '400px' }} />
     );
+
+    if (!dadosParaUsar) return <div>Carregando dados do armazém...</div>;
 
     return (
         <div className="container-fluid p-1 p-md-2" style={{ minHeight: '100vh', overflow: 'auto' }}>
