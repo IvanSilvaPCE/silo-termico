@@ -15,16 +15,17 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     const [mostrarTopo, setMostrarTopo] = useState(false);
     const [dimensoesSVG, setDimensoesSVG] = useState({ largura: 350, altura: 200 });
 
-    // Carregar dados de exemplo automaticamente
+    // Carregar dados reais do arquivo JSON
     useEffect(() => {
         const inicializarDados = async () => {
             try {
-                // Gerar dados de exemplo do ArmazemPortal
-                const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
-                setDadosPortal(dadosExemplo);
+                // Carregar dados do arquivo JSON
+                const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
+                const dadosArmazemPortal = await response.json();
+                setDadosPortal(dadosArmazemPortal);
 
                 // Analisar estrutura dos arcos
-                const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
+                const analise = LayoutManager.analisarEstruturaArcos(dadosArmazemPortal);
                 setAnaliseArcos(analise);
 
                 // Gerar layouts automáticos
@@ -36,7 +37,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                 setDimensoesSVG(dimensoes);
 
                 // Converter dados para o formato do armazém (arco 1 inicialmente)
-                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosExemplo, 1);
+                const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosArmazemPortal, 1);
                 setDados(dadosConvertidos);
             } catch (error) {
                 console.error('Erro ao inicializar dados:', error);
