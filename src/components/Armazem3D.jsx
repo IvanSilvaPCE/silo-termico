@@ -458,44 +458,40 @@ const ArmazemCompleto3D = ({
   tipoSelecao,
   alturaArmazem,
 }) => {
-  const numeroArcos = 19;
-  const pendulosPorArco = 3;
+  // Calcular número de arcos baseado nos dados reais
+  const numeroArcos = Object.keys(dados.arcos || {}).length || 1;
   const larguraArco = 3.5;
   const profundidadeArmazem = 6;
 
   // Mapear pêndulos por arco baseado na estrutura real da API
   const penduloPositions = useMemo(() => {
     const positions = [];
-    const larguraArmazem = numeroArcos * larguraArco;
+    
+    // Calcular dimensões baseado nos dados reais
+    const totalArcos = Object.keys(dados.arcos || {}).length;
+    const larguraArmazem = totalArcos * larguraArco;
 
     // Usar a estrutura da API: arcos -> pêndulos -> sensores
     Object.entries(dados.arcos || {}).forEach(([arcoKey, arcoData]) => {
       const arcoNumero = parseInt(arcoKey);
 
-      // Determinar célula baseado no layout_topo
+      // Determinar célula baseado na distribuição dinâmica
       let celulaDoArco = 1;
-      const layoutTopo = dados.configuracao?.layout_topo || {};
-
-      // Encontrar qual célula o arco pertence baseado na configuração
-      Object.entries(layoutTopo).forEach(([key, config]) => {
-        if (
-          key !== "aeradores" &&
-          key !== "celulas" &&
-          parseInt(key) === arcoNumero
-        ) {
-          celulaDoArco = config.celula || 1;
-        }
-      });
+      if (arcoNumero <= Math.ceil(totalArcos / 3)) celulaDoArco = 1;
+      else if (arcoNumero <= Math.ceil(totalArcos * 2 / 3)) celulaDoArco = 2;
+      else celulaDoArco = 3;
 
       const xArco =
         -larguraArmazem / 2 + (arcoNumero - 1) * larguraArco + larguraArco / 2;
 
       // Processar cada pêndulo no arco
+      const pendulosNoArco = Object.keys(arcoData).length;
       Object.entries(arcoData).forEach(([penduloKey, sensores], index) => {
         const numeroPendulo = parseInt(penduloKey);
-        const zLocal =
-          -profundidadeArmazem / 3 +
-          ((index % pendulosPorArco) * profundidadeArmazem) / 3;
+        
+        // Distribuir pêndulos ao longo da profundidade
+        const zLocal = pendulosNoArco === 1 ? 0 :
+          -profundidadeArmazem / 2 + (index * profundidadeArmazem) / (pendulosNoArco - 1);
 
         positions.push({
           position: [xArco, 0, zLocal],
@@ -678,7 +674,8 @@ const Armazem3D = () => {
   const [zoomedIn, setZoomedIn] = useState(false);
 
   const alturaArmazem = 8;
-  const numeroArcos = 19;
+  // Calcular dimensões baseado nos dados carregados
+  const numeroArcos = dados ? Object.keys(dados.arcos || {}).length : 19;
   const numCelulas = 3;
   const larguraTotal = numeroArcos * 3.5;
   const canvasRef = useRef();
@@ -766,30 +763,68 @@ const Armazem3D = () => {
     const nivel = dadosJSON.NIV || 99;
     const volume = dadosJSON.VOL || 1000;
 
-    // Gerar estrutura de arcos baseada nos dados reais
-    const arcos = {};
-    const totalArcos = 19;
+    // Se já existem arcos no JSON, usar eles diretamente
+    if (dadosJSON.arcos) {
+      return {
+        arcos: dadosJSON.arcos,
+        configuracao: {
+          layout_topo: {
+            celulas: {
+              1: [5, 50, 188, 254],
+              2: [197, 50, 206, 254],
+              3: [407, 50, 188, 254],
+            },
+          },
+        },
+      };
+    }
+
+    // Caso contrário, gerar baseado nos pêndulos
+    const pendulosData = dadosJSON.pendulos || {};
+    const totalPendulos = Object.keys(pendulosData).length;
+    
+    // Calcular arcos baseado nos pêndulos disponíveis
     const pendulosPorArco = 3;
+    const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
+
+    const arcos = {};
+    let penduloIndex = 0;
 
     for (let arco = 1; arco <= totalArcos; arco++) {
       arcos[arco] = {};
+      
+      const pendulosNoArco = Math.min(pendulosPorArco, totalPendulos - penduloIndex);
 
-      for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
-        const penduloId = (arco - 1) * pendulosPorArco + pendulo;
-
-        // Simular 8 sensores por pêndulo
+      for (let p = 0; p < pendulosNoArco; p++) {
+        penduloIndex++;
+        const penduloId = penduloIndex;
+        
+        // Usar dados do pêndulo se disponível
+        const dadosPendulo = pendulosData[penduloIndex.toString()];
+        
+        // Gerar sensores para este pêndulo (quantidade variável)
         const sensores = {};
-        for (let sensor = 1; sensor <= 8; sensor++) {
-          const variacaoTemp = (Math.random() - 0.5) * 6; // ±3°C de variação
-          const tempSensor = Math.max(
-            10,
-            Math.min(50, temperatura + variacaoTemp),
-          );
-
-          const pontoQuente = tempSensor > 30;
-          const preAlarme = tempSensor > 35;
-          const falha = Math.random() < 0.03; // 3% chance de falha
-          const ativo = nivel > 50;
+        const numSensores = Math.floor(Math.random() * 6) + 3; // 3-8 sensores por pêndulo
+        
+        for (let sensor = 1; sensor <= numSensores; sensor++) {
+          let tempSensor, pontoQuente, preAlarme, falha, ativo;
+          
+          if (dadosPendulo) {
+            // Usar temperatura do pêndulo como base
+            const [falhaPendulo, pontoQuentePendulo, ativoPendulo, tempPendulo] = dadosPendulo;
+            tempSensor = tempPendulo + (Math.random() - 0.5) * 2; // ±1°C de variação
+            pontoQuente = pontoQuentePendulo || tempSensor > 30;
+            preAlarme = tempSensor > 35;
+            falha = falhaPendulo || Math.random() < 0.02;
+            ativo = ativoPendulo;
+          } else {
+            // Dados simulados
+            tempSensor = temperatura + (Math.random() - 0.5) * 6;
+            pontoQuente = tempSensor > 30;
+            preAlarme = tempSensor > 35;
+            falha = Math.random() < 0.02;
+            ativo = nivel > 50;
+          }
 
           // Formato: [temperatura, ponto_quente, pre_alarme, falha, ativo]
           sensores[sensor] = [tempSensor, pontoQuente, preAlarme, falha, ativo];
@@ -813,25 +848,57 @@ const Armazem3D = () => {
     };
   };
 
-  // Função para gerar dados de fallback
-  const gerarDadosFallback = () => {
+  // Função para gerar dados de fallback baseado em dados básicos
+  const gerarDadosFallback = (dadosBasicos = null) => {
     const arcos = {};
-    const totalArcos = 19;
-    const pendulosPorArco = 3;
-
-    for (let arco = 1; arco <= totalArcos; arco++) {
-      arcos[arco] = {};
-
-      for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
-        const penduloId = (arco - 1) * pendulosPorArco + pendulo;
-
-        const sensores = {};
-        for (let sensor = 1; sensor <= 8; sensor++) {
-          const tempSensor = 20 + Math.random() * 15; // 20-35°C
-          sensores[sensor] = [tempSensor, false, false, false, true];
+    
+    // Se temos dados básicos (pêndulos), usar eles
+    if (dadosBasicos && dadosBasicos.pendulos) {
+      const totalPendulos = Object.keys(dadosBasicos.pendulos).length;
+      const pendulosPorArco = 3;
+      const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
+      
+      let penduloIndex = 0;
+      
+      for (let arco = 1; arco <= totalArcos; arco++) {
+        arcos[arco] = {};
+        
+        const pendulosNoArco = Math.min(pendulosPorArco, totalPendulos - penduloIndex);
+        
+        for (let p = 0; p < pendulosNoArco; p++) {
+          penduloIndex++;
+          const penduloId = penduloIndex;
+          
+          const sensores = {};
+          const numSensores = Math.floor(Math.random() * 4) + 4; // 4-7 sensores
+          
+          for (let sensor = 1; sensor <= numSensores; sensor++) {
+            const tempSensor = 20 + Math.random() * 15; // 20-35°C
+            sensores[sensor] = [tempSensor, false, false, false, true];
+          }
+          
+          arcos[arco][penduloId] = sensores;
         }
-
-        arcos[arco][penduloId] = sensores;
+      }
+    } else {
+      // Fallback padrão
+      const totalArcos = 5; // Número mínimo
+      const pendulosPorArco = 2;
+      
+      for (let arco = 1; arco <= totalArcos; arco++) {
+        arcos[arco] = {};
+        
+        for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
+          const penduloId = (arco - 1) * pendulosPorArco + pendulo;
+          
+          const sensores = {};
+          for (let sensor = 1; sensor <= 5; sensor++) {
+            const tempSensor = 20 + Math.random() * 15;
+            sensores[sensor] = [tempSensor, false, false, false, true];
+          }
+          
+          arcos[arco][penduloId] = sensores;
+        }
       }
     }
 

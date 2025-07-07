@@ -64,85 +64,88 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     // Função para processar dados no formato da API real
     const processarDadosAPI = (dadosJSON) => {
-        // O arquivo JSON fornecido tem campos diretos como AER, NIVH, VOLH, etc.
-        // Vamos criar uma estrutura compatível baseada nestes dados
+        // Usar dados reais do JSON fornecido
+        const temperatura = dadosJSON.TMS || 25;
+        const umidade = dadosJSON.UMC || 50;
+        const nivel = dadosJSON.NIV || 99;
+        const volume = dadosJSON.VOL || 1000;
 
-        // Layout fixo para o topo do armazém (19 arcos, 3 células)
+        // Extrair pêndulos do JSON
+        const pendulosData = dadosJSON.pendulos || {};
+        const totalPendulos = Object.keys(pendulosData).length;
+
+        // Calcular número de arcos baseado nos pêndulos
+        const pendulosPorArco = 3; // Padrão, mas pode ser ajustado
+        const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
+
+        // Calcular dimensões do SVG baseado na quantidade real
+        const espacamentoArco = 30;
+        const larguraCalculada = Math.max(600, totalArcos * espacamentoArco + 100);
+        
+        // Layout dinâmico baseado na quantidade real de arcos
         const layout = {
             celulas: {
-                tamanho_svg: [600, 388],
-                fundo: [5, 49, 590, 256],
-                1: [10, 50, 188, 254],
-                2: [207, 50, 186, 254],
-                3: [402, 50, 188, 254],
+                tamanho_svg: [larguraCalculada, 388],
+                fundo: [5, 49, larguraCalculada - 10, 256],
+                1: [10, 50, Math.floor((larguraCalculada - 30) / 3), 254],
+                2: [Math.floor((larguraCalculada - 30) / 3) + 15, 50, Math.floor((larguraCalculada - 30) / 3), 254],
+                3: [Math.floor((larguraCalculada - 30) * 2 / 3) + 20, 50, Math.floor((larguraCalculada - 30) / 3), 254],
             },
-            aeradores: {
-                1: [65, 0, 1],
-                2: [154, 0, 1],
-                3: [240, 0, 1],
-                4: [329, 0, 1],
-                5: [416, 0, 1],
-                6: [65, 305, 0],
-                7: [154, 305, 0],
-                8: [240, 305, 0],
-                9: [329, 305, 0],
-                10: [416, 305, 0],
-            },
+            aeradores: {},
         };
 
-        // Processar os dados do JSON para simular sensores
-        const temperatura = dadosJSON.TMS || 25; // Temperatura principal
-        const umidade = dadosJSON.UMC || 50; // Umidade
-        const nivel = dadosJSON.NIV || 99; // Nível
-        const volume = dadosJSON.VOL || 1000; // Volume
+        // Gerar aeradores baseado na quantidade de arcos
+        const aeradoresPorLado = Math.ceil(totalArcos / 4);
+        let aeradorId = 1;
+        
+        // Aeradores superiores
+        for (let i = 0; i < aeradoresPorLado; i++) {
+            const posX = 65 + (i * (larguraCalculada - 130) / Math.max(1, aeradoresPorLado - 1));
+            layout.aeradores[aeradorId] = [posX, 0, 1];
+            aeradorId++;
+        }
+        
+        // Aeradores inferiores
+        for (let i = 0; i < aeradoresPorLado; i++) {
+            const posX = 65 + (i * (larguraCalculada - 130) / Math.max(1, aeradoresPorLado - 1));
+            layout.aeradores[aeradorId] = [posX, 305, 0];
+            aeradorId++;
+        }
 
-        // Criar estrutura de arcos e sensores baseada nos dados reais
-        const totalArcos = 19;
-        const pendulosPorArco = 3;
-        let posX = 30;
-        const espacamentoArco = 30;
-
-        // Gerar sensores simulados baseados nos dados reais
+        // Processar sensores dos pêndulos
         const sensores = {};
-        let penduloId = 1;
+        let posX = 30;
+        let penduloIndex = 0;
 
         for (let arco = 1; arco <= totalArcos; arco++) {
             // Determinar célula baseado na distribuição
             let celula;
-            if (arco <= 6) celula = 1;
-            else if (arco <= 13) celula = 2;
+            if (arco <= Math.ceil(totalArcos / 3)) celula = 1;
+            else if (arco <= Math.ceil(totalArcos * 2 / 3)) celula = 2;
             else celula = 3;
 
             const sensoresDoArco = {};
+            const pendulosNoArco = Math.min(pendulosPorArco, totalPendulos - penduloIndex);
 
-            for (let p = 0; p < pendulosPorArco; p++) {
-                // Gerar variação na temperatura baseada na posição
-                const variacaoTemp = (Math.random() - 0.5) * 4; // ±2°C de variação
-                const tempSensor = Math.max(
-                    10,
-                    Math.min(50, temperatura + variacaoTemp),
-                );
+            for (let p = 0; p < pendulosNoArco; p++) {
+                penduloIndex++;
+                const penduloId = penduloIndex.toString();
+                
+                // Usar dados reais do JSON se disponível
+                if (pendulosData[penduloId]) {
+                    const [falha, pontoQuente, ativo, temperatura] = pendulosData[penduloId];
+                    
+                    // Posição Y alternada
+                    let posY;
+                    if (arco % 2 === 1) {
+                        posY = 80 + p * 40;
+                    } else {
+                        posY = 140 + p * 40;
+                    }
 
-                // Simular estados baseados na temperatura e outros parâmetros
-                const pontoQuente = tempSensor > 30;
-                const preAlarme = tempSensor > 35;
-                const falha = Math.random() < 0.05; // 5% chance de falha
-                const ativo = nivel > 50; // Ativo baseado no nível
-
-                // Posição Y alternada
-                let posY;
-                if (arco % 2 === 1) {
-                    posY = 80 + p * 40;
-                } else {
-                    posY = 140 + p * 40;
+                    sensoresDoArco[penduloId] = posY;
+                    sensores[penduloId] = [falha, pontoQuente, ativo, temperatura];
                 }
-
-                sensoresDoArco[penduloId] = posY;
-
-                // Dados do sensor no formato esperado: [falha, pontoQuente, ativo, temperatura]
-                sensores[penduloId] = [falha, pontoQuente, ativo, tempSensor];
-
-                penduloId++;
             }
 
             layout[arco] = {
