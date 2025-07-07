@@ -767,7 +767,24 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     function atualizarCabos() {
         Object.entries(dadosTopo).forEach(([idCabo, dados]) => {
-            const [falha, pontoQuente, nivel, temperatura] = dados;
+            // Verificar se dados está no formato correto
+            let temperatura, falha, pontoQuente, nivel;
+            
+            if (Array.isArray(dados)) {
+                // Formato antigo: [falha, pontoQuente, nivel, temperatura]
+                if (dados.length === 4) {
+                    [falha, pontoQuente, nivel, temperatura] = dados;
+                } else if (dados.length === 5) {
+                    // Formato novo: [temperatura, false, preAlarme, alarme, ativo]
+                    [temperatura, , pontoQuente, falha, nivel] = dados;
+                }
+            } else {
+                // Se não for array, usar valores padrão
+                temperatura = 0;
+                falha = false;
+                pontoQuente = false;
+                nivel = true;
+            }
 
             const circulo = document.getElementById(`c_cabo_${idCabo}`);
             const texto = document.getElementById(`t_cabo_${idCabo}`);
@@ -780,13 +797,13 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 let opacidadeTexto = "1";
 
                 // Aplicar lógica de cores baseada na temperatura
-                if (temperatura === 0) {
-                    // Temperatura 0 - cinza
+                if (temperatura === 0 || temperatura === null || temperatura === undefined) {
+                    // Temperatura 0 ou inválida - cinza
                     cor = "#c7c7c7";
                     corTexto = "black";
                 } else {
                     // Usar função de cores para temperaturas normais
-                    const [corFundo, corFonte] = corTemperatura(temperatura);
+                    const [corFundo, corFonte] = corTemperatura(parseFloat(temperatura));
                     cor = corFundo;
                     corTexto = corFonte;
                 }
