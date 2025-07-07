@@ -178,10 +178,13 @@ export default function Silo({ dados }) {
       Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
         const sensorIdx = parseInt(sensorKey, 10);
         const t = parseFloat(dadosSensor[0]);
+        const ativo = dadosSensor[4]; // Campo que indica se sensor tem grão
         const ySensor = yCabo - distYSensores * sensorIdx;
         
-        if (dadosSensor[4] && t !== -1000) { // Sensor ativo com grão
-          sensores.push({ x: xCabo, y: ySensor, t, ativo: true });
+        // Adicionar todos os sensores, mas marcar quais estão ativos
+        sensores.push({ x: xCabo, y: ySensor, t, ativo });
+        
+        if (ativo && t !== -1000) { // Sensor ativo com grão
           // Atualizar o nível mais alto (menor Y = mais alto no silo)
           if (ySensor < nivelMaisAlto || nivelMaisAlto === 0) {
             nivelMaisAlto = ySensor;
@@ -205,7 +208,7 @@ export default function Silo({ dados }) {
       let temSensorAtivo = false;
 
       sensores.forEach(({ x, y, t, ativo }) => {
-        if (t === -1000 || !ativo) return;
+        if (t === -1000 || !ativo) return; // Só considera sensores ativos
         temSensorAtivo = true;
         const dist = Math.max(Math.hypot(x - cx, y - cy), 0.0001);
         const peso = 1 / Math.pow(dist, power);
@@ -226,9 +229,10 @@ export default function Silo({ dados }) {
       Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
         const sensorIdx = parseInt(sensorKey, 10);
         const t = parseFloat(dadosSensor[0]);
+        const ativo = dadosSensor[4]; // Campo que indica se sensor tem grão
         const ySensor = posYCabo[idxCabo] - distYSensores * sensorIdx;
         
-        if (dadosSensor[4] && t !== -1000) { // Sensor ativo com grão
+        if (ativo && t !== -1000) { // Sensor ativo com grão
           if (ySensor < nivelMaisAltoNesteCabo || nivelMaisAltoNesteCabo === 0) {
             nivelMaisAltoNesteCabo = ySensor;
           }
@@ -291,18 +295,35 @@ export default function Silo({ dados }) {
       return cy >= nivelInterpolado - margemSeguranca && cy <= hs;
     }
 
+    // Função para verificar se há sensores ativos na posição para determinar se tem grão
+    function temSensorAtivoNaPosicao(cx, cy) {
+      // Verificar se há sensores ativos próximos a esta posição
+      const raioVerificacao = 50; // pixels
+      
+      for (const sensor of sensores) {
+        if (!sensor.ativo) continue; // Pular sensores inativos
+        
+        const distancia = Math.hypot(sensor.x - cx, sensor.y - cy);
+        if (distancia <= raioVerificacao) {
+          return true; // Há pelo menos um sensor ativo próximo
+        }
+      }
+      
+      return false; // Não há sensores ativos próximos
+    }
+
     for (let i = 0; i < resolucao; i++) {
       for (let j = 0; j < resolucao; j++) {
         const cx = i * wCell + wCell / 2;
         const cy = j * hCell + hCell / 2;
         
         let cor;
-        if (temGraoNaPosicao(cx, cy)) {
-          // Área com grão: aplica interpolação térmica
+        if (temGraoNaPosicao(cx, cy) && temSensorAtivoNaPosicao(cx, cy)) {
+          // Área com grão E sensores ativos: aplica interpolação térmica
           const tempInterpolada = idw(cx, cy);
           cor = tempInterpolada === null ? "#e7e7e7" : corFaixaExata(tempInterpolada);
         } else {
-          // Área sem grão: cor cinza
+          // Área sem grão ou sem sensores ativos: cor cinza
           cor = "#e7e7e7";
         }
 
