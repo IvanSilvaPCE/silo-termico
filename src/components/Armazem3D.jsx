@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
@@ -84,7 +83,9 @@ const Pendulo3D = ({
               <meshStandardMaterial
                 color={cor}
                 emissive={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : cor}
-                emissiveIntensity={falha ? 0.5 : ponto_quente ? 0.3 : ativo ? 0.2 : 0.1}
+                emissiveIntensity={
+                  falha ? 0.5 : ponto_quente ? 0.3 : ativo ? 0.2 : 0.1
+                }
                 metalness={0.3}
                 roughness={0.7}
                 opacity={ativo ? 1.0 : 0.5}
@@ -95,7 +96,7 @@ const Pendulo3D = ({
             {/* Antena do sensor */}
             <mesh position={[0, 0.08, 0]}>
               <cylinderGeometry args={[0.01, 0.01, 0.08, 8]} />
-              <meshStandardMaterial 
+              <meshStandardMaterial
                 color={ativo ? "#666666" : "#999999"}
                 opacity={ativo ? 1.0 : 0.5}
                 transparent={!ativo}
@@ -419,10 +420,10 @@ const ArmazemStructure3D = ({
         <mesh
           position={[
             celulaSelecionada === 1
-              ? -larguraArmazem / 2 + (larguraArco * 3)
+              ? -larguraArmazem / 2 + larguraArco * 3
               : celulaSelecionada === 2
                 ? -larguraArco * 3.5
-                : larguraArmazem / 2 - (larguraArco * 3),
+                : larguraArmazem / 2 - larguraArco * 3,
             alturaArmazem / 2,
             0,
           ]}
@@ -470,24 +471,31 @@ const ArmazemCompleto3D = ({
     // Usar a estrutura da API: arcos -> pêndulos -> sensores
     Object.entries(dados.arcos || {}).forEach(([arcoKey, arcoData]) => {
       const arcoNumero = parseInt(arcoKey);
-      
+
       // Determinar célula baseado no layout_topo
       let celulaDoArco = 1;
       const layoutTopo = dados.configuracao?.layout_topo || {};
-      
+
       // Encontrar qual célula o arco pertence baseado na configuração
       Object.entries(layoutTopo).forEach(([key, config]) => {
-        if (key !== 'aeradores' && key !== 'celulas' && parseInt(key) === arcoNumero) {
+        if (
+          key !== "aeradores" &&
+          key !== "celulas" &&
+          parseInt(key) === arcoNumero
+        ) {
           celulaDoArco = config.celula || 1;
         }
       });
 
-      const xArco = -larguraArmazem / 2 + (arcoNumero - 1) * larguraArco + larguraArco / 2;
+      const xArco =
+        -larguraArmazem / 2 + (arcoNumero - 1) * larguraArco + larguraArco / 2;
 
       // Processar cada pêndulo no arco
       Object.entries(arcoData).forEach(([penduloKey, sensores], index) => {
         const numeroPendulo = parseInt(penduloKey);
-        const zLocal = -profundidadeArmazem / 3 + ((index % pendulosPorArco) * profundidadeArmazem / 3);
+        const zLocal =
+          -profundidadeArmazem / 3 +
+          ((index % pendulosPorArco) * profundidadeArmazem) / 3;
 
         positions.push({
           position: [xArco, 0, zLocal],
@@ -523,7 +531,8 @@ const ArmazemCompleto3D = ({
     ];
 
     motoresConfig.forEach((config, index) => {
-      const xMotor = -larguraArmazem / 2 + (config.arco - 1) * larguraArco + larguraArco / 2;
+      const xMotor =
+        -larguraArmazem / 2 + (config.arco - 1) * larguraArco + larguraArco / 2;
       let zMotor, yMotor;
 
       if (config.pos === "superior") {
@@ -572,43 +581,60 @@ const ArmazemCompleto3D = ({
       <group renderOrder={1000}>
         {penduloPositions.map((penduloInfo) => {
           const sensoresData = penduloInfo.sensores || {};
-          const espacamentoSensores = (alturaArmazem * 0.7) / (Object.keys(sensoresData).length + 1);
+          const espacamentoSensores =
+            (alturaArmazem * 0.7) / (Object.keys(sensoresData).length + 1);
 
-          return Object.entries(sensoresData).map(([sensorKey, valores], index) => {
-            const s = parseInt(sensorKey);
-            // Formato da API: [temperatura, ponto_quente, pre_alarme, falha, ativo]
-            const [temp, ponto_quente, pre_alarme, falha, ativo] = valores;
-            const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
-            const position = [
-              penduloInfo.position[0] + 0.4,
-              yPos,
-              penduloInfo.position[2],
-            ];
+          return Object.entries(sensoresData).map(
+            ([sensorKey, valores], index) => {
+              const s = parseInt(sensorKey);
+              // Formato da API: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+              const [temp, ponto_quente, pre_alarme, falha, ativo] = valores;
+              const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
+              const position = [
+                penduloInfo.position[0] + 0.4,
+                yPos,
+                penduloInfo.position[2],
+              ];
 
-            return (
-              <Billboard
-                key={`temp-${penduloInfo.numero}-${s}`}
-                position={position}
-              >
-                <Text
-                  fontSize={0.12}
-                  color={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : ativo ? "#00ff00" : "#cccccc"}
-                  anchorX="center"
-                  anchorY="middle"
-                  outlineWidth={0.04}
-                  outlineColor="#000000"
+              return (
+                <Billboard
+                  key={`temp-${penduloInfo.numero}-${s}`}
+                  position={position}
                 >
-                  <meshBasicMaterial
-                    attach="material"
-                    transparent
-                    depthTest={false}
-                    depthWrite={false}
-                  />
-                  {falha ? "ERR" : !ativo ? "OFF" : ponto_quente ? "HOT" : `${temp.toFixed(1)}°C`}
-                </Text>
-              </Billboard>
-            );
-          });
+                  <Text
+                    fontSize={0.12}
+                    color={
+                      falha
+                        ? "#ff0000"
+                        : ponto_quente
+                          ? "#ffaa00"
+                          : ativo
+                            ? "#00ff00"
+                            : "#cccccc"
+                    }
+                    anchorX="center"
+                    anchorY="middle"
+                    outlineWidth={0.04}
+                    outlineColor="#000000"
+                  >
+                    <meshBasicMaterial
+                      attach="material"
+                      transparent
+                      depthTest={false}
+                      depthWrite={false}
+                    />
+                    {falha
+                      ? "ERR"
+                      : !ativo
+                        ? "OFF"
+                        : ponto_quente
+                          ? "HOT"
+                          : `${temp.toFixed(1)}°C`}
+                  </Text>
+                </Billboard>
+              );
+            },
+          );
         })}
       </group>
 
@@ -702,9 +728,11 @@ const Armazem3D = () => {
       try {
         setCarregando(true);
         // Carregar dados do modelo da API
-        const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
+        const response = await fetch(
+          "/attached_assets/modeloRotaArmazemPortal_1751897945212.json",
+        );
         const dadosCarregados = await response.json();
-        
+
         // Processar dados da API para o formato esperado
         const dadosProcessados = processarDadosAPI(dadosCarregados);
         setDados(dadosProcessados);
@@ -716,12 +744,12 @@ const Armazem3D = () => {
           configuracao: {
             layout_topo: {
               celulas: {
-                "1": [5, 50, 188, 254],
-                "2": [197, 50, 206, 254], 
-                "3": [407, 50, 188, 254]
-              }
-            }
-          }
+                1: [5, 50, 188, 254],
+                2: [197, 50, 206, 254],
+                3: [407, 50, 188, 254],
+              },
+            },
+          },
         });
       } finally {
         setCarregando(false);
@@ -742,28 +770,31 @@ const Armazem3D = () => {
     const arcos = {};
     const totalArcos = 19;
     const pendulosPorArco = 3;
-    
+
     for (let arco = 1; arco <= totalArcos; arco++) {
       arcos[arco] = {};
-      
+
       for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
         const penduloId = (arco - 1) * pendulosPorArco + pendulo;
-        
+
         // Simular 8 sensores por pêndulo
         const sensores = {};
         for (let sensor = 1; sensor <= 8; sensor++) {
           const variacaoTemp = (Math.random() - 0.5) * 6; // ±3°C de variação
-          const tempSensor = Math.max(10, Math.min(50, temperatura + variacaoTemp));
-          
+          const tempSensor = Math.max(
+            10,
+            Math.min(50, temperatura + variacaoTemp),
+          );
+
           const pontoQuente = tempSensor > 30;
           const preAlarme = tempSensor > 35;
           const falha = Math.random() < 0.03; // 3% chance de falha
           const ativo = nivel > 50;
-          
+
           // Formato: [temperatura, ponto_quente, pre_alarme, falha, ativo]
           sensores[sensor] = [tempSensor, pontoQuente, preAlarme, falha, ativo];
         }
-        
+
         arcos[arco][penduloId] = sensores;
       }
     }
@@ -773,12 +804,12 @@ const Armazem3D = () => {
       configuracao: {
         layout_topo: {
           celulas: {
-            "1": [5, 50, 188, 254],
-            "2": [197, 50, 206, 254], 
-            "3": [407, 50, 188, 254]
-          }
-        }
-      }
+            1: [5, 50, 188, 254],
+            2: [197, 50, 206, 254],
+            3: [407, 50, 188, 254],
+          },
+        },
+      },
     };
   };
 
@@ -787,23 +818,23 @@ const Armazem3D = () => {
     const arcos = {};
     const totalArcos = 19;
     const pendulosPorArco = 3;
-    
+
     for (let arco = 1; arco <= totalArcos; arco++) {
       arcos[arco] = {};
-      
+
       for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
         const penduloId = (arco - 1) * pendulosPorArco + pendulo;
-        
+
         const sensores = {};
         for (let sensor = 1; sensor <= 8; sensor++) {
           const tempSensor = 20 + Math.random() * 15; // 20-35°C
           sensores[sensor] = [tempSensor, false, false, false, true];
         }
-        
+
         arcos[arco][penduloId] = sensores;
       }
     }
-    
+
     return arcos;
   };
 
