@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import SiloSVG from "./components/Silo";
-import ArmazemSVG from "./components/Armazem";
-import ModeladorSVG from "./components/ModeladorSVG";
-import Silo3D from "./components/Silo3D";
-import Armazem3D from "./components/Armazem3D";
+import ArmazemSVG from './components/Armazem';
+import ModeladorSVG from './components/ModeladorSVG';
+import Silo3D from './components/Silo3D';
+import Armazem3D from './components/Armazem3D';
 import dadosSimulados from "./dados";
 import dadosSimuladosSilo from "./dadosSilo";
 
@@ -38,31 +38,31 @@ const App = () => {
       <div className="container-fluid px-4">
         <span className="navbar-brand">Sistema de Monitoramento</span>
         <div className="navbar-nav d-flex flex-wrap">
-          <button
+          <button 
             className={`btn ${telaAtiva === "modelador" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
             onClick={() => setTelaAtiva("modelador")}
           >
             Modelador SVG
           </button>
-          <button
+          <button 
             className={`btn ${telaAtiva === "silo" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
             onClick={() => setTelaAtiva("silo")}
           >
             Silo 2D
           </button>
-          <button
+          <button 
             className={`btn ${telaAtiva === "silo3d" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
             onClick={() => setTelaAtiva("silo3d")}
           >
             Silo 3D
           </button>
-          <button
+          <button 
             className={`btn ${telaAtiva === "armazem" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
             onClick={() => setTelaAtiva("armazem")}
           >
             Armazém 2D
           </button>
-          <button
+          <button 
             className={`btn ${telaAtiva === "armazem3d" ? "btn-light" : "btn-outline-light"} mb-1`}
             onClick={() => setTelaAtiva("armazem3d")}
           >
@@ -74,7 +74,7 @@ const App = () => {
   );
 
   const renderConteudo = () => {
-    switch (telaAtiva) {
+    switch(telaAtiva) {
       case "modelador":
         return <ModeladorSVG />;
       case "silo":
@@ -91,9 +91,11 @@ const App = () => {
   };
 
   return (
-    <div style={{ width: "100%", minHeight: "100vh" }}>
+    <div style={{ width: '100%', minHeight: '100vh' }}>
       {renderNavegacao()}
-      <div style={{ width: "100%" }}>{renderConteudo()}</div>
+      <div style={{ width: '100%' }}>
+        {renderConteudo()}
+      </div>
     </div>
   );
 };
