@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import {
@@ -63,14 +64,14 @@ const Pendulo3D = ({
           anchorY="middle"
           fontWeight="bold"
         >
-          C{numero}
+          P{numero}
         </Text>
       </Billboard>
 
       {/* Sensores ao longo do cabo com geometria individual para melhor visualização */}
       {Object.entries(sensores).map(([sensorKey, valores], index) => {
         const s = parseInt(sensorKey);
-        const [temp, , , falha, nivel] = valores;
+        const [temp, ponto_quente, , falha, nivel] = valores;
         const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
         const cor = nivel ? corFaixaExata(temp) : "#cccccc";
 
@@ -81,8 +82,8 @@ const Pendulo3D = ({
               <boxGeometry args={[0.25, 0.12, 0.12]} />
               <meshStandardMaterial
                 color={cor}
-                emissive={falha ? "#ff0000" : cor}
-                emissiveIntensity={falha ? 0.5 : 0.2}
+                emissive={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : cor}
+                emissiveIntensity={falha ? 0.5 : ponto_quente ? 0.3 : 0.2}
                 metalness={0.3}
                 roughness={0.7}
               />
@@ -212,9 +213,9 @@ const ArmazemStructure3D = ({
   tipoSelecao,
   alturaArmazem,
 }) => {
-  const larguraArco = 3.5; // Compactado de 6 para 3.5
+  const larguraArco = 3.5;
   const larguraArmazem = numeroArcos * larguraArco;
-  const profundidadeArmazem = 6; // Reduzido de 8 para 6
+  const profundidadeArmazem = 6;
   const alturaTelhado = alturaArmazem * 0.35;
 
   return (
@@ -229,7 +230,7 @@ const ArmazemStructure3D = ({
 
       {/* Estrutura principal do armazém */}
       <group>
-        {/* Paredes laterais - mais baixas e compactas */}
+        {/* Paredes laterais */}
         <mesh
           position={[-larguraArmazem / 2 - 0.15, alturaArmazem / 2, 0]}
           castShadow
@@ -289,7 +290,7 @@ const ArmazemStructure3D = ({
           />
         </mesh>
 
-        {/* Telhado compacto duas águas */}
+        {/* Telhado duas águas */}
         <group position={[0, alturaArmazem, 0]}>
           <mesh
             position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
@@ -332,7 +333,7 @@ const ArmazemStructure3D = ({
           </mesh>
         </group>
 
-        {/* Vigas verticais com instancing */}
+        {/* Vigas verticais */}
         <Instances>
           <boxGeometry args={[0.15, alturaArmazem + 0.3, 0.15]} />
           <meshStandardMaterial
@@ -354,7 +355,7 @@ const ArmazemStructure3D = ({
           })}
         </Instances>
 
-        {/* Labels apenas para arcos selecionados */}
+        {/* Labels para arcos selecionados */}
         {arcoSelecionado && (
           <Billboard
             position={[
@@ -375,9 +376,6 @@ const ArmazemStructure3D = ({
             </Text>
           </Billboard>
         )}
-
-        {/* Divisões das 3 células por arco */}
-        {/* Removendo as divisórias */}
       </group>
 
       {/* Highlight do arco selecionado */}
@@ -413,24 +411,22 @@ const ArmazemStructure3D = ({
       {tipoSelecao === "celula" && celulaSelecionada && (
         <mesh
           position={[
-            // Posição X baseada na célula selecionada (divisão lateral)
             celulaSelecionada === 1
-              ? -larguraArmazem / 2 + (larguraArco * 3) // Célula 1: arcos 1-6
+              ? -larguraArmazem / 2 + (larguraArco * 3)
               : celulaSelecionada === 2
-                ? -larguraArco * 3.5 // Célula 2: arcos 7-13  
-                : larguraArmazem / 2 - (larguraArco * 3), // Célula 3: arcos 14-19
+                ? -larguraArco * 3.5
+                : larguraArmazem / 2 - (larguraArco * 3),
             alturaArmazem / 2,
-            0, // Centrado em Z
+            0,
           ]}
         >
           <boxGeometry
             args={[
-              // Largura baseada no número de arcos por célula
               celulaSelecionada === 1
-                ? larguraArco * 6 + 0.5 // 6 arcos (1-6)
+                ? larguraArco * 6 + 0.5
                 : celulaSelecionada === 2
-                  ? larguraArco * 7 + 0.5 // 7 arcos (7-13)
-                  : larguraArco * 6 + 0.5, // 6 arcos (14-19)
+                  ? larguraArco * 7 + 0.5
+                  : larguraArco * 6 + 0.5,
               alturaArmazem + 0.5,
               profundidadeArmazem + 0.5,
             ]}
@@ -447,32 +443,6 @@ const ArmazemStructure3D = ({
   );
 };
 
-// Função para gerar dados de exemplo com 19 arcos e 3 pêndulos por arco (57 pêndulos total, divididos em 3 células)
-const gerarDadosArmazem = () => {
-  const dados = { leitura: {} };
-
-  // Gerar dados para 57 pêndulos (numeração de 1 a 57)
-  for (let pendulo = 1; pendulo <= 57; pendulo++) {
-    dados.leitura[pendulo.toString()] = {};
-
-    // Cada pêndulo tem entre 6-10 sensores
-    const numSensores = 6 + Math.floor(Math.random() * 5);
-
-    for (let sensor = 1; sensor <= numSensores; sensor++) {
-      const temp = 15 + Math.random() * 20; // Temperatura entre 15-35°C
-      dados.leitura[pendulo.toString()][sensor.toString()] = [
-        temp, // temperatura
-        false, // alarme
-        "OK", // qualidade
-        false, // falha
-        true, // ativo
-      ];
-    }
-  }
-
-  return dados;
-};
-
 const ArmazemCompleto3D = ({
   dados,
   arcoSelecionado,
@@ -485,55 +455,64 @@ const ArmazemCompleto3D = ({
   const larguraArco = 3.5;
   const profundidadeArmazem = 6;
 
+  // Mapear pêndulos por arco baseado na estrutura real dos dados
   const penduloPositions = useMemo(() => {
     const positions = [];
     const larguraArmazem = numeroArcos * larguraArco;
 
-    for (let arco = 1; arco <= numeroArcos; arco++) {
-      const xArco =
-        -larguraArmazem / 2 + (arco - 1) * larguraArco + larguraArco / 2;
+    // Usar a estrutura real dos dados: arcos -> pêndulos
+    Object.entries(dados.arcos || {}).forEach(([arcoKey, arcoData]) => {
+      const arcoNumero = parseInt(arcoKey);
+      
+      // Determinar célula baseado na sequencia_celulas
+      let celulaDoArco = 1;
+      const sequenciaCelulas = dados.configuracao?.sequencia_celulas || {};
+      
+      for (const [key, config] of Object.entries(sequenciaCelulas)) {
+        if (config.sequencia_pendulos) {
+          const pendulosNaCelula = config.sequencia_pendulos;
+          const penduloDentroDaCelula = Object.keys(arcoData).some(pendulo => 
+            pendulosNaCelula.includes(parseInt(pendulo))
+          );
+          if (penduloDentroDaCelula) {
+            celulaDoArco = config.celula;
+            break;
+          }
+        }
+      }
 
-      // Determinar célula baseado no arco (seguindo a lógica da visão topo)
-      let celulaDoArco;
-      if (arco <= 6) celulaDoArco = 1;        // Arcos 1-6: Célula 1
-      else if (arco <= 13) celulaDoArco = 2;  // Arcos 7-13: Célula 2
-      else celulaDoArco = 3;                  // Arcos 14-19: Célula 3
+      const xArco = -larguraArmazem / 2 + (arcoNumero - 1) * larguraArco + larguraArco / 2;
 
-      // 3 pêndulos por arco, todos na mesma célula
-      for (let p = 0; p < pendulosPorArco; p++) {
-        const numeroPendulo = (arco - 1) * pendulosPorArco + p + 1;
-        
-        // Distribuir os 3 pêndulos em profundidade dentro da mesma célula
-        const zLocal = -profundidadeArmazem / 3 + (p * profundidadeArmazem / 3);
+      // Processar cada pêndulo no arco
+      Object.entries(arcoData).forEach(([penduloKey, sensores], index) => {
+        const numeroPendulo = parseInt(penduloKey);
+        const zLocal = -profundidadeArmazem / 3 + ((index % pendulosPorArco) * profundidadeArmazem / 3);
 
         positions.push({
           position: [xArco, 0, zLocal],
           numero: numeroPendulo,
-          arco: arco,
-          celula: celulaDoArco, // Todos os pêndulos do arco pertencem à mesma célula
+          arco: arcoNumero,
+          celula: celulaDoArco,
+          sensores: sensores,
         });
-      }
-    }
+      });
+    });
 
     return positions;
-  }, []);
+  }, [dados]);
 
-  // Posições dos motores baseado na imagem do topo 2D - FORA do armazém
+  // Posições dos motores baseado na configuração
   const motoresPositions = useMemo(() => {
     const positions = [];
     const larguraArmazem = numeroArcos * larguraArco;
 
-    // Baseado no layout do topo 2D: motores nas bordas superior e inferior
     const motoresConfig = [
-      // Motores na borda superior (fora do armazém)
       { arco: 2, pos: "superior" },
       { arco: 5, pos: "superior" },
       { arco: 8, pos: "superior" },
       { arco: 11, pos: "superior" },
       { arco: 14, pos: "superior" },
       { arco: 17, pos: "superior" },
-
-      // Motores na borda inferior (fora do armazém)
       { arco: 3, pos: "inferior" },
       { arco: 6, pos: "inferior" },
       { arco: 9, pos: "inferior" },
@@ -543,22 +522,21 @@ const ArmazemCompleto3D = ({
     ];
 
     motoresConfig.forEach((config, index) => {
-      const xMotor =
-        -larguraArmazem / 2 + (config.arco - 1) * larguraArco + larguraArco / 2;
+      const xMotor = -larguraArmazem / 2 + (config.arco - 1) * larguraArco + larguraArco / 2;
       let zMotor, yMotor;
 
       if (config.pos === "superior") {
-        zMotor = profundidadeArmazem / 2 + 1.2; // Bem fora do armazém
+        zMotor = profundidadeArmazem / 2 + 1.2;
         yMotor = 0.2;
       } else if (config.pos === "inferior") {
-        zMotor = -profundidadeArmazem / 2 - 1.2; // Bem fora do armazém
+        zMotor = -profundidadeArmazem / 2 - 1.2;
         yMotor = 0.2;
       }
 
       positions.push({
         position: [xMotor, yMotor, zMotor],
         id: index + 1,
-        status: Math.random() > 0.7 ? 3 : Math.random() > 0.3 ? 0 : 4, // Maioria ligados
+        status: Math.random() > 0.7 ? 3 : Math.random() > 0.3 ? 0 : 4,
       });
     });
 
@@ -577,66 +555,58 @@ const ArmazemCompleto3D = ({
       />
 
       {/* Renderizar pêndulos */}
-      {penduloPositions.map((penduloInfo) => {
-        const sensoresData = dados.leitura[penduloInfo.numero.toString()] || {};
+      {penduloPositions.map((penduloInfo) => (
+        <Pendulo3D
+          key={penduloInfo.numero}
+          position={penduloInfo.position}
+          numero={penduloInfo.numero}
+          sensores={penduloInfo.sensores}
+          arcoNumero={penduloInfo.arco}
+          alturaArmazem={alturaArmazem}
+          celulaNumero={penduloInfo.celula}
+        />
+      ))}
 
-        return (
-          <Pendulo3D
-            key={penduloInfo.numero}
-            position={penduloInfo.position}
-            numero={penduloInfo.numero}
-            sensores={sensoresData}
-            arcoNumero={penduloInfo.arco}
-            alturaArmazem={alturaArmazem}
-            celulaNumero={penduloInfo.celula}
-          />
-        );
-      })}
-
-      {/* Grupo especial para temperaturas sempre visíveis */}
+      {/* Temperaturas sempre visíveis */}
       <group renderOrder={1000}>
         {penduloPositions.map((penduloInfo) => {
-          const sensoresData =
-            dados.leitura[penduloInfo.numero.toString()] || {};
-          const espacamentoSensores =
-            (alturaArmazem * 0.7) / (Object.keys(sensoresData).length + 1);
+          const sensoresData = penduloInfo.sensores || {};
+          const espacamentoSensores = (alturaArmazem * 0.7) / (Object.keys(sensoresData).length + 1);
 
-          return Object.entries(sensoresData).map(
-            ([sensorKey, valores], index) => {
-              const s = parseInt(sensorKey);
-              const [temp, , , falha] = valores;
-              const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
-              const position = [
-                penduloInfo.position[0] + 0.4,
-                yPos,
-                penduloInfo.position[2],
-              ];
+          return Object.entries(sensoresData).map(([sensorKey, valores], index) => {
+            const s = parseInt(sensorKey);
+            const [temp, ponto_quente, , falha] = valores;
+            const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
+            const position = [
+              penduloInfo.position[0] + 0.4,
+              yPos,
+              penduloInfo.position[2],
+            ];
 
-              return (
-                <Billboard
-                  key={`temp-${penduloInfo.numero}-${s}`}
-                  position={position}
+            return (
+              <Billboard
+                key={`temp-${penduloInfo.numero}-${s}`}
+                position={position}
+              >
+                <Text
+                  fontSize={0.12}
+                  color={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : "#00ff00"}
+                  anchorX="center"
+                  anchorY="middle"
+                  outlineWidth={0.04}
+                  outlineColor="#000000"
                 >
-                  <Text
-                    fontSize={0.12}
-                    color={falha ? "#ff0000" : "#00ff00"}
-                    anchorX="center"
-                    anchorY="middle"
-                    outlineWidth={0.04}
-                    outlineColor="#000000"
-                  >
-                    <meshBasicMaterial
-                      attach="material"
-                      transparent
-                      depthTest={false}
-                      depthWrite={false}
-                    />
-                    {falha ? "ERR" : `${temp.toFixed(1)}°C`}
-                  </Text>
-                </Billboard>
-              );
-            },
-          );
+                  <meshBasicMaterial
+                    attach="material"
+                    transparent
+                    depthTest={false}
+                    depthWrite={false}
+                  />
+                  {falha ? "ERR" : ponto_quente ? "HOT" : `${temp.toFixed(1)}°C`}
+                </Text>
+              </Billboard>
+            );
+          });
         })}
       </group>
 
@@ -675,35 +645,34 @@ const Armazem3D = () => {
   const [celulaSelecionada, setCelulaSelecionada] = useState(1);
   const [dados, setDados] = useState(null);
   const [carregando, setCarregando] = useState(true);
-  const [tipoSelecao, setTipoSelecao] = useState("arco"); // 'arco' ou 'celula'
+  const [tipoSelecao, setTipoSelecao] = useState("arco");
   const [lastInteractionTime, setLastInteractionTime] = useState(Date.now());
   const [zoomedIn, setZoomedIn] = useState(false);
 
-  const alturaArmazem = 8; // Reduzido de 10 para 8
+  const alturaArmazem = 8;
   const numeroArcos = 19;
-  const numCelulas = 3; // 3 células por arco
+  const numCelulas = 3;
   const larguraTotal = numeroArcos * 3.5;
   const canvasRef = useRef();
 
-  // Function to handle zoom in
+  // Funções de zoom
   const zoomToCenter = () => {
     if (canvasRef.current) {
       const controls = canvasRef.current.controls;
       if (controls) {
-        controls.target.set(0, alturaArmazem / 2, 0); // Zoom to the center of the warehouse
-        controls.distance = larguraTotal * 0.3; // Adjust the zoom distance as needed
+        controls.target.set(0, alturaArmazem / 2, 0);
+        controls.distance = larguraTotal * 0.3;
         setZoomedIn(true);
       }
     }
   };
 
-  // Function to handle zoom out
   const resetZoom = () => {
     if (canvasRef.current) {
       const controls = canvasRef.current.controls;
       if (controls) {
-        controls.target.set(0, alturaArmazem / 2, 0); // Reset zoom target
-        controls.distance = larguraTotal * 0.8; // Reset to default distance
+        controls.target.set(0, alturaArmazem / 2, 0);
+        controls.distance = larguraTotal * 0.8;
         setZoomedIn(false);
       }
     }
@@ -719,7 +688,6 @@ const Armazem3D = () => {
     return () => clearTimeout(timer);
   }, [lastInteractionTime, zoomedIn, alturaArmazem, larguraTotal]);
 
-  // Reset timer on user interaction
   const handleInteraction = () => {
     setLastInteractionTime(Date.now());
     if (zoomedIn) {
@@ -728,19 +696,32 @@ const Armazem3D = () => {
   };
 
   useEffect(() => {
-    const inicializarDados = async () => {
+    const carregarDados = async () => {
       try {
         setCarregando(true);
-        const dadosGerados = gerarDadosArmazem();
-        setDados(dadosGerados);
+        // Carregar dados do arquivo JSON
+        const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897097173.json');
+        const dadosCarregados = await response.json();
+        setDados(dadosCarregados);
       } catch (error) {
-        console.error("Erro ao inicializar dados 3D:", error);
+        console.error("Erro ao carregar dados:", error);
+        // Fallback para dados básicos
+        setDados({
+          arcos: {},
+          configuracao: {
+            sequencia_celulas: {
+              "131": { celula: 1, sequencia_pendulos: [] },
+              "132": { celula: 2, sequencia_pendulos: [] },
+              "133": { celula: 3, sequencia_pendulos: [] }
+            }
+          }
+        });
       } finally {
         setCarregando(false);
       }
     };
 
-    inicializarDados();
+    carregarDados();
   }, []);
 
   if (carregando || !dados) {
@@ -766,7 +747,7 @@ const Armazem3D = () => {
       onMouseDown={handleInteraction}
       onWheel={handleInteraction}
     >
-      {/* Controles simples */}
+      {/* Controles */}
       <div
         style={{
           position: "absolute",
@@ -787,7 +768,6 @@ const Armazem3D = () => {
           Rotação Automática
         </label>
 
-        {/* Seletor de tipo de seleção */}
         <label style={{ marginRight: "20px" }}>
           Tipo de Seleção:
           <select
@@ -835,7 +815,7 @@ const Armazem3D = () => {
         )}
       </div>
 
-      {/* Informações dos dados */}
+      {/* Informações */}
       <div
         style={{
           position: "absolute",
@@ -849,11 +829,9 @@ const Armazem3D = () => {
         }}
       >
         <div>19 Arcos</div>
-        <div>3 Células (divisão lateral)</div>
-        <div>• Célula 1: Arcos 1-6 (18 pêndulos)</div>
-        <div>• Célula 2: Arcos 7-13 (21 pêndulos)</div>
-        <div>• Célula 3: Arcos 14-19 (18 pêndulos)</div>
-        <div>~12 Motores aeradores (fora do armazém)</div>
+        <div>57 Pêndulos (3 por arco)</div>
+        <div>3 Células conforme sequencia_celulas</div>
+        <div>~12 Motores aeradores</div>
         {tipoSelecao === "arco" && (
           <div style={{ color: "#FF6B35" }}>
             <strong>Arco {arcoSelecionado} selecionado</strong>
@@ -882,7 +860,6 @@ const Armazem3D = () => {
         }}
         shadows
       >
-        {/* Iluminação */}
         <ambientLight intensity={0.35} />
         <directionalLight
           position={[larguraTotal, alturaArmazem * 2.5, larguraTotal * 0.4]}
@@ -899,7 +876,6 @@ const Armazem3D = () => {
           color="#fff8dc"
         />
 
-        {/* Estrutura completa do armazém */}
         <ArmazemCompleto3D
           dados={dados}
           arcoSelecionado={tipoSelecao === "arco" ? arcoSelecionado : null}
@@ -910,7 +886,6 @@ const Armazem3D = () => {
           alturaArmazem={alturaArmazem}
         />
 
-        {/* Controles de câmera */}
         <OrbitControls
           ref={canvasRef}
           autoRotate={autoRotate}
@@ -920,10 +895,10 @@ const Armazem3D = () => {
           enableRotate={true}
           minDistance={larguraTotal * 0.25}
           maxDistance={larguraTotal * 1.2}
-          target={[0, alturaArmazem / 2, 0]} // set initial target
+          target={[0, alturaArmazem / 2, 0]}
         />
 
-        {/* Grade simplificada do chão */}
+        {/* Grade do chão */}
         <group position={[0, -1, 0]}>
           <Instances>
             <boxGeometry args={[larguraTotal * 1.1, 0.015, 0.015]} />
