@@ -71,9 +71,10 @@ const Pendulo3D = ({
       {/* Sensores ao longo do cabo com geometria individual para melhor visualização */}
       {Object.entries(sensores).map(([sensorKey, valores], index) => {
         const s = parseInt(sensorKey);
-        const [temp, ponto_quente, , falha, nivel] = valores;
+        // Formato da API: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+        const [temp, ponto_quente, pre_alarme, falha, ativo] = valores;
         const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
-        const cor = nivel ? corFaixaExata(temp) : "#cccccc";
+        const cor = ativo ? corFaixaExata(temp) : "#cccccc";
 
         return (
           <group key={s} position={[0, yPos, 0]}>
@@ -83,16 +84,22 @@ const Pendulo3D = ({
               <meshStandardMaterial
                 color={cor}
                 emissive={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : cor}
-                emissiveIntensity={falha ? 0.5 : ponto_quente ? 0.3 : 0.2}
+                emissiveIntensity={falha ? 0.5 : ponto_quente ? 0.3 : ativo ? 0.2 : 0.1}
                 metalness={0.3}
                 roughness={0.7}
+                opacity={ativo ? 1.0 : 0.5}
+                transparent={!ativo}
               />
             </mesh>
 
             {/* Antena do sensor */}
             <mesh position={[0, 0.08, 0]}>
               <cylinderGeometry args={[0.01, 0.01, 0.08, 8]} />
-              <meshStandardMaterial color="#666666" />
+              <meshStandardMaterial 
+                color={ativo ? "#666666" : "#999999"}
+                opacity={ativo ? 1.0 : 0.5}
+                transparent={!ativo}
+              />
             </mesh>
           </group>
         );
@@ -455,31 +462,25 @@ const ArmazemCompleto3D = ({
   const larguraArco = 3.5;
   const profundidadeArmazem = 6;
 
-  // Mapear pêndulos por arco baseado na estrutura real dos dados
+  // Mapear pêndulos por arco baseado na estrutura real da API
   const penduloPositions = useMemo(() => {
     const positions = [];
     const larguraArmazem = numeroArcos * larguraArco;
 
-    // Usar a estrutura real dos dados: arcos -> pêndulos
+    // Usar a estrutura da API: arcos -> pêndulos -> sensores
     Object.entries(dados.arcos || {}).forEach(([arcoKey, arcoData]) => {
       const arcoNumero = parseInt(arcoKey);
       
-      // Determinar célula baseado na sequencia_celulas
+      // Determinar célula baseado no layout_topo
       let celulaDoArco = 1;
-      const sequenciaCelulas = dados.configuracao?.sequencia_celulas || {};
+      const layoutTopo = dados.configuracao?.layout_topo || {};
       
-      for (const [key, config] of Object.entries(sequenciaCelulas)) {
-        if (config.sequencia_pendulos) {
-          const pendulosNaCelula = config.sequencia_pendulos;
-          const penduloDentroDaCelula = Object.keys(arcoData).some(pendulo => 
-            pendulosNaCelula.includes(parseInt(pendulo))
-          );
-          if (penduloDentroDaCelula) {
-            celulaDoArco = config.celula;
-            break;
-          }
+      // Encontrar qual célula o arco pertence baseado na configuração
+      Object.entries(layoutTopo).forEach(([key, config]) => {
+        if (key !== 'aeradores' && key !== 'celulas' && parseInt(key) === arcoNumero) {
+          celulaDoArco = config.celula || 1;
         }
-      }
+      });
 
       const xArco = -larguraArmazem / 2 + (arcoNumero - 1) * larguraArco + larguraArco / 2;
 
@@ -575,7 +576,8 @@ const ArmazemCompleto3D = ({
 
           return Object.entries(sensoresData).map(([sensorKey, valores], index) => {
             const s = parseInt(sensorKey);
-            const [temp, ponto_quente, , falha] = valores;
+            // Formato da API: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+            const [temp, ponto_quente, pre_alarme, falha, ativo] = valores;
             const yPos = alturaArmazem * 0.8 - s * espacamentoSensores;
             const position = [
               penduloInfo.position[0] + 0.4,
@@ -590,7 +592,7 @@ const ArmazemCompleto3D = ({
               >
                 <Text
                   fontSize={0.12}
-                  color={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : "#00ff00"}
+                  color={falha ? "#ff0000" : ponto_quente ? "#ffaa00" : ativo ? "#00ff00" : "#cccccc"}
                   anchorX="center"
                   anchorY="middle"
                   outlineWidth={0.04}
@@ -602,7 +604,7 @@ const ArmazemCompleto3D = ({
                     depthTest={false}
                     depthWrite={false}
                   />
-                  {falha ? "ERR" : ponto_quente ? "HOT" : `${temp.toFixed(1)}°C`}
+                  {falha ? "ERR" : !ativo ? "OFF" : ponto_quente ? "HOT" : `${temp.toFixed(1)}°C`}
                 </Text>
               </Billboard>
             );
@@ -699,20 +701,23 @@ const Armazem3D = () => {
     const carregarDados = async () => {
       try {
         setCarregando(true);
-        // Carregar dados do arquivo JSON
-        const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897097173.json');
+        // Carregar dados do modelo da API
+        const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
         const dadosCarregados = await response.json();
         setDados(dadosCarregados);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
-        // Fallback para dados básicos
+        // Fallback para dados básicos compatíveis com a API
         setDados({
+          pendulos: {},
           arcos: {},
           configuracao: {
-            sequencia_celulas: {
-              "131": { celula: 1, sequencia_pendulos: [] },
-              "132": { celula: 2, sequencia_pendulos: [] },
-              "133": { celula: 3, sequencia_pendulos: [] }
+            layout_topo: {
+              celulas: {
+                "1": [5, 50, 188, 254],
+                "2": [197, 50, 206, 254], 
+                "3": [407, 50, 188, 254]
+              }
             }
           }
         });

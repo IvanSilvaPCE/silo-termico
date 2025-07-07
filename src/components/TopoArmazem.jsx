@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import armazemDataLoader from '../utils/armazemDataLoader';
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -17,26 +16,22 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const processarDados = async () => {
             try {
                 setCarregando(true);
-                
-                // Carregar dados do JSON (simulando API)
-                const dadosJSON = await armazemDataLoader.carregarDados();
-                
-                if (!armazemDataLoader.validarEstrutura(dadosJSON)) {
-                    throw new Error('Estrutura de dados inválida');
-                }
-                
-                // Processar dados para o componente de topo
-                const dadosProcessados = armazemDataLoader.processarParaTopo(dadosJSON);
-                
+
+                // Carregar dados do modelo da API
+                const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
+                const dadosJSON = await response.json();
+
+                // Processar dados para o componente de topo usando estrutura da API
+                const dadosProcessados = processarDadosAPI(dadosJSON);
+
                 setDadosPendulos(dadosProcessados.sensores);
                 setDadosTopo(dadosProcessados.sensores);
                 setLayoutTopo(dadosProcessados.layout);
-                
+
             } catch (error) {
                 console.error('Erro ao processar dados:', error);
-                
+
                 // Usar layout automático como fallback
-                const dadosFallback = armazemDataLoader.getDadosFallback();
                 const layoutFallback = gerarLayoutAutomatico({ "1": [false, false, true, 25] });
                 setLayoutTopo(layoutFallback);
             } finally {
@@ -60,7 +55,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     // Atualizar SVG quando dados mudarem
     useEffect(() => {
         if (!layoutTopo || !dadosTopo || !containerRef.current) return;
-        
+
         criarSVGTopo();
         atualizarVisualizacao();
     }, [layoutTopo, dadosTopo, arcoSelecionado, celulaSelecionada]);
@@ -69,7 +64,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const totalPendulos = Object.keys(pendulos).length;
         const pendulosPorArco = 3;
         const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
-        
+
         const layout = {
             celulas: {
                 tamanho_svg: [600, 388],
@@ -86,21 +81,21 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
         // Distribuir arcos entre as 3 células
         const arcosParaCelula = Math.ceil(totalArcos / 3);
-        
+
         // Distribuir pêndulos em arcos com posicionamento alternado
         const pendulosArray = Object.entries(pendulos);
         let posX = 30;
         const espacamentoArco = 30;
-        
+
         for (let arco = 1; arco <= totalArcos; arco++) {
             // Determinar qual célula (1, 2 ou 3)
             let celula;
             if (arco <= arcosParaCelula) celula = 1;
             else if (arco <= arcosParaCelula * 2) celula = 2;
             else celula = 3;
-            
+
             const pendulosDoArco = pendulosArray.slice((arco - 1) * pendulosPorArco, arco * pendulosPorArco);
-            
+
             const sensores = {};
             pendulosDoArco.forEach(([id], index) => {
                 // Alternância de posição: arcos ímpares para cima, pares para baixo
@@ -146,7 +141,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         desenharCelulas();
         desenharArcos();
         desenharAeradores();
-        
+
         // Adicionar eventos
         adicionarEventosClique();
     }
@@ -461,10 +456,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
         // Atualizar seleções
         atualizarSelecoes();
-        
+
         // Atualizar cabos com dados reais
         atualizarCabos();
-        
+
         // Atualizar aeradores (estados fixos para demonstração)
         atualizarAeradores();
     }
@@ -475,7 +470,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             if (key !== 'celulas' && key !== 'aeradores') {
                 const arcoNum = parseInt(key);
                 const arcoRect = document.getElementById(`rec_arco_${arcoNum}`);
-                
+
                 if (arcoRect) {
                     // Se o arco pertence à célula selecionada
                     if (layoutTopo[key].celula === celulaSelecionada) {
@@ -499,7 +494,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 const arcoNum = parseInt(key);
                 const botaoSup = document.getElementById(`arco${arcoNum}_botsup`);
                 const botaoInf = document.getElementById(`arco${arcoNum}_botinf`);
-                
+
                 if (botaoSup && botaoInf) {
                     const cor = arcoNum === arcoSelecionado ? "#33CC33" : "#999999";
                     botaoSup.setAttribute("fill", cor);
@@ -526,7 +521,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     function atualizarCabos() {
         Object.entries(dadosTopo).forEach(([idCabo, dados]) => {
             const [falha, pontoQuente, nivel, temperatura] = dados;
-            
+
             const circulo = document.getElementById(`c_cabo_${idCabo}`);
             const texto = document.getElementById(`t_cabo_${idCabo}`);
             const falhaEl = document.getElementById(`f_cabo_${idCabo}`);
@@ -553,7 +548,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 if (falhaEl) {
                     falhaEl.style.visibility = falha ? "visible" : "hidden";
                 }
-                
+
                 if (pontoQuenteEl) {
                     pontoQuenteEl.style.visibility = (pontoQuente && !falha) ? "visible" : "hidden";
                 }
@@ -564,10 +559,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
     function atualizarAeradores() {
         // Pegar número de aeradores dos dados
         const numAeradores = Object.keys(layoutTopo.aeradores).length;
-        
+
         // Estados dos aeradores (seguindo padrão do modelo HTML)
         const estadosAeradores = [1, 1, 1, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        
+
         for (let aeradorId = 1; aeradorId <= numAeradores; aeradorId++) {
             const estado = estadosAeradores[aeradorId - 1] || 0;
             setarEstadoAerador(aeradorId, estado);
@@ -578,7 +573,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const fundo = document.getElementById(`fundo_aerador_${aeradorId}`);
         const bladePrado = document.getElementById(`blade_aerador_${aeradorId}_parado`);
         const bladeGirando = document.getElementById(`blade_aerador_${aeradorId}_girando`);
-        
+
         if (!fundo || !bladePrado || !bladeGirando) return;
 
         let cor;
@@ -626,7 +621,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     function adicionarEventosClique() {
         const svgEl = document.getElementById("des_topo_armazem");
-        if (!svgEl) return;
+        if (!svgEl) return;```text
 
         svgEl.addEventListener('click', (evento) => {
             const elemento = evento.target;
@@ -672,6 +667,40 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         });
     }
 
+    // Função para processar dados no formato da API
+    const processarDadosAPI = (dadosJSON) => {
+        const { pendulos, arcos, configuracao } = dadosJSON;
+
+        const layout = {
+            celulas: configuracao.layout_topo.celulas,
+            aeradores: configuracao.layout_topo.aeradores
+        };
+
+        // Processar arcos para o layout
+        Object.entries(arcos).forEach(([arcoId, arcoData]) => {
+            const sensores = {};
+            Object.entries(arcoData).forEach(([penduloId, penduloData]) => {
+                sensores[penduloId] = penduloData[0];  // Usando a posição do primeiro sensor
+            });
+
+            layout[arcoId] = {
+                celula: 1, // Defina a lógica para determinar a célula correta
+                pos_x: 50 + (parseInt(arcoId) * 20), // Ajuste o posicionamento conforme necessário
+                sensores: sensores
+            };
+        });
+
+        // Processar dados dos pêndulos
+        const sensores = {};
+        pendulos.forEach((pendulo, index) => {
+            sensores[(index + 1).toString()] = pendulo;
+        });
+        return {
+            sensores: sensores,
+            layout: layout
+        };
+    };
+
     if (carregando || !dadosPendulos || !layoutTopo) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ height: '750px' }}>
@@ -707,7 +736,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                                 style={{ minHeight: '750px' }}
                             />
 
-                            
+
                         </div>
                     </div>
                 </div>

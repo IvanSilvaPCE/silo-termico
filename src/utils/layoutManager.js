@@ -260,7 +260,7 @@ class LayoutManager {
           if (!dadosConvertidos.leitura[pendulo]) {
             dadosConvertidos.leitura[pendulo] = {};
           }
-          
+
           // sensores = { "1": [temp, alarme, pre_alarme, falha, ativo], ... }
           Object.entries(sensores).forEach(([sensor, dadosSensor]) => {
             dadosConvertidos.leitura[pendulo][sensor] = dadosSensor;
@@ -273,7 +273,7 @@ class LayoutManager {
         if (!dadosConvertidos.leitura[pendulo]) {
           // dados = [alarme, pre_alarme, ativo, temperatura_maxima]
           const [alarme, preAlarme, ativo, tempMaxima] = dados;
-          
+
           dadosConvertidos.leitura[pendulo] = {
             "1": [tempMaxima, alarme, preAlarme, false, ativo]
           };
@@ -291,22 +291,22 @@ class LayoutManager {
     // Encontrar a célula correta
     const celula = Object.values(dadosPortal.configuracao.sequencia_celulas)
       .find(c => c.celula === numeroCelula);
-    
+
     if (!celula) return null;
 
     const dadosCelula = { leitura: {} };
-    
+
     // Para cada pêndulo da célula, buscar seus dados nos arcos
     celula.sequencia_pendulos.forEach(pendulo => {
       const penduloStr = pendulo.toString();
-      
+
       // Buscar nos arcos
       Object.entries(dadosPortal.arcos || {}).forEach(([arco, pendulos]) => {
         if (pendulos[penduloStr]) {
           dadosCelula.leitura[penduloStr] = pendulos[penduloStr];
         }
       });
-      
+
       // Se não encontrou nos arcos, usar dados básicos
       if (!dadosCelula.leitura[penduloStr] && dadosPortal.pendulos?.[penduloStr]) {
         const [alarme, preAlarme, ativo, tempMaxima] = dadosPortal.pendulos[penduloStr];
@@ -324,7 +324,7 @@ class LayoutManager {
     if (!dadosPortal?.configuracao?.sequencia_celulas) return null;
 
     const celulas = {};
-    
+
     Object.entries(dadosPortal.configuracao.sequencia_celulas).forEach(([key, celula]) => {
       const numCelula = celula.celula;
       celulas[numCelula] = {
@@ -340,17 +340,17 @@ class LayoutManager {
   // Gerar distribuição piramidal de sensores
   static gerarDistribuicaoPiramidal(totalPendulos, totalSensores) {
     if (totalPendulos === 1) return [totalSensores];
-    
+
     const minSensores = 5;
     const distribuicao = new Array(totalPendulos).fill(minSensores);
     let sensoresRestantes = totalSensores - (totalPendulos * minSensores);
-    
+
     const centro = Math.floor(totalPendulos / 2);
     for (let offset = 0; offset <= centro && sensoresRestantes > 0; offset++) {
       const indices = offset === 0 ? [centro] : 
                      totalPendulos % 2 === 1 ? [centro - offset, centro + offset] :
                      offset === 1 ? [centro - 1, centro] : [centro - offset, centro + offset - 1];
-      
+
       indices.forEach(idx => {
         if (idx >= 0 && idx < totalPendulos && sensoresRestantes > 0) {
           distribuicao[idx]++;
@@ -358,7 +358,7 @@ class LayoutManager {
         }
       });
     }
-    
+
     return distribuicao;
   }
 
@@ -408,13 +408,13 @@ class LayoutManager {
 
       // Calcular distribuição piramidal baseada nos dados reais
       const distribuicaoReal = infoArco.pendulos.map(p => p.totalSensores);
-      
+
       // Gerar posições dos pêndulos usando as dimensões calculadas
       const larguraBase = dimensoesIdeais.largura;
       const margemLateral = 50;
       const larguraUtil = larguraBase - (margemLateral * 2);
       const espacamento = totalPendulos > 1 ? larguraUtil / (totalPendulos - 1) : 0;
-      
+
       const posicoes = [];
       for (let i = 0; i < totalPendulos; i++) {
         posicoes.push(margemLateral + (espacamento * i));
@@ -461,59 +461,57 @@ class LayoutManager {
 
   // Gerar dados exemplo para ArmazemPortal
   static gerarDadosExemploPortal() {
-    const totalPendulos = 57;
-    const totalArcos = 19;
-    
-    const dadosExemplo = {
+    const dados = {
       pendulos: {},
       arcos: {},
       configuracao: {
-        layout_topo: {},
-        sequencia_celulas: {
-          "131": { celula: 1, sequencia_pendulos: [] },
-          "132": { celula: 2, sequencia_pendulos: [] },
-          "133": { celula: 3, sequencia_pendulos: [] }
+        layout_topo: {
+          celulas: {
+            tamanho_svg: [600, 388],
+            fundo: [5, 49, 590, 256],
+            "1": [5, 50, 188, 254],
+            "2": [197, 50, 206, 254],
+            "3": [407, 50, 188, 254]
+          },
+          aeradores: {}
         }
       }
     };
 
-    // Gerar pendulos básicos
-    for (let p = 1; p <= totalPendulos; p++) {
-      const temp = 20 + Math.random() * 15;
-      const alarme = Math.random() < 0.1;
-      dadosExemplo.pendulos[p] = [alarme, false, true, temp];
-      
-      // Distribuir pêndulos nas células
-      if (p <= 18) dadosExemplo.configuracao.sequencia_celulas["131"].sequencia_pendulos.push(p);
-      else if (p <= 39) dadosExemplo.configuracao.sequencia_celulas["132"].sequencia_pendulos.push(p);
-      else dadosExemplo.configuracao.sequencia_celulas["133"].sequencia_pendulos.push(p);
-    }
+    const totalPendulos = 57;
+    const totalArcos = 19;
+    const numPendulosPorArco = Math.floor(totalPendulos / totalArcos);
+    const numSensoresPorPendulo = 7;
 
-    // Gerar arcos com sensores detalhados
-    for (let a = 1; a <= totalArcos; a++) {
-      dadosExemplo.arcos[a] = {};
-      
-      // Cada arco tem 2-3 pêndulos
-      const pendulosNoArco = Math.floor(totalPendulos / totalArcos);
-      const inicio = (a - 1) * pendulosNoArco + 1;
-      const fim = Math.min(a * pendulosNoArco, totalPendulos);
-      
-      for (let p = inicio; p <= fim; p++) {
-        dadosExemplo.arcos[a][p] = {};
-        
-        // Cada pêndulo tem 4-11 sensores
-        const numSensores = 4 + Math.floor(Math.random() * 8);
-        for (let s = 1; s <= numSensores; s++) {
-          const temp = 20 + Math.random() * 15;
-          const alarme = Math.random() < 0.05;
-          const falha = Math.random() < 0.02;
-          
-          dadosExemplo.arcos[a][p][s] = [temp, alarme, false, falha, true];
+    for (let arco = 1; arco <= totalArcos; arco++) {
+      dados.arcos[arco] = {};
+
+        for (let p = 1; p <= numPendulosPorArco; p++) {
+          const idPendulo = ((arco - 1) * numPendulosPorArco) + p;
+          dados.arcos[arco][idPendulo] = {};
+
+          // Gerar dados simples para pêndulos
+          const tempMedia = 20 + Math.random() * 15;
+          const falhaGeral = Math.random() < 0.05;
+          const pontoQuenteGeral = tempMedia > 30;
+          const ativoGeral = Math.random() > 0.1;
+
+          // Formato API para pêndulos: [falha, ponto_quente, ativo, temperatura]
+          dados.pendulos[idPendulo] = [falhaGeral, pontoQuenteGeral, ativoGeral, tempMedia];
+
+          for (let s = 1; s <= numSensoresPorPendulo; s++) {
+            const temp = tempMedia + (Math.random() - 0.5) * 4;
+            const pontoQuente = temp > 30;
+            const falha = Math.random() < 0.02;
+            const ativo = Math.random() > 0.05;
+
+            // Formato API detalhado: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+            dados.arcos[arco][idPendulo][s] = [temp, pontoQuente, false, falha, ativo];
+          }
         }
-      }
     }
 
-    return dadosExemplo;
+    return dados;
   }
 }
 
