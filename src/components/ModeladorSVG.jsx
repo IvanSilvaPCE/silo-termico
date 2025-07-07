@@ -82,14 +82,14 @@ const ModeladorSVG = () => {
     inicializarDados();
   }, []);
 
-  // Calcular dimensões ideais do SVG baseado na análise de todos os arcos
+  // Calcular dimensões ideais do SVG baseado na análise de todos os arcos - igual ao Armazem.jsx
   const calcularDimensoesIdeaisArmazem = (analiseArcos) => {
     if (!analiseArcos) return { largura: 350, altura: 200 };
 
     let maxSensores = 0;
     let maxPendulos = 0;
 
-    // Encontrar o máximo de sensores e pêndulos em todos os arcos
+    // Encontrar o máximo de sensores e pêndulos em todos os arcos - igual ao Armazem.jsx
     Object.values(analiseArcos.arcos).forEach(arco => {
       maxPendulos = Math.max(maxPendulos, arco.totalPendulos);
       arco.pendulos.forEach(pendulo => {
@@ -97,28 +97,28 @@ const ModeladorSVG = () => {
       });
     });
 
-    const escala_sensores = configArmazem.escala_sensores;
-    const dist_y_sensores = configArmazem.dist_y_sensores;
-    const margemSuperior = 30;
-    const margemInferior = 50;
-    const margemPendulo = 20;
+    const escala_sensores = 16; // Valor fixo igual ao Armazem.jsx
+    const dist_y_sensores = 12; // Valor fixo igual ao Armazem.jsx
+    const margemSuperior = 30; // Margem para o telhado
+    const margemInferior = 50; // Margem para os pêndulos (P1, P2, etc.)
+    const margemPendulo = 20; // Espaço extra para o nome do pêndulo
 
-    // Calcular altura necessária
-    const alturaBaseTelhado = configArmazem.pb;
+    // Calcular altura necessária - igual ao Armazem.jsx
+    const alturaBaseTelhado = 185; // Altura base original igual ao Armazem.jsx
     const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
     const alturaTotal = Math.max(
       alturaBaseTelhado, 
       margemSuperior + alturaSensores + margemInferior + margemPendulo
     );
 
-    // Calcular largura necessária
-    const larguraMinima = configArmazem.lb;
+    // Calcular largura necessária (baseada no número de pêndulos) - igual ao Armazem.jsx
+    const larguraMinima = 350;
     const espacamentoPendulo = 50;
     const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100);
 
     return {
       largura: larguraCalculada,
-      altura: Math.max(alturaTotal, 250)
+      altura: Math.max(alturaTotal, 250) // Altura mínima
     };
   };
 
@@ -223,7 +223,7 @@ const ModeladorSVG = () => {
     return aeradores;
   };
 
-  // Funções de renderização do Armazém usando dados reais
+  // Funções de renderização do Armazém usando dados reais - seguindo padrão da API
   const renderSensoresArmazem = () => {
     if (!layoutsAutomaticos || !analiseArcos || !dados) return [];
 
@@ -233,125 +233,128 @@ const ModeladorSVG = () => {
 
     if (!layoutArco || !arcoInfo) return [];
 
-    const yCabo = dimensoesSVGArmazem.altura - 35;
+    const escala_sensores = configArmazem.escala_sensores;
+    const dist_y_sensores = configArmazem.dist_y_sensores;
+    const pb = dimensoesSVGArmazem.altura - 50; // Posição base ajustada
+    const yPendulo = pb + 15; // Posição dos pêndulos - FORA do armazém
 
     arcoInfo.pendulos.forEach((pendulo, index) => {
       const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
-      const numeroPendulo = pendulo.numero;
-      const sensoresDoPendulo = dados.leitura[`${index}`];
+      const numSensores = pendulo.totalSensores;
 
-      if (!sensoresDoPendulo) return;
-
-      // Retângulo do nome do pêndulo
+      // Retângulo do nome do pêndulo - igual ao Armazem.jsx
       elementos.push(
         <rect
-          key={`pendulo-${numeroPendulo}`}
-          x={xCabo - configArmazem.escala_sensores/2}
-          y={yCabo}
-          width={configArmazem.escala_sensores}
-          height={configArmazem.escala_sensores/2}
+          key={`pendulo-${pendulo.numero}`}
+          x={xCabo - escala_sensores/2}
+          y={yPendulo}
+          width={escala_sensores}
+          height={escala_sensores/2}
           rx="2"
           ry="2"
           fill="#3A78FD"
         />
       );
 
-      // Texto do nome do pêndulo
+      // Texto do nome do pêndulo - igual ao Armazem.jsx
       elementos.push(
         <text
-          key={`texto-pendulo-${numeroPendulo}`}
+          key={`texto-pendulo-${pendulo.numero}`}
           x={xCabo}
-          y={yCabo + configArmazem.escala_sensores/4}
+          y={yPendulo + escala_sensores/4}
           textAnchor="middle"
           dominantBaseline="central"
           fontWeight="bold"
-          fontSize={configArmazem.escala_sensores * 0.4 - 0.5}
+          fontSize={escala_sensores * 0.4 - 0.5}
           fontFamily="Arial"
           fill="white"
         >
-          P{numeroPendulo}
+          P{pendulo.numero}
         </text>
       );
 
-      // Renderizar sensores do pêndulo atual
-      Object.entries(sensoresDoPendulo).forEach(([sensorKey, valores]) => {
-        const s = parseInt(sensorKey);
-        const [temp, , , falha, nivel] = valores;
+      // Renderizar sensores do pêndulo atual - seguindo padrão do Armazem.jsx
+      const sensoresDoPendulo = dados.leitura[`${index}`];
+      if (sensoresDoPendulo) {
+        Object.entries(sensoresDoPendulo).forEach(([sensorKey, valores]) => {
+          const s = parseInt(sensorKey);
+          const [temp, , , falha, nivel] = valores;
 
-        const ySensor = yCabo - configArmazem.dist_y_sensores * s - 25;
+          const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
 
-        // Garantir que está dentro dos limites do SVG
-        if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 50)) {
-          // Determinar cor do sensor baseado na temperatura e nível
-          let corSensor = "#ccc";
-          let corTexto = "black";
+          // Garantir que o sensor está dentro dos limites do SVG - igual ao Armazem.jsx
+          if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 60)) {
+            // Determinar cor do sensor baseado na temperatura e nível - igual ao Armazem.jsx
+            let corSensor = "#ccc";
+            let corTexto = "black";
 
-          if (nivel) {
-            if (temp < 12) corSensor = "#0384fc";
-            else if (temp < 15) corSensor = "#03e8fc";
-            else if (temp < 17) corSensor = "#03fcbe";
-            else if (temp < 21) corSensor = "#07fc03";
-            else if (temp < 25) corSensor = "#c3ff00";
-            else if (temp < 27) corSensor = "#fcf803";
-            else if (temp < 30) corSensor = "#ffb300";
-            else if (temp < 35) corSensor = "#ff2200";
-            else if (temp < 50) corSensor = "#ff0090";
-            else corSensor = "#f700ff";
+            if (nivel) {
+              if (temp < 12) corSensor = "#0384fc";
+              else if (temp < 15) corSensor = "#03e8fc";
+              else if (temp < 17) corSensor = "#03fcbe";
+              else if (temp < 21) corSensor = "#07fc03";
+              else if (temp < 25) corSensor = "#c3ff00";
+              else if (temp < 27) corSensor = "#fcf803";
+              else if (temp < 30) corSensor = "#ffb300";
+              else if (temp < 35) corSensor = "#ff2200";
+              else if (temp < 50) corSensor = "#ff0090";
+              else corSensor = "#f700ff";
 
-            corTexto = corSensor === "#ff2200" ? "white" : "black";
-          } else {
-            corSensor = "#e6e6e6";
+              corTexto = corSensor === "#ff2200" ? "white" : "black";
+            } else {
+              corSensor = "#e6e6e6";
+            }
+
+            // Retângulo do sensor - igual ao Armazem.jsx
+            elementos.push(
+              <rect
+                key={`sensor-${pendulo.numero}-${s}`}
+                x={xCabo - escala_sensores/2}
+                y={ySensor}
+                width={escala_sensores}
+                height={escala_sensores/2}
+                rx="2"
+                ry="2"
+                fill={corSensor}
+                stroke="black"
+                strokeWidth="1"
+              />
+            );
+
+            // Texto do valor do sensor - igual ao Armazem.jsx
+            elementos.push(
+              <text
+                key={`texto-sensor-${pendulo.numero}-${s}`}
+                x={xCabo}
+                y={ySensor + escala_sensores/4}
+                textAnchor="middle"
+                dominantBaseline="central"
+                fontSize={escala_sensores * 0.4 - 0.5}
+                fontFamily="Arial"
+                fill={corTexto}
+              >
+                {falha ? "ERRO" : temp.toFixed(1)}
+              </text>
+            );
+
+            // Nome do sensor (S1, S2, etc.) - igual ao Armazem.jsx
+            elementos.push(
+              <text
+                key={`nome-sensor-${pendulo.numero}-${s}`}
+                x={xCabo - escala_sensores/2 - 2}
+                y={ySensor + escala_sensores/4}
+                textAnchor="end"
+                dominantBaseline="central"
+                fontSize={escala_sensores * 0.4 - 1.5}
+                fontFamily="Arial"
+                fill="black"
+              >
+                S{s}
+              </text>
+            );
           }
-
-          // Retângulo do sensor
-          elementos.push(
-            <rect
-              key={`sensor-${numeroPendulo}-${s}`}
-              x={xCabo - configArmazem.escala_sensores/2}
-              y={ySensor}
-              width={configArmazem.escala_sensores}
-              height={configArmazem.escala_sensores/2}
-              rx="2"
-              ry="2"
-              fill={corSensor}
-              stroke="black"
-              strokeWidth="1"
-            />
-          );
-
-          // Texto do valor do sensor
-          elementos.push(
-            <text
-              key={`texto-sensor-${numeroPendulo}-${s}`}
-              x={xCabo}
-              y={ySensor + configArmazem.escala_sensores/4}
-              textAnchor="middle"
-              dominantBaseline="central"
-              fontSize={configArmazem.escala_sensores * 0.4 - 0.5}
-              fontFamily="Arial"
-              fill={corTexto}
-            >
-              {falha ? "ERRO" : temp.toFixed(1)}
-            </text>
-          );
-
-          // Nome do sensor (S1, S2, etc.)
-          elementos.push(
-            <text
-              key={`nome-sensor-${numeroPendulo}-${s}`}
-              x={xCabo - configArmazem.escala_sensores/2 - 2}
-              y={ySensor + configArmazem.escala_sensores/4}
-              textAnchor="end"
-              dominantBaseline="central"
-              fontSize={configArmazem.escala_sensores * 0.4 - 1.5}
-              fontFamily="Arial"
-              fill="black"
-            >
-              S{s}
-            </text>
-          );
-        }
-      });
+        });
+      }
     });
 
     return elementos;
@@ -369,10 +372,10 @@ const ModeladorSVG = () => {
       ht,
     } = configArmazem;
 
-    // Usar dimensões dinâmicas
-    const pb = dimensoesSVGArmazem.altura - 50;
+    // Usar dimensões dinâmicas mas manter proporções do armazém - igual ao Armazem.jsx
+    const pb = dimensoesSVGArmazem.altura - 50; // Posição base ajustada
     const lb = dimensoesSVGArmazem.largura;
-    const lf = Math.min(configArmazem.lf, lb * 0.7);
+    const lf = Math.min(250, lb * 0.7); // Largura frente proporcional igual ao Armazem.jsx
 
     // Base com diferentes tipos de fundo
     let pathBase = "";
