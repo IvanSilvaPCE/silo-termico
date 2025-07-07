@@ -621,7 +621,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
     function adicionarEventosClique() {
         const svgEl = document.getElementById("des_topo_armazem");
-        if (!svgEl) return;```text
+        if (!svgEl) return;
 
         svgEl.addEventListener('click', (evento) => {
             const elemento = evento.target;
