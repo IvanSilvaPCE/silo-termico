@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
+import LayoutManager from "../utils/layoutManager";
 
 const ModeladorSVG = () => {
   // Estados para configurações do Silo
@@ -21,7 +21,7 @@ const ModeladorSVG = () => {
     da: 35, // distância entre aeradores
   });
 
-  // Estados para configurações do Armazém
+  // Estados para configurações do Armazém - usando dados reais do JSON
   const [configArmazem, setConfigArmazem] = useState({
     pb: 185, // posição base
     lb: 350, // largura base
@@ -36,25 +36,51 @@ const ModeladorSVG = () => {
     curvatura_topo: 30, // curvatura quando arredondado
     escala_sensores: 16,
     dist_y_sensores: 12,
-    pos_x_cabo: [62, 52, 158, 208, 258],
-    pos_y_cabo: [181, 181, 181, 181, 181],
-    // Configurações de células/slides
-    pendulos_celula_impar: 3, // quantos pêndulos mostrar nas células ímpares
-    pendulos_celula_par: 4, // quantos pêndulos mostrar nas células pares
-    total_celulas: 6, // quantas células/slides teremos
-    posicionamento_automatico: true,
-    // Configuração automática de arcos
-    configuracao_automatica: true,
-    total_arcos: 19,
-    arco_atual: 1,
   });
 
   const [tipoAtivo, setTipoAtivo] = useState("silo");
   const [nomeConfiguracao, setNomeConfiguracao] = useState("");
   const [forceUpdateLista, setForceUpdateLista] = useState(0);
-  const [dadosPortalExample, setDadosPortalExample] = useState(null);
+
+  // Estados para dados do JSON (igual ao Armazem.jsx)
+  const [dados, setDados] = useState(null);
+  const [dadosPortal, setDadosPortal] = useState(null);
+  const [arcoAtual, setArcoAtual] = useState(1);
   const [analiseArcos, setAnaliseArcos] = useState(null);
+  const [layoutsAutomaticos, setLayoutsAutomaticos] = useState(null);
   const [dimensoesSVGArmazem, setDimensoesSVGArmazem] = useState({ largura: 350, altura: 200 });
+
+  // Carregar dados reais do arquivo JSON (igual ao Armazem.jsx)
+  useEffect(() => {
+    const inicializarDados = async () => {
+      try {
+        // Carregar dados do arquivo JSON
+        const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
+        const dadosArmazemPortal = await response.json();
+        setDadosPortal(dadosArmazemPortal);
+
+        // Analisar estrutura dos arcos
+        const analise = LayoutManager.analisarEstruturaArcos(dadosArmazemPortal);
+        setAnaliseArcos(analise);
+
+        // Gerar layouts automáticos
+        const layouts = LayoutManager.gerarLayoutAutomatico(analise);
+        setLayoutsAutomaticos(layouts);
+
+        // Calcular dimensões ideais do SVG baseado em todos os arcos
+        const dimensoes = calcularDimensoesIdeaisArmazem(analise);
+        setDimensoesSVGArmazem(dimensoes);
+
+        // Converter dados para o formato do armazém (arco 1 inicialmente)
+        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosArmazemPortal, 1);
+        setDados(dadosConvertidos);
+      } catch (error) {
+        console.error('Erro ao inicializar dados:', error);
+      }
+    };
+
+    inicializarDados();
+  }, []);
 
   // Calcular dimensões ideais do SVG baseado na análise de todos os arcos
   const calcularDimensoesIdeaisArmazem = (analiseArcos) => {
@@ -197,69 +223,26 @@ const ModeladorSVG = () => {
     return aeradores;
   };
 
-  // Funções de renderização do Armazém
-  // Estado para controlar qual célula está sendo visualizada
-  const [celulaAtual, setCelulaAtual] = useState(1);
-
+  // Funções de renderização do Armazém usando dados reais
   const renderSensoresArmazem = () => {
+    if (!layoutsAutomaticos || !analiseArcos || !dados) return [];
+
     const elementos = [];
-    let pendulosParaRenderizar = [];
-    let posicoes = [];
+    const layoutArco = layoutsAutomaticos[`arco_${arcoAtual}`];
+    const arcoInfo = analiseArcos.arcos[arcoAtual];
 
-    if (configArmazem.configuracao_automatica && analiseArcos) {
-      // Usar dados reais do arco atual
-      const arcoAtual = analiseArcos.arcos[configArmazem.arco_atual];
-      if (arcoAtual) {
-        pendulosParaRenderizar = arcoAtual.pendulos;
-        
-        // Calcular posições baseadas no número real de pêndulos
-        const totalPendulos = arcoAtual.totalPendulos;
-        const larguraBase = configArmazem.lb;
-        const margemLateral = 50;
-        const larguraUtil = larguraBase - (margemLateral * 2);
-        const espacamento = totalPendulos > 1 ? larguraUtil / (totalPendulos - 1) : 0;
-        
-        for (let i = 0; i < totalPendulos; i++) {
-          posicoes.push(margemLateral + (espacamento * i));
-        }
-      }
-    } else {
-      // Usar configuração manual (células)
-      const configCelula = obterConfiguracaoCelula(celulaAtual);
-      posicoes = gerarPosicoesCelula(configCelula.qtdPendulos);
-      
-      // Dados de exemplo para configuração manual
-      const dadosExemplo = {
-        "1": { "1": [28.5, false, false, false, true], "2": [27.5, false, false, false, true], "3": [28.5, false, false, false, true], "4": [28, false, false, false, true], "5": [29, false, false, false, true] },
-        "2": { "1": [28.5, false, false, false, true], "2": [28, false, false, false, true], "3": [28.5, false, false, false, true], "4": [28.5, false, false, false, true], "5": [29, false, false, false, true], "6": [30, false, false, false, true], "7": [30, false, false, false, true] },
-        "3": { "1": [29.5, false, false, false, true], "2": [28.5, false, false, false, true], "3": [29, false, false, false, true], "4": [28.5, false, false, false, true], "5": [29, false, false, false, true], "6": [30.5, false, false, false, true], "7": [29.5, false, false, false, true], "8": [30, false, false, false, true], "9": [29, false, false, false, true] },
-        "4": { "1": [28, false, false, false, true], "2": [27.5, false, false, false, true], "3": [28.5, false, false, false, true], "4": [28.5, false, false, false, true], "5": [29.5, false, false, false, true], "6": [30, false, false, false, true], "7": [29.5, false, false, false, true] },
-        "5": { "1": [29, false, false, false, true], "2": [28.5, false, false, false, true], "3": [29.5, false, false, false, true], "4": [28, false, false, false, true], "5": [29, false, false, false, true] }
-      };
+    if (!layoutArco || !arcoInfo) return [];
 
-      for (let p = 0; p < configCelula.qtdPendulos; p++) {
-        const numeroPendulo = p + 1;
-        const pendId = numeroPendulo.toString();
-        const dadosPendulo = dadosExemplo[pendId] || dadosExemplo["1"];
-        
-        pendulosParaRenderizar.push({
-          numero: numeroPendulo,
-          totalSensores: Object.keys(dadosPendulo).length,
-          sensores: dadosPendulo
-        });
-      }
-    }
+    const yCabo = dimensoesSVGArmazem.altura - 35;
 
-    // Renderizar pêndulos
-    pendulosParaRenderizar.forEach((pendulo, p) => {
-      const xCabo = posicoes[p];
-      const yCabo = dimensoesSVGArmazem.altura - 35; // Posição fixa baseada na altura calculada
-      const numSensores = pendulo.totalSensores;
-
+    arcoInfo.pendulos.forEach((pendulo, index) => {
+      const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
       const numeroPendulo = pendulo.numero;
-      const dadosPendulo = pendulo.sensores;
+      const sensoresDoPendulo = dados.leitura[`${index}`];
 
-      // Retângulo do nome do pêndulo (igual ao ArmazemSVG)
+      if (!sensoresDoPendulo) return;
+
+      // Retângulo do nome do pêndulo
       elementos.push(
         <rect
           key={`pendulo-${numeroPendulo}`}
@@ -291,16 +274,18 @@ const ModeladorSVG = () => {
       );
 
       // Renderizar sensores do pêndulo atual
-      Object.entries(dadosPendulo).forEach(([sensorKey, valores], sensorIndex) => {
+      Object.entries(sensoresDoPendulo).forEach(([sensorKey, valores]) => {
         const s = parseInt(sensorKey);
         const [temp, , , falha, nivel] = valores;
-        
+
         const ySensor = yCabo - configArmazem.dist_y_sensores * s - 25;
-        
+
         // Garantir que está dentro dos limites do SVG
         if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 50)) {
-          // Determinar cor do sensor baseado na temperatura
+          // Determinar cor do sensor baseado na temperatura e nível
           let corSensor = "#ccc";
+          let corTexto = "black";
+
           if (nivel) {
             if (temp < 12) corSensor = "#0384fc";
             else if (temp < 15) corSensor = "#03e8fc";
@@ -312,6 +297,8 @@ const ModeladorSVG = () => {
             else if (temp < 35) corSensor = "#ff2200";
             else if (temp < 50) corSensor = "#ff0090";
             else corSensor = "#f700ff";
+
+            corTexto = corSensor === "#ff2200" ? "white" : "black";
           } else {
             corSensor = "#e6e6e6";
           }
@@ -342,7 +329,7 @@ const ModeladorSVG = () => {
               dominantBaseline="central"
               fontSize={configArmazem.escala_sensores * 0.4 - 0.5}
               fontFamily="Arial"
-              fill={corSensor === "#ff2200" ? "white" : "black"}
+              fill={corTexto}
             >
               {falha ? "ERRO" : temp.toFixed(1)}
             </text>
@@ -537,49 +524,13 @@ const ModeladorSVG = () => {
     }));
   };
 
-  // Função para calcular total de pêndulos baseado nas células
-  const calcularTotalPendulos = () => {
-    const { total_celulas, pendulos_celula_impar, pendulos_celula_par } = configArmazem;
-    let total = 0;
-    
-    for (let i = 1; i <= total_celulas; i++) {
-      total += i % 2 === 1 ? pendulos_celula_impar : pendulos_celula_par;
+  // Função para mudar arco (igual ao Armazem.jsx)
+  const mudarArco = (novoArco) => {
+    setArcoAtual(novoArco);
+    if (dadosPortal) {
+      const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosPortal, novoArco);
+      setDados(dadosConvertidos);
     }
-    
-    return total;
-  };
-
-  // Função para obter configuração de uma célula específica
-  const obterConfiguracaoCelula = (numeroCelula) => {
-    const { pendulos_celula_impar, pendulos_celula_par } = configArmazem;
-    const qtdPendulos = numeroCelula % 2 === 1 ? pendulos_celula_impar : pendulos_celula_par;
-    
-    return {
-      numeroCelula,
-      qtdPendulos,
-      tipo: numeroCelula % 2 === 1 ? 'ímpar' : 'par'
-    };
-  };
-
-  // Função para gerar posições dos pêndulos em uma célula (baseado no ArmazemSVG)
-  const gerarPosicoesCelula = (qtdPendulos) => {
-    const { lb } = configArmazem;
-    
-    if (qtdPendulos === 1) {
-      return [lb / 2];
-    }
-    
-    // Usar a mesma lógica de espaçamento do ArmazemSVG
-    const margemLateral = 50;
-    const larguraUtil = lb - (margemLateral * 2);
-    const espacamento = larguraUtil / (qtdPendulos - 1);
-    
-    const posicoes = [];
-    for (let i = 0; i < qtdPendulos; i++) {
-      posicoes.push(margemLateral + (espacamento * i));
-    }
-    
-    return posicoes;
   };
 
   // Salvar configuração
@@ -690,14 +641,7 @@ const ModeladorSVG = () => {
         curvatura_topo: 30,
         escala_sensores: 16,
         dist_y_sensores: 12,
-        pos_x_cabo: [62, 52, 158, 208, 258],
-        pos_y_cabo: [181, 181, 181, 181, 181],
-        pendulos_celula_impar: 3,
-        pendulos_celula_par: 4,
-        total_celulas: 6,
-        posicionamento_automatico: true,
       });
-      setCelulaAtual(1);
     }
   };
 
@@ -733,12 +677,11 @@ const ModeladorSVG = () => {
             top: '0',
             left: '0',
             zIndex: 1000,
-            borderRight: '2px solid #dee2e6'
-          }}
+            borderRight: '2px solid #dee2e6'          }}
         >
           <div className="p-3">
             <h4 className="text-center mb-4">Modelador de Layouts</h4>
-            
+
             {/* Seletor de Tipo */}
             <div className="mb-3">
               <label className="form-label fw-bold">Tipo de Estrutura:</label>
@@ -1087,170 +1030,48 @@ const ModeladorSVG = () => {
                   />
                 </div>
 
-                <h6 className="mt-3 text-primary">Configuração de Arcos</h6>
-                <div className="mb-3">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={configArmazem.configuracao_automatica}
-                      onChange={(e) => {
-                        handleArmazemChange("configuracao_automatica", e.target.checked ? 1 : 0);
-                        if (e.target.checked) {
-                          // Carregar dados de exemplo para análise automática
-                          import('../utils/layoutManager.js').then(({ default: LayoutManager }) => {
-                            const dadosExemplo = LayoutManager.gerarDadosExemploPortal();
-                            setDadosPortalExample(dadosExemplo);
-                            const analise = LayoutManager.analisarEstruturaArcos(dadosExemplo);
-                            setAnaliseArcos(analise);
-                            
-                            // Calcular dimensões ideais baseado na análise
-                            if (analise) {
-                              const dimensoes = calcularDimensoesIdeaisArmazem(analise);
-                              setDimensoesSVGArmazem(dimensoes);
-                            }
-                          });
-                        }
-                      }}
-                    />
-                    <label className="form-check-label">
-                      <strong>Configuração Automática por Arcos</strong>
-                    </label>
-                  </div>
-                  <small className="text-muted">
-                    {configArmazem.configuracao_automatica ? 
-                      "Detecta automaticamente a quantidade de pêndulos e sensores por arco" : 
-                      "Configuração manual por células"}
-                  </small>
-                </div>
-
-                {configArmazem.configuracao_automatica ? (
-                  <>
+                {/* Controles de Arco - usando dados reais do JSON */}
+                {analiseArcos && (
+                  <div className="mb-3">
+                    <h6 className="mt-3 text-success">Dados do JSON</h6>
                     <div className="mb-3">
                       <label className="form-label">
-                        Arco Atual: {configArmazem.arco_atual} de {configArmazem.total_arcos}
+                        Arco Atual: {arcoAtual} de {analiseArcos.totalArcos}
                       </label>
                       <input
                         type="range"
                         className="form-range"
                         min="1"
-                        max={configArmazem.total_arcos}
-                        value={configArmazem.arco_atual}
-                        onChange={(e) => handleArmazemChange("arco_atual", e.target.value)}
+                        max={analiseArcos.totalArcos}
+                        value={arcoAtual}
+                        onChange={(e) => mudarArco(parseInt(e.target.value))}
                       />
                     </div>
 
-                    {analiseArcos && analiseArcos.arcos[configArmazem.arco_atual] && (
-                      <div className="mb-3">
-                        <label className="form-label">Estrutura do Arco {configArmazem.arco_atual}:</label>
-                        <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem'}}>
-                          {analiseArcos.arcos[configArmazem.arco_atual].pendulos.map(pendulo => (
-                            <div key={pendulo.numero} className="d-flex justify-content-between">
-                              <span>Pêndulo {pendulo.numero}:</span>
-                              <span className="text-primary">{pendulo.totalSensores} sensores</span>
-                            </div>
-                          ))}
-                          <hr className="my-2" />
-                          <div className="d-flex justify-content-between fw-bold">
-                            <span>Total:</span>
-                            <span>{analiseArcos.arcos[configArmazem.arco_atual].totalPendulos} pêndulos, {analiseArcos.arcos[configArmazem.arco_atual].totalSensores} sensores</span>
-                          </div>
-                        </div>
+                    <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem'}}>
+                      <div className="d-flex justify-content-between fw-bold mb-2">
+                        <span>Arco {arcoAtual}:</span>
                       </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Pêndulos na Célula Ímpar (1ª, 3ª, 5ª...): {configArmazem.pendulos_celula_impar}
-                      </label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="1"
-                        max="8"
-                        value={configArmazem.pendulos_celula_impar}
-                        onChange={(e) => handleArmazemChange("pendulos_celula_impar", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Pêndulos na Célula Par (2ª, 4ª, 6ª...): {configArmazem.pendulos_celula_par}
-                      </label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="1"
-                        max="8"
-                        value={configArmazem.pendulos_celula_par}
-                        onChange={(e) => handleArmazemChange("pendulos_celula_par", e.target.value)}
-                      />
-                    </div>
-
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Total de Células: {configArmazem.total_celulas}
-                      </label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="2"
-                        max="10"
-                        value={configArmazem.total_celulas}
-                        onChange={(e) => handleArmazemChange("total_celulas", e.target.value)}
-                      />
-                    </div>
-                  </>
-                )}
-
-                <div className="mb-3">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      checked={configArmazem.posicionamento_automatico}
-                      onChange={(e) =>
-                        handleArmazemChange(
-                          "posicionamento_automatico",
-                          e.target.checked ? 1 : 0,
-                        )
+                      {analiseArcos.arcos[arcoAtual] && 
+                        analiseArcos.arcos[arcoAtual].pendulos.map(pendulo => (
+                          <div key={pendulo.numero} className="d-flex justify-content-between">
+                            <span>Pêndulo {pendulo.numero}:</span>
+                            <span className="text-primary">{pendulo.totalSensores} sensores</span>
+                          </div>
+                        ))
                       }
-                    />
-                    <label className="form-check-label">
-                      Posicionamento Automático dos Pêndulos
-                    </label>
-                  </div>
-                </div>
-
-                {/* Visualização da distribuição por células */}
-                <div className="mb-3">
-                  <label className="form-label">Distribuição por Células:</label>
-                  <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem'}}>
-                    {Array.from({length: configArmazem.total_celulas}, (_, i) => {
-                      const numeroCelula = i + 1;
-                      const pendulos = numeroCelula % 2 === 1 ? configArmazem.pendulos_celula_impar : configArmazem.pendulos_celula_par;
-                      return (
-                        <div key={numeroCelula} className="d-flex justify-content-between">
-                          <span>Célula {numeroCelula}:</span>
-                          <span className={numeroCelula % 2 === 1 ? 'text-primary' : 'text-success'}>
-                            {pendulos} pêndulos {numeroCelula % 2 === 1 ? '(ímpar)' : '(par)'}
-                          </span>
-                        </div>
-                      );
-                    })}
-                    <hr className="my-2" />
-                    <div className="d-flex justify-content-between fw-bold">
-                      <span>Total de Pêndulos:</span>
-                      <span>{calcularTotalPendulos()} pêndulos</span>
+                      <hr className="my-2" />
+                      <div className="d-flex justify-content-between fw-bold">
+                        <span>Total:</span>
+                        <span>
+                          {analiseArcos.arcos[arcoAtual]?.totalPendulos || 0} pêndulos, {analiseArcos.arcos[arcoAtual]?.totalSensores || 0} sensores
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
               </>
             )}
-
-            
 
             {/* Gerenciamento de Configurações */}
             <hr className="my-3" />
@@ -1359,36 +1180,35 @@ const ModeladorSVG = () => {
                   )}
                 </svg>
               </div>
-              
-              {/* Navegação de Células - Abaixo do SVG */}
-              {tipoAtivo === "armazem" && (
+
+              {/* Navegação de Arcos para Armazém */}
+              {tipoAtivo === "armazem" && analiseArcos && (
                 <div className="card-footer bg-light">
                   <div className="row align-items-center">
                     <div className="col-md-4">
                       <div className="d-flex gap-2">
                         <button 
                           className="btn btn-outline-primary"
-                          onClick={() => setCelulaAtual(Math.max(1, celulaAtual - 1))}
-                          disabled={celulaAtual <= 1}
+                          onClick={() => mudarArco(Math.max(1, arcoAtual - 1))}
+                          disabled={arcoAtual <= 1}
                         >
                           ← Anterior
                         </button>
                         <button 
                           className="btn btn-outline-primary"
-                          onClick={() => setCelulaAtual(Math.min(configArmazem.total_celulas, celulaAtual + 1))}
-                          disabled={celulaAtual >= configArmazem.total_celulas}
+                          onClick={() => mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1))}
+                          disabled={arcoAtual >= analiseArcos.totalArcos}
                         >
-                          Próxima →
+                          Próximo →
                         </button>
                       </div>
                     </div>
                     <div className="col-md-4 text-center">
-                      <strong>Célula {celulaAtual} de {configArmazem.total_celulas}</strong>
+                      <strong>Arco {arcoAtual} de {analiseArcos.totalArcos}</strong>
                     </div>
                     <div className="col-md-4 text-end">
                       <span className="badge bg-info">
-                        {obterConfiguracaoCelula(celulaAtual).qtdPendulos} pêndulos 
-                        ({obterConfiguracaoCelula(celulaAtual).tipo})
+                        {analiseArcos.arcos[arcoAtual]?.totalPendulos || 0} pêndulos, {analiseArcos.arcos[arcoAtual]?.totalSensores || 0} sensores
                       </span>
                     </div>
                   </div>
