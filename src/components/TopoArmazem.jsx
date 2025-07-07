@@ -79,8 +79,10 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
 
         // Calcular dimensões do SVG baseado na quantidade real
-        const espacamentoArco = 30;
-        const larguraCalculada = Math.max(600, totalArcos * espacamentoArco + 100);
+        const margemLateral = 30;
+        const margemDireita = 30;
+        const larguraMinima = 600;
+        const larguraCalculada = Math.max(larguraMinima, totalArcos * 30 + margemLateral + margemDireita);
         
         // Layout dinâmico baseado na quantidade real de arcos
         const layout = {
@@ -114,8 +116,11 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
         // Processar sensores dos pêndulos
         const sensores = {};
-        let posX = 30;
         let penduloIndex = 0;
+
+        // Calcular distribuição uniforme dos arcos na largura disponível
+        const larguraUtilizavel = larguraCalculada - margemLateral - margemDireita;
+        const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
 
         for (let arco = 1; arco <= totalArcos; arco++) {
             // Determinar célula baseado na distribuição
@@ -148,13 +153,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 }
             }
 
+            // Calcular posição X do arco para distribuição uniforme
+            const posX = margemLateral + ((arco - 1) * espacamentoArco);
+
             layout[arco] = {
                 celula: celula,
                 pos_x: posX,
                 sensores: sensoresDoArco,
             };
-
-            posX += espacamentoArco;
         }
 
         return {
@@ -195,8 +201,12 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
         // Distribuir pêndulos em arcos com posicionamento alternado
         const pendulosArray = Object.entries(pendulos);
-        let posX = 30;
-        const espacamentoArco = 30;
+        
+        // Calcular distribuição uniforme dos arcos
+        const margemLateral = 30;
+        const margemDireita = 30;
+        const larguraUtilizavel = 600 - margemLateral - margemDireita;
+        const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
 
         for (let arco = 1; arco <= totalArcos; arco++) {
             // Determinar qual célula (1, 2 ou 3)
@@ -224,13 +234,14 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 sensores[id] = posY;
             });
 
+            // Calcular posição X do arco para distribuição uniforme
+            const posX = margemLateral + ((arco - 1) * espacamentoArco);
+
             layout[arco] = {
                 celula: celula,
                 pos_x: posX,
                 sensores: sensores,
             };
-
-            posX += espacamentoArco;
         }
 
         return layout;
