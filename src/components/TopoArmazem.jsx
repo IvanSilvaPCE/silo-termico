@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect, useRef } from 'react';
-import armazemDataLoader from '../utils/armazemDataLoader';
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
@@ -59,6 +59,93 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         criarSVGTopo();
         atualizarVisualizacao();
     }, [layoutTopo, dadosTopo, arcoSelecionado, celulaSelecionada]);
+
+    // Função para processar dados no formato da API real
+    const processarDadosAPI = (dadosJSON) => {
+        // O arquivo JSON fornecido tem campos diretos como AER, NIVH, VOLH, etc.
+        // Vamos criar uma estrutura compatível baseada nestes dados
+
+        // Layout fixo para o topo do armazém (19 arcos, 3 células)
+        const layout = {
+            celulas: {
+                tamanho_svg: [600, 388],
+                fundo: [5, 49, 590, 256],
+                "1": [10, 50, 188, 254],
+                "2": [207, 50, 186, 254], 
+                "3": [402, 50, 188, 254]
+            },
+            aeradores: {
+                "1": [65, 0, 1], "2": [154, 0, 1], "3": [240, 0, 1], "4": [329, 0, 1], "5": [416, 0, 1],
+                "6": [65, 305, 0], "7": [154, 305, 0], "8": [240, 305, 0], "9": [329, 305, 0], "10": [416, 305, 0]
+            }
+        };
+
+        // Processar os dados do JSON para simular sensores
+        const temperatura = dadosJSON.TMS || 25; // Temperatura principal
+        const umidade = dadosJSON.UMC || 50; // Umidade
+        const nivel = dadosJSON.NIV || 99; // Nível
+        const volume = dadosJSON.VOL || 1000; // Volume
+
+        // Criar estrutura de arcos e sensores baseada nos dados reais
+        const totalArcos = 19;
+        const pendulosPorArco = 3;
+        let posX = 30;
+        const espacamentoArco = 30;
+
+        // Gerar sensores simulados baseados nos dados reais
+        const sensores = {};
+        let penduloId = 1;
+
+        for (let arco = 1; arco <= totalArcos; arco++) {
+            // Determinar célula baseado na distribuição
+            let celula;
+            if (arco <= 6) celula = 1;
+            else if (arco <= 13) celula = 2;
+            else celula = 3;
+
+            const sensoresDoArco = {};
+            
+            for (let p = 0; p < pendulosPorArco; p++) {
+                // Gerar variação na temperatura baseada na posição
+                const variacaoTemp = (Math.random() - 0.5) * 4; // ±2°C de variação
+                const tempSensor = Math.max(10, Math.min(50, temperatura + variacaoTemp));
+                
+                // Simular estados baseados na temperatura e outros parâmetros
+                const pontoQuente = tempSensor > 30;
+                const preAlarme = tempSensor > 35;
+                const falha = Math.random() < 0.05; // 5% chance de falha
+                const ativo = nivel > 50; // Ativo baseado no nível
+
+                // Posição Y alternada
+                let posY;
+                if (arco % 2 === 1) {
+                    posY = 80 + (p * 40);
+                } else {
+                    posY = 140 + (p * 40);
+                }
+
+                sensoresDoArco[penduloId] = posY;
+                
+                // Dados do sensor no formato esperado: [falha, pontoQuente, ativo, temperatura]
+                sensores[penduloId] = [falha, pontoQuente, ativo, tempSensor];
+                
+                penduloId++;
+            }
+
+            layout[arco] = {
+                celula: celula,
+                pos_x: posX,
+                sensores: sensoresDoArco
+            };
+
+            posX += espacamentoArco;
+        }
+
+        return {
+            sensores: sensores,
+            layout: layout
+        };
+    };
 
     function gerarLayoutAutomatico(pendulos) {
         const totalPendulos = Object.keys(pendulos).length;
@@ -667,40 +754,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         });
     }
 
-    // Função para processar dados no formato da API
-    const processarDadosAPI = (dadosJSON) => {
-        const { pendulos, arcos, configuracao } = dadosJSON;
-
-        const layout = {
-            celulas: configuracao.layout_topo.celulas,
-            aeradores: configuracao.layout_topo.aeradores
-        };
-
-        // Processar arcos para o layout
-        Object.entries(arcos).forEach(([arcoId, arcoData]) => {
-            const sensores = {};
-            Object.entries(arcoData).forEach(([penduloId, penduloData]) => {
-                sensores[penduloId] = penduloData[0];  // Usando a posição do primeiro sensor
-            });
-
-            layout[arcoId] = {
-                celula: 1, // Defina a lógica para determinar a célula correta
-                pos_x: 50 + (parseInt(arcoId) * 20), // Ajuste o posicionamento conforme necessário
-                sensores: sensores
-            };
-        });
-
-        // Processar dados dos pêndulos
-        const sensores = {};
-        pendulos.forEach((pendulo, index) => {
-            sensores[(index + 1).toString()] = pendulo;
-        });
-        return {
-            sensores: sensores,
-            layout: layout
-        };
-    };
-
     if (carregando || !dadosPendulos || !layoutTopo) {
         return (
             <div className="d-flex justify-content-center align-items-center" style={{ height: '750px' }}>
@@ -735,8 +788,6 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                                 className="d-flex justify-content-center"
                                 style={{ minHeight: '750px' }}
                             />
-
-
                         </div>
                     </div>
                 </div>

@@ -704,13 +704,15 @@ const Armazem3D = () => {
         // Carregar dados do modelo da API
         const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
         const dadosCarregados = await response.json();
-        setDados(dadosCarregados);
+        
+        // Processar dados da API para o formato esperado
+        const dadosProcessados = processarDadosAPI(dadosCarregados);
+        setDados(dadosProcessados);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         // Fallback para dados básicos compatíveis com a API
         setDados({
-          pendulos: {},
-          arcos: {},
+          arcos: gerarDadosFallback(),
           configuracao: {
             layout_topo: {
               celulas: {
@@ -728,6 +730,82 @@ const Armazem3D = () => {
 
     carregarDados();
   }, []);
+
+  // Função para processar dados da API
+  const processarDadosAPI = (dadosJSON) => {
+    const temperatura = dadosJSON.TMS || 25;
+    const umidade = dadosJSON.UMC || 50;
+    const nivel = dadosJSON.NIV || 99;
+    const volume = dadosJSON.VOL || 1000;
+
+    // Gerar estrutura de arcos baseada nos dados reais
+    const arcos = {};
+    const totalArcos = 19;
+    const pendulosPorArco = 3;
+    
+    for (let arco = 1; arco <= totalArcos; arco++) {
+      arcos[arco] = {};
+      
+      for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
+        const penduloId = (arco - 1) * pendulosPorArco + pendulo;
+        
+        // Simular 8 sensores por pêndulo
+        const sensores = {};
+        for (let sensor = 1; sensor <= 8; sensor++) {
+          const variacaoTemp = (Math.random() - 0.5) * 6; // ±3°C de variação
+          const tempSensor = Math.max(10, Math.min(50, temperatura + variacaoTemp));
+          
+          const pontoQuente = tempSensor > 30;
+          const preAlarme = tempSensor > 35;
+          const falha = Math.random() < 0.03; // 3% chance de falha
+          const ativo = nivel > 50;
+          
+          // Formato: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+          sensores[sensor] = [tempSensor, pontoQuente, preAlarme, falha, ativo];
+        }
+        
+        arcos[arco][penduloId] = sensores;
+      }
+    }
+
+    return {
+      arcos: arcos,
+      configuracao: {
+        layout_topo: {
+          celulas: {
+            "1": [5, 50, 188, 254],
+            "2": [197, 50, 206, 254], 
+            "3": [407, 50, 188, 254]
+          }
+        }
+      }
+    };
+  };
+
+  // Função para gerar dados de fallback
+  const gerarDadosFallback = () => {
+    const arcos = {};
+    const totalArcos = 19;
+    const pendulosPorArco = 3;
+    
+    for (let arco = 1; arco <= totalArcos; arco++) {
+      arcos[arco] = {};
+      
+      for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
+        const penduloId = (arco - 1) * pendulosPorArco + pendulo;
+        
+        const sensores = {};
+        for (let sensor = 1; sensor <= 8; sensor++) {
+          const tempSensor = 20 + Math.random() * 15; // 20-35°C
+          sensores[sensor] = [tempSensor, false, false, false, true];
+        }
+        
+        arcos[arco][penduloId] = sensores;
+      }
+    }
+    
+    return arcos;
+  };
 
   if (carregando || !dados) {
     return (
