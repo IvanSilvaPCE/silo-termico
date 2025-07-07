@@ -70,63 +70,76 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
         const nivel = dadosJSON.NIV || 99;
         const volume = dadosJSON.VOL || 1000;
 
-        // Extrair pêndulos do JSON
+        // Usar o layout_topo do JSON se disponível
+        const layoutTopoOriginal = dadosJSON.configuracao?.layout_topo;
+        
+        if (layoutTopoOriginal) {
+            // Usar layout real do JSON
+            const layout = {
+                celulas: dadosJSON.configuracao.layout_topo.celulas || {
+                    tamanho_svg: [600, 388],
+                    fundo: [5, 49, 590, 256],
+                    1: [5, 50, 188, 254],
+                    2: [197, 50, 206, 254],
+                    3: [407, 50, 188, 254]
+                },
+                aeradores: dadosJSON.configuracao.layout_topo.aeradores || {}
+            };
+
+            const sensores = {};
+
+            // Processar arcos do layout_topo
+            Object.entries(layoutTopoOriginal).forEach(([arcoId, dadosArco]) => {
+                if (arcoId !== 'celulas' && arcoId !== 'aeradores' && dadosArco.celula) {
+                    layout[arcoId] = {
+                        celula: dadosArco.celula,
+                        pos_x: dadosArco.pos_x,
+                        sensores: dadosArco.sensores || {}
+                    };
+
+                    // Processar sensores deste arco
+                    if (dadosArco.sensores) {
+                        Object.entries(dadosArco.sensores).forEach(([sensorId]) => {
+                            // Buscar dados do sensor nos arcos detalhados ou pêndulos
+                            const dadosSensor = buscarDadosSensor(dadosJSON, sensorId);
+                            if (dadosSensor) {
+                                sensores[sensorId] = dadosSensor;
+                            }
+                        });
+                    }
+                }
+            });
+
+            return {
+                sensores: sensores,
+                layout: layout,
+            };
+        }
+
+        // Fallback para processamento automático se não houver layout_topo
         const pendulosData = dadosJSON.pendulos || {};
         const totalPendulos = Object.keys(pendulosData).length;
-
-        // Calcular número de arcos baseado nos pêndulos
-        const pendulosPorArco = 3; // Padrão, mas pode ser ajustado
+        const pendulosPorArco = 3;
         const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
 
-        // Calcular dimensões do SVG baseado na quantidade real
-        const margemLateral = 30;
-        const margemDireita = 30;
-        const larguraMinima = 600;
-        const larguraCalculada = Math.max(larguraMinima, totalArcos * 30 + margemLateral + margemDireita);
-        
-        // Layout dinâmico baseado na quantidade real de arcos
         const layout = {
             celulas: {
-                tamanho_svg: [larguraCalculada, 388],
-                fundo: [5, 49, larguraCalculada - 10, 256],
-                1: [10, 50, Math.floor((larguraCalculada - 30) / 3), 254],
-                2: [Math.floor((larguraCalculada - 30) / 3) + 15, 50, Math.floor((larguraCalculada - 30) / 3), 254],
-                3: [Math.floor((larguraCalculada - 30) * 2 / 3) + 20, 50, Math.floor((larguraCalculada - 30) / 3), 254],
+                tamanho_svg: [600, 388],
+                fundo: [5, 49, 590, 256],
+                1: [5, 50, 188, 254],
+                2: [197, 50, 206, 254],
+                3: [407, 50, 188, 254]
             },
-            aeradores: {},
+            aeradores: {}
         };
 
-        // Gerar aeradores baseado na quantidade de arcos
-        const aeradoresPorLado = Math.ceil(totalArcos / 4);
-        let aeradorId = 1;
-        
-        // Aeradores superiores
-        for (let i = 0; i < aeradoresPorLado; i++) {
-            const posX = 65 + (i * (larguraCalculada - 130) / Math.max(1, aeradoresPorLado - 1));
-            layout.aeradores[aeradorId] = [posX, 0, 1];
-            aeradorId++;
-        }
-        
-        // Aeradores inferiores
-        for (let i = 0; i < aeradoresPorLado; i++) {
-            const posX = 65 + (i * (larguraCalculada - 130) / Math.max(1, aeradoresPorLado - 1));
-            layout.aeradores[aeradorId] = [posX, 305, 0];
-            aeradorId++;
-        }
-
-        // Processar sensores dos pêndulos
         const sensores = {};
         let penduloIndex = 0;
 
-        // Calcular distribuição uniforme dos arcos na largura disponível
-        const larguraUtilizavel = larguraCalculada - margemLateral - margemDireita;
-        const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
-
         for (let arco = 1; arco <= totalArcos; arco++) {
-            // Determinar célula baseado na distribuição
             let celula;
-            if (arco <= Math.ceil(totalArcos / 3)) celula = 1;
-            else if (arco <= Math.ceil(totalArcos * 2 / 3)) celula = 2;
+            if (arco <= 6) celula = 1;
+            else if (arco <= 13) celula = 2;
             else celula = 3;
 
             const sensoresDoArco = {};
@@ -136,11 +149,9 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 penduloIndex++;
                 const penduloId = penduloIndex.toString();
                 
-                // Usar dados reais do JSON se disponível
                 if (pendulosData[penduloId]) {
                     const [falha, pontoQuente, ativo, temperatura] = pendulosData[penduloId];
                     
-                    // Posição Y alternada
                     let posY;
                     if (arco % 2 === 1) {
                         posY = 80 + p * 40;
@@ -153,8 +164,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
                 }
             }
 
-            // Calcular posição X do arco para distribuição uniforme
-            const posX = margemLateral + ((arco - 1) * espacamentoArco);
+            const posX = 30 + ((arco - 1) * 30);
 
             layout[arco] = {
                 celula: celula,
@@ -167,6 +177,29 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
             sensores: sensores,
             layout: layout,
         };
+    };
+
+    // Função auxiliar para buscar dados de um sensor
+    const buscarDadosSensor = (dadosJSON, sensorId) => {
+        // Primeiro tentar nos arcos detalhados
+        if (dadosJSON.arcos) {
+            for (const [arcoNum, pendulos] of Object.entries(dadosJSON.arcos)) {
+                for (const [penduloNum, sensores] of Object.entries(pendulos)) {
+                    if (sensores[sensorId]) {
+                        return sensores[sensorId];
+                    }
+                }
+            }
+        }
+
+        // Depois tentar nos pêndulos básicos
+        if (dadosJSON.pendulos && dadosJSON.pendulos[sensorId]) {
+            const [alarme, preAlarme, ativo, tempMaxima] = dadosJSON.pendulos[sensorId];
+            return [tempMaxima, false, preAlarme, alarme, ativo];
+        }
+
+        // Valor padrão se não encontrar
+        return [25, false, false, false, true];
     };
 
     function gerarLayoutAutomatico(pendulos) {
