@@ -1178,7 +1178,7 @@ const ModeladorSVG = () => {
                   ) : (
                     <>
                       {renderFundoArmazem()}
-                      {renderSensoresArmazem()}
+                      <g>{renderSensoresArmazem()}</g>
                     </>
                   )}
                 </svg>
