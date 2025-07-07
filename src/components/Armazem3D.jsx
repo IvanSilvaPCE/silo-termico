@@ -730,8 +730,9 @@ const Armazem3D = () => {
         );
         const dadosCarregados = await response.json();
 
-        // Usar dados diretos da API sem processamento adicional
-        setDados(dadosCarregados);
+        // Processar dados da API para o formato esperado
+        const dadosProcessados = processarDadosAPI(dadosCarregados);
+        setDados(dadosProcessados);
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         // Fallback para dados básicos compatíveis com a API
@@ -755,7 +756,97 @@ const Armazem3D = () => {
     carregarDados();
   }, []);
 
-  
+  // Função para processar dados da API
+  const processarDadosAPI = (dadosJSON) => {
+    const temperatura = dadosJSON.TMS || 25;
+    const umidade = dadosJSON.UMC || 50;
+    const nivel = dadosJSON.NIV || 99;
+    const volume = dadosJSON.VOL || 1000;
+
+    // Se já existem arcos no JSON, usar eles diretamente
+    if (dadosJSON.arcos) {
+      return {
+        arcos: dadosJSON.arcos,
+        configuracao: {
+          layout_topo: {
+            celulas: {
+              1: [5, 50, 188, 254],
+              2: [197, 50, 206, 254],
+              3: [407, 50, 188, 254],
+            },
+          },
+        },
+      };
+    }
+
+    // Caso contrário, gerar baseado nos pêndulos
+    const pendulosData = dadosJSON.pendulos || {};
+    const totalPendulos = Object.keys(pendulosData).length;
+    
+    // Calcular arcos baseado nos pêndulos disponíveis
+    const pendulosPorArco = 3;
+    const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
+
+    const arcos = {};
+    let penduloIndex = 0;
+
+    for (let arco = 1; arco <= totalArcos; arco++) {
+      arcos[arco] = {};
+      
+      const pendulosNoArco = Math.min(pendulosPorArco, totalPendulos - penduloIndex);
+
+      for (let p = 0; p < pendulosNoArco; p++) {
+        penduloIndex++;
+        const penduloId = penduloIndex;
+        
+        // Usar dados do pêndulo se disponível
+        const dadosPendulo = pendulosData[penduloIndex.toString()];
+        
+        // Gerar sensores para este pêndulo (quantidade variável)
+        const sensores = {};
+        const numSensores = Math.floor(Math.random() * 6) + 3; // 3-8 sensores por pêndulo
+        
+        for (let sensor = 1; sensor <= numSensores; sensor++) {
+          let tempSensor, pontoQuente, preAlarme, falha, ativo;
+          
+          if (dadosPendulo) {
+            // Usar temperatura do pêndulo como base
+            const [falhaPendulo, pontoQuentePendulo, ativoPendulo, tempPendulo] = dadosPendulo;
+            tempSensor = tempPendulo + (Math.random() - 0.5) * 2; // ±1°C de variação
+            pontoQuente = pontoQuentePendulo || tempSensor > 30;
+            preAlarme = tempSensor > 35;
+            falha = falhaPendulo || Math.random() < 0.02;
+            ativo = ativoPendulo;
+          } else {
+            // Dados simulados
+            tempSensor = temperatura + (Math.random() - 0.5) * 6;
+            pontoQuente = tempSensor > 30;
+            preAlarme = tempSensor > 35;
+            falha = Math.random() < 0.02;
+            ativo = nivel > 50;
+          }
+
+          // Formato: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+          sensores[sensor] = [tempSensor, pontoQuente, preAlarme, falha, ativo];
+        }
+
+        arcos[arco][penduloId] = sensores;
+      }
+    }
+
+    return {
+      arcos: arcos,
+      configuracao: {
+        layout_topo: {
+          celulas: {
+            1: [5, 50, 188, 254],
+            2: [197, 50, 206, 254],
+            3: [407, 50, 188, 254],
+          },
+        },
+      },
+    };
+  };
 
   // Função para gerar dados de fallback baseado em dados básicos
   const gerarDadosFallback = (dadosBasicos = null) => {
