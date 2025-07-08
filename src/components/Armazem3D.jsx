@@ -310,38 +310,47 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
     const pendulos = [];
 
     if (dados?.arcos) {
+      // Primeiro, coletar todos os pêndulos
+      const todosPendulos = [];
       Object.entries(dados.arcos).forEach(([arcoNum, arcoData]) => {
         const arcoNumero = parseInt(arcoNum);
-
         Object.entries(arcoData).forEach(([penduloNum, sensores]) => {
           const numeroPendulo = parseInt(penduloNum);
-
-          // Calcular posição baseada no arco - garantindo que fique dentro das paredes
-          const espacamentoArcos = (larguraArmazem - 2) / (numeroArcos + 1);
-          const arcoX = -larguraArmazem / 2 + 1 + (arcoNumero * espacamentoArcos);
-
-          // Distribuir pêndulos dentro do arco e dentro das paredes
-          const pendulosNoArco = Object.keys(arcoData).length;
-          const indicePendulo = Object.keys(arcoData).indexOf(penduloNum);
-          const espacamentoZ = (profundidadeArmazem - 2) / Math.max(pendulosNoArco, 2);
-          const posZ = pendulosNoArco > 1 ? 
-            -profundidadeArmazem / 2 + 1 + (indicePendulo * espacamentoZ) : 
-            0;
-
-          pendulos.push({
+          todosPendulos.push({
             numero: numeroPendulo,
             arco: arcoNumero,
-            position: [arcoX, 0, posZ],
             sensores: sensores
           });
+        });
+      });
+
+      // Distribuir uniformemente na largura do armazém
+      const areaUtil = larguraArmazem - 3; // Margem das paredes
+      const espacamentoX = todosPendulos.length > 1 ? areaUtil / (todosPendulos.length - 1) : 0;
+      
+      todosPendulos.forEach((pendulo, index) => {
+        const posX = -larguraArmazem / 2 + 1.5 + (index * espacamentoX);
+        
+        // Distribuir em profundidade de forma alternada para melhor visualização
+        const fileiras = 3;
+        const filaAtual = index % fileiras;
+        const espacamentoZ = (profundidadeArmazem - 3) / (fileiras - 1);
+        const posZ = filaAtual === 1 ? 0 : 
+                    (-profundidadeArmazem / 2 + 1.5 + (filaAtual > 1 ? espacamentoZ : 0));
+
+        pendulos.push({
+          numero: pendulo.numero,
+          arco: pendulo.arco,
+          position: [posX, 0, posZ],
+          sensores: pendulo.sensores
         });
       });
     }
 
     return pendulos;
-  }, [dados, larguraArmazem, numeroArcos, profundidadeArmazem]);
+  }, [dados, larguraArmazem, profundidadeArmazem]);
 
-  // Processar motores/aeradores - posicionados FORA do armazém
+  // Processar motores/aeradores - SEMPRE fora do armazém
   const motoresData = useMemo(() => {
     const motores = [];
 
@@ -349,21 +358,31 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
       Object.entries(dados.configuracao.layout_topo.aeradores).forEach(([aeradorId, dadosAerador]) => {
         const [posX2D, posY2D] = dadosAerador;
 
-        // Converter coordenadas 2D para 3D - posicionados FORA das paredes
-        let posX3D = -larguraArmazem / 2 + (posX2D / 600) * larguraArmazem;
-        let posZ3D = -profundidadeArmazem / 2 + (posY2D / 400) * profundidadeArmazem;
+        // Normalizar coordenadas 2D (0-1)
+        const normalX = posX2D / 600;
+        const normalY = posY2D / 400;
         
-        // Empurrar motores para fora das paredes
-        const margemExterna = 1.0; // Distância das paredes
+        // Determinar qual lado do armazém o motor ficará baseado na posição 2D
+        const margemExterna = 2.0; // Margem maior para garantir que fique fora
+        let posX3D, posZ3D;
         
-        // Se muito próximo das paredes laterais, mover para fora
-        if (Math.abs(posX3D) > larguraArmazem / 2 - 1) {
-          posX3D = posX3D > 0 ? larguraArmazem / 2 + margemExterna : -larguraArmazem / 2 - margemExterna;
-        }
-        
-        // Se muito próximo das paredes frontais, mover para fora
-        if (Math.abs(posZ3D) > profundidadeArmazem / 2 - 1) {
-          posZ3D = posZ3D > 0 ? profundidadeArmazem / 2 + margemExterna : -profundidadeArmazem / 2 - margemExterna;
+        // Distribuir motores pelos 4 lados externos do armazém
+        if (normalX < 0.3) {
+          // Lado esquerdo
+          posX3D = -larguraArmazem / 2 - margemExterna;
+          posZ3D = -profundidadeArmazem / 2 + (normalY * profundidadeArmazem);
+        } else if (normalX > 0.7) {
+          // Lado direito
+          posX3D = larguraArmazem / 2 + margemExterna;
+          posZ3D = -profundidadeArmazem / 2 + (normalY * profundidadeArmazem);
+        } else if (normalY < 0.5) {
+          // Lado frontal
+          posZ3D = -profundidadeArmazem / 2 - margemExterna;
+          posX3D = -larguraArmazem / 2 + (normalX * larguraArmazem);
+        } else {
+          // Lado traseiro
+          posZ3D = profundidadeArmazem / 2 + margemExterna;
+          posX3D = -larguraArmazem / 2 + (normalX * larguraArmazem);
         }
 
         motores.push({
