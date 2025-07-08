@@ -250,7 +250,7 @@ const ModeladorSVG = () => {
 
     const escala_sensores = configArmazem.escala_sensores;
     const dist_y_sensores = configArmazem.dist_y_sensores;
-    const pb = dimensoesSVGArmazem.altura - 50; // Posição base ajustada
+    const pb = configArmazem.pb; // Usar configuração do usuário
     const yPendulo = pb + 15; // Posição dos pêndulos - FORA do armazém
 
     // Renderizar todos os pêndulos em ordem sequencial - igual ao Armazem.jsx
@@ -295,8 +295,9 @@ const ModeladorSVG = () => {
       for (let s = 1; s <= numSensores; s++) {
         const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
 
-        // Garantir que o sensor está dentro dos limites do SVG - igual ao Armazem.jsx
-        if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 60)) {
+        // Garantir que o sensor está dentro dos limites do SVG - usar altura calculada
+        const [, alturaSVG] = calcularDimensoesSVG();
+        if (ySensor > 10 && ySensor < (alturaSVG - 60)) {
           // Retângulo do sensor com cor padrão - igual ao Armazem.jsx
           elementos.push(
             <rect
@@ -385,7 +386,7 @@ const ModeladorSVG = () => {
         atualizarSensores(dados);
       }, 100);
     }
-  }, [dados, arcoAtual, tipoAtivo]);
+  }, [dados, arcoAtual, tipoAtivo, configArmazem]);
 
   const renderFundoArmazem = () => {
     const {
@@ -393,16 +394,14 @@ const ModeladorSVG = () => {
       tipo_fundo,
       intensidade_fundo,
       curvatura_topo,
+      pb,
+      lb,
       hb,
       hf,
+      lf,
       le,
       ht,
     } = configArmazem;
-
-    // Usar dimensões dinâmicas mas manter proporções do armazém - igual ao Armazem.jsx
-    const pb = dimensoesSVGArmazem.altura - 50; // Posição base ajustada
-    const lb = dimensoesSVGArmazem.largura;
-    const lf = Math.min(250, lb * 0.7); // Largura frente proporcional igual ao Armazem.jsx
 
     // Base com diferentes tipos de fundo
     let pathBase = "";
@@ -684,7 +683,10 @@ const ModeladorSVG = () => {
       const altura = configSilo.hs + configSilo.hb * 1.75;
       return [largura, altura];
     } else {
-      return [dimensoesSVGArmazem.largura, dimensoesSVGArmazem.altura];
+      // Para armazém, usar as configurações do usuário
+      const largura = Math.max(configArmazem.lb, 300);
+      const altura = Math.max(configArmazem.pb + configArmazem.ht + 50, 200);
+      return [largura, altura];
     }
   };
 
