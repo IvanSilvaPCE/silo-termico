@@ -9,7 +9,7 @@ import {
 } from "@react-three/drei";
 import * as THREE from "three";
 
-const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celulaNumero }) => {
+const Pendulo3D = ({ position, numero, dados, arcoNumero }) => {
   const grupoRef = useRef();
 
   // Função para determinar cor baseada na temperatura
@@ -27,20 +27,36 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
     else return "#f700ff";
   };
 
-  // Processar sensores
-  const sensoresArray = Object.entries(sensores).map(([key, valores]) => ({
-    numero: parseInt(key),
-    temperatura: valores[0],
-    ponto_quente: valores[1],
-    pre_alarme: valores[2],
-    falha: valores[3],
-    ativo: valores[4]
-  }));
+  // Buscar dados do pêndulo nos arcos detalhados
+  const sensoresArco = useMemo(() => {
+    if (!dados.arcos || !dados.arcos[arcoNumero] || !dados.arcos[arcoNumero][numero]) {
+      return [];
+    }
 
-  sensoresArray.sort((a, b) => a.numero - b.numero);
+    const sensoresPendulo = dados.arcos[arcoNumero][numero];
+    return Object.entries(sensoresPendulo).map(([sensorId, sensorData]) => ({
+      id: sensorId,
+      temperatura: sensorData[0],
+      ponto_quente: sensorData[1],
+      pre_alarme: sensorData[2],
+      falha: sensorData[3],
+      ativo: sensorData[4]
+    }));
+  }, [dados, arcoNumero, numero]);
 
-  const espacamentoSensores = sensoresArray.length > 1 ? 
-    (alturaArmazem * 0.8) / sensoresArray.length : 
+  // Buscar dados básicos do pêndulo
+  const dadosBasicos = useMemo(() => {
+    if (!dados.pendulos || !dados.pendulos[numero]) {
+      return { alarme: false, pre_alarme: false, ativo: true, temperatura: 0 };
+    }
+
+    const [alarme, pre_alarme, ativo, temperatura] = dados.pendulos[numero];
+    return { alarme, pre_alarme, ativo, temperatura };
+  }, [dados, numero]);
+
+  const alturaArmazem = 6;
+  const espacamentoSensores = sensoresArco.length > 1 ? 
+    (alturaArmazem * 0.8) / sensoresArco.length : 
     alturaArmazem * 0.4;
 
   return (
@@ -52,15 +68,15 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
       </mesh>
 
       {/* Sensores ao longo do cabo */}
-      {sensoresArray.map((sensor, index) => {
+      {sensoresArco.map((sensor, index) => {
         const yPos = alturaArmazem * 0.9 - (index * espacamentoSensores);
         const cor = sensor.ativo ? corFaixaExata(sensor.temperatura) : "#666666";
 
         return (
-          <group key={sensor.numero} position={[0, yPos, 0]}>
+          <group key={sensor.id} position={[0, yPos, 0]}>
             {/* Sensor */}
             <mesh>
-              <boxGeometry args={[0.15, 0.08, 0.08]} />
+              <boxGeometry args={[0.12, 0.06, 0.06]} />
               <meshStandardMaterial
                 color={cor}
                 emissive={sensor.falha ? "#ff0000" : sensor.ponto_quente ? "#ffaa00" : "#000000"}
@@ -69,9 +85,9 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
             </mesh>
 
             {/* Display da temperatura */}
-            <Billboard position={[0.3, 0, 0]}>
+            <Billboard position={[0.25, 0, 0]}>
               <Text
-                fontSize={0.08}
+                fontSize={0.06}
                 color={sensor.falha ? "#ff0000" : sensor.ativo ? "#ffffff" : "#666666"}
                 anchorX="center"
                 anchorY="middle"
@@ -84,16 +100,20 @@ const Pendulo3D = ({ position, numero, sensores, arcoNumero, alturaArmazem, celu
       })}
 
       {/* Peso na extremidade */}
-      <mesh position={[0, 0.5, 0]}>
+      <mesh position={[0, 0.3, 0]}>
         <cylinderGeometry args={[0.04, 0.03, 0.1, 8]} />
-        <meshStandardMaterial color="#444444" />
+        <meshStandardMaterial 
+          color={dadosBasicos.alarme ? "#ff0000" : dadosBasicos.pre_alarme ? "#ffaa00" : "#444444"}
+          emissive={dadosBasicos.alarme ? "#ff0000" : dadosBasicos.pre_alarme ? "#ffaa00" : "#000000"}
+          emissiveIntensity={dadosBasicos.alarme ? 0.3 : dadosBasicos.pre_alarme ? 0.2 : 0}
+        />
       </mesh>
 
       {/* Nome do pêndulo */}
-      <Billboard position={[0, 0.2, 0]}>
+      <Billboard position={[0, 0.1, 0]}>
         <Text
-          fontSize={0.12}
-          color="#ffffff"
+          fontSize={0.1}
+          color={dadosBasicos.alarme ? "#ff0000" : dadosBasicos.ativo ? "#ffffff" : "#666666"}
           anchorX="center"
           anchorY="middle"
         >
@@ -188,288 +208,86 @@ const ArmazemStructure3D = ({ numeroArcos, alturaArmazem, larguraArmazem, profun
     <group>
       {/* Base/Fundo do armazém */}
       <group position={[0, alturaBase / 2, 0]}>
-        {configArmazem.tipo_fundo === 0 && (
-          <mesh receiveShadow>
-            <boxGeometry args={[largura3D, alturaBase, profundidadeArmazem]} />
-            <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-          </mesh>
-        )}
-
-        {configArmazem.tipo_fundo === 1 && (
-          <group>
-            <mesh position={[-largura3D / 4, 0, 0]} rotation={[0, 0, Math.PI / 12]}>
-              <boxGeometry args={[largura3D / 2, alturaBase, profundidadeArmazem]} />
-              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-            </mesh>
-            <mesh position={[largura3D / 4, 0, 0]} rotation={[0, 0, -Math.PI / 12]}>
-              <boxGeometry args={[largura3D / 2, alturaBase, profundidadeArmazem]} />
-              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-            </mesh>
-          </group>
-        )}
-
-        {configArmazem.tipo_fundo === 2 && (
-          // Duplo V (como no 2D)
-          <group>
-            {/* Primeira seção V */}
-            <mesh position={[-largura3D / 3, 0, 0]} rotation={[0, 0, Math.PI / 15]}>
-              <boxGeometry args={[largura3D / 3, alturaBase, profundidadeArmazem]} />
-              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-            </mesh>
-            {/* Segunda seção V */}
-            <mesh position={[largura3D / 3, 0, 0]} rotation={[0, 0, -Math.PI / 15]}>
-              <boxGeometry args={[largura3D / 3, alturaBase, profundidadeArmazem]} />
-              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-            </mesh>
-            {/* Seção central */}
-            <mesh position={[0, alturaBase / 4, 0]}>
-              <boxGeometry args={[largura3D / 3, alturaBase / 2, profundidadeArmazem]} />
-              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-            </mesh>
-          </group>
-        )}
+        <mesh receiveShadow>
+          <boxGeometry args={[largura3D, alturaBase, profundidadeArmazem]} />
+          <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+        </mesh>
       </group>
 
       {/* Paredes laterais */}
       <group position={[0, altura3D / 2, 0]}>
-        <mesh
-          position={[-largura3D / 2 - 0.1, 0, 0]}
-          castShadow
-          receiveShadow
-        >
+        <mesh position={[-largura3D / 2 - 0.1, 0, 0]} castShadow receiveShadow>
           <boxGeometry args={[0.2, altura3D, profundidadeArmazem]} />
-          <meshStandardMaterial
-            color={corTelhado}
-            transparent
-            opacity={0.8}
-            roughness={0.7}
-            metalness={0.1}
-          />
+          <meshStandardMaterial color={corTelhado} transparent opacity={0.8} />
         </mesh>
 
-        <mesh
-          position={[largura3D / 2 + 0.1, 0, 0]}
-          castShadow
-          receiveShadow
-        >
+        <mesh position={[largura3D / 2 + 0.1, 0, 0]} castShadow receiveShadow>
           <boxGeometry args={[0.2, altura3D, profundidadeArmazem]} />
-          <meshStandardMaterial
-            color={corTelhado}
-            transparent
-            opacity={0.8}
-            roughness={0.7}
-            metalness={0.1}
-          />
+          <meshStandardMaterial color={corTelhado} transparent opacity={0.8} />
         </mesh>
 
-        <mesh
-          position={[0, 0, -profundidadeArmazem / 2 - 0.1]}
-          castShadow
-          receiveShadow
-        >
+        <mesh position={[0, 0, -profundidadeArmazem / 2 - 0.1]} castShadow receiveShadow>
           <boxGeometry args={[larguraFrente, altura3D * 0.8, 0.2]} />
-          <meshStandardMaterial
-            color={corTelhado}
-            transparent
-            opacity={0.7}
-            roughness={0.7}
-            metalness={0.1}
-          />
+          <meshStandardMaterial color={corTelhado} transparent opacity={0.7} />
         </mesh>
 
-        <mesh
-          position={[0, 0, profundidadeArmazem / 2 + 0.1]}
-          castShadow
-          receiveShadow
-        >
+        <mesh position={[0, 0, profundidadeArmazem / 2 + 0.1]} castShadow receiveShadow>
           <boxGeometry args={[larguraFrente, altura3D * 0.8, 0.2]} />
-          <meshStandardMaterial
-            color={corTelhado}
-            transparent
-            opacity={0.7}
-            roughness={0.7}
-            metalness={0.1}
-          />
+          <meshStandardMaterial color={corTelhado} transparent opacity={0.7} />
         </mesh>
       </group>
 
       {/* Telhado */}
       <group position={[0, altura3D + alturaBase, 0]}>
-        {configArmazem.tipo_telhado === 1 && (
-          <>
-            <mesh
-              position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
-              rotation={[-Math.PI / 6, 0, 0]}
-              castShadow
-            >
-              <boxGeometry
-                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
-              />
-              <meshStandardMaterial
-                color={corTelhado}
-                metalness={0.1}
-                roughness={0.8}
-              />
-            </mesh>
+        <mesh position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]} rotation={[-Math.PI / 6, 0, 0]} castShadow>
+          <boxGeometry args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]} />
+          <meshStandardMaterial color={corTelhado} metalness={0.1} roughness={0.8} />
+        </mesh>
 
-            <mesh
-              position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
-              rotation={[Math.PI / 6, 0, 0]}
-              castShadow
-            >
-              <boxGeometry
-                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
-              />
-              <meshStandardMaterial
-                color={corTelhado}
-                metalness={0.1}
-                roughness={0.8}
-              />
-            </mesh>
+        <mesh position={[0, alturaTelhado / 2, profundidadeArmazem / 4]} rotation={[Math.PI / 6, 0, 0]} castShadow>
+          <boxGeometry args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]} />
+          <meshStandardMaterial color={corTelhado} metalness={0.1} roughness={0.8} />
+        </mesh>
 
-            {/* Cumeeira pontuda */}
-            <mesh position={[0, alturaTelhado + 0.05, 0]} castShadow>
-              <boxGeometry args={[largura3D + 0.5, 0.1, 0.1]} />
-              <meshStandardMaterial
-                color={corBase}
-                metalness={0.2}
-                roughness={0.7}
-              />
-            </mesh>
-          </>
-        )}
-
-        {configArmazem.tipo_telhado === 2 && (
-          // Telhado arredondado (baseado no 2D)
-          <>
-            <mesh
-              position={[0, alturaTelhado / 3, -profundidadeArmazem / 4]}
-              rotation={[-Math.PI / 8, 0, 0]}
-              castShadow
-            >
-              <boxGeometry
-                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
-              />
-              <meshStandardMaterial
-                color={corTelhado}
-                metalness={0.1}
-                roughness={0.8}
-              />
-            </mesh>
-
-            <mesh
-              position={[0, alturaTelhado / 3, profundidadeArmazem / 4]}
-              rotation={[Math.PI / 8, 0, 0]}
-              castShadow
-            >
-              <boxGeometry
-                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
-              />
-              <meshStandardMaterial
-                color={corTelhado}
-                metalness={0.1}
-                roughness={0.8}
-              />
-            </mesh>
-
-            {/* Cumeeira arredondada */}
-            <mesh position={[0, alturaTelhado / 2, 0]} castShadow>
-              <cylinderGeometry args={[0.1, 0.1, largura3D + 0.5, 16]} />
-              <meshStandardMaterial
-                color={corBase}
-                metalness={0.2}
-                roughness={0.7}
-              />
-            </mesh>
-          </>
-        )}
-
-        {configArmazem.tipo_telhado === 3 && (
-          // Telhado em arco (baseado no 2D)
-          <>
-            <mesh
-              position={[0, alturaTelhado / 4, -profundidadeArmazem / 4]}
-              rotation={[-Math.PI / 10, 0, 0]}
-              castShadow
-            >
-              <boxGeometry
-                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
-              />
-              <meshStandardMaterial
-                color={corTelhado}
-                metalness={0.1}
-                roughness={0.8}
-              />
-            </mesh>
-
-            <mesh
-              position={[0, alturaTelhado / 4, profundidadeArmazem / 4]}
-              rotation={[Math.PI / 10, 0, 0]}
-              castShadow
-            >
-              <boxGeometry
-                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
-              />
-              <meshStandardMaterial
-                color={corTelhado}
-                metalness={0.1}
-                roughness={0.8}
-              />
-            </mesh>
-
-            {/* Cumeeira em arco */}
-            <mesh position={[0, alturaTelhado / 3, 0]} castShadow>
-              <torusGeometry args={[largura3D / 4, 0.05, 8, 16, Math.PI]} />
-              <meshStandardMaterial
-                color={corBase}
-                metalness={0.2}
-                roughness={0.7}
-              />
-            </mesh>
-          </>
-        )}
+        <mesh position={[0, alturaTelhado + 0.05, 0]} castShadow>
+          <boxGeometry args={[largura3D + 0.5, 0.1, 0.1]} />
+          <meshStandardMaterial color={corBase} metalness={0.2} roughness={0.7} />
+        </mesh>
       </group>
 
-      {/* Vigas estruturais */}
+      {/* Vigas estruturais dos arcos */}
       <Instances>
         <boxGeometry args={[0.08, altura3D + alturaBase, 0.08]} />
-        <meshStandardMaterial
-          color="#999999"
-          metalness={0.6}
-          roughness={0.4}
-        />
-        {Array.from({ length: numeroArcos + 1 }, (_, i) => {
-          const x = -largura3D / 2 + (i * largura3D) / numeroArcos;
+        <meshStandardMaterial color="#999999" metalness={0.6} roughness={0.4} />
+        {Array.from({ length: numeroArcos }, (_, i) => {
+          const x = -largura3D / 2 + ((i + 1) * largura3D) / (numeroArcos + 1);
           return (
-            <Instance
-              key={i}
-              position={[x, (altura3D + alturaBase) / 2, 0]}
-            />
+            <Instance key={i} position={[x, (altura3D + alturaBase) / 2, 0]} />
           );
         })}
       </Instances>
+
+      {/* Marcação dos arcos */}
+      {Array.from({ length: numeroArcos }, (_, i) => {
+        const x = -largura3D / 2 + ((i + 1) * largura3D) / (numeroArcos + 1);
+        return (
+          <Billboard key={i} position={[x, altura3D + alturaBase + 0.3, 0]}>
+            <Text fontSize={0.08} color="#333333" anchorX="center" anchorY="middle">
+              Arco {i + 1}
+            </Text>
+          </Billboard>
+        );
+      })}
     </group>
   );
 };
 
-const ArmazemCompleto3D = ({ dados, alturaArmazem, config3D }) => {
-  const numeroArcos = Object.keys(dados.arcos || {}).length || 19;
+const ArmazemCompleto3D = ({ dados, config3D }) => {
+  const alturaArmazem = 6;
+  const numeroArcos = 19;
   const larguraArmazem = numeroArcos * 2;
   const profundidadeArmazem = 6;
 
-  const configArmazemDados = config3D || {
-    pb: 185,
-    lb: 350,
-    hb: 30,
-    hf: 5,
-    lf: 250,
-    le: 15,
-    ht: 50,
-    tipo_telhado: 1,
-    tipo_fundo: 0,
-    intensidade_fundo: 20,
-    curvatura_topo: 30,
-  };
   // Processar pêndulos baseado na estrutura real dos dados
   const pendulosData = useMemo(() => {
     const pendulos = [];
@@ -481,11 +299,15 @@ const ArmazemCompleto3D = ({ dados, alturaArmazem, config3D }) => {
         Object.entries(arcoData).forEach(([penduloNum, sensores]) => {
           const numeroPendulo = parseInt(penduloNum);
 
-          // Calcular posição baseada no arco e distribuição interna
-          const arcoX = -larguraArmazem / 2 + (arcoNumero - 0.5) * (larguraArmazem / numeroArcos);
+          // Calcular posição baseada no arco
+          const arcoX = -larguraArmazem / 2 + (arcoNumero * larguraArmazem) / (numeroArcos + 1);
 
-          // Alternar posição Z para criar variação
-          const posZ = (numeroPendulo % 2 === 0) ? -1 : 1;
+          // Distribuir pêndulos dentro do arco
+          const pendulosNoArco = Object.keys(arcoData).length;
+          const indicePendulo = Object.keys(arcoData).indexOf(penduloNum);
+          const posZ = pendulosNoArco > 1 ? 
+            -profundidadeArmazem / 4 + (indicePendulo * profundidadeArmazem / 2) / (pendulosNoArco - 1) : 
+            0;
 
           pendulos.push({
             numero: numeroPendulo,
@@ -498,7 +320,7 @@ const ArmazemCompleto3D = ({ dados, alturaArmazem, config3D }) => {
     }
 
     return pendulos;
-  }, [dados, larguraArmazem, numeroArcos]);
+  }, [dados, larguraArmazem, numeroArcos, profundidadeArmazem]);
 
   // Processar motores/aeradores
   const motoresData = useMemo(() => {
@@ -531,7 +353,7 @@ const ArmazemCompleto3D = ({ dados, alturaArmazem, config3D }) => {
         alturaArmazem={alturaArmazem}
         larguraArmazem={larguraArmazem}
         profundidadeArmazem={profundidadeArmazem}
-        config3D = {configArmazemDados}
+        config3D={config3D}
       />
 
       {/* Pêndulos */}
@@ -540,9 +362,8 @@ const ArmazemCompleto3D = ({ dados, alturaArmazem, config3D }) => {
           key={`${pendulo.arco}-${pendulo.numero}`}
           position={pendulo.position}
           numero={pendulo.numero}
-          sensores={pendulo.sensores}
+          dados={dados}
           arcoNumero={pendulo.arco}
-          alturaArmazem={alturaArmazem}
         />
       ))}
 
@@ -586,7 +407,7 @@ const Armazem3D = () => {
           const configParsed = JSON.parse(configArmazemSalva);
           setConfig3D(configParsed);
         } else {
-           setConfig3D({
+          setConfig3D({
             pb: 185,
             lb: 350,
             hb: 30,
@@ -624,12 +445,24 @@ const Armazem3D = () => {
     );
   }
 
-  // Calcular estatísticas
-  const totalPendulos = dados.arcos ? 
-    Object.values(dados.arcos).reduce((total, arco) => total + Object.keys(arco).length, 0) : 0;
-
+  // Calcular estatísticas reais
+  const totalPendulos = dados.pendulos ? Object.keys(dados.pendulos).length : 0;
+  const totalArcos = dados.arcos ? Object.keys(dados.arcos).length : 0;
   const totalAeradores = dados.configuracao?.layout_topo?.aeradores ? 
     Object.keys(dados.configuracao.layout_topo.aeradores).length : 0;
+
+  // Calcular total de sensores
+  const totalSensores = useMemo(() => {
+    let count = 0;
+    if (dados.arcos) {
+      Object.values(dados.arcos).forEach(arco => {
+        Object.values(arco).forEach(pendulo => {
+          count += Object.keys(pendulo).length;
+        });
+      });
+    }
+    return count;
+  }, [dados]);
 
   return (
     <div style={{ width: "100%", height: "100vh" }}>
@@ -647,8 +480,9 @@ const Armazem3D = () => {
       }}>
         <div><strong>Armazém 3D - Dados Reais</strong></div>
         <hr style={{ margin: "10px 0" }} />
-        <div>Arcos: 19</div>
+        <div>Arcos: {totalArcos}</div>
         <div>Pêndulos: {totalPendulos}</div>
+        <div>Sensores: {totalSensores}</div>
         <div>Células: 3</div>
         <div>Aeradores: {totalAeradores}</div>
 
@@ -661,7 +495,7 @@ const Armazem3D = () => {
             />
             {" "}Rotação Automática
           </label>
-           <button
+          <button
             onClick={() => {
               const configArmazemSalva = localStorage.getItem("configArmazem");
               if (configArmazemSalva) {
@@ -671,7 +505,16 @@ const Armazem3D = () => {
                 alert("Nenhuma configuração encontrada no ModeladorSVG.");
               }
             }}
-            style={{ marginLeft: "10px", padding: "5px 10px", fontSize: "12px", color: "black", background: "white" }}
+            style={{ 
+              marginLeft: "10px", 
+              padding: "5px 10px", 
+              fontSize: "12px", 
+              color: "black", 
+              background: "white",
+              border: "1px solid #ccc",
+              borderRadius: "4px",
+              cursor: "pointer"
+            }}
           >
             Sincronizar com ModeladorSVG
           </button>
@@ -703,11 +546,7 @@ const Armazem3D = () => {
           color="#fff8dc"
         />
 
-        <ArmazemCompleto3D
-          dados={dados}
-          alturaArmazem={alturaArmazem}
-          config3D = {config3D}
-        />
+        <ArmazemCompleto3D dados={dados} config3D={config3D} />
 
         <OrbitControls
           autoRotate={autoRotate}
