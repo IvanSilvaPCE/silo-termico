@@ -436,22 +436,25 @@ const ModeladorSVG = () => {
 
       polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
     } else if (tipo_fundo === 2) {
-      // Fundo com duplo V na parte superior
+      // Fundo com duplo V na parte superior - base reta
       const p1 = [lb, pb - hb],
         p2 = [lb - le, pb - hb],
         p3 = [lb - (lb - lf) / 2, pb - hf],
         p4 = [(lb - lf) / 2, pb - hf],
         p5 = [le, pb - hb],
         p6 = [0, pb - hb],
-        p7 = [0, pb - hb + intensidade_fundo],
-        p8 = [lb / 4 - intensidade_fundo/2, pb - hb - intensidade_fundo],
-        p9 = [lb / 4 + intensidade_fundo/2, pb - hb - intensidade_fundo],
-        p10 = [lb / 2, pb - hb + intensidade_fundo],
-        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - hb - intensidade_fundo],
-        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - hb - intensidade_fundo],
-        p13 = [lb, pb - hb + intensidade_fundo],
-        p14 = [lb, pb];
-      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")}`;
+        // Duplo V na linha superior (pb - hb)
+        p7 = [0, pb - hb],
+        p8 = [lb / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
+        p9 = [lb / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
+        p10 = [lb / 2, pb - hb],
+        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
+        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
+        p13 = [lb, pb - hb],
+        // Base reta
+        p14 = [lb, pb],
+        p15 = [0, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")} ${p15.join(",")}`;
 
       polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
     }
