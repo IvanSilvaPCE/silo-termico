@@ -451,17 +451,24 @@ const ModeladorSVG = () => {
 
   // Renderizar telhado
   const renderTelhado = () => {
-    const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht } = configArmazem;
+    const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = configArmazem;
 
     if (tipo_telhado === 1) {
       // Pontudo
-      const p1_ = [(lb - lf) / 2, pb - hf],
+      let p1_ = [(lb - lf) / 2, pb - hf],
         p2_ = [le, pb - hb],
         p3_ = [le, pb - ht],
         p4_ = [lb / 2, 1],
         p5_ = [lb - le, pb - ht],
         p6_ = [lb - le, pb - hb],
         p7_ = [lb - (lb - lf) / 2, pb - hf];
+
+      // Se tipo de fundo for V (1) ou Duplo V (2), estender telhado para baixo
+      if (tipo_fundo === 1 || tipo_fundo === 2) {
+        p2_ = [le, pb - hb + 40]; // Estender lado esquerdo para baixo
+        p6_ = [lb - le, pb - hb + 40]; // Estender lado direito para baixo
+      }
+
       const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
 
       return (
@@ -478,12 +485,17 @@ const ModeladorSVG = () => {
       );
     } else if (tipo_telhado === 2) {
       // Arredondado
+      let extensao = 0;
+      if (tipo_fundo === 1 || tipo_fundo === 2) {
+        extensao = 40; // Extensão para baixo nos tipos V
+      }
+
       const pathTelhado = `
         M ${(lb - lf) / 2} ${pb - hf}
-        L ${le} ${pb - hb}
+        L ${le} ${pb - hb + extensao}
         L ${le} ${pb - ht}
         Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
-        L ${lb - le} ${pb - hb}
+        L ${lb - le} ${pb - hb + extensao}
         L ${lb - (lb - lf) / 2} ${pb - hf}
         Z
       `; 
@@ -501,12 +513,17 @@ const ModeladorSVG = () => {
       );
     } else if (tipo_telhado === 3) {
       // Arco
+      let extensao = 0;
+      if (tipo_fundo === 1 || tipo_fundo === 2) {
+        extensao = 40; // Extensão para baixo nos tipos V
+      }
+
       const pathTelhado = `
         M ${(lb - lf) / 2} ${pb - hf}
-        L ${le} ${pb - hb}
+        L ${le} ${pb - hb + extensao}
         L ${le} ${pb - ht}
         A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
-        L ${lb - le} ${pb - hb}
+        L ${lb - le} ${pb - hb + extensao}
         L ${lb - (lb - lf) / 2} ${pb - hf}
         Z
       `;
