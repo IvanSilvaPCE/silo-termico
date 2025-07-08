@@ -429,8 +429,8 @@ const ModeladorSVG = () => {
         p5 = [le, pb - hb],
         p6 = [0, pb - hb],
         p7 = [0, pb],
-        p8 = [lb / 2 - intensidade_fundo, pb - intensidade_fundo],
-        p9 = [lb / 2 + intensidade_fundo, pb - intensidade_fundo],
+        p8 = [lb / 2 - intensidade_fundo, pb + intensidade_fundo],
+        p9 = [lb / 2 + intensidade_fundo, pb + intensidade_fundo],
         p10 = [lb, pb];
       pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")}`;
 
@@ -444,11 +444,11 @@ const ModeladorSVG = () => {
         p5 = [le, pb - hb],
         p6 = [0, pb - hb],
         p7 = [0, pb],
-        p8 = [lb / 4 - intensidade_fundo/2, pb - intensidade_fundo],
-        p9 = [lb / 4 + intensidade_fundo/2, pb - intensidade_fundo],
+        p8 = [lb / 4 - intensidade_fundo/2, pb + intensidade_fundo],
+        p9 = [lb / 4 + intensidade_fundo/2, pb + intensidade_fundo],
         p10 = [lb / 2, pb],
-        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - intensidade_fundo],
-        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - intensidade_fundo],
+        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb + intensidade_fundo],
+        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb + intensidade_fundo],
         p13 = [lb, pb];
       pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")}`;
 
