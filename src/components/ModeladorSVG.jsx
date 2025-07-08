@@ -403,76 +403,57 @@ const ModeladorSVG = () => {
       ht,
     } = configArmazem;
 
-    // Base externa sempre reta
-    const baseExterna = [
-      [lb, pb - hb],
-      [lb - le, pb - hb],
-      [lb - (lb - lf) / 2, pb - hf],
-      [(lb - lf) / 2, pb - hf],
-      [le, pb - hb],
-      [0, pb - hb],
-      [0, pb],
-      [lb, pb]
-    ];
-    const pathBaseExterna = baseExterna.map(p => p.join(",")).join(" ");
+    // Base com diferentes tipos de fundo
+    let pathBase = "";
+    let polBase = null;
 
-    // Elementos da base
-    const elementosBase = [];
+    if (tipo_fundo === 0) {
+      // Fundo reto (original)
+      const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - (lb - lf) / 2, pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
 
-    // Base externa (sempre reta)
-    elementosBase.push(
-      <polygon key="base-externa" fill="#999999" id="des_fundo" points={pathBaseExterna} />
-    );
+      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+    } else if (tipo_fundo === 1) {
+      // Funil/V baseado na base (vértice para cima)
+      const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - (lb - lf) / 2, pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb / 2 - intensidade_fundo, pb - intensidade_fundo],
+        p9 = [lb / 2 + intensidade_fundo, pb - intensidade_fundo],
+        p10 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")}`;
 
-    // Funis internos baseados no tipo_fundo
-    if (tipo_fundo === 1) {
-      // Funil/V interno - forma V saindo do topo da base
-      const fundoY = pb - hb; // Topo da base onde começa o funil
-      const centroX = lb / 2;
-      const profundidadeV = intensidade_fundo;
-      
-      const pontosTopo = [
-        [centroX - profundidadeV, fundoY],
-        [centroX + profundidadeV, fundoY],
-        [centroX, fundoY - profundidadeV]
-      ];
-      const pathFunilV = pontosTopo.map(p => p.join(",")).join(" ");
-      
-      elementosBase.push(
-        <polygon key="funil-v" fill="#777777" stroke="#555555" strokeWidth="1" points={pathFunilV} />
-      );
+      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
     } else if (tipo_fundo === 2) {
-      // Duplo V interno - duas formas V saindo do topo da base
-      const fundoY = pb - hb; // Topo da base onde começam os funis
-      const profundidadeV = intensidade_fundo;
-      const centro1X = lb / 4;
-      const centro2X = (lb * 3) / 4;
-      
-      // Primeiro V
-      const pontosTopo1 = [
-        [centro1X - profundidadeV/2, fundoY],
-        [centro1X + profundidadeV/2, fundoY],
-        [centro1X, fundoY - profundidadeV]
-      ];
-      const pathFunil1 = pontosTopo1.map(p => p.join(",")).join(" ");
-      
-      // Segundo V
-      const pontosTopo2 = [
-        [centro2X - profundidadeV/2, fundoY],
-        [centro2X + profundidadeV/2, fundoY],
-        [centro2X, fundoY - profundidadeV]
-      ];
-      const pathFunil2 = pontosTopo2.map(p => p.join(",")).join(" ");
-      
-      elementosBase.push(
-        <polygon key="funil-v1" fill="#777777" stroke="#555555" strokeWidth="1" points={pathFunil1} />
-      );
-      elementosBase.push(
-        <polygon key="funil-v2" fill="#777777" stroke="#555555" strokeWidth="1" points={pathFunil2} />
-      );
-    }
+      // Duplo V baseado na base (dois vértices para cima)
+      const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - (lb - lf) / 2, pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb / 4 - intensidade_fundo/2, pb - intensidade_fundo],
+        p9 = [lb / 4 + intensidade_fundo/2, pb - intensidade_fundo],
+        p10 = [lb / 2, pb],
+        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - intensidade_fundo],
+        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - intensidade_fundo],
+        p13 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")}`;
 
-    const polBase = elementosBase;
+      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+    }
 
     // Telhado com diferentes formatos
     let polTelhado = null;
