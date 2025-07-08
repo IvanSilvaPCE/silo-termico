@@ -107,7 +107,7 @@ const ModeladorSVG = () => {
     const alturaBaseTelhado = 185; // Altura base original igual ao Armazem.jsx
     const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
     const alturaTotal = Math.max(
-      alturaBaseTelhado, 
+      alturaBaseTelhado,
       margemSuperior + alturaSensores + margemInferior + margemPendulo
     );
 
@@ -263,10 +263,10 @@ const ModeladorSVG = () => {
         <rect
           key={`pendulo-${pendulo.numero}`}
           id={`C${index + 1}`}
-          x={xCabo - escala_sensores/2}
+          x={xCabo - escala_sensores / 2}
           y={yPendulo}
           width={escala_sensores}
-          height={escala_sensores/2}
+          height={escala_sensores / 2}
           rx="2"
           ry="2"
           fill="#3A78FD"
@@ -279,7 +279,7 @@ const ModeladorSVG = () => {
           key={`texto-pendulo-${pendulo.numero}`}
           id={`TC${index + 1}`}
           x={xCabo}
-          y={yPendulo + escala_sensores/4}
+          y={yPendulo + escala_sensores / 4}
           textAnchor="middle"
           dominantBaseline="central"
           fontWeight="bold"
@@ -303,10 +303,10 @@ const ModeladorSVG = () => {
             <rect
               key={`sensor-${pendulo.numero}-${s}`}
               id={`C${index + 1}S${s}`}
-              x={xCabo - escala_sensores/2}
+              x={xCabo - escala_sensores / 2}
               y={ySensor}
               width={escala_sensores}
-              height={escala_sensores/2}
+              height={escala_sensores / 2}
               rx="2"
               ry="2"
               fill="#ccc"
@@ -321,7 +321,7 @@ const ModeladorSVG = () => {
               key={`texto-sensor-${pendulo.numero}-${s}`}
               id={`TC${index + 1}S${s}`}
               x={xCabo}
-              y={ySensor + escala_sensores/4}
+              y={ySensor + escala_sensores / 4}
               textAnchor="middle"
               dominantBaseline="central"
               fontSize={escala_sensores * 0.4 - 0.5}
@@ -337,8 +337,8 @@ const ModeladorSVG = () => {
             <text
               key={`nome-sensor-${pendulo.numero}-${s}`}
               id={`TIND${index + 1}S${s}`}
-              x={xCabo - escala_sensores/2 - 2}
-              y={ySensor + escala_sensores/4}
+              x={xCabo - escala_sensores / 2 - 2}
+              y={ySensor + escala_sensores / 4}
               textAnchor="end"
               dominantBaseline="central"
               fontSize={escala_sensores * 0.4 - 1.5}
@@ -391,7 +391,7 @@ const ModeladorSVG = () => {
   // Base normal (fundo reto)
   const renderBaseNormal = () => {
     const { pb, lb, hb, hf, lf, le } = configArmazem;
-    
+
     const p1 = [lb, pb - hb],
       p2 = [lb - le, pb - hb],
       p3 = [lb - (lb - lf) / 2, pb - hf],
@@ -400,76 +400,54 @@ const ModeladorSVG = () => {
       p6 = [0, pb - hb],
       p7 = [0, pb],
       p8 = [lb, pb];
-    
+
     const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
-    
+
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
 
   // Base com Funil V - seguindo o padrão do exemplo HTML
   const renderBaseFunilV = () => {
-    const { pb, lb, hb, hf, lf, le, intensidade_fundo } = configArmazem;
-    
-    // Parte superior normal do armazém (sem mudança)
-    const p1 = [lb, pb - hb],
-      p2 = [lb - le, pb - hb],
-      p3 = [lb - (lb - lf) / 2, pb - hf],
-      p4 = [(lb - lf) / 2, pb - hf],
-      p5 = [le, pb - hb],
-      p6 = [0, pb - hb];
-    
-    // Formato V no fundo - V invertido no topo e V normal na base
-    const p7 = [0, pb - hb],
-      p8 = [lb / 2 - intensidade_fundo, pb - hb + intensidade_fundo], // V invertido esquerda
-      p9 = [lb / 2 + intensidade_fundo, pb - hb + intensidade_fundo], // V invertido direita
-      p10 = [lb, pb - hb],
-      p11 = [lb, pb],
-      p12 = [lb / 2 + intensidade_fundo, pb - intensidade_fundo], // V normal direita
-      p13 = [lb / 2 - intensidade_fundo, pb - intensidade_fundo], // V normal esquerda
-      p14 = [0, pb];
-    
-    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")}`;
-    
+    const { pb, lb, hb, intensidade_fundo, le } = configArmazem;
+
+    const baseAltura = 6; // espessura da base cinza escura
+
+    const p1 = [0, pb - hb];
+    const p2 = [le, pb - hb];
+    const p3 = [lb / 2, pb]; // vértice do V encostando no chão
+    const p4 = [lb - le, pb - hb];
+    const p5 = [lb, pb - hb];
+    const p6 = [lb, pb + baseAltura];
+    const p7 = [0, pb + baseAltura];
+
+    const pathBase = [p1, p2, p3, p4, p5, p6, p7].map(p => p.join(',')).join(' ');
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
 
+
   // Base com Duplo V - dois V's lado a lado
   const renderBaseDuploV = () => {
-    const { pb, lb, hb, hf, lf, le, intensidade_fundo } = configArmazem;
-    
-    // Parte superior normal do armazém (sem mudança)
-    const p1 = [lb, pb - hb],
-      p2 = [lb - le, pb - hb],
-      p3 = [lb - (lb - lf) / 2, pb - hf],
-      p4 = [(lb - lf) / 2, pb - hf],
-      p5 = [le, pb - hb],
-      p6 = [0, pb - hb];
-    
-    // Duplo V no fundo - dois V's invertidos no topo e dois V's normais na base
-    const p7 = [0, pb - hb],
-      // Primeiro V invertido (esquerda)
-      p8 = [lb / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
-      p9 = [lb / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
-      p10 = [lb / 2, pb - hb],
-      // Segundo V invertido (direita)
-      p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
-      p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
-      p13 = [lb, pb - hb],
-      
-      p14 = [lb, pb],
-      // Segundo V normal (direita)
-      p15 = [(lb * 3) / 4 + intensidade_fundo/2, pb - intensidade_fundo],
-      p16 = [(lb * 3) / 4 - intensidade_fundo/2, pb - intensidade_fundo],
-      p17 = [lb / 2, pb],
-      // Primeiro V normal (esquerda)
-      p18 = [lb / 4 + intensidade_fundo/2, pb - intensidade_fundo],
-      p19 = [lb / 4 - intensidade_fundo/2, pb - intensidade_fundo],
-      p20 = [0, pb];
-    
-    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")} ${p15.join(",")} ${p16.join(",")} ${p17.join(",")} ${p18.join(",")} ${p19.join(",")} ${p20.join(",")}`;
-    
-    return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+    const { pb, lb, hb, intensidade_fundo, le } = configArmazem;
+
+    const baseAltura = 6;
+    const v1 = lb * 0.25;
+    const v2 = lb * 0.75;
+
+    const path = [
+      [0, pb - hb],
+      [le, pb - hb],
+      [v1, pb],
+      [lb / 2, pb - hb],
+      [v2, pb],
+      [lb - le, pb - hb],
+      [lb, pb - hb],
+      [lb, pb + baseAltura],
+      [0, pb + baseAltura],
+    ].map(p => p.join(',')).join(' ');
+
+    return <polygon fill="#999999" id="des_fundo" points={path} />;
   };
+
 
   // Renderizar telhado
   const renderTelhado = () => {
@@ -555,7 +533,7 @@ const ModeladorSVG = () => {
     const { tipo_fundo } = configArmazem;
 
     let baseElement = null;
-    
+
     if (tipo_fundo === 0) {
       baseElement = renderBaseNormal();
     } else if (tipo_fundo === 1) {
@@ -734,16 +712,17 @@ const ModeladorSVG = () => {
     <div className="container-fluid p-0">
       <div className="row g-0">
         {/* Painel de Controles */}
-        <div 
+        <div
           className="col-lg-3 col-md-4 bg-light border-end"
-          style={{ 
-            height: '100vh', 
+          style={{
+            height: '100vh',
             overflowY: 'auto',
             position: 'fixed',
             top: '0',
             left: '0',
             zIndex: 1000,
-            borderRight: '2px solid #dee2e6'          }}
+            borderRight: '2px solid #dee2e6'
+          }}
         >
           <div className="p-3">
             <h4 className="text-center mb-4">Modelador de Layouts</h4>
@@ -1012,22 +991,22 @@ const ModeladorSVG = () => {
 
                 {(configArmazem.tipo_telhado === 2 ||
                   configArmazem.tipo_telhado === 3) && (
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Curvatura: {configArmazem.curvatura_topo}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="10"
-                      max="80"
-                      value={configArmazem.curvatura_topo}
-                      onChange={(e) =>
-                        handleArmazemChange("curvatura_topo", e.target.value)
-                      }
-                    />
-                  </div>
-                )}
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Curvatura: {configArmazem.curvatura_topo}px
+                      </label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        min="10"
+                        max="80"
+                        value={configArmazem.curvatura_topo}
+                        onChange={(e) =>
+                          handleArmazemChange("curvatura_topo", e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
 
                 <h6 className="mt-3 text-primary">Formato do Fundo</h6>
                 <div className="mb-3">
@@ -1047,25 +1026,25 @@ const ModeladorSVG = () => {
 
                 {(configArmazem.tipo_fundo === 1 ||
                   configArmazem.tipo_fundo === 2) && (
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Intensidade do V: {configArmazem.intensidade_fundo}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="10"
-                      max="50"
-                      value={configArmazem.intensidade_fundo}
-                      onChange={(e) =>
-                        handleArmazemChange(
-                          "intensidade_fundo",
-                          e.target.value,
-                        )
-                      }
-                    />
-                  </div>
-                )}
+                    <div className="mb-3">
+                      <label className="form-label">
+                        Intensidade do V: {configArmazem.intensidade_fundo}px
+                      </label>
+                      <input
+                        type="range"
+                        className="form-range"
+                        min="10"
+                        max="50"
+                        value={configArmazem.intensidade_fundo}
+                        onChange={(e) =>
+                          handleArmazemChange(
+                            "intensidade_fundo",
+                            e.target.value,
+                          )
+                        }
+                      />
+                    </div>
+                  )}
 
                 <h6 className="mt-3 text-primary">Sensores</h6>
                 <div className="mb-3">
@@ -1114,11 +1093,11 @@ const ModeladorSVG = () => {
                       />
                     </div>
 
-                    <div className="border rounded p-2" style={{maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem'}}>
+                    <div className="border rounded p-2" style={{ maxHeight: '150px', overflowY: 'auto', fontSize: '0.8rem' }}>
                       <div className="d-flex justify-content-between fw-bold mb-2">
                         <span>Arco {arcoAtual}:</span>
                       </div>
-                      {analiseArcos.arcos[arcoAtual] && 
+                      {analiseArcos.arcos[arcoAtual] &&
                         analiseArcos.arcos[arcoAtual].pendulos.map(pendulo => (
                           <div key={pendulo.numero} className="d-flex justify-content-between">
                             <span>Pêndulo {pendulo.numero}:</span>
@@ -1170,28 +1149,28 @@ const ModeladorSVG = () => {
             {/* Lista de Modelos Salvos */}
             <div className="mb-3">
               <label className="form-label">Modelos Salvos:</label>
-              <div className="border rounded p-2" style={{maxHeight: '200px', overflowY: 'auto'}}>
+              <div className="border rounded p-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
                 {configsMemoized.length === 0 ? (
                   <small className="text-muted">Nenhum modelo salvo</small>
                 ) : (
                   configsMemoized.map(nome => (
                     <div key={nome} className="d-flex justify-content-between align-items-center mb-2 p-1 border rounded">
-                      <small 
+                      <small
                         className={`cursor-pointer ${nomeConfiguracao === nome ? 'fw-bold text-primary' : ''}`}
-                        style={{cursor: 'pointer'}}
+                        style={{ cursor: 'pointer' }}
                         onClick={() => carregarConfiguracao(nome)}
                       >
                         {nome}
                       </small>
                       <div>
-                        <button 
+                        <button
                           className="btn btn-sm btn-outline-primary me-1"
                           onClick={() => carregarConfiguracao(nome)}
                           title="Carregar modelo"
                         >
                           Usar
                         </button>
-                        <button 
+                        <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => deletarConfiguracao(nome)}
                           title="Excluir modelo"
@@ -1253,14 +1232,14 @@ const ModeladorSVG = () => {
                   <div className="row align-items-center">
                     <div className="col-md-4">
                       <div className="d-flex gap-2">
-                        <button 
+                        <button
                           className="btn btn-outline-primary"
                           onClick={() => mudarArco(Math.max(1, arcoAtual - 1))}
                           disabled={arcoAtual <= 1}
                         >
                           ← Anterior
                         </button>
-                        <button 
+                        <button
                           className="btn btn-outline-primary"
                           onClick={() => mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1))}
                           disabled={arcoAtual >= analiseArcos.totalArcos}
