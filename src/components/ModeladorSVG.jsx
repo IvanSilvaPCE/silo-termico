@@ -388,93 +388,88 @@ const ModeladorSVG = () => {
     }
   }, [dados, arcoAtual, tipoAtivo, configArmazem]);
 
-  const renderFundoArmazem = () => {
-    const {
-      tipo_telhado,
-      tipo_fundo,
-      intensidade_fundo,
-      curvatura_topo,
-      pb,
-      lb,
-      hb,
-      hf,
-      lf,
-      le,
-      ht,
-    } = configArmazem;
+  // Base normal (fundo reto)
+  const renderBaseNormal = () => {
+    const { pb, lb, hb, hf, lf, le } = configArmazem;
+    
+    const p1 = [lb, pb - hb],
+      p2 = [lb - le, pb - hb],
+      p3 = [lb - (lb - lf) / 2, pb - hf],
+      p4 = [(lb - lf) / 2, pb - hf],
+      p5 = [le, pb - hb],
+      p6 = [0, pb - hb],
+      p7 = [0, pb],
+      p8 = [lb, pb];
+    
+    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
+    
+    return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+  };
 
-    // Base com diferentes tipos de fundo
-    let pathBase = "";
-    let polBase = null;
+  // Base com Funil V
+  const renderBaseFunilV = () => {
+    const { pb, lb, hb, hf, lf, le, intensidade_fundo } = configArmazem;
+    
+    const p1 = [lb, pb - hb],
+      p2 = [lb - le, pb - hb],
+      p3 = [lb - (lb - lf) / 2, pb - hf],
+      p4 = [(lb - lf) / 2, pb - hf],
+      p5 = [le, pb - hb],
+      p6 = [0, pb - hb],
+      // V no topo
+      p7 = [0, pb - hb],
+      p8 = [lb / 2 - intensidade_fundo, pb - hb + intensidade_fundo],
+      p9 = [lb / 2 + intensidade_fundo, pb - hb + intensidade_fundo],
+      p10 = [lb, pb - hb],
+      // V na base
+      p11 = [lb, pb],
+      p12 = [lb / 2 + intensidade_fundo, pb - intensidade_fundo],
+      p13 = [lb / 2 - intensidade_fundo, pb - intensidade_fundo],
+      p14 = [0, pb];
+    
+    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")}`;
+    
+    return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+  };
 
-    if (tipo_fundo === 0) {
-      // Fundo reto (original)
-      const p1 = [lb, pb - hb],
-        p2 = [lb - le, pb - hb],
-        p3 = [lb - (lb - lf) / 2, pb - hf],
-        p4 = [(lb - lf) / 2, pb - hf],
-        p5 = [le, pb - hb],
-        p6 = [0, pb - hb],
-        p7 = [0, pb],
-        p8 = [lb, pb];
-      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
+  // Base com Duplo V
+  const renderBaseDuploV = () => {
+    const { pb, lb, hb, hf, lf, le, intensidade_fundo } = configArmazem;
+    
+    const p1 = [lb, pb - hb],
+      p2 = [lb - le, pb - hb],
+      p3 = [lb - (lb - lf) / 2, pb - hf],
+      p4 = [(lb - lf) / 2, pb - hf],
+      p5 = [le, pb - hb],
+      p6 = [0, pb - hb],
+      // Duplo V no topo
+      p7 = [0, pb - hb],
+      p8 = [lb / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
+      p9 = [lb / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
+      p10 = [lb / 2, pb - hb],
+      p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
+      p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
+      p13 = [lb, pb - hb],
+      // Duplo V na base
+      p14 = [lb, pb],
+      p15 = [(lb * 3) / 4 + intensidade_fundo/2, pb - intensidade_fundo],
+      p16 = [(lb * 3) / 4 - intensidade_fundo/2, pb - intensidade_fundo],
+      p17 = [lb / 2, pb],
+      p18 = [lb / 4 + intensidade_fundo/2, pb - intensidade_fundo],
+      p19 = [lb / 4 - intensidade_fundo/2, pb - intensidade_fundo],
+      p20 = [0, pb];
+    
+    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")} ${p15.join(",")} ${p16.join(",")} ${p17.join(",")} ${p18.join(",")} ${p19.join(",")} ${p20.join(",")}`;
+    
+    return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+  };
 
-      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
-    } else if (tipo_fundo === 1) {
-      // Fundo com V (funil) - base também com V para compatibilidade visual
-      const p1 = [lb, pb - hb],
-        p2 = [lb - le, pb - hb],
-        p3 = [lb - (lb - lf) / 2, pb - hf],
-        p4 = [(lb - lf) / 2, pb - hf],
-        p5 = [le, pb - hb],
-        p6 = [0, pb - hb],
-        // V na linha superior (pb - hb)
-        p7 = [0, pb - hb],
-        p8 = [lb / 2 - intensidade_fundo, pb - hb + intensidade_fundo],
-        p9 = [lb / 2 + intensidade_fundo, pb - hb + intensidade_fundo],
-        p10 = [lb, pb - hb],
-        // V na base também para manter consistência visual
-        p11 = [lb, pb],
-        p12 = [lb / 2 + intensidade_fundo, pb - intensidade_fundo],
-        p13 = [lb / 2 - intensidade_fundo, pb - intensidade_fundo],
-        p14 = [0, pb];
-      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")}`;
-
-      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
-    } else if (tipo_fundo === 2) {
-      // Fundo com duplo V - base também com duplo V para compatibilidade visual
-      const p1 = [lb, pb - hb],
-        p2 = [lb - le, pb - hb],
-        p3 = [lb - (lb - lf) / 2, pb - hf],
-        p4 = [(lb - lf) / 2, pb - hf],
-        p5 = [le, pb - hb],
-        p6 = [0, pb - hb],
-        // Duplo V na linha superior (pb - hb)
-        p7 = [0, pb - hb],
-        p8 = [lb / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
-        p9 = [lb / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
-        p10 = [lb / 2, pb - hb],
-        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb - hb + intensidade_fundo],
-        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb - hb + intensidade_fundo],
-        p13 = [lb, pb - hb],
-        // Duplo V na base também para manter consistência visual
-        p14 = [lb, pb],
-        p15 = [(lb * 3) / 4 + intensidade_fundo/2, pb - intensidade_fundo],
-        p16 = [(lb * 3) / 4 - intensidade_fundo/2, pb - intensidade_fundo],
-        p17 = [lb / 2, pb],
-        p18 = [lb / 4 + intensidade_fundo/2, pb - intensidade_fundo],
-        p19 = [lb / 4 - intensidade_fundo/2, pb - intensidade_fundo],
-        p20 = [0, pb];
-      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")} ${p14.join(",")} ${p15.join(",")} ${p16.join(",")} ${p17.join(",")} ${p18.join(",")} ${p19.join(",")} ${p20.join(",")}`;
-
-      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
-    }
-
-    // Telhado sempre pontudo normal
-    let polTelhado = null;
+  // Renderizar telhado
+  const renderTelhado = () => {
+    const { tipo_telhado, curvatura_topo, pb, lb, hf, lf, le, ht } = configArmazem;
 
     if (tipo_telhado === 1) {
-      // Pontudo (sempre normal)
+      // Pontudo
       const p1_ = [(lb - lf) / 2, pb - hf],
         p2_ = [le, pb - hb],
         p3_ = [le, pb - ht],
@@ -484,7 +479,7 @@ const ModeladorSVG = () => {
         p7_ = [lb - (lb - lf) / 2, pb - hf];
       const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
 
-      polTelhado = (
+      return (
         <polygon
           fill="#E6E6E6"
           stroke="#999999"
@@ -508,7 +503,7 @@ const ModeladorSVG = () => {
         Z
       `;
 
-      polTelhado = (
+      return (
         <path
           fill="#E6E6E6"
           stroke="#999999"
@@ -532,7 +527,7 @@ const ModeladorSVG = () => {
         Z
       `;
 
-      polTelhado = (
+      return (
         <path
           fill="#E6E6E6"
           stroke="#999999"
@@ -546,10 +541,26 @@ const ModeladorSVG = () => {
       );
     }
 
+    return null;
+  };
+
+  const renderFundoArmazem = () => {
+    const { tipo_fundo } = configArmazem;
+
+    let baseElement = null;
+    
+    if (tipo_fundo === 0) {
+      baseElement = renderBaseNormal();
+    } else if (tipo_fundo === 1) {
+      baseElement = renderBaseFunilV();
+    } else if (tipo_fundo === 2) {
+      baseElement = renderBaseDuploV();
+    }
+
     return (
       <>
-        {polTelhado}
-        {polBase}
+        {renderTelhado()}
+        {baseElement}
       </>
     );
   };
