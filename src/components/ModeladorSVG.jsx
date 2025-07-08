@@ -486,8 +486,7 @@ const ModeladorSVG = () => {
         L ${lb - le} ${pb - hb}
         L ${lb - (lb - lf) / 2} ${pb - hf}
         Z
-      `;
-
+      `; 
       return (
         <path
           fill="#E6E6E6"
