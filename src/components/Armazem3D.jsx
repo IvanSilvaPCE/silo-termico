@@ -220,11 +220,13 @@ const ArmazemStructure3D = ({
   celulaSelecionada,
   tipoSelecao,
   alturaArmazem,
+  config3D,
 }) => {
   const larguraArco = 3.5;
   const larguraArmazem = numeroArcos * larguraArco;
   const profundidadeArmazem = 6;
   const alturaTelhado = alturaArmazem * 0.35;
+  const corTelhado = "#666666";
 
   return (
     <group>
@@ -298,47 +300,95 @@ const ArmazemStructure3D = ({
           />
         </mesh>
 
-        {/* Telhado duas águas */}
+        {/* Telhado baseado nas configurações 2D */}
         <group position={[0, alturaArmazem, 0]}>
-          <mesh
-            position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
-            rotation={[-Math.PI / 6, 0, 0]}
-            castShadow
-          >
-            <boxGeometry
-              args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
-            />
-            <meshStandardMaterial
-              color="#666666"
-              metalness={0.4}
-              roughness={0.6}
-            />
-          </mesh>
+          {config3D && config3D.tipoTelhado === 1 ? (
+            // Telhado pontudo (como no 2D)
+            <>
+              <mesh
+                position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
+                rotation={[-Math.PI / 5, 0, 0]}
+                castShadow
+              >
+                <boxGeometry
+                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
+                />
+                <meshStandardMaterial
+                  color={corTelhado}
+                  metalness={0.1}
+                  roughness={0.8}
+                />
+              </mesh>
 
-          <mesh
-            position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
-            rotation={[Math.PI / 6, 0, 0]}
-            castShadow
-          >
-            <boxGeometry
-              args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
-            />
-            <meshStandardMaterial
-              color="#666666"
-              metalness={0.4}
-              roughness={0.6}
-            />
-          </mesh>
+              <mesh
+                position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
+                rotation={[Math.PI / 5, 0, 0]}
+                castShadow
+              >
+                <boxGeometry
+                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
+                />
+                <meshStandardMaterial
+                  color={corTelhado}
+                  metalness={0.1}
+                  roughness={0.8}
+                />
+              </mesh>
 
-          {/* Cumeeira central */}
-          <mesh position={[0, alturaTelhado + 0.08, 0]} castShadow>
-            <boxGeometry args={[larguraArmazem + 0.7, 0.25, 0.3]} />
-            <meshStandardMaterial
-              color="#444444"
-              metalness={0.7}
-              roughness={0.3}
-            />
-          </mesh>
+              {/* Cumeeira pontuda */}
+              <mesh position={[0, alturaTelhado + 0.1, 0]} castShadow>
+                <boxGeometry args={[larguraArmazem + 0.7, 0.2, 0.2]} />
+                <meshStandardMaterial
+                  color={corTelhado}
+                  metalness={0.2}
+                  roughness={0.7}
+                />
+              </mesh>
+            </>
+          ) : (
+            // Telhado padrão
+            <>
+              <mesh
+                position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
+                rotation={[-Math.PI / 6, 0, 0]}
+                castShadow
+              >
+                <boxGeometry
+                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
+                />
+                <meshStandardMaterial
+                  color={corTelhado}
+                  metalness={0.4}
+                  roughness={0.6}
+                />
+              </mesh>
+
+              <mesh
+                position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
+                rotation={[Math.PI / 6, 0, 0]}
+                castShadow
+              >
+                <boxGeometry
+                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
+                />
+                <meshStandardMaterial
+                  color={corTelhado}
+                  metalness={0.4}
+                  roughness={0.6}
+                />
+              </mesh>
+
+              {/* Cumeeira central */}
+              <mesh position={[0, alturaTelhado + 0.08, 0]} castShadow>
+                <boxGeometry args={[larguraArmazem + 0.7, 0.25, 0.3]} />
+                <meshStandardMaterial
+                  color="#444444"
+                  metalness={0.7}
+                  roughness={0.3}
+                />
+              </mesh>
+            </>
+          )}
         </group>
 
         {/* Vigas verticais */}
@@ -457,6 +507,7 @@ const ArmazemCompleto3D = ({
   celulaSelecionada,
   tipoSelecao,
   alturaArmazem,
+  config3D,
 }) => {
   // Calcular número de arcos baseado nos dados reais
   const numeroArcos = Object.keys(dados.arcos || {}).length || 1;
@@ -466,7 +517,7 @@ const ArmazemCompleto3D = ({
   // Mapear pêndulos por arco baseado na estrutura real da API
   const penduloPositions = useMemo(() => {
     const positions = [];
-    
+
     // Calcular dimensões baseado nos dados reais
     const totalArcos = Object.keys(dados.arcos || {}).length;
     const larguraArmazem = totalArcos * larguraArco;
@@ -488,7 +539,7 @@ const ArmazemCompleto3D = ({
       const pendulosNoArco = Object.keys(arcoData).length;
       Object.entries(arcoData).forEach(([penduloKey, sensores], index) => {
         const numeroPendulo = parseInt(penduloKey);
-        
+
         // Distribuir pêndulos ao longo da profundidade
         const zLocal = pendulosNoArco === 1 ? 0 :
           -profundidadeArmazem / 2 + (index * profundidadeArmazem) / (pendulosNoArco - 1);
@@ -558,6 +609,7 @@ const ArmazemCompleto3D = ({
         celulaSelecionada={celulaSelecionada}
         tipoSelecao={tipoSelecao}
         alturaArmazem={alturaArmazem}
+        config3D={config3D}
       />
 
       {/* Renderizar pêndulos */}
@@ -668,6 +720,7 @@ const Armazem3D = () => {
   const [arcoSelecionado, setArcoSelecionado] = useState(1);
   const [celulaSelecionada, setCelulaSelecionada] = useState(1);
   const [dados, setDados] = useState(null);
+  const [config3D, setConfig3D] = useState(null); // Adiciona estado para configurações 3D
   const [carregando, setCarregando] = useState(true);
   const [tipoSelecao, setTipoSelecao] = useState("arco");
   const [lastInteractionTime, setLastInteractionTime] = useState(Date.now());
@@ -733,6 +786,14 @@ const Armazem3D = () => {
         // Processar dados da API para o formato esperado
         const dadosProcessados = processarDadosAPI(dadosCarregados);
         setDados(dadosProcessados);
+
+        // Carregar e aplicar configurações 3D (se disponíveis)
+        if (dadosCarregados.configuracao3D) {
+          setConfig3D(dadosCarregados.configuracao3D);
+        } else {
+          // Configurações padrão se não houver no JSON
+          setConfig3D({ tipoTelhado: 0 });
+        }
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
         // Fallback para dados básicos compatíveis com a API
@@ -748,6 +809,7 @@ const Armazem3D = () => {
             },
           },
         });
+        setConfig3D({ tipoTelhado: 0 }); // Garante que há um fallback para config3D
       } finally {
         setCarregando(false);
       }
@@ -782,7 +844,7 @@ const Armazem3D = () => {
     // Caso contrário, gerar baseado nos pêndulos
     const pendulosData = dadosJSON.pendulos || {};
     const totalPendulos = Object.keys(pendulosData).length;
-    
+
     // Calcular arcos baseado nos pêndulos disponíveis
     const pendulosPorArco = 3;
     const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
@@ -792,23 +854,23 @@ const Armazem3D = () => {
 
     for (let arco = 1; arco <= totalArcos; arco++) {
       arcos[arco] = {};
-      
+
       const pendulosNoArco = Math.min(pendulosPorArco, totalPendulos - penduloIndex);
 
       for (let p = 0; p < pendulosNoArco; p++) {
         penduloIndex++;
         const penduloId = penduloIndex;
-        
+
         // Usar dados do pêndulo se disponível
         const dadosPendulo = pendulosData[penduloIndex.toString()];
-        
+
         // Gerar sensores para este pêndulo (quantidade variável)
         const sensores = {};
         const numSensores = Math.floor(Math.random() * 6) + 3; // 3-8 sensores por pêndulo
-        
+
         for (let sensor = 1; sensor <= numSensores; sensor++) {
           let tempSensor, pontoQuente, preAlarme, falha, ativo;
-          
+
           if (dadosPendulo) {
             // Usar temperatura do pêndulo como base
             const [falhaPendulo, pontoQuentePendulo, ativoPendulo, tempPendulo] = dadosPendulo;
@@ -851,32 +913,32 @@ const Armazem3D = () => {
   // Função para gerar dados de fallback baseado em dados básicos
   const gerarDadosFallback = (dadosBasicos = null) => {
     const arcos = {};
-    
+
     // Se temos dados básicos (pêndulos), usar eles
     if (dadosBasicos && dadosBasicos.pendulos) {
       const totalPendulos = Object.keys(dadosBasicos.pendulos).length;
       const pendulosPorArco = 3;
       const totalArcos = Math.ceil(totalPendulos / pendulosPorArco);
-      
+
       let penduloIndex = 0;
-      
+
       for (let arco = 1; arco <= totalArcos; arco++) {
         arcos[arco] = {};
-        
+
         const pendulosNoArco = Math.min(pendulosPorArco, totalPendulos - penduloIndex);
-        
+
         for (let p = 0; p < pendulosNoArco; p++) {
           penduloIndex++;
           const penduloId = penduloIndex;
-          
+
           const sensores = {};
           const numSensores = Math.floor(Math.random() * 4) + 4; // 4-7 sensores
-          
+
           for (let sensor = 1; sensor <= numSensores; sensor++) {
             const tempSensor = 20 + Math.random() * 15; // 20-35°C
             sensores[sensor] = [tempSensor, false, false, false, true];
           }
-          
+
           arcos[arco][penduloId] = sensores;
         }
       }
@@ -884,19 +946,19 @@ const Armazem3D = () => {
       // Fallback padrão
       const totalArcos = 5; // Número mínimo
       const pendulosPorArco = 2;
-      
+
       for (let arco = 1; arco <= totalArcos; arco++) {
         arcos[arco] = {};
-        
+
         for (let pendulo = 1; pendulo <= pendulosPorArco; pendulo++) {
           const penduloId = (arco - 1) * pendulosPorArco + pendulo;
-          
+
           const sensores = {};
           for (let sensor = 1; sensor <= 5; sensor++) {
             const tempSensor = 20 + Math.random() * 15;
             sensores[sensor] = [tempSensor, false, false, false, true];
           }
-          
+
           arcos[arco][penduloId] = sensores;
         }
       }
@@ -1065,6 +1127,7 @@ const Armazem3D = () => {
           }
           tipoSelecao={tipoSelecao}
           alturaArmazem={alturaArmazem}
+          config3D={config3D}
         />
 
         <OrbitControls

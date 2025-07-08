@@ -515,9 +515,9 @@ const ModeladorSVG = () => {
       );
     } else if (tipo_telhado === 2) {
       // Arredondado
-      let extensao = 0;
+      let extensao = 5;
       if (tipo_fundo === 1 || tipo_fundo === 2) {
-        extensao = 7; // Extensão para baixo nos tipos V
+        extensao = 5; // Extensão para baixo nos tipos V
       }
 
       const pathTelhado = `
@@ -543,9 +543,9 @@ const ModeladorSVG = () => {
       );
     } else if (tipo_telhado === 3) {
       // Arco
-      let extensao = 0;
+      let extensao = 5;
       if (tipo_fundo === 1 || tipo_fundo === 2) {
-        extensao = 7; // Extensão para baixo nos tipos V
+        extensao = 5; // Extensão para baixo nos tipos V
       }
 
       const pathTelhado = `
