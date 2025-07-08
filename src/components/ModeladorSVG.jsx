@@ -223,9 +223,24 @@ const ModeladorSVG = () => {
     return aeradores;
   };
 
-  // Funções de renderização do Armazém usando dados reais - seguindo padrão exato do Armazem.jsx
+  // Função para aplicar cores baseadas na temperatura - exatamente igual ao Armazem.jsx
+  const corFaixaExata = (t) => {
+    if (t === -1000) return "#ff0000";
+    if (t < 12) return "#0384fc";
+    else if (t < 15) return "#03e8fc";
+    else if (t < 17) return "#03fcbe";
+    else if (t < 21) return "#07fc03";
+    else if (t < 25) return "#c3ff00";
+    else if (t < 27) return "#fcf803";
+    else if (t < 30) return "#ffb300";
+    else if (t < 35) return "#ff2200";
+    else if (t < 50) return "#ff0090";
+    else return "#f700ff";
+  };
+
+  // Renderizar sensores básicos - igual ao Armazem.jsx
   const renderSensoresArmazem = () => {
-    if (!layoutsAutomaticos || !analiseArcos || !dados) return [];
+    if (!layoutsAutomaticos || !analiseArcos) return [];
 
     const elementos = [];
     const layoutArco = layoutsAutomaticos[`arco_${arcoAtual}`];
@@ -282,38 +297,7 @@ const ModeladorSVG = () => {
 
         // Garantir que o sensor está dentro dos limites do SVG - igual ao Armazem.jsx
         if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 60)) {
-          // Buscar dados do sensor usando a mesma lógica do Armazem.jsx
-          const sensoresDoPendulo = dados?.leitura?.[`${index}`];
-          let temp = 0, falha = false, nivel = false;
-          
-          if (sensoresDoPendulo && sensoresDoPendulo[s]) {
-            [temp, , , falha, nivel] = sensoresDoPendulo[s];
-          }
-
-          // Determinar cor do sensor baseado na temperatura e nível - exatamente igual ao Armazem.jsx
-          let corSensor = "#ccc";
-          let corTexto = "black";
-
-          if (!nivel) {
-            corSensor = "#e6e6e6";
-            corTexto = "black";
-          } else {
-            // Aplicar mesma função corFaixaExata do Armazem.jsx
-            if (temp < 12) corSensor = "#0384fc";
-            else if (temp < 15) corSensor = "#03e8fc";
-            else if (temp < 17) corSensor = "#03fcbe";
-            else if (temp < 21) corSensor = "#07fc03";
-            else if (temp < 25) corSensor = "#c3ff00";
-            else if (temp < 27) corSensor = "#fcf803";
-            else if (temp < 30) corSensor = "#ffb300";
-            else if (temp < 35) corSensor = "#ff2200";
-            else if (temp < 50) corSensor = "#ff0090";
-            else corSensor = "#f700ff";
-
-            corTexto = corSensor === "#ff2200" ? "white" : "black";
-          }
-
-          // Retângulo do sensor - igual ao Armazem.jsx
+          // Retângulo do sensor com cor padrão - igual ao Armazem.jsx
           elementos.push(
             <rect
               key={`sensor-${pendulo.numero}-${s}`}
@@ -324,13 +308,13 @@ const ModeladorSVG = () => {
               height={escala_sensores/2}
               rx="2"
               ry="2"
-              fill={corSensor}
+              fill="#ccc"
               stroke="black"
               strokeWidth="1"
             />
           );
 
-          // Texto do valor do sensor - igual ao Armazem.jsx
+          // Texto do valor do sensor com valor padrão - igual ao Armazem.jsx
           elementos.push(
             <text
               key={`texto-sensor-${pendulo.numero}-${s}`}
@@ -341,9 +325,9 @@ const ModeladorSVG = () => {
               dominantBaseline="central"
               fontSize={escala_sensores * 0.4 - 0.5}
               fontFamily="Arial"
-              fill={corTexto}
+              fill="black"
             >
-              {falha ? "ERRO" : (temp || 0).toFixed(1)}
+              0
             </text>
           );
 
@@ -369,6 +353,39 @@ const ModeladorSVG = () => {
 
     return elementos;
   };
+
+  // Função para atualizar sensores com dados reais - exatamente igual ao Armazem.jsx
+  const atualizarSensores = (dadosArco) => {
+    if (!dadosArco?.leitura || !analiseArcos) return;
+
+    Object.entries(dadosArco.leitura).forEach(([idCabo, sensores], penduloIndex) => {
+      Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
+        const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
+        const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
+        if (!rec || !txt) return;
+
+        txt.textContent = falha ? "ERRO" : temp.toFixed(1);
+        if (!nivel) {
+          rec.setAttribute("fill", "#e6e6e6");
+          txt.setAttribute("fill", "black");
+        } else {
+          const cor = corFaixaExata(temp);
+          rec.setAttribute("fill", cor);
+          txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
+        }
+      });
+    });
+  };
+
+  // useEffect para atualizar sensores quando dados mudarem - igual ao Armazem.jsx
+  useEffect(() => {
+    if (dados && tipoAtivo === "armazem") {
+      // Pequeno delay para garantir que o DOM foi renderizado
+      setTimeout(() => {
+        atualizarSensores(dados);
+      }, 100);
+    }
+  }, [dados, arcoAtual, tipoAtivo]);
 
   const renderFundoArmazem = () => {
     const {
