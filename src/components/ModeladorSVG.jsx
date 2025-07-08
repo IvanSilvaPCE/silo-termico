@@ -392,12 +392,12 @@ const ModeladorSVG = () => {
   const renderBaseNormal = () => {
     const { pb, lb, hb, hf, lf, le } = configArmazem;
 
-    const p1 = [lb, pb - hb + 40], // Base/Estrutura (Cinza Escuro) - Ajustada
-      p2 = [lb - le, pb - hb + 40], // Ajustado para conectar com telhado
+    const p1 = [lb, pb - hb],
+      p2 = [lb - le, pb - hb],
       p3 = [lb - (lb - lf) / 2, pb - hf],
       p4 = [(lb - lf) / 2, pb - hf],
-      p5 = [le, pb - hb + 40], // Ajustado para conectar com telhado
-      p6 = [0, pb - hb + 40], // Ajustado para conectar com telhado
+      p5 = [le, pb - hb],
+      p6 = [0, pb - hb],
       p7 = [0, pb],
       p8 = [lb, pb];
 
@@ -412,11 +412,11 @@ const ModeladorSVG = () => {
 
     const baseAltura = 6; // espessura da base cinza escura
 
-    const p1 = [0, pb - hb + 40]; // Base Funil V (Cinza Escuro) - Ajustada
-    const p2 = [le, pb - hb + 40]; // Ajustado para conectar com telhado
+    const p1 = [0, pb - hb];
+    const p2 = [le, pb - hb];
     const p3 = [lb / 2, pb]; // vértice do V encostando no chão
-    const p4 = [lb - le, pb - hb + 40]; // Ajustado para conectar com telhado
-    const p5 = [lb, pb - hb + 40]; // Ajustado para conectar com telhado
+    const p4 = [lb - le, pb - hb];
+    const p5 = [lb, pb - hb];
     const p6 = [lb, pb + baseAltura];
     const p7 = [0, pb + baseAltura];
 
@@ -434,13 +434,13 @@ const ModeladorSVG = () => {
     const v2 = lb * 0.75;
 
     const path = [
-      [0, pb - hb + 40], // Base Duplo V (Cinza Escuro) - Ajustada
-      [le, pb - hb + 40], // Ajustado para conectar com telhado
+      [0, pb - hb],
+      [le, pb - hb],
       [v1, pb],
-      [lb / 2, pb - hb + 40], // Ajustado para conectar com telhado
+      [lb / 2, pb - hb],
       [v2, pb],
-      [lb - le, pb - hb + 40], // Ajustado para conectar com telhado
-      [lb, pb - hb + 40], // Ajustado para conectar com telhado
+      [lb - le, pb - hb],
+      [lb, pb - hb],
       [lb, pb + baseAltura],
       [0, pb + baseAltura],
     ].map(p => p.join(',')).join(' ');
@@ -454,13 +454,13 @@ const ModeladorSVG = () => {
     const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht } = configArmazem;
 
     if (tipo_telhado === 1) {
-      // Telhado Pontudo (Cinza Claro) - Expandido para baixo
+      // Pontudo
       const p1_ = [(lb - lf) / 2, pb - hf],
-        p2_ = [le, pb - hb + 40], // Expandido 40px para baixo
+        p2_ = [le, pb - hb],
         p3_ = [le, pb - ht],
         p4_ = [lb / 2, 1],
         p5_ = [lb - le, pb - ht],
-        p6_ = [lb - le, pb - hb + 40], // Expandido 40px para baixo
+        p6_ = [lb - le, pb - hb],
         p7_ = [lb - (lb - lf) / 2, pb - hf];
       const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
 
@@ -477,13 +477,13 @@ const ModeladorSVG = () => {
         />
       );
     } else if (tipo_telhado === 2) {
-      // Telhado Arredondado (Cinza Claro) - Expandido para baixo
+      // Arredondado
       const pathTelhado = `
         M ${(lb - lf) / 2} ${pb - hf}
-        L ${le} ${pb - hb + 40}
+        L ${le} ${pb - hb}
         L ${le} ${pb - ht}
         Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
-        L ${lb - le} ${pb - hb + 40}
+        L ${lb - le} ${pb - hb}
         L ${lb - (lb - lf) / 2} ${pb - hf}
         Z
       `; 
@@ -500,13 +500,13 @@ const ModeladorSVG = () => {
         />
       );
     } else if (tipo_telhado === 3) {
-      // Telhado em Arco (Cinza Claro) - Expandido para baixo
+      // Arco
       const pathTelhado = `
         M ${(lb - lf) / 2} ${pb - hf}
-        L ${le} ${pb - hb + 40}
+        L ${le} ${pb - hb}
         L ${le} ${pb - ht}
         A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
-        L ${lb - le} ${pb - hb + 40}
+        L ${lb - le} ${pb - hb}
         L ${lb - (lb - lf) / 2} ${pb - hf}
         Z
       `;
