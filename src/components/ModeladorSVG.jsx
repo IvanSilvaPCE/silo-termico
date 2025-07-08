@@ -282,19 +282,23 @@ const ModeladorSVG = () => {
 
         // Garantir que o sensor está dentro dos limites do SVG - igual ao Armazem.jsx
         if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 60)) {
-          // Buscar dados do sensor ou usar valores padrão
-          const sensoresDoPendulo = dados.leitura[`${index}`];
+          // Buscar dados do sensor usando a mesma lógica do Armazem.jsx
+          const sensoresDoPendulo = dados?.leitura?.[`${index}`];
           let temp = 0, falha = false, nivel = false;
           
           if (sensoresDoPendulo && sensoresDoPendulo[s]) {
             [temp, , , falha, nivel] = sensoresDoPendulo[s];
           }
 
-          // Determinar cor do sensor baseado na temperatura e nível - igual ao Armazem.jsx
+          // Determinar cor do sensor baseado na temperatura e nível - exatamente igual ao Armazem.jsx
           let corSensor = "#ccc";
           let corTexto = "black";
 
-          if (nivel) {
+          if (!nivel) {
+            corSensor = "#e6e6e6";
+            corTexto = "black";
+          } else {
+            // Aplicar mesma função corFaixaExata do Armazem.jsx
             if (temp < 12) corSensor = "#0384fc";
             else if (temp < 15) corSensor = "#03e8fc";
             else if (temp < 17) corSensor = "#03fcbe";
@@ -307,8 +311,6 @@ const ModeladorSVG = () => {
             else corSensor = "#f700ff";
 
             corTexto = corSensor === "#ff2200" ? "white" : "black";
-          } else {
-            corSensor = "#e6e6e6";
           }
 
           // Retângulo do sensor - igual ao Armazem.jsx
@@ -341,7 +343,7 @@ const ModeladorSVG = () => {
               fontFamily="Arial"
               fill={corTexto}
             >
-              {falha ? "ERRO" : temp.toFixed(1)}
+              {falha ? "ERRO" : (temp || 0).toFixed(1)}
             </text>
           );
 
