@@ -276,90 +276,91 @@ const ModeladorSVG = () => {
         </text>
       );
 
-      // Renderizar todos os sensores do pêndulo atual - igual ao Armazem.jsx
-      const sensoresDoPendulo = dados.leitura[`${index}`];
-      if (sensoresDoPendulo) {
-        // Renderizar sensores de 1 até o número máximo, em ordem sequencial
-        for (let s = 1; s <= numSensores; s++) {
-          if (sensoresDoPendulo[s]) {
-            const [temp, , , falha, nivel] = sensoresDoPendulo[s];
-            const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
+      // Renderizar TODOS os sensores de 1 até numSensores - igual ao Armazem.jsx
+      for (let s = 1; s <= numSensores; s++) {
+        const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
 
-            // Garantir que o sensor está dentro dos limites do SVG - igual ao Armazem.jsx
-            if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 60)) {
-              // Determinar cor do sensor baseado na temperatura e nível - igual ao Armazem.jsx
-              let corSensor = "#ccc";
-              let corTexto = "black";
-
-              if (nivel) {
-                if (temp < 12) corSensor = "#0384fc";
-                else if (temp < 15) corSensor = "#03e8fc";
-                else if (temp < 17) corSensor = "#03fcbe";
-                else if (temp < 21) corSensor = "#07fc03";
-                else if (temp < 25) corSensor = "#c3ff00";
-                else if (temp < 27) corSensor = "#fcf803";
-                else if (temp < 30) corSensor = "#ffb300";
-                else if (temp < 35) corSensor = "#ff2200";
-                else if (temp < 50) corSensor = "#ff0090";
-                else corSensor = "#f700ff";
-
-                corTexto = corSensor === "#ff2200" ? "white" : "black";
-              } else {
-                corSensor = "#e6e6e6";
-              }
-
-              // Retângulo do sensor - igual ao Armazem.jsx
-              elementos.push(
-                <rect
-                  key={`sensor-${pendulo.numero}-${s}`}
-                  id={`C${index + 1}S${s}`}
-                  x={xCabo - escala_sensores/2}
-                  y={ySensor}
-                  width={escala_sensores}
-                  height={escala_sensores/2}
-                  rx="2"
-                  ry="2"
-                  fill={corSensor}
-                  stroke="black"
-                  strokeWidth="1"
-                />
-              );
-
-              // Texto do valor do sensor - igual ao Armazem.jsx
-              elementos.push(
-                <text
-                  key={`texto-sensor-${pendulo.numero}-${s}`}
-                  id={`TC${index + 1}S${s}`}
-                  x={xCabo}
-                  y={ySensor + escala_sensores/4}
-                  textAnchor="middle"
-                  dominantBaseline="central"
-                  fontSize={escala_sensores * 0.4 - 0.5}
-                  fontFamily="Arial"
-                  fill={corTexto}
-                >
-                  {falha ? "ERRO" : temp.toFixed(1)}
-                </text>
-              );
-
-              // Nome do sensor (S1, S2, etc.) - igual ao Armazem.jsx
-              elementos.push(
-                <text
-                  key={`nome-sensor-${pendulo.numero}-${s}`}
-                  id={`TIND${index + 1}S${s}`}
-                  x={xCabo - escala_sensores/2 - 2}
-                  y={ySensor + escala_sensores/4}
-                  textAnchor="end"
-                  dominantBaseline="central"
-                  fontSize={escala_sensores * 0.4 - 1.5}
-                  fontFamily="Arial"
-                  fill="black"
-                >
-                  S{s}
-                </text>
-              );
-            }
+        // Garantir que o sensor está dentro dos limites do SVG - igual ao Armazem.jsx
+        if (ySensor > 10 && ySensor < (dimensoesSVGArmazem.altura - 60)) {
+          // Buscar dados do sensor ou usar valores padrão
+          const sensoresDoPendulo = dados.leitura[`${index}`];
+          let temp = 0, falha = false, nivel = false;
+          
+          if (sensoresDoPendulo && sensoresDoPendulo[s]) {
+            [temp, , , falha, nivel] = sensoresDoPendulo[s];
           }
+
+          // Determinar cor do sensor baseado na temperatura e nível - igual ao Armazem.jsx
+          let corSensor = "#ccc";
+          let corTexto = "black";
+
+          if (nivel) {
+            if (temp < 12) corSensor = "#0384fc";
+            else if (temp < 15) corSensor = "#03e8fc";
+            else if (temp < 17) corSensor = "#03fcbe";
+            else if (temp < 21) corSensor = "#07fc03";
+            else if (temp < 25) corSensor = "#c3ff00";
+            else if (temp < 27) corSensor = "#fcf803";
+            else if (temp < 30) corSensor = "#ffb300";
+            else if (temp < 35) corSensor = "#ff2200";
+            else if (temp < 50) corSensor = "#ff0090";
+            else corSensor = "#f700ff";
+
+            corTexto = corSensor === "#ff2200" ? "white" : "black";
+          } else {
+            corSensor = "#e6e6e6";
+          }
+
+          // Retângulo do sensor - igual ao Armazem.jsx
+          elementos.push(
+            <rect
+              key={`sensor-${pendulo.numero}-${s}`}
+              id={`C${index + 1}S${s}`}
+              x={xCabo - escala_sensores/2}
+              y={ySensor}
+              width={escala_sensores}
+              height={escala_sensores/2}
+              rx="2"
+              ry="2"
+              fill={corSensor}
+              stroke="black"
+              strokeWidth="1"
+            />
+          );
+
+          // Texto do valor do sensor - igual ao Armazem.jsx
+          elementos.push(
+            <text
+              key={`texto-sensor-${pendulo.numero}-${s}`}
+              id={`TC${index + 1}S${s}`}
+              x={xCabo}
+              y={ySensor + escala_sensores/4}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={escala_sensores * 0.4 - 0.5}
+              fontFamily="Arial"
+              fill={corTexto}
+            >
+              {falha ? "ERRO" : temp.toFixed(1)}
+            </text>
+          );
+
+          // Nome do sensor (S1, S2, etc.) - igual ao Armazem.jsx
+          elementos.push(
+            <text
+              key={`nome-sensor-${pendulo.numero}-${s}`}
+              id={`TIND${index + 1}S${s}`}
+              x={xCabo - escala_sensores/2 - 2}
+              y={ySensor + escala_sensores/4}
+              textAnchor="end"
+              dominantBaseline="central"
+              fontSize={escala_sensores * 0.4 - 1.5}
+              fontFamily="Arial"
+              fill="black"
+            >
+              S{s}
+            </text>
+          );
         }
       }
     });
