@@ -1334,7 +1334,7 @@ const ModeladorSVG = () => {
                     <div className="col-md-4 text-center">
                       <strong>
                         Arco {arcoAtual} de {analiseArcos.totalArcos}
-                      </strong>
+                      </strong> 
                     </div>
                     <div className="col-md-4 text-end">
                       <span className="badge bg-info">
