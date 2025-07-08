@@ -225,216 +225,329 @@ const ArmazemStructure3D = ({
   const larguraArco = 3.5;
   const larguraArmazem = numeroArcos * larguraArco;
   const profundidadeArmazem = 6;
-  const alturaTelhado = alturaArmazem * 0.35;
-  const corTelhado = "#666666";
+  
+  // Usar configurações do ModeladorSVG 2D
+  const configArmazem = config3D || {
+    pb: 185,
+    lb: 350,
+    hb: 30,
+    hf: 5,
+    lf: 250,
+    le: 15,
+    ht: 50,
+    tipo_telhado: 1,
+    tipo_fundo: 0,
+    intensidade_fundo: 20,
+    curvatura_topo: 30,
+  };
+
+  // Converter dimensões 2D para 3D (escala aproximada)
+  const escala3D = 0.03; // Fator de conversão do SVG para 3D
+  const largura3D = configArmazem.lb * escala3D;
+  const altura3D = configArmazem.pb * escala3D;
+  const alturaBase = configArmazem.hb * escala3D;
+  const alturaTelhado = configArmazem.ht * escala3D;
+  const larguraFrente = configArmazem.lf * escala3D;
+  const larguraEntrada = configArmazem.le * escala3D;
+  
+  // Cores baseadas no 2D
+  const corTelhado = "#E6E6E6"; // Cinza claro do telhado 2D
+  const corBase = "#999999"; // Cinza escuro da base 2D
 
   return (
     <group>
-      {/* Base/Piso do armazém */}
-      <mesh position={[0, -0.3, 0]} receiveShadow>
-        <boxGeometry
-          args={[larguraArmazem + 1, 0.6, profundidadeArmazem + 1]}
-        />
-        <meshStandardMaterial color="#888888" roughness={0.8} metalness={0.2} />
-      </mesh>
-
-      {/* Estrutura principal do armazém */}
-      <group>
-        {/* Paredes laterais */}
-        <mesh
-          position={[-larguraArmazem / 2 - 0.15, alturaArmazem / 2, 0]}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[0.3, alturaArmazem, profundidadeArmazem]} />
-          <meshStandardMaterial
-            color="#E0E0E0"
-            transparent
-            opacity={0.8}
-            roughness={0.7}
-            metalness={0.1}
-          />
-        </mesh>
-        <mesh
-          position={[larguraArmazem / 2 + 0.15, alturaArmazem / 2, 0]}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[0.3, alturaArmazem, profundidadeArmazem]} />
-          <meshStandardMaterial
-            color="#E0E0E0"
-            transparent
-            opacity={0.8}
-            roughness={0.7}
-            metalness={0.1}
-          />
-        </mesh>
-
-        {/* Paredes das extremidades */}
-        <mesh
-          position={[0, alturaArmazem / 2, -profundidadeArmazem / 2 - 0.15]}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[larguraArmazem, alturaArmazem, 0.3]} />
-          <meshStandardMaterial
-            color="#E0E0E0"
-            transparent
-            opacity={0.7}
-            roughness={0.7}
-            metalness={0.1}
-          />
-        </mesh>
-        <mesh
-          position={[0, alturaArmazem / 2, profundidadeArmazem / 2 + 0.15]}
-          castShadow
-          receiveShadow
-        >
-          <boxGeometry args={[larguraArmazem, alturaArmazem, 0.3]} />
-          <meshStandardMaterial
-            color="#E0E0E0"
-            transparent
-            opacity={0.7}
-            roughness={0.7}
-            metalness={0.1}
-          />
-        </mesh>
-
-        {/* Telhado baseado nas configurações 2D */}
-        <group position={[0, alturaArmazem, 0]}>
-          {config3D && config3D.tipoTelhado === 1 ? (
-            // Telhado pontudo (como no 2D)
-            <>
-              <mesh
-                position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
-                rotation={[-Math.PI / 5, 0, 0]}
-                castShadow
-              >
-                <boxGeometry
-                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
-                />
-                <meshStandardMaterial
-                  color={corTelhado}
-                  metalness={0.1}
-                  roughness={0.8}
-                />
-              </mesh>
-
-              <mesh
-                position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
-                rotation={[Math.PI / 5, 0, 0]}
-                castShadow
-              >
-                <boxGeometry
-                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
-                />
-                <meshStandardMaterial
-                  color={corTelhado}
-                  metalness={0.1}
-                  roughness={0.8}
-                />
-              </mesh>
-
-              {/* Cumeeira pontuda */}
-              <mesh position={[0, alturaTelhado + 0.1, 0]} castShadow>
-                <boxGeometry args={[larguraArmazem + 0.7, 0.2, 0.2]} />
-                <meshStandardMaterial
-                  color={corTelhado}
-                  metalness={0.2}
-                  roughness={0.7}
-                />
-              </mesh>
-            </>
-          ) : (
-            // Telhado padrão
-            <>
-              <mesh
-                position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
-                rotation={[-Math.PI / 6, 0, 0]}
-                castShadow
-              >
-                <boxGeometry
-                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
-                />
-                <meshStandardMaterial
-                  color={corTelhado}
-                  metalness={0.4}
-                  roughness={0.6}
-                />
-              </mesh>
-
-              <mesh
-                position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
-                rotation={[Math.PI / 6, 0, 0]}
-                castShadow
-              >
-                <boxGeometry
-                  args={[larguraArmazem + 0.5, 0.15, profundidadeArmazem / 2 + 0.3]}
-                />
-                <meshStandardMaterial
-                  color={corTelhado}
-                  metalness={0.4}
-                  roughness={0.6}
-                />
-              </mesh>
-
-              {/* Cumeeira central */}
-              <mesh position={[0, alturaTelhado + 0.08, 0]} castShadow>
-                <boxGeometry args={[larguraArmazem + 0.7, 0.25, 0.3]} />
-                <meshStandardMaterial
-                  color="#444444"
-                  metalness={0.7}
-                  roughness={0.3}
-                />
-              </mesh>
-            </>
-          )}
-        </group>
-
-        {/* Vigas verticais */}
-        <Instances>
-          <boxGeometry args={[0.15, alturaArmazem + 0.3, 0.15]} />
-          <meshStandardMaterial
-            color="#999999"
-            metalness={0.6}
-            roughness={0.4}
-          />
-          {Array.from({ length: numeroArcos + 1 }, (_, i) => {
-            const x = -larguraArmazem / 2 + i * larguraArco;
-            const isSelected = i === arcoSelecionado;
-
-            return (
-              <Instance
-                key={i}
-                position={[x, alturaArmazem / 2, 0]}
-                color={isSelected ? "#FF6B35" : "#999999"}
-              />
-            );
-          })}
-        </Instances>
-
-        {/* Labels para arcos selecionados */}
-        {arcoSelecionado && (
-          <Billboard
-            position={[
-              -larguraArmazem / 2 +
-                (arcoSelecionado - 1) * larguraArco +
-                larguraArco / 2,
-              alturaArmazem + alturaTelhado + 0.8,
-              0,
-            ]}
-          >
-            <Text
-              fontSize={0.3}
-              color="#FF6B35"
-              anchorX="center"
-              anchorY="middle"
-            >
-              {arcoSelecionado}
-            </Text>
-          </Billboard>
+      {/* Base/Fundo do armazém baseado no tipo_fundo do 2D */}
+      <group position={[0, alturaBase / 2, 0]}>
+        {configArmazem.tipo_fundo === 0 && (
+          // Fundo reto (como no 2D)
+          <mesh receiveShadow>
+            <boxGeometry args={[largura3D, alturaBase, profundidadeArmazem]} />
+            <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+          </mesh>
+        )}
+        
+        {configArmazem.tipo_fundo === 1 && (
+          // Fundo em V (como no 2D)
+          <group>
+            {/* Paredes laterais inclinadas formando V */}
+            <mesh position={[-largura3D / 4, 0, 0]} rotation={[0, 0, Math.PI / 12]}>
+              <boxGeometry args={[largura3D / 2, alturaBase, profundidadeArmazem]} />
+              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+            </mesh>
+            <mesh position={[largura3D / 4, 0, 0]} rotation={[0, 0, -Math.PI / 12]}>
+              <boxGeometry args={[largura3D / 2, alturaBase, profundidadeArmazem]} />
+              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+            </mesh>
+          </group>
+        )}
+        
+        {configArmazem.tipo_fundo === 2 && (
+          // Duplo V (como no 2D)
+          <group>
+            {/* Primeira seção V */}
+            <mesh position={[-largura3D / 3, 0, 0]} rotation={[0, 0, Math.PI / 15]}>
+              <boxGeometry args={[largura3D / 3, alturaBase, profundidadeArmazem]} />
+              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+            </mesh>
+            {/* Segunda seção V */}
+            <mesh position={[largura3D / 3, 0, 0]} rotation={[0, 0, -Math.PI / 15]}>
+              <boxGeometry args={[largura3D / 3, alturaBase, profundidadeArmazem]} />
+              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+            </mesh>
+            {/* Seção central */}
+            <mesh position={[0, alturaBase / 4, 0]}>
+              <boxGeometry args={[largura3D / 3, alturaBase / 2, profundidadeArmazem]} />
+              <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+            </mesh>
+          </group>
         )}
       </group>
+
+      {/* Paredes laterais (parte cinza claro do 2D) */}
+      <group position={[0, altura3D / 2, 0]}>
+        {/* Parede esquerda */}
+        <mesh
+          position={[-largura3D / 2 - 0.1, 0, 0]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[0.2, altura3D, profundidadeArmazem]} />
+          <meshStandardMaterial
+            color={corTelhado}
+            transparent
+            opacity={0.8}
+            roughness={0.7}
+            metalness={0.1}
+          />
+        </mesh>
+        
+        {/* Parede direita */}
+        <mesh
+          position={[largura3D / 2 + 0.1, 0, 0]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[0.2, altura3D, profundidadeArmazem]} />
+          <meshStandardMaterial
+            color={corTelhado}
+            transparent
+            opacity={0.8}
+            roughness={0.7}
+            metalness={0.1}
+          />
+        </mesh>
+
+        {/* Paredes frontais (formato trapezoidal baseado no 2D) */}
+        <mesh
+          position={[0, 0, -profundidadeArmazem / 2 - 0.1]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[larguraFrente, altura3D * 0.8, 0.2]} />
+          <meshStandardMaterial
+            color={corTelhado}
+            transparent
+            opacity={0.7}
+            roughness={0.7}
+            metalness={0.1}
+          />
+        </mesh>
+        
+        <mesh
+          position={[0, 0, profundidadeArmazem / 2 + 0.1]}
+          castShadow
+          receiveShadow
+        >
+          <boxGeometry args={[larguraFrente, altura3D * 0.8, 0.2]} />
+          <meshStandardMaterial
+            color={corTelhado}
+            transparent
+            opacity={0.7}
+            roughness={0.7}
+            metalness={0.1}
+          />
+        </mesh>
+      </group>
+
+      {/* Telhado baseado exatamente no tipo_telhado do 2D */}
+      <group position={[0, altura3D + alturaBase, 0]}>
+        {configArmazem.tipo_telhado === 1 && (
+          // Telhado pontudo (exatamente como no 2D)
+          <>
+            <mesh
+              position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]}
+              rotation={[-Math.PI / 6, 0, 0]}
+              castShadow
+            >
+              <boxGeometry
+                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
+              />
+              <meshStandardMaterial
+                color={corTelhado}
+                metalness={0.1}
+                roughness={0.8}
+              />
+            </mesh>
+
+            <mesh
+              position={[0, alturaTelhado / 2, profundidadeArmazem / 4]}
+              rotation={[Math.PI / 6, 0, 0]}
+              castShadow
+            >
+              <boxGeometry
+                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
+              />
+              <meshStandardMaterial
+                color={corTelhado}
+                metalness={0.1}
+                roughness={0.8}
+              />
+            </mesh>
+
+            {/* Cumeeira pontuda */}
+            <mesh position={[0, alturaTelhado + 0.05, 0]} castShadow>
+              <boxGeometry args={[largura3D + 0.5, 0.1, 0.1]} />
+              <meshStandardMaterial
+                color={corBase}
+                metalness={0.2}
+                roughness={0.7}
+              />
+            </mesh>
+          </>
+        )}
+
+        {configArmazem.tipo_telhado === 2 && (
+          // Telhado arredondado (baseado no 2D)
+          <>
+            <mesh
+              position={[0, alturaTelhado / 3, -profundidadeArmazem / 4]}
+              rotation={[-Math.PI / 8, 0, 0]}
+              castShadow
+            >
+              <boxGeometry
+                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
+              />
+              <meshStandardMaterial
+                color={corTelhado}
+                metalness={0.1}
+                roughness={0.8}
+              />
+            </mesh>
+
+            <mesh
+              position={[0, alturaTelhado / 3, profundidadeArmazem / 4]}
+              rotation={[Math.PI / 8, 0, 0]}
+              castShadow
+            >
+              <boxGeometry
+                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
+              />
+              <meshStandardMaterial
+                color={corTelhado}
+                metalness={0.1}
+                roughness={0.8}
+              />
+            </mesh>
+
+            {/* Cumeeira arredondada */}
+            <mesh position={[0, alturaTelhado / 2, 0]} castShadow>
+              <cylinderGeometry args={[0.1, 0.1, largura3D + 0.5, 16]} />
+              <meshStandardMaterial
+                color={corBase}
+                metalness={0.2}
+                roughness={0.7}
+              />
+            </mesh>
+          </>
+        )}
+
+        {configArmazem.tipo_telhado === 3 && (
+          // Telhado em arco (baseado no 2D)
+          <>
+            <mesh
+              position={[0, alturaTelhado / 4, -profundidadeArmazem / 4]}
+              rotation={[-Math.PI / 10, 0, 0]}
+              castShadow
+            >
+              <boxGeometry
+                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
+              />
+              <meshStandardMaterial
+                color={corTelhado}
+                metalness={0.1}
+                roughness={0.8}
+              />
+            </mesh>
+
+            <mesh
+              position={[0, alturaTelhado / 4, profundidadeArmazem / 4]}
+              rotation={[Math.PI / 10, 0, 0]}
+              castShadow
+            >
+              <boxGeometry
+                args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]}
+              />
+              <meshStandardMaterial
+                color={corTelhado}
+                metalness={0.1}
+                roughness={0.8}
+              />
+            </mesh>
+
+            {/* Cumeeira em arco */}
+            <mesh position={[0, alturaTelhado / 3, 0]} castShadow>
+              <torusGeometry args={[largura3D / 4, 0.05, 8, 16, Math.PI]} />
+              <meshStandardMaterial
+                color={corBase}
+                metalness={0.2}
+                roughness={0.7}
+              />
+            </mesh>
+          </>
+        )}
+      </group>
+
+      {/* Vigas estruturais baseadas nos arcos */}
+      <Instances>
+        <boxGeometry args={[0.08, altura3D + alturaBase, 0.08]} />
+        <meshStandardMaterial
+          color="#999999"
+          metalness={0.6}
+          roughness={0.4}
+        />
+        {Array.from({ length: numeroArcos + 1 }, (_, i) => {
+          const x = -largura3D / 2 + (i * largura3D) / numeroArcos;
+          const isSelected = i === arcoSelecionado;
+
+          return (
+            <Instance
+              key={i}
+              position={[x, (altura3D + alturaBase) / 2, 0]}
+              color={isSelected ? "#FF6B35" : "#999999"}
+            />
+          );
+        })}
+      </Instances>
+
+      {/* Labels para arcos selecionados */}
+      {arcoSelecionado && (
+        <Billboard
+          position={[
+            -largura3D / 2 + (arcoSelecionado - 1) * (largura3D / numeroArcos) + (largura3D / numeroArcos) / 2,
+            altura3D + alturaBase + alturaTelhado + 0.8,
+            0,
+          ]}
+        >
+          <Text
+            fontSize={0.3}
+            color="#FF6B35"
+            anchorX="center"
+            anchorY="middle"
+          >
+            {arcoSelecionado}
+          </Text>
+        </Billboard>
+      )}
 
       {/* Highlight do arco selecionado */}
       {tipoSelecao === "arco" &&
@@ -442,17 +555,15 @@ const ArmazemStructure3D = ({
         arcoSelecionado <= numeroArcos && (
           <mesh
             position={[
-              -larguraArmazem / 2 +
-                (arcoSelecionado - 1) * larguraArco +
-                larguraArco / 2,
-              alturaArmazem / 2,
+              -largura3D / 2 + (arcoSelecionado - 1) * (largura3D / numeroArcos) + (largura3D / numeroArcos) / 2,
+              (altura3D + alturaBase) / 2,
               0,
             ]}
           >
             <boxGeometry
               args={[
-                larguraArco - 0.1,
-                alturaArmazem + 0.5,
+                largura3D / numeroArcos - 0.1,
+                altura3D + alturaBase + 0.5,
                 profundidadeArmazem + 0.5,
               ]}
             />
@@ -470,22 +581,18 @@ const ArmazemStructure3D = ({
         <mesh
           position={[
             celulaSelecionada === 1
-              ? -larguraArmazem / 2 + larguraArco * 3
+              ? -largura3D / 2 + largura3D / 6
               : celulaSelecionada === 2
-                ? -larguraArco * 3.5
-                : larguraArmazem / 2 - larguraArco * 3,
-            alturaArmazem / 2,
+                ? 0
+                : largura3D / 2 - largura3D / 6,
+            (altura3D + alturaBase) / 2,
             0,
           ]}
         >
           <boxGeometry
             args={[
-              celulaSelecionada === 1
-                ? larguraArco * 6 + 0.5
-                : celulaSelecionada === 2
-                  ? larguraArco * 7 + 0.5
-                  : larguraArco * 6 + 0.5,
-              alturaArmazem + 0.5,
+              largura3D / 3 + 0.2,
+              altura3D + alturaBase + 0.5,
               profundidadeArmazem + 0.5,
             ]}
           />
@@ -720,7 +827,7 @@ const Armazem3D = () => {
   const [arcoSelecionado, setArcoSelecionado] = useState(1);
   const [celulaSelecionada, setCelulaSelecionada] = useState(1);
   const [dados, setDados] = useState(null);
-  const [config3D, setConfig3D] = useState(null); // Adiciona estado para configurações 3D
+  const [config3D, setConfig3D] = useState(null); // Configurações do ModeladorSVG
   const [carregando, setCarregando] = useState(true);
   const [tipoSelecao, setTipoSelecao] = useState("arco");
   const [lastInteractionTime, setLastInteractionTime] = useState(Date.now());
@@ -787,12 +894,26 @@ const Armazem3D = () => {
         const dadosProcessados = processarDadosAPI(dadosCarregados);
         setDados(dadosProcessados);
 
-        // Carregar e aplicar configurações 3D (se disponíveis)
-        if (dadosCarregados.configuracao3D) {
-          setConfig3D(dadosCarregados.configuracao3D);
+        // Carregar configurações do ModeladorSVG do localStorage
+        const configArmazemSalva = localStorage.getItem("configArmazem");
+        if (configArmazemSalva) {
+          const configParsed = JSON.parse(configArmazemSalva);
+          setConfig3D(configParsed);
         } else {
-          // Configurações padrão se não houver no JSON
-          setConfig3D({ tipoTelhado: 0 });
+          // Configurações padrão do ModeladorSVG
+          setConfig3D({
+            pb: 185, // posição base
+            lb: 350, // largura base
+            hb: 30, // altura base
+            hf: 5, // altura frente
+            lf: 250, // largura frente
+            le: 15, // largura entrada
+            ht: 50, // altura telhado
+            tipo_telhado: 1, // 1 = arco pontudo, 2 = arredondado, 3 = arco
+            tipo_fundo: 0, // 0 = reto, 1 = funil/V, 2 = duplo V
+            intensidade_fundo: 20, // intensidade do V/funil
+            curvatura_topo: 30, // curvatura quando arredondado
+          });
         }
       } catch (error) {
         console.error("Erro ao carregar dados:", error);
@@ -809,7 +930,20 @@ const Armazem3D = () => {
             },
           },
         });
-        setConfig3D({ tipoTelhado: 0 }); // Garante que há um fallback para config3D
+        // Configurações padrão do ModeladorSVG
+        setConfig3D({
+          pb: 185,
+          lb: 350,
+          hb: 30,
+          hf: 5,
+          lf: 250,
+          le: 15,
+          ht: 50,
+          tipo_telhado: 1,
+          tipo_fundo: 0,
+          intensidade_fundo: 20,
+          curvatura_topo: 30,
+        });
       } finally {
         setCarregando(false);
       }
@@ -1056,6 +1190,21 @@ const Armazem3D = () => {
             </select>
           </label>
         )}
+
+        <button
+          onClick={() => {
+            const configArmazemSalva = localStorage.getItem("configArmazem");
+            if (configArmazemSalva) {
+              setConfig3D(JSON.parse(configArmazemSalva));
+              alert("Configurações do ModeladorSVG recarregadas!");
+            } else {
+              alert("Nenhuma configuração encontrada no ModeladorSVG.");
+            }
+          }}
+          style={{ marginLeft: "10px", padding: "5px 10px", fontSize: "12px" }}
+        >
+          Sincronizar com ModeladorSVG
+        </button>
       </div>
 
       {/* Informações */}
@@ -1071,17 +1220,28 @@ const Armazem3D = () => {
           fontSize: "14px",
         }}
       >
-        <div>19 Arcos</div>
-        <div>57 Pêndulos (3 por arco)</div>
-        <div>3 Células conforme sequencia_celulas</div>
+        <div><strong>Modelo 3D baseado no ModeladorSVG</strong></div>
+        <hr style={{ margin: "5px 0" }} />
+        <div>Arcos: {numeroArcos}</div>
+        <div>Pêndulos totais: ~{numeroArcos * 3}</div>
+        <div>Células: 3</div>
         <div>~12 Motores aeradores</div>
+        {config3D && (
+          <div style={{ marginTop: "10px", fontSize: "12px" }}>
+            <strong>Config 2D:</strong>
+            <div>Telhado: {config3D.tipo_telhado === 1 ? "Pontudo" : config3D.tipo_telhado === 2 ? "Arredondado" : "Arco"}</div>
+            <div>Fundo: {config3D.tipo_fundo === 0 ? "Reto" : config3D.tipo_fundo === 1 ? "Funil/V" : "Duplo V"}</div>
+            <div>Largura: {config3D.lb}px</div>
+            <div>Altura: {config3D.ht}px</div>
+          </div>
+        )}
         {tipoSelecao === "arco" && (
-          <div style={{ color: "#FF6B35" }}>
+          <div style={{ color: "#FF6B35", marginTop: "10px" }}>
             <strong>Arco {arcoSelecionado} selecionado</strong>
           </div>
         )}
         {tipoSelecao === "celula" && (
-          <div style={{ color: "#35FF6B" }}>
+          <div style={{ color: "#35FF6B", marginTop: "10px" }}>
             <strong>Célula {celulaSelecionada} selecionada</strong>
           </div>
         )}
