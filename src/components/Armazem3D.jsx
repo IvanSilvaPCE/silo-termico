@@ -290,7 +290,7 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
   const pendulosData = useMemo(() => {
     const pendulos = [];
 
-    if (dados.arcos) {
+    if (dados?.arcos) {
       Object.entries(dados.arcos).forEach(([arcoNum, arcoData]) => {
         const arcoNumero = parseInt(arcoNum);
 
@@ -326,7 +326,7 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
   const motoresData = useMemo(() => {
     const motores = [];
 
-    if (dados.configuracao?.layout_topo?.aeradores) {
+    if (dados?.configuracao?.layout_topo?.aeradores) {
       Object.entries(dados.configuracao.layout_topo.aeradores).forEach(([aeradorId, dadosAerador]) => {
         const [posX2D, posY2D] = dadosAerador;
 
@@ -395,10 +395,10 @@ const Armazem3D = () => {
   
   // Calcular largura baseada nos dados reais quando disponíveis
   const numeroArcos = dados?.arcos ? Object.keys(dados.arcos).length : 19;
-  const totalPendulos = dados?.pendulos ? Object.keys(dados.pendulos).length : 0;
-  const larguraArmazem = Math.max(numeroArcos * 1.5, totalPendulos * 0.8, 15);
+  const totalPendulosCalculado = dados?.pendulos ? Object.keys(dados.pendulos).length : 0;
+  const larguraArmazem = Math.max(numeroArcos * 1.5, totalPendulosCalculado * 0.8, 15);
 
-  // Calcular total de sensores - movido para antes do useEffect
+  // Calcular total de sensores
   const totalSensores = useMemo(() => {
     let count = 0;
     if (dados?.arcos) {
