@@ -144,13 +144,13 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         const lf = Math.min(250, lb * 0.7); // Largura frente proporcional
         const le = 15, ht = 50;
 
-        // Base
-        const p1 = [lb, pb - hb],
-            p2 = [lb - le, pb - hb],
+        // Base/Estrutura (Cinza Escuro) - Ajustada para conectar com telhado expandido
+        const p1 = [lb, pb - hb + 40], // Ajustado para conectar com telhado
+            p2 = [lb - le, pb - hb + 40], // Ajustado para conectar com telhado
             p3 = [lb - ((lb - lf) / 2), pb - hf],
             p4 = [(lb - lf) / 2, pb - hf],
-            p5 = [le, pb - hb],
-            p6 = [0, pb - hb],
+            p5 = [le, pb - hb + 40], // Ajustado para conectar com telhado
+            p6 = [0, pb - hb + 40], // Ajustado para conectar com telhado
             p7 = [0, pb],
             p8 = [lb, pb];
         const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
@@ -160,13 +160,13 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         polBase.setAttribute("id", "des_fundo");
         polBase.setAttribute("points", pathBase);
 
-        // Telhado
+        // Telhado (Cinza Claro) - Expandido para baixo
         const p1_ = [(lb - lf) / 2, pb - hf],
-            p2_ = [le, pb - hb],
+            p2_ = [le, pb - hb + 40], // Expandido 40px para baixo
             p3_ = [le, pb - ht],
             p4_ = [lb / 2, 1],
             p5_ = [lb - le, pb - ht],
-            p6_ = [lb - le, pb - hb],
+            p6_ = [lb - le, pb - hb + 40], // Expandido 40px para baixo
             p7_ = [lb - ((lb - lf) / 2), pb - hf];
         const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
 
