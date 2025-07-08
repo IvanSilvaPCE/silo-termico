@@ -394,6 +394,19 @@ const Armazem3D = () => {
   const alturaArmazem = 6;
   const larguraArmazem = 19 * 2;
 
+  // Calcular total de sensores - movido para antes do useEffect
+  const totalSensores = useMemo(() => {
+    let count = 0;
+    if (dados?.arcos) {
+      Object.values(dados.arcos).forEach(arco => {
+        Object.values(arco).forEach(pendulo => {
+          count += Object.keys(pendulo).length;
+        });
+      });
+    }
+    return count;
+  }, [dados]);
+
   useEffect(() => {
     const carregarDados = async () => {
       try {
@@ -451,18 +464,7 @@ const Armazem3D = () => {
   const totalAeradores = dados.configuracao?.layout_topo?.aeradores ? 
     Object.keys(dados.configuracao.layout_topo.aeradores).length : 0;
 
-  // Calcular total de sensores
-  const totalSensores = useMemo(() => {
-    let count = 0;
-    if (dados.arcos) {
-      Object.values(dados.arcos).forEach(arco => {
-        Object.values(arco).forEach(pendulo => {
-          count += Object.keys(pendulo).length;
-        });
-      });
-    }
-    return count;
-  }, [dados]);
+  
 
   return (
     <div style={{ width: "100%", height: "100vh" }}>
