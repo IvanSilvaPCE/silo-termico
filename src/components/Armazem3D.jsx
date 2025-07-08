@@ -55,21 +55,23 @@ const Pendulo3D = ({ position, numero, dados, arcoNumero }) => {
   }, [dados, numero]);
 
   const alturaArmazem = 6;
+  // Calcular altura do cabo baseado na quantidade de sensores
+  const alturaCabo = Math.max(2, sensoresArco.length * 0.5 + 1);
   const espacamentoSensores = sensoresArco.length > 1 ? 
-    (alturaArmazem * 0.8) / sensoresArco.length : 
-    alturaArmazem * 0.4;
+    (alturaCabo * 0.8) / sensoresArco.length : 
+    alturaCabo * 0.4;
 
   return (
     <group ref={grupoRef} position={position}>
       {/* Cabo principal */}
-      <mesh position={[0, alturaArmazem / 2, 0]}>
-        <cylinderGeometry args={[0.02, 0.02, alturaArmazem, 8]} />
+      <mesh position={[0, alturaCabo / 2, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, alturaCabo, 8]} />
         <meshStandardMaterial color="#333333" />
       </mesh>
 
       {/* Sensores ao longo do cabo */}
       {sensoresArco.map((sensor, index) => {
-        const yPos = alturaArmazem * 0.9 - (index * espacamentoSensores);
+        const yPos = alturaCabo * 0.9 - (index * espacamentoSensores);
         const cor = sensor.ativo ? corFaixaExata(sensor.temperatura) : "#666666";
 
         return (
@@ -91,7 +93,15 @@ const Pendulo3D = ({ position, numero, dados, arcoNumero }) => {
                 color={sensor.falha ? "#ff0000" : sensor.ativo ? "#ffffff" : "#666666"}
                 anchorX="center"
                 anchorY="middle"
+                outlineWidth={0.02}
+                outlineColor="#000000"
               >
+                <meshBasicMaterial 
+                  attach="material" 
+                  transparent 
+                  depthTest={false}
+                  depthWrite={false}
+                />
                 {sensor.falha ? "ERR" : !sensor.ativo ? "OFF" : `${sensor.temperatura.toFixed(1)}°C`}
               </Text>
             </Billboard>
@@ -116,7 +126,15 @@ const Pendulo3D = ({ position, numero, dados, arcoNumero }) => {
           color={dadosBasicos.alarme ? "#ff0000" : dadosBasicos.ativo ? "#ffffff" : "#666666"}
           anchorX="center"
           anchorY="middle"
+          outlineWidth={0.03}
+          outlineColor="#000000"
         >
+          <meshBasicMaterial 
+            attach="material" 
+            transparent 
+            depthTest={false}
+            depthWrite={false}
+          />
           P{numero}
         </Text>
       </Billboard>
@@ -210,23 +228,23 @@ const ArmazemStructure3D = ({ numeroArcos, alturaArmazem, larguraArmazem, profun
       {/* Paredes laterais (esquerda e direita) */}
       <mesh position={[-larguraArmazem / 2, alturaArmazem / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[espessuraParede, alturaArmazem, profundidadeArmazem]} />
-        <meshStandardMaterial color={corParede} />
+        <meshStandardMaterial color={corParede} transparent opacity={0.3} />
       </mesh>
 
       <mesh position={[larguraArmazem / 2, alturaArmazem / 2, 0]} castShadow receiveShadow>
         <boxGeometry args={[espessuraParede, alturaArmazem, profundidadeArmazem]} />
-        <meshStandardMaterial color={corParede} />
+        <meshStandardMaterial color={corParede} transparent opacity={0.3} />
       </mesh>
 
       {/* Paredes frontais (frente e fundo) */}
       <mesh position={[0, alturaArmazem / 2, -profundidadeArmazem / 2]} castShadow receiveShadow>
         <boxGeometry args={[larguraArmazem, alturaArmazem, espessuraParede]} />
-        <meshStandardMaterial color={corParede} />
+        <meshStandardMaterial color={corParede} transparent opacity={0.3} />
       </mesh>
 
       <mesh position={[0, alturaArmazem / 2, profundidadeArmazem / 2]} castShadow receiveShadow>
         <boxGeometry args={[larguraArmazem, alturaArmazem, espessuraParede]} />
-        <meshStandardMaterial color={corParede} />
+        <meshStandardMaterial color={corParede} transparent opacity={0.3} />
       </mesh>
 
       {/* Telhado em duas águas - colado nas paredes */}
@@ -475,7 +493,7 @@ const Armazem3D = () => {
       {/* Controles */}
       <div style={{
         position: "absolute",
-        top: "10px",
+        bottom: "10px",
         left: "10px",
         zIndex: 1000,
         background: "rgba(0,0,0,0.8)",
