@@ -465,10 +465,11 @@ const ModeladorSVG = () => {
 
       // Se tipo de fundo for V (1) ou Duplo V (2), estender telhado para baixo
       if (tipo_fundo === 1 || tipo_fundo === 2) {
-        p1_ = [(lb - lf) / 2, pb - hf + 40]; // Estender meio esquerdo para baixo
-        p2_ = [le, pb - hb + 40]; // Estender lado esquerdo para baixo
-        p6_ = [lb - le, pb - hb + 40]; // Estender lado direito para baixo
-        p7_ = [lb - (lb - lf) / 2, pb - hf + 40]; // Estender meio direito para baixo
+        let extensao = 25; // Ajustando a extensão para 25px
+        p1_ = [(lb - lf) / 2, pb - hf + extensao]; // Estender meio esquerdo para baixo
+        p2_ = [le, pb - hb + extensao]; // Estender lado esquerdo para baixo
+        p6_ = [lb - le, pb - hb + extensao]; // Estender lado direito para baixo
+        p7_ = [lb - (lb - lf) / 2, pb - hf + extensao]; // Estender meio direito para baixo
       }
 
       const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
@@ -489,7 +490,7 @@ const ModeladorSVG = () => {
       // Arredondado
       let extensao = 0;
       if (tipo_fundo === 1 || tipo_fundo === 2) {
-        extensao = 40; // Extensão para baixo nos tipos V
+        extensao = 25; // Extensão para baixo nos tipos V
       }
 
       const pathTelhado = `
@@ -517,7 +518,7 @@ const ModeladorSVG = () => {
       // Arco
       let extensao = 0;
       if (tipo_fundo === 1 || tipo_fundo === 2) {
-        extensao = 40; // Extensão para baixo nos tipos V
+        extensao = 25; // Extensão para baixo nos tipos V
       }
 
       const pathTelhado = `
@@ -666,7 +667,7 @@ const ModeladorSVG = () => {
     }
   };
 
-  // Reset para padrão
+  // Resetar para padrão
   const resetarPadrao = () => {
     if (tipoAtivo === "silo") {
       setConfigSilo({
