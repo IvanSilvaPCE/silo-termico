@@ -475,7 +475,7 @@ const ModeladorSVG = () => {
       hb,
       hf,
       lf,
-      le,
+      le, 
       ht,
       tipo_fundo,
     } = configArmazem;
