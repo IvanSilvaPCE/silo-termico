@@ -278,6 +278,23 @@ const ArmazemStructure3D = ({ numeroArcos, alturaArmazem, larguraArmazem, profun
         })}
       </Instances>
 
+      {/* Marcação das células no chão */}
+      <Billboard position={[-larguraArmazem / 3, 0.1, -profundidadeArmazem / 3]}>
+        <Text fontSize={0.15} color="#0066cc" anchorX="center" anchorY="middle">
+          CÉLULA 1
+        </Text>
+      </Billboard>
+      <Billboard position={[0, 0.1, -profundidadeArmazem / 3]}>
+        <Text fontSize={0.15} color="#0066cc" anchorX="center" anchorY="middle">
+          CÉLULA 2
+        </Text>
+      </Billboard>
+      <Billboard position={[larguraArmazem / 3, 0.1, -profundidadeArmazem / 3]}>
+        <Text fontSize={0.15} color="#0066cc" anchorX="center" anchorY="middle">
+          CÉLULA 3
+        </Text>
+      </Billboard>
+
       {/* Marcação dos arcos no teto */}
       {Array.from({ length: numeroArcos }, (_, i) => {
         const espacamento = larguraArmazem / (numeroArcos + 1);
@@ -297,85 +314,136 @@ const ArmazemStructure3D = ({ numeroArcos, alturaArmazem, larguraArmazem, profun
 const ArmazemCompleto3D = ({ dados, config3D }) => {
   const alturaArmazem = 6;
   
-  // Calcular dimensões baseadas nos dados reais
-  const numeroArcos = dados.arcos ? Object.keys(dados.arcos).length : 19;
-  const totalPendulos = dados.pendulos ? Object.keys(dados.pendulos).length : 0;
+  // Usar dados do layout_topo para distribuição mais precisa
+  const layoutTopo = dados?.configuracao?.layout_topo;
+  const numeroArcos = layoutTopo ? Object.keys(layoutTopo).filter(key => key !== 'celulas' && key !== 'aeradores').length : 19;
   
-  // Adaptar largura baseada na quantidade de arcos/pêndulos
-  const larguraArmazem = Math.max(numeroArcos * 1.5, totalPendulos * 0.8, 15);
-  const profundidadeArmazem = 8;
+  // Calcular dimensões baseadas no layout topo
+  const larguraArmazem = Math.max(numeroArcos * 1.2, 20); // Mais espaço para arcos
+  const profundidadeArmazem = 10; // Mais profundidade para melhor distribuição
 
-  // Processar pêndulos baseado na estrutura real dos dados
+  // Processar pêndulos baseado no layout_topo (similar à visão topo)
   const pendulosData = useMemo(() => {
     const pendulos = [];
 
-    if (dados?.arcos) {
-      Object.entries(dados.arcos).forEach(([arcoNum, arcoData]) => {
-        const arcoNumero = parseInt(arcoNum);
+    if (layoutTopo) {
+      Object.entries(layoutTopo).forEach(([arcoKey, arcoData]) => {
+        if (arcoKey === 'celulas' || arcoKey === 'aeradores') return;
 
-        Object.entries(arcoData).forEach(([penduloNum, sensores]) => {
-          const numeroPendulo = parseInt(penduloNum);
+        const arcoNumero = parseInt(arcoKey);
+        const celula = arcoData.celula;
+        const posXTopo = arcoData.pos_x;
+        const sensoresArco = arcoData.sensores || {};
 
-          // Calcular posição baseada no arco - garantindo que fique dentro das paredes
-          const espacamentoArcos = (larguraArmazem - 2) / (numeroArcos + 1);
-          const arcoX = -larguraArmazem / 2 + 1 + (arcoNumero * espacamentoArcos);
+        // Converter posição X do topo (0-600) para 3D
+        const posX3D = -larguraArmazem / 2 + (posXTopo / 600) * larguraArmazem;
 
-          // Distribuir pêndulos dentro do arco e dentro das paredes
-          const pendulosNoArco = Object.keys(arcoData).length;
-          const indicePendulo = Object.keys(arcoData).indexOf(penduloNum);
-          const espacamentoZ = (profundidadeArmazem - 2) / Math.max(pendulosNoArco, 2);
-          const posZ = pendulosNoArco > 1 ? 
-            -profundidadeArmazem / 2 + 1 + (indicePendulo * espacamentoZ) : 
-            0;
+        // Distribuir pêndulos dentro do arco baseado nos sensores
+        Object.entries(sensoresArco).forEach(([penduloId, posYTopo]) => {
+          const numeroPendulo = parseInt(penduloId);
+          
+          // Converter posição Y do topo para posição Z no 3D
+          // Posições Y no topo (50-300) representam profundidade no 3D
+          const posZ3D = -profundidadeArmazem / 2 + ((posYTopo - 50) / 250) * (profundidadeArmazem - 2) + 1;
+
+          // Buscar dados do pêndulo nos arcos detalhados
+          const dadosPendulo = dados?.arcos?.[arcoNumero]?.[numeroPendulo];
 
           pendulos.push({
             numero: numeroPendulo,
             arco: arcoNumero,
-            position: [arcoX, 0, posZ],
-            sensores: sensores
+            celula: celula,
+            position: [posX3D, 0, posZ3D],
+            sensores: dadosPendulo || {},
+            posicaoOriginal: { x: posXTopo, y: posYTopo }
           });
         });
       });
     }
 
     return pendulos;
-  }, [dados, larguraArmazem, numeroArcos, profundidadeArmazem]);
+  }, [dados, layoutTopo, larguraArmazem, profundidadeArmazem]);
 
-  // Processar motores/aeradores - posicionados FORA do armazém
+  // Processar motores/aeradores baseado no layout_topo - SEMPRE FORA do armazém
   const motoresData = useMemo(() => {
     const motores = [];
+    const margemExterna = 1.5; // Distância mínima das paredes
 
-    if (dados?.configuracao?.layout_topo?.aeradores) {
-      Object.entries(dados.configuracao.layout_topo.aeradores).forEach(([aeradorId, dadosAerador]) => {
-        const [posX2D, posY2D] = dadosAerador;
+    if (layoutTopo?.aeradores) {
+      Object.entries(layoutTopo.aeradores).forEach(([aeradorId, dadosAerador]) => {
+        const [posX2D, posY2D, tipo] = dadosAerador;
 
-        // Converter coordenadas 2D para 3D - posicionados FORA das paredes
+        // Converter coordenadas 2D para 3D
         let posX3D = -larguraArmazem / 2 + (posX2D / 600) * larguraArmazem;
         let posZ3D = -profundidadeArmazem / 2 + (posY2D / 400) * profundidadeArmazem;
         
-        // Empurrar motores para fora das paredes
-        const margemExterna = 1.0; // Distância das paredes
-        
-        // Se muito próximo das paredes laterais, mover para fora
-        if (Math.abs(posX3D) > larguraArmazem / 2 - 1) {
-          posX3D = posX3D > 0 ? larguraArmazem / 2 + margemExterna : -larguraArmazem / 2 - margemExterna;
+        // GARANTIR que motores fiquem FORA das paredes
+        // Se dentro dos limites do armazém, empurrar para fora
+        if (Math.abs(posX3D) < larguraArmazem / 2 + 0.5) {
+          if (posX3D >= 0) {
+            posX3D = larguraArmazem / 2 + margemExterna;
+          } else {
+            posX3D = -larguraArmazem / 2 - margemExterna;
+          }
         }
         
-        // Se muito próximo das paredes frontais, mover para fora
-        if (Math.abs(posZ3D) > profundidadeArmazem / 2 - 1) {
-          posZ3D = posZ3D > 0 ? profundidadeArmazem / 2 + margemExterna : -profundidadeArmazem / 2 - margemExterna;
+        if (Math.abs(posZ3D) < profundidadeArmazem / 2 + 0.5) {
+          if (posZ3D >= 0) {
+            posZ3D = profundidadeArmazem / 2 + margemExterna;
+          } else {
+            posZ3D = -profundidadeArmazem / 2 - margemExterna;
+          }
+        }
+
+        // Posicionar motores nos cantos ou nas bordas externas
+        const cantos = [
+          [-larguraArmazem / 2 - margemExterna, -profundidadeArmazem / 2 - margemExterna],
+          [larguraArmazem / 2 + margemExterna, -profundidadeArmazem / 2 - margemExterna],
+          [-larguraArmazem / 2 - margemExterna, profundidadeArmazem / 2 + margemExterna],
+          [larguraArmazem / 2 + margemExterna, profundidadeArmazem / 2 + margemExterna]
+        ];
+
+        // Distribuir motores nos cantos ou bordas
+        const indiceMotor = parseInt(aeradorId) - 1;
+        const totalMotores = Object.keys(layoutTopo.aeradores).length;
+        
+        if (indiceMotor < 4) {
+          // Primeiros 4 motores nos cantos
+          [posX3D, posZ3D] = cantos[indiceMotor];
+        } else {
+          // Demais motores nas bordas
+          const laterais = indiceMotor % 4;
+          switch (laterais) {
+            case 0: // Borda superior
+              posX3D = -larguraArmazem / 2 + (indiceMotor / totalMotores) * larguraArmazem;
+              posZ3D = -profundidadeArmazem / 2 - margemExterna;
+              break;
+            case 1: // Borda direita
+              posX3D = larguraArmazem / 2 + margemExterna;
+              posZ3D = -profundidadeArmazem / 2 + (indiceMotor / totalMotores) * profundidadeArmazem;
+              break;
+            case 2: // Borda inferior
+              posX3D = larguraArmazem / 2 - (indiceMotor / totalMotores) * larguraArmazem;
+              posZ3D = profundidadeArmazem / 2 + margemExterna;
+              break;
+            case 3: // Borda esquerda
+              posX3D = -larguraArmazem / 2 - margemExterna;
+              posZ3D = profundidadeArmazem / 2 - (indiceMotor / totalMotores) * profundidadeArmazem;
+              break;
+          }
         }
 
         motores.push({
           id: parseInt(aeradorId),
           position: [posX3D, 0.3, posZ3D], // Altura baixa, no nível do solo
-          status: Math.random() > 0.5 ? 3 : 0
+          status: Math.random() > 0.5 ? 3 : 0,
+          tipo: tipo || 0
         });
       });
     }
 
     return motores;
-  }, [dados, larguraArmazem, profundidadeArmazem]);
+  }, [dados, layoutTopo, larguraArmazem, profundidadeArmazem]);
 
   return (
     <group>
@@ -494,11 +562,29 @@ const Armazem3D = () => {
     );
   }
 
-  // Calcular estatísticas reais
-  const totalPendulos = dados.pendulos ? Object.keys(dados.pendulos).length : 0;
-  const totalArcos = dados.arcos ? Object.keys(dados.arcos).length : 0;
-  const totalAeradores = dados.configuracao?.layout_topo?.aeradores ? 
-    Object.keys(dados.configuracao.layout_topo.aeradores).length : 0;
+  // Calcular estatísticas reais baseadas no layout_topo
+  const layoutTopo = dados?.configuracao?.layout_topo;
+  const totalArcos = layoutTopo ? Object.keys(layoutTopo).filter(key => key !== 'celulas' && key !== 'aeradores').length : 0;
+  
+  let totalPendulos = 0;
+  let totalSensoresPorCelula = { 1: 0, 2: 0, 3: 0 };
+  
+  if (layoutTopo) {
+    Object.entries(layoutTopo).forEach(([arcoKey, arcoData]) => {
+      if (arcoKey === 'celulas' || arcoKey === 'aeradores') return;
+      
+      const sensores = arcoData.sensores || {};
+      const celula = arcoData.celula;
+      const numSensores = Object.keys(sensores).length;
+      
+      totalPendulos += numSensores;
+      if (celula >= 1 && celula <= 3) {
+        totalSensoresPorCelula[celula] += numSensores;
+      }
+    });
+  }
+  
+  const totalAeradores = layoutTopo?.aeradores ? Object.keys(layoutTopo.aeradores).length : 0;
 
   
 
@@ -521,8 +607,12 @@ const Armazem3D = () => {
         <div>Arcos: {totalArcos}</div>
         <div>Pêndulos: {totalPendulos}</div>
         <div>Sensores: {totalSensores}</div>
-        <div>Células: 3</div>
         <div>Aeradores: {totalAeradores}</div>
+        <hr style={{ margin: "10px 0" }} />
+        <div><strong>Por Célula:</strong></div>
+        <div>Célula 1: {totalSensoresPorCelula[1]} sensores</div>
+        <div>Célula 2: {totalSensoresPorCelula[2]} sensores</div>
+        <div>Célula 3: {totalSensoresPorCelula[3]} sensores</div>
 
         <div style={{ marginTop: "15px" }}>
           <label>
