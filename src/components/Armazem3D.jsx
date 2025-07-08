@@ -224,7 +224,7 @@ const ArmazemStructure3D = ({
 }) => {
   const larguraArco = 3.5;
   const larguraArmazem = numeroArcos * larguraArco;
-  const profundidadeArmazem = 6;
+  const profundidadeArmazem = 8; // Aumentar profundidade para acomodar melhor os pêndulos
   
   // Usar configurações do ModeladorSVG 2D
   const configArmazem = config3D || {
@@ -619,7 +619,7 @@ const ArmazemCompleto3D = ({
   // Calcular número de arcos baseado nos dados reais
   const numeroArcos = Object.keys(dados.arcos || {}).length || 1;
   const larguraArco = 3.5;
-  const profundidadeArmazem = 6;
+  const profundidadeArmazem = 8;
 
   // Mapear pêndulos por arco baseado na estrutura real da API
   const penduloPositions = useMemo(() => {
@@ -647,9 +647,32 @@ const ArmazemCompleto3D = ({
       Object.entries(arcoData).forEach(([penduloKey, sensores], index) => {
         const numeroPendulo = parseInt(penduloKey);
 
-        // Distribuir pêndulos ao longo da profundidade
-        const zLocal = pendulosNoArco === 1 ? 0 :
-          -profundidadeArmazem / 2 + (index * profundidadeArmazem) / (pendulosNoArco - 1);
+        // Distribuição posicional baseada na visão do topo
+        // Pêndulos de arcos ímpares mais para frente, pares mais para trás
+        let zLocal;
+        if (pendulosNoArco === 1) {
+          // Se só tem 1 pêndulo, posicionar no centro
+          zLocal = 0;
+        } else if (pendulosNoArco === 2) {
+          // Se tem 2 pêndulos, um na frente e outro atrás
+          zLocal = index === 0 ? -profundidadeArmazem / 3 : profundidadeArmazem / 3;
+        } else if (pendulosNoArco === 3) {
+          // Se tem 3 pêndulos, distribuir ao longo da profundidade
+          const posicoes = [-profundidadeArmazem / 2.5, 0, profundidadeArmazem / 2.5];
+          zLocal = posicoes[index] || 0;
+        } else {
+          // Para mais de 3 pêndulos, distribuir uniformemente
+          const espacamento = profundidadeArmazem / (pendulosNoArco + 1);
+          zLocal = -profundidadeArmazem / 2 + (index + 1) * espacamento;
+        }
+
+        // Adicionar variação baseada no arco (alternância entre frente e trás)
+        const variacao = (arcoNumero % 2 === 0) ? 0.3 : -0.3;
+        zLocal += variacao;
+
+        // Garantir que não saia dos limites do armazém
+        zLocal = Math.max(-profundidadeArmazem / 2 + 0.5, 
+                 Math.min(profundidadeArmazem / 2 - 0.5, zLocal));
 
         positions.push({
           position: [xArco, 0, zLocal],
@@ -669,43 +692,47 @@ const ArmazemCompleto3D = ({
     const positions = [];
     const larguraArmazem = numeroArcos * larguraArco;
 
-    const motoresConfig = [
-      { arco: 2, pos: "superior" },
-      { arco: 5, pos: "superior" },
-      { arco: 8, pos: "superior" },
-      { arco: 11, pos: "superior" },
-      { arco: 14, pos: "superior" },
-      { arco: 17, pos: "superior" },
-      { arco: 3, pos: "inferior" },
-      { arco: 6, pos: "inferior" },
-      { arco: 9, pos: "inferior" },
-      { arco: 12, pos: "inferior" },
-      { arco: 15, pos: "inferior" },
-      { arco: 18, pos: "inferior" },
-    ];
+    // Distribuir motores de forma mais inteligente baseado no número de arcos
+    const motoresSuperiores = [];
+    const motoresInferiores = [];
+    
+    // Calcular posições dos motores baseado no número total de arcos
+    const intervaloMotores = Math.max(2, Math.floor(numeroArcos / 6));
+    
+    for (let i = 2; i <= numeroArcos; i += intervaloMotores) {
+      motoresSuperiores.push(i);
+    }
+    
+    for (let i = 3; i <= numeroArcos; i += intervaloMotores) {
+      motoresInferiores.push(i);
+    }
 
-    motoresConfig.forEach((config, index) => {
-      const xMotor =
-        -larguraArmazem / 2 + (config.arco - 1) * larguraArco + larguraArco / 2;
-      let zMotor, yMotor;
-
-      if (config.pos === "superior") {
-        zMotor = profundidadeArmazem / 2 + 1.2;
-        yMotor = 0.2;
-      } else if (config.pos === "inferior") {
-        zMotor = -profundidadeArmazem / 2 - 1.2;
-        yMotor = 0.2;
+    // Motores superiores
+    motoresSuperiores.forEach((arco, index) => {
+      if (arco <= numeroArcos) {
+        const xMotor = -larguraArmazem / 2 + (arco - 1) * larguraArco + larguraArco / 2;
+        positions.push({
+          position: [xMotor, 0.2, profundidadeArmazem / 2 + 1.5],
+          id: index + 1,
+          status: Math.random() > 0.7 ? 3 : Math.random() > 0.3 ? 0 : 4,
+        });
       }
+    });
 
-      positions.push({
-        position: [xMotor, yMotor, zMotor],
-        id: index + 1,
-        status: Math.random() > 0.7 ? 3 : Math.random() > 0.3 ? 0 : 4,
-      });
+    // Motores inferiores
+    motoresInferiores.forEach((arco, index) => {
+      if (arco <= numeroArcos) {
+        const xMotor = -larguraArmazem / 2 + (arco - 1) * larguraArco + larguraArco / 2;
+        positions.push({
+          position: [xMotor, 0.2, -profundidadeArmazem / 2 - 1.5],
+          id: motoresSuperiores.length + index + 1,
+          status: Math.random() > 0.7 ? 3 : Math.random() > 0.3 ? 0 : 4,
+        });
+      }
     });
 
     return positions;
-  }, []);
+  }, [numeroArcos]);
 
   return (
     <group>
