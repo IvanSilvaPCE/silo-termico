@@ -407,63 +407,67 @@ const ModeladorSVG = () => {
     let pathBase = "";
     let polBase = null;
 
-    // Sempre usar fundo reto, o V será aplicado no telhado
-    const p1 = [lb, pb - hb],
-      p2 = [lb - le, pb - hb],
-      p3 = [lb - (lb - lf) / 2, pb - hf],
-      p4 = [(lb - lf) / 2, pb - hf],
-      p5 = [le, pb - hb],
-      p6 = [0, pb - hb],
-      p7 = [0, pb],
-      p8 = [lb, pb];
-    pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
+    if (tipo_fundo === 0) {
+      // Fundo reto (original)
+      const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - (lb - lf) / 2, pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
 
-    polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+    } else if (tipo_fundo === 1) {
+      // Fundo com V (funil)
+      const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - (lb - lf) / 2, pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb / 2 - intensidade_fundo, pb + intensidade_fundo],
+        p9 = [lb / 2 + intensidade_fundo, pb + intensidade_fundo],
+        p10 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")}`;
 
-    // Telhado com diferentes formatos
+      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+    } else if (tipo_fundo === 2) {
+      // Fundo com duplo V
+      const p1 = [lb, pb - hb],
+        p2 = [lb - le, pb - hb],
+        p3 = [lb - (lb - lf) / 2, pb - hf],
+        p4 = [(lb - lf) / 2, pb - hf],
+        p5 = [le, pb - hb],
+        p6 = [0, pb - hb],
+        p7 = [0, pb],
+        p8 = [lb / 4 - intensidade_fundo/2, pb + intensidade_fundo],
+        p9 = [lb / 4 + intensidade_fundo/2, pb + intensidade_fundo],
+        p10 = [lb / 2, pb],
+        p11 = [(lb * 3) / 4 - intensidade_fundo/2, pb + intensidade_fundo],
+        p12 = [(lb * 3) / 4 + intensidade_fundo/2, pb + intensidade_fundo],
+        p13 = [lb, pb];
+      pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")}`;
+
+      polBase = <polygon fill="#999999" id="des_fundo" points={pathBase} />;
+    }
+
+    // Telhado sempre pontudo normal
     let polTelhado = null;
 
     if (tipo_telhado === 1) {
-      // Pontudo com V invertido baseado no tipo de fundo
-      let pathTelhado = "";
-      
-      if (tipo_fundo === 0) {
-        // Telhado normal (original)
-        const p1_ = [(lb - lf) / 2, pb - hf],
-          p2_ = [le, pb - hb],
-          p3_ = [le, pb - ht],
-          p4_ = [lb / 2, 1],
-          p5_ = [lb - le, pb - ht],
-          p6_ = [lb - le, pb - hb],
-          p7_ = [lb - (lb - lf) / 2, pb - hf];
-        pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
-      } else if (tipo_fundo === 1) {
-        // Telhado com V invertido (funil)
-        const p1_ = [(lb - lf) / 2, pb - hf],
-          p2_ = [le, pb - hb],
-          p3_ = [le, pb - ht],
-          p4_ = [lb / 2 - intensidade_fundo, 1 - intensidade_fundo],
-          p5_ = [lb / 2 + intensidade_fundo, 1 - intensidade_fundo],
-          p6_ = [lb / 2, 1],
-          p7_ = [lb - le, pb - ht],
-          p8_ = [lb - le, pb - hb],
-          p9_ = [lb - (lb - lf) / 2, pb - hf];
-        pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")} ${p8_.join(",")} ${p9_.join(",")}`;
-      } else if (tipo_fundo === 2) {
-        // Telhado com duplo V invertido
-        const p1_ = [(lb - lf) / 2, pb - hf],
-          p2_ = [le, pb - hb],
-          p3_ = [le, pb - ht],
-          p4_ = [lb / 4 - intensidade_fundo/2, 1 - intensidade_fundo],
-          p5_ = [lb / 4 + intensidade_fundo/2, 1 - intensidade_fundo],
-          p6_ = [lb / 2, 1],
-          p7_ = [(lb * 3) / 4 - intensidade_fundo/2, 1 - intensidade_fundo],
-          p8_ = [(lb * 3) / 4 + intensidade_fundo/2, 1 - intensidade_fundo],
-          p9_ = [lb - le, pb - ht],
-          p10_ = [lb - le, pb - hb],
-          p11_ = [lb - (lb - lf) / 2, pb - hf];
-        pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")} ${p8_.join(",")} ${p9_.join(",")} ${p10_.join(",")} ${p11_.join(",")}`;
-      }
+      // Pontudo (sempre normal)
+      const p1_ = [(lb - lf) / 2, pb - hf],
+        p2_ = [le, pb - hb],
+        p3_ = [le, pb - ht],
+        p4_ = [lb / 2, 1],
+        p5_ = [lb - le, pb - ht],
+        p6_ = [lb - le, pb - hb],
+        p7_ = [lb - (lb - lf) / 2, pb - hf];
+      const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
 
       polTelhado = (
         <polygon
