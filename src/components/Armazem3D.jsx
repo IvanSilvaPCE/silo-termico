@@ -194,85 +194,78 @@ const ArmazemStructure3D = ({ numeroArcos, alturaArmazem, larguraArmazem, profun
     curvatura_topo: 30,
   };
 
-  const escala3D = 0.03;
-  const largura3D = configArmazem.lb * escala3D;
-  const altura3D = configArmazem.pb * escala3D;
-  const alturaBase = configArmazem.hb * escala3D;
-  const alturaTelhado = configArmazem.ht * escala3D;
-  const larguraFrente = configArmazem.lf * escala3D;
-
   const corTelhado = "#E6E6E6";
   const corBase = "#999999";
+  const corParede = "#D0D0D0";
+  const espessuraParede = 0.15;
 
   return (
     <group>
-      {/* Base/Fundo do armazém */}
-      <group position={[0, alturaBase / 2, 0]}>
-        <mesh receiveShadow>
-          <boxGeometry args={[largura3D, alturaBase, profundidadeArmazem]} />
-          <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
-        </mesh>
-      </group>
+      {/* Base/Piso do armazém */}
+      <mesh position={[0, 0, 0]} receiveShadow>
+        <boxGeometry args={[larguraArmazem + espessuraParede, 0.1, profundidadeArmazem + espessuraParede]} />
+        <meshStandardMaterial color={corBase} roughness={0.8} metalness={0.2} />
+      </mesh>
 
-      {/* Paredes laterais */}
-      <group position={[0, altura3D / 2, 0]}>
-        <mesh position={[-largura3D / 2 - 0.1, 0, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.2, altura3D, profundidadeArmazem]} />
-          <meshStandardMaterial color={corTelhado} transparent opacity={0.8} />
-        </mesh>
+      {/* Paredes laterais (esquerda e direita) */}
+      <mesh position={[-larguraArmazem / 2, alturaArmazem / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[espessuraParede, alturaArmazem, profundidadeArmazem]} />
+        <meshStandardMaterial color={corParede} />
+      </mesh>
 
-        <mesh position={[largura3D / 2 + 0.1, 0, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.2, altura3D, profundidadeArmazem]} />
-          <meshStandardMaterial color={corTelhado} transparent opacity={0.8} />
-        </mesh>
+      <mesh position={[larguraArmazem / 2, alturaArmazem / 2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[espessuraParede, alturaArmazem, profundidadeArmazem]} />
+        <meshStandardMaterial color={corParede} />
+      </mesh>
 
-        <mesh position={[0, 0, -profundidadeArmazem / 2 - 0.1]} castShadow receiveShadow>
-          <boxGeometry args={[larguraFrente, altura3D * 0.8, 0.2]} />
-          <meshStandardMaterial color={corTelhado} transparent opacity={0.7} />
-        </mesh>
+      {/* Paredes frontais (frente e fundo) */}
+      <mesh position={[0, alturaArmazem / 2, -profundidadeArmazem / 2]} castShadow receiveShadow>
+        <boxGeometry args={[larguraArmazem, alturaArmazem, espessuraParede]} />
+        <meshStandardMaterial color={corParede} />
+      </mesh>
 
-        <mesh position={[0, 0, profundidadeArmazem / 2 + 0.1]} castShadow receiveShadow>
-          <boxGeometry args={[larguraFrente, altura3D * 0.8, 0.2]} />
-          <meshStandardMaterial color={corTelhado} transparent opacity={0.7} />
-        </mesh>
-      </group>
+      <mesh position={[0, alturaArmazem / 2, profundidadeArmazem / 2]} castShadow receiveShadow>
+        <boxGeometry args={[larguraArmazem, alturaArmazem, espessuraParede]} />
+        <meshStandardMaterial color={corParede} />
+      </mesh>
 
-      {/* Telhado */}
-      <group position={[0, altura3D + alturaBase, 0]}>
-        <mesh position={[0, alturaTelhado / 2, -profundidadeArmazem / 4]} rotation={[-Math.PI / 6, 0, 0]} castShadow>
-          <boxGeometry args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]} />
-          <meshStandardMaterial color={corTelhado} metalness={0.1} roughness={0.8} />
-        </mesh>
+      {/* Telhado em duas águas - colado nas paredes */}
+      <mesh position={[0, alturaArmazem + 0.3, -profundidadeArmazem / 4]} rotation={[-Math.PI / 8, 0, 0]} castShadow>
+        <boxGeometry args={[larguraArmazem + 0.2, 0.1, profundidadeArmazem / 2 + 0.1]} />
+        <meshStandardMaterial color={corTelhado} metalness={0.1} roughness={0.8} />
+      </mesh>
 
-        <mesh position={[0, alturaTelhado / 2, profundidadeArmazem / 4]} rotation={[Math.PI / 6, 0, 0]} castShadow>
-          <boxGeometry args={[largura3D + 0.4, 0.1, profundidadeArmazem / 2 + 0.2]} />
-          <meshStandardMaterial color={corTelhado} metalness={0.1} roughness={0.8} />
-        </mesh>
+      <mesh position={[0, alturaArmazem + 0.3, profundidadeArmazem / 4]} rotation={[Math.PI / 8, 0, 0]} castShadow>
+        <boxGeometry args={[larguraArmazem + 0.2, 0.1, profundidadeArmazem / 2 + 0.1]} />
+        <meshStandardMaterial color={corTelhado} metalness={0.1} roughness={0.8} />
+      </mesh>
 
-        <mesh position={[0, alturaTelhado + 0.05, 0]} castShadow>
-          <boxGeometry args={[largura3D + 0.5, 0.1, 0.1]} />
-          <meshStandardMaterial color={corBase} metalness={0.2} roughness={0.7} />
-        </mesh>
-      </group>
+      {/* Cumeeira do telhado */}
+      <mesh position={[0, alturaArmazem + 0.5, 0]} castShadow>
+        <boxGeometry args={[larguraArmazem + 0.3, 0.1, 0.15]} />
+        <meshStandardMaterial color={corBase} metalness={0.2} roughness={0.7} />
+      </mesh>
 
-      {/* Vigas estruturais dos arcos */}
+      {/* Vigas estruturais internas (apenas algumas principais) */}
       <Instances>
-        <boxGeometry args={[0.08, altura3D + alturaBase, 0.08]} />
+        <boxGeometry args={[0.06, alturaArmazem, 0.06]} />
         <meshStandardMaterial color="#999999" metalness={0.6} roughness={0.4} />
-        {Array.from({ length: numeroArcos }, (_, i) => {
-          const x = -largura3D / 2 + ((i + 1) * largura3D) / (numeroArcos + 1);
+        {Array.from({ length: Math.min(5, numeroArcos) }, (_, i) => {
+          const espacamento = larguraArmazem / (Math.min(5, numeroArcos) + 1);
+          const x = -larguraArmazem / 2 + (i + 1) * espacamento;
           return (
-            <Instance key={i} position={[x, (altura3D + alturaBase) / 2, 0]} />
+            <Instance key={i} position={[x, alturaArmazem / 2, 0]} />
           );
         })}
       </Instances>
 
-      {/* Marcação dos arcos */}
+      {/* Marcação dos arcos no teto */}
       {Array.from({ length: numeroArcos }, (_, i) => {
-        const x = -largura3D / 2 + ((i + 1) * largura3D) / (numeroArcos + 1);
+        const espacamento = larguraArmazem / (numeroArcos + 1);
+        const x = -larguraArmazem / 2 + (i + 1) * espacamento;
         return (
-          <Billboard key={i} position={[x, altura3D + alturaBase + 0.3, 0]}>
-            <Text fontSize={0.08} color="#333333" anchorX="center" anchorY="middle">
+          <Billboard key={i} position={[x, alturaArmazem + 0.8, 0]}>
+            <Text fontSize={0.06} color="#333333" anchorX="center" anchorY="middle">
               Arco {i + 1}
             </Text>
           </Billboard>
@@ -284,9 +277,14 @@ const ArmazemStructure3D = ({ numeroArcos, alturaArmazem, larguraArmazem, profun
 
 const ArmazemCompleto3D = ({ dados, config3D }) => {
   const alturaArmazem = 6;
-  const numeroArcos = 19;
-  const larguraArmazem = numeroArcos * 2;
-  const profundidadeArmazem = 6;
+  
+  // Calcular dimensões baseadas nos dados reais
+  const numeroArcos = dados.arcos ? Object.keys(dados.arcos).length : 19;
+  const totalPendulos = dados.pendulos ? Object.keys(dados.pendulos).length : 0;
+  
+  // Adaptar largura baseada na quantidade de arcos/pêndulos
+  const larguraArmazem = Math.max(numeroArcos * 1.5, totalPendulos * 0.8, 15);
+  const profundidadeArmazem = 8;
 
   // Processar pêndulos baseado na estrutura real dos dados
   const pendulosData = useMemo(() => {
@@ -299,14 +297,16 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
         Object.entries(arcoData).forEach(([penduloNum, sensores]) => {
           const numeroPendulo = parseInt(penduloNum);
 
-          // Calcular posição baseada no arco
-          const arcoX = -larguraArmazem / 2 + (arcoNumero * larguraArmazem) / (numeroArcos + 1);
+          // Calcular posição baseada no arco - garantindo que fique dentro das paredes
+          const espacamentoArcos = (larguraArmazem - 2) / (numeroArcos + 1);
+          const arcoX = -larguraArmazem / 2 + 1 + (arcoNumero * espacamentoArcos);
 
-          // Distribuir pêndulos dentro do arco
+          // Distribuir pêndulos dentro do arco e dentro das paredes
           const pendulosNoArco = Object.keys(arcoData).length;
           const indicePendulo = Object.keys(arcoData).indexOf(penduloNum);
+          const espacamentoZ = (profundidadeArmazem - 2) / Math.max(pendulosNoArco, 2);
           const posZ = pendulosNoArco > 1 ? 
-            -profundidadeArmazem / 4 + (indicePendulo * profundidadeArmazem / 2) / (pendulosNoArco - 1) : 
+            -profundidadeArmazem / 2 + 1 + (indicePendulo * espacamentoZ) : 
             0;
 
           pendulos.push({
@@ -322,7 +322,7 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
     return pendulos;
   }, [dados, larguraArmazem, numeroArcos, profundidadeArmazem]);
 
-  // Processar motores/aeradores
+  // Processar motores/aeradores - posicionados no chão
   const motoresData = useMemo(() => {
     const motores = [];
 
@@ -330,20 +330,20 @@ const ArmazemCompleto3D = ({ dados, config3D }) => {
       Object.entries(dados.configuracao.layout_topo.aeradores).forEach(([aeradorId, dadosAerador]) => {
         const [posX2D, posY2D] = dadosAerador;
 
-        // Converter coordenadas 2D para 3D
+        // Converter coordenadas 2D para 3D - posicionados no solo
         const posX3D = -larguraArmazem / 2 + (posX2D / 600) * larguraArmazem;
-        const posZ3D = (posY2D < 200) ? profundidadeArmazem / 2 + 0.5 : -profundidadeArmazem / 2 - 0.5;
+        const posZ3D = -profundidadeArmazem / 2 + (posY2D / 400) * profundidadeArmazem;
 
         motores.push({
           id: parseInt(aeradorId),
-          position: [posX3D, alturaArmazem + 0.2, posZ3D],
+          position: [posX3D, 0.3, posZ3D], // Altura baixa, no nível do solo
           status: Math.random() > 0.5 ? 3 : 0
         });
       });
     }
 
     return motores;
-  }, [dados, larguraArmazem, profundidadeArmazem, alturaArmazem]);
+  }, [dados, larguraArmazem, profundidadeArmazem]);
 
   return (
     <group>
@@ -392,7 +392,11 @@ const Armazem3D = () => {
   const [config3D, setConfig3D] = useState(null);
 
   const alturaArmazem = 6;
-  const larguraArmazem = 19 * 2;
+  
+  // Calcular largura baseada nos dados reais quando disponíveis
+  const numeroArcos = dados?.arcos ? Object.keys(dados.arcos).length : 19;
+  const totalPendulos = dados?.pendulos ? Object.keys(dados.pendulos).length : 0;
+  const larguraArmazem = Math.max(numeroArcos * 1.5, totalPendulos * 0.8, 15);
 
   // Calcular total de sensores - movido para antes do useEffect
   const totalSensores = useMemo(() => {
