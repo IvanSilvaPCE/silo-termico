@@ -22,7 +22,7 @@ const Pendulo3D = ({
   // Função para determinar cor baseada na temperatura
   const corFaixaExata = (t) => {
     if (t === -1000) return "#ff0000";
-    if (t < 12) return "#0384fc";
+    if (t < 12) return "#0384fc"; 
     else if (t < 15) return "#03e8fc";
     else if (t < 17) return "#03fcbe";
     else if (t < 21) return "#07fc03";
