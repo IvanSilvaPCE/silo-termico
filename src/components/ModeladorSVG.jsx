@@ -466,7 +466,7 @@ const ModeladorSVG = () => {
 
   // Renderizar telhado
   const renderTelhado = () => {
-    const { tipo_telhado, curvatura_topo, pb, lb, hf, lf, le, ht } = configArmazem;
+    const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht } = configArmazem;
 
     if (tipo_telhado === 1) {
       // Pontudo
