@@ -1,0 +1,71 @@
+//calcula a escala de cores conforme a temperatura
+                //temperatura < 12 graus
+                if (_valor < 12)
+                {
+                    _visual[0] = "#0384fc";  //cor retangulo
+                    _visual[1] = "white"; //cor texto
+                }
+                //temperatura >= 12 e < 15
+                else if (_valor < 15)
+                {
+                    _visual[0] = "#03e8fc";//cor retangulo
+                    _visual[1] = "black";  //cor texto
+                }
+                //temperatura >= 15 e < 17
+                else if (_valor < 17)
+                {
+                    _visual[0] = "#03fcbe";//cor retangulo
+                    _visual[1] = "black";  //cor texto
+                }
+                //temperatura >= 17 e < 21
+                else if (_valor < 21)
+                {
+                    _visual[0] = "#07fc03"; //cor retangulo
+                    _visual[1] = "black"; //cor texto
+                } 
+                //temperatura >= 21 e < 25
+                else if(_valor < 25)
+                {
+                    _visual[0] = "#c3ff00"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                } 
+                //temperatura >= 25 e < 27
+                else if(_valor < 27)
+                {
+                    _visual[0] = "#fcf803"; //cor retangulo
+                    _visual[1] = "black";   //cor texto
+                }
+                //temperatura >= 27 e < 30
+                else if(_valor < 30)
+                {
+                    _visual[0] = "#ffb300"; //cor retangulo
+                    _visual[1] = "black";  //cor texto
+                }
+                //temperatura >= 30 e < 35
+                else if(_valor < 35)
+                {
+                    _visual[0] = "#ff2200";   //cor retangulo
+                    _visual[1] = "white"; //cor texto
+                }
+                //temperatura >= 35 e < 50
+                else if(_valor < 50)
+                {
+                    _visual[0] = "#ff0090"; //cor retangulo
+                    _visual[1] = "white";   //cor texto
+                } 
+                //temperatura > 50
+                else if(_valor >= 50)
+                {
+                    _visual[0] = "#f700ff"; //cor retangulo
+                    _visual[1] = "white";   //cor texto
+                }
+
+                //se todo o cabo estiver fora do nível
+                if (_nivel == false)
+                {
+                    _visual[0] = "#c7c7c7"; //cor retangulo
+                    _visual[1] = "black"; //cor texto
+                    _visual[2] = "black";  //cor contorno
+                    _visual[3] = "0.78";  //opacidade retangulo
+                    _visual[4] = "0.4";  //opacidade texto
+                }
