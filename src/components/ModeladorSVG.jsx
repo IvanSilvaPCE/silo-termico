@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
+import ModelConfigurationManager from "./ModelConfigurationManager";
 
 const ModeladorSVG = () => {
   // Estados para configurações do Silo
@@ -1177,73 +1178,28 @@ const ModeladorSVG = () => {
             <hr className="my-3" />
             <h6 className="text-success mb-3">Gerenciar Modelos</h6>
 
-            <div className="mb-3">
-              <label className="form-label">Nome do Modelo:</label>
-              <input
-                type="text"
-                className="form-control"
-                value={nomeConfiguracao}
-                onChange={(e) => setNomeConfiguracao(e.target.value)}
-                placeholder="Digite um nome para o modelo"
-              />
-            </div>
-
             <div className="d-grid gap-2 mb-3">
-              <button
-                className="btn btn-success"
-                onClick={salvarConfiguracao}
-                disabled={!nomeConfiguracao.trim()}
-              >
-                Salvar Modelo
-              </button>
               <button className="btn btn-warning" onClick={resetarPadrao}>
                 Resetar para Padrão
               </button>
             </div>
 
-            {/* Lista de Modelos Salvos */}
-            <div className="mb-3">
-              <label className="form-label">Modelos Salvos:</label>
-              <div
-                className="border rounded p-2"
-                style={{ maxHeight: "200px", overflowY: "auto" }}
-              >
-                {configsMemoized.length === 0 ? (
-                  <small className="text-muted">Nenhum modelo salvo</small>
-                ) : (
-                  configsMemoized.map((nome) => (
-                    <div
-                      key={nome}
-                      className="d-flex justify-content-between align-items-center mb-2 p-1 border rounded"
-                    >
-                      <small
-                        className={`cursor-pointer ${nomeConfiguracao === nome ? "fw-bold text-primary" : ""}`}
-                        style={{ cursor: "pointer" }}
-                        onClick={() => carregarConfiguracao(nome)}
-                      >
-                        {nome}
-                      </small>
-                      <div>
-                        <button
-                          className="btn btn-sm btn-outline-primary me-1"
-                          onClick={() => carregarConfiguracao(nome)}
-                          title="Carregar modelo"
-                        >
-                          Usar
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => deletarConfiguracao(nome)}
-                          title="Excluir modelo"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            <ModelConfigurationManager
+              type={tipoAtivo}
+              currentConfig={tipoAtivo === "silo" ? configSilo : configArmazem}
+              onConfigurationLoad={(config, metadata) => {
+                if (tipoAtivo === "silo") {
+                  setConfigSilo(config);
+                } else {
+                  setConfigArmazem(config);
+                }
+                setNomeConfiguracao(metadata.name || '');
+              }}
+              onConfigurationSave={(name, config) => {
+                setNomeConfiguracao(name);
+                setForceUpdateLista(prev => prev + 1);
+              }}
+            />
           </div>
         </div>
 
