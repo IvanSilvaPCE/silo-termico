@@ -24,19 +24,38 @@ const ModeladorSVG = () => {
 
   // Estados para configurações do Armazém - usando dados reais do JSON
   const [configArmazem, setConfigArmazem] = useState({
-    pb: 185, // posição base
-    lb: 350, // largura base
-    hb: 30, // altura base
-    hf: 5, // altura frente
-    lf: 250, // largura frente
-    le: 15, // largura entrada
-    ht: 50, // altura telhado
-    tipo_telhado: 1, // 1 = arco pontudo, 2 = arredondado, 3 = arco
-    tipo_fundo: 0, // 0 = reto, 1 = funil/V, 2 = duplo V
-    intensidade_fundo: 20, // intensidade do V/funil
-    curvatura_topo: 30, // curvatura quando arredondado
+    // Dimensões Básicas
+    pb: 185,
+    lb: 350,
+    hb: 30,
+    hf: 5,
+    lf: 250,
+    le: 15,
+    ht: 50,
+
+    // Configuração do Telhado
+    tipo_telhado: 1,
+    curvatura_topo: 30,
+
+    // Configuração do Fundo
+    tipo_fundo: 0,
+    altura_fundo_reto: 0,
+
+    // Configurações Funil V
+    altura_funil_v: 40,
+    posicao_ponta_v: 0,
+    largura_abertura_v: 20,
+
+    // Configurações Duplo V
+    altura_duplo_v: 35,
+    posicao_v_esquerdo: -0.5,
+    posicao_v_direito: 0.5,
+    largura_abertura_duplo_v: 15,
+
+    // Configuração dos Sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
+    intensidade_fundo: 20,
   });
 
   const [tipoAtivo, setTipoAtivo] = useState("silo");
@@ -403,67 +422,153 @@ const ModeladorSVG = () => {
     }
   }, [dados, arcoAtual, tipoAtivo, configArmazem]);
 
-  // Base normal (fundo reto)
-  const renderBaseNormal = () => {
-    const { pb, lb, hb, hf, lf, le } = configArmazem;
+  // Renderizar base do armazém
+  const renderArmazem = () => {
+    const { tipo_fundo } = configArmazem;
 
-    const p1 = [lb, pb - hb],
-      p2 = [lb - le, pb - hb],
-      p3 = [lb - (lb - lf) / 2, pb - hf],
-      p4 = [(lb - lf) / 2, pb - hf],
-      p5 = [le, pb - hb],
-      p6 = [0, pb - hb],
-      p7 = [0, pb],
-      p8 = [lb, pb];
+    let baseElement = null;
+
+    if (tipo_fundo === 0) {
+      baseElement = renderBaseNormal();
+    } else if (tipo_fundo === 1) {
+      baseElement = renderBaseFunilV();
+    } else if (tipo_fundo === 2) {
+      baseElement = renderBaseDuploV();
+    }
+
+    return (
+      <>
+        {renderTelhado()}
+        {baseElement}
+      </>
+    );
+  };
+
+  // Renderizar base normal (fundo reto)
+  const renderBaseNormal = () => {
+    const { pb, lb, hb, le, lf, altura_fundo_reto = 10 } = configArmazem;
+
+    // Ajuste reduzido para metade
+    const ajuste_base = -4; // Ajuste menor para não subir tanto
+
+    // Usar altura_fundo_reto para definir a altura do fundo interno
+    const altura_fundo_aplicada = altura_fundo_reto || 10;
+
+    const p1 = [lb, pb - hb + ajuste_base];
+    const p2 = [lb - le, pb - hb + ajuste_base];
+    const p3 = [lb - (lb - lf) / 2, pb - altura_fundo_aplicada + ajuste_base];
+    const p4 = [(lb - lf) / 2, pb - altura_fundo_aplicada + ajuste_base];
+    const p5 = [le, pb - hb + ajuste_base];
+    const p6 = [0, pb - hb + ajuste_base];
+    const p7 = [0, pb + ajuste_base];
+    const p8 = [lb, pb + ajuste_base];
 
     const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
 
-  // Base com Funil V - seguindo o padrão do exemplo HTML
+  // Renderizar base funil V
   const renderBaseFunilV = () => {
-    const { pb, lb, hb, intensidade_fundo, le } = configArmazem;
+    const {
+      pb,
+      lb,
+      hb,
+      le,
+      lf,
+      altura_funil_v = 40,
+      posicao_ponta_v = 0, // -1 a 1 (esquerda para direita)
+      largura_abertura_v = 20,
+    } = configArmazem;
 
-    const baseAltura = 6; // espessura da base cinza escura
+    // Calcular posição da ponta do V
+    const centroBase = lb / 2;
+    const deslocamentoPonta = lb * 0.3 * posicao_ponta_v; // Máximo 30% da largura
+    const pontaX = centroBase + deslocamentoPonta;
 
-    const p1 = [0, pb - hb];
-    const p2 = [le, pb - hb];
-    const p3 = [lb / 2, pb]; // vértice do V encostando no chão
-    const p4 = [lb - le, pb - hb];
-    const p5 = [lb, pb - hb];
-    const p6 = [lb, pb + baseAltura];
-    const p7 = [0, pb + baseAltura];
+    // Ajustar posição para alinhar melhor com a base
+    const ajuste_base = 5; // Mover o fundo mais para baixo
 
-    const pathBase = [p1, p2, p3, p4, p5, p6, p7]
-      .map((p) => p.join(","))
-      .join(" ");
+    const p1 = [lb, pb - hb + ajuste_base];
+    const p2 = [lb - le, pb - hb + ajuste_base];
+    const p3 = [
+      pontaX + largura_abertura_v / 2,
+      pb - altura_funil_v + ajuste_base,
+    ];
+    const p4 = [pontaX, pb + ajuste_base]; // Ponta do V
+    const p5 = [
+      pontaX - largura_abertura_v / 2,
+      pb - altura_funil_v + ajuste_base,
+    ];
+    const p6 = [le, pb - hb + ajuste_base];
+    const p7 = [0, pb - hb + ajuste_base];
+    const p8 = [0, pb + ajuste_base];
+    const p9 = [lb, pb + ajuste_base];
+
+    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")}`;
+
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
 
-  // Base com Duplo V - dois V's lado a lado
+  // Renderizar base duplo V
   const renderBaseDuploV = () => {
-    const { pb, lb, hb, intensidade_fundo, le } = configArmazem;
+    const {
+      pb,
+      lb,
+      hb,
+      le,
+      lf,
+      altura_duplo_v = 35,
+      posicao_v_esquerdo = -0.5, // -1 a 1
+      posicao_v_direito = 0.5, // -1 a 1
+      largura_abertura_duplo_v = 15,
+    } = configArmazem;
 
-    const baseAltura = 6;
-    const v1 = lb * 0.25;
-    const v2 = lb * 0.75;
+    const centroBase = lb / 2;
 
-    const path = [
-      [0, pb - hb],
-      [le, pb - hb],
-      [v1, pb],
-      [lb / 2, pb - hb],
-      [v2, pb],
-      [lb - le, pb - hb],
-      [lb, pb - hb],
-      [lb, pb + baseAltura],
-      [0, pb + baseAltura],
-    ]
-      .map((p) => p.join(","))
-      .join(" ");
+    // Calcular posições das pontas dos Vs
+    const pontaEsquerdaX = centroBase + lb * 0.2 * posicao_v_esquerdo;
+    const pontaDireitaX = centroBase + lb * 0.2 * posicao_v_direito;
 
-    return <polygon fill="#999999" id="des_fundo" points={path} />;
+    // Ajustar posição para alinhar melhor com a base
+    const ajuste_base = 5; // Mover o fundo mais para baixo
+
+    const p1 = [lb, pb - hb + ajuste_base];
+    const p2 = [lb - le, pb - hb + ajuste_base];
+
+    // V direito
+    const p3 = [
+      pontaDireitaX + largura_abertura_duplo_v / 2,
+      pb - altura_duplo_v + ajuste_base,
+    ];
+    const p4 = [pontaDireitaX, pb + ajuste_base]; // Ponta do V direito
+    const p5 = [
+      pontaDireitaX - largura_abertura_duplo_v / 2,
+      pb - altura_duplo_v + ajuste_base,
+    ];
+
+    // Meio entre os Vs
+    const p6 = [centroBase, pb - altura_duplo_v * 0.7 + ajuste_base];
+
+    // V esquerdo
+    const p7 = [
+      pontaEsquerdaX + largura_abertura_duplo_v / 2,
+      pb - altura_duplo_v + ajuste_base,
+    ];
+    const p8 = [pontaEsquerdaX, pb + ajuste_base]; // Ponta do V esquerdo
+    const p9 = [
+      pontaEsquerdaX - largura_abertura_duplo_v / 2,
+      pb - altura_duplo_v + ajuste_base,
+    ];
+
+    const p10 = [le, pb - hb + ajuste_base];
+    const p11 = [0, pb - hb + ajuste_base];
+    const p12 = [0, pb + ajuste_base];
+    const p13 = [lb, pb + ajuste_base];
+
+    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")}`;
+
+    return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
 
   // Renderizar telhado
@@ -476,7 +581,7 @@ const ModeladorSVG = () => {
       hb,
       hf,
       lf,
-      le, 
+      le,
       ht,
       tipo_fundo,
     } = configArmazem;
@@ -554,7 +659,7 @@ const ModeladorSVG = () => {
         L ${le} ${pb - hb + extensao}
         L ${le} ${pb - ht}
         A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
-        L ${lb - le} ${pb - hb + extensao}
+        L ${lb - le} ${pb - hb + extensão}
         L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
         Z
       `;
@@ -722,6 +827,7 @@ const ModeladorSVG = () => {
       });
     } else {
       setConfigArmazem({
+        // Dimensões Básicas
         pb: 185,
         lb: 350,
         hb: 30,
@@ -729,12 +835,30 @@ const ModeladorSVG = () => {
         lf: 250,
         le: 15,
         ht: 50,
+
+        // Configuração do Telhado
         tipo_telhado: 1,
-        tipo_fundo: 0,
-        intensidade_fundo: 20,
         curvatura_topo: 30,
+
+        // Configuração do Fundo
+        tipo_fundo: 0,
+        altura_fundo_reto: 10,
+
+        // Configurações Funil V
+        altura_funil_v: 40,
+        posicao_ponta_v: 0,
+        largura_abertura_v: 20,
+
+        // Configurações Duplo V
+        altura_duplo_v: 35,
+        posicao_v_esquerdo: -0.5,
+        posicao_v_direito: 0.5,
+        largura_abertura_duplo_v: 15,
+
+        // Configuração dos Sensores
         escala_sensores: 16,
         dist_y_sensores: 12,
+        intensidade_fundo: 20,
       });
     }
   };
@@ -941,236 +1065,466 @@ const ModeladorSVG = () => {
             {/* Controles para Armazém */}
             {tipoAtivo === "armazem" && (
               <>
-                <h6 className="mt-3 text-primary">Dimensões do Armazém</h6>
-                <div className="mb-3">
-                  <label className="form-label">
-                    Largura Base: {configArmazem.lb}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="200"
-                    max="500"
-                    value={configArmazem.lb}
-                    onChange={(e) => handleArmazemChange("lb", e.target.value)}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Posição Base: {configArmazem.pb}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="150"
-                    max="300"
-                    value={configArmazem.pb}
-                    onChange={(e) => handleArmazemChange("pb", e.target.value)}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Altura Base: {configArmazem.hb}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="20"
-                    max="60"
-                    value={configArmazem.hb}
-                    onChange={(e) => handleArmazemChange("hb", e.target.value)}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Largura Frente: {configArmazem.lf}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="100"
-                    max="400"
-                    value={configArmazem.lf}
-                    onChange={(e) => handleArmazemChange("lf", e.target.value)}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Altura Telhado: {configArmazem.ht}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="20"
-                    max="100"
-                    value={configArmazem.ht}
-                    onChange={(e) => handleArmazemChange("ht", e.target.value)}
-                  />
-                </div>
-
-                <h6 className="mt-3 text-primary">Formato do Telhado</h6>
-                <div className="mb-3">
-                  <label className="form-label">Tipo de Telhado:</label>
-                  <select
-                    className="form-select"
-                    value={configArmazem.tipo_telhado}
-                    onChange={(e) =>
-                      handleArmazemChange("tipo_telhado", e.target.value)
-                    }
-                  >
-                    <option value="1">Pontudo</option>
-                    <option value="2">Arredondado</option>
-                    <option value="3">Arco</option>
-                  </select>
-                </div>
-
-                {(configArmazem.tipo_telhado === 2 ||
-                  configArmazem.tipo_telhado === 3) && (
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Curvatura: {configArmazem.curvatura_topo}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="10"
-                      max="80"
-                      value={configArmazem.curvatura_topo}
-                      onChange={(e) =>
-                        handleArmazemChange("curvatura_topo", e.target.value)
-                      }
-                    />
+                {/* Seção 1: Dimensões Básicas */}
+                <div className="card mb-3">
+                  <div className="card-header bg-primary text-white">
+                    <h6 className="mb-0">📐 Dimensões Básicas do Armazém</h6>
                   </div>
-                )}
-
-                <h6 className="mt-3 text-primary">Formato do Fundo</h6>
-                <div className="mb-3">
-                  <label className="form-label">Tipo de Fundo:</label>
-                  <select
-                    className="form-select"
-                    value={configArmazem.tipo_fundo}
-                    onChange={(e) =>
-                      handleArmazemChange("tipo_fundo", e.target.value)
-                    }
-                  >
-                    <option value="0">Reto</option>
-                    <option value="1">Funil/V</option>
-                    <option value="2">Duplo V</option>
-                  </select>
-                </div>
-
-                {(configArmazem.tipo_fundo === 1 ||
-                  configArmazem.tipo_fundo === 2) && (
-                  <div className="mb-3">
-                    <label className="form-label">
-                      Intensidade do V: {configArmazem.intensidade_fundo}px
-                    </label>
-                    <input
-                      type="range"
-                      className="form-range"
-                      min="10"
-                      max="50"
-                      value={configArmazem.intensidade_fundo}
-                      onChange={(e) =>
-                        handleArmazemChange("intensidade_fundo", e.target.value)
-                      }
-                    />
-                  </div>
-                )}
-
-                <h6 className="mt-3 text-primary">Sensores</h6>
-                <div className="mb-3">
-                  <label className="form-label">
-                    Escala Sensores: {configArmazem.escala_sensores}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="10"
-                    max="25"
-                    value={configArmazem.escala_sensores}
-                    onChange={(e) =>
-                      handleArmazemChange("escala_sensores", e.target.value)
-                    }
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">
-                    Distância Y Sensores: {configArmazem.dist_y_sensores}px
-                  </label>
-                  <input
-                    type="range"
-                    className="form-range"
-                    min="8"
-                    max="20"
-                    value={configArmazem.dist_y_sensores}
-                    onChange={(e) =>
-                      handleArmazemChange("dist_y_sensores", e.target.value)
-                    }
-                  />
-                </div>
-
-                {/* Controles de Arco - usando dados reais do JSON */}
-                {analiseArcos && (
-                  <div className="mb-3">
-                    <h6 className="mt-3 text-success">Dados do JSON</h6>
-                    <div className="mb-3">
-                      <label className="form-label">
-                        Arco Atual: {arcoAtual} de {analiseArcos.totalArcos}
-                      </label>
-                      <input
-                        type="range"
-                        className="form-range"
-                        min="1"
-                        max={analiseArcos.totalArcos}
-                        value={arcoAtual}
-                        onChange={(e) => mudarArco(parseInt(e.target.value))}
-                      />
+                  <div className="card-body">
+                    <div className="row">
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          Profundidade Base (pb):
+                        </label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="100"
+                          max="300"
+                          value={configArmazem.pb}
+                          onChange={(e) =>
+                            handleArmazemChange("pb", e.target.value)
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.pb}
+                        </span>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">Largura Base (lb):</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="200"
+                          max="500"
+                          value={configArmazem.lb}
+                          onChange={(e) =>
+                            handleArmazemChange("lb", e.target.value)
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.lb}
+                        </span>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">Altura Base (hb):</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="80"
+                          value={configArmazem.hb}
+                          onChange={(e) =>
+                            handleArmazemChange("hb", e.target.value)
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.hb}
+                        </span>
+                      </div>
                     </div>
 
-                    <div
-                      className="border rounded p-2"
-                      style={{
-                        maxHeight: "150px",
-                        overflowY: "auto",
-                        fontSize: "0.8rem",
-                      }}
-                    >
-                      <div className="d-flex justify-content-between fw-bold mb-2">
-                        <span>Arco {arcoAtual}:</span>
+                    <div className="row mt-3">
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          Largura Frente (lf):
+                        </label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="150"
+                          max="350"
+                          value={configArmazem.lf}
+                          onChange={(e) =>
+                            handleArmazemChange("lf", e.target.value)
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.lf}
+                        </span>
                       </div>
-                      {analiseArcos.arcos[arcoAtual] &&
-                        analiseArcos.arcos[arcoAtual].pendulos.map(
-                          (pendulo) => (
-                            <div
-                              key={pendulo.numero}
-                              className="d-flex justify-content-between"
-                            >
-                              <span>Pêndulo {pendulo.numero}:</span>
-                              <span className="text-primary">
-                                {pendulo.totalSensores} sensores
-                              </span>
-                            </div>
-                          ),
-                        )}
-                      <hr className="my-2" />
-                      <div className="d-flex justify-content-between fw-bold">
-                        <span>Total:</span>
-                        <span>
-                          {analiseArcos.arcos[arcoAtual]?.totalPendulos || 0}{" "}
-                          pêndulos,{" "}
-                          {analiseArcos.arcos[arcoAtual]?.totalSensores || 0}{" "}
-                          sensores
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          Largura Estrutura (le):
+                        </label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="5"
+                          max="50"
+                          value={configArmazem.le}
+                          onChange={(e) =>
+                            handleArmazemChange("le", e.target.value)
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.le}
+                        </span>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">Altura Teto (ht):</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="20"
+                          max="100"
+                          value={configArmazem.ht}
+                          onChange={(e) =>
+                            handleArmazemChange("ht", e.target.value)
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.ht}
                         </span>
                       </div>
                     </div>
                   </div>
-                )}
+                </div>
+
+                {/* Seção 2: Configuração do Telhado */}
+                <div className="card mb-3">
+                  <div className="card-header bg-info text-white">
+                    <h6 className="mb-0">🏠 Configuração do Telhado</h6>
+                  </div>
+                  <div className="card-body">
+                    <div className="row">
+                      <div className="col-md-6">
+                        <label className="form-label">Tipo do Telhado:</label>
+                        <select
+                          className="form-select"
+                          value={configArmazem.tipo_telhado}
+                          onChange={(e) =>
+                            handleArmazemChange("tipo_telhado", e.target.value)
+                          }
+                        >
+                          <option value={1}>Pontudo</option>
+                          <option value={2}>Arredondado</option>
+                          <option value={3}>Arco</option>
+                        </select>
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Curvatura do Topo:</label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="80"
+                          value={configArmazem.curvatura_topo}
+                          onChange={(e) =>
+                            handleArmazemChange(
+                              "curvatura_topo",
+                              e.target.value,
+                            )
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.curvatura_topo}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Seção 3: Configuração do Fundo */}
+                <div className="card mb-3">
+                  <div className="card-header bg-warning text-dark">
+                    <h6 className="mb-0">⬇️ Configuração do Fundo</h6>
+                  </div>
+                  <div className="card-body">
+                    <div className="row mb-3">
+                      <div className="col-md-12">
+                        <label className="form-label">Tipo do Fundo:</label>
+                        <select
+                          className="form-select"
+                          value={configArmazem.tipo_fundo}
+                          onChange={(e) =>
+                            handleArmazemChange("tipo_fundo", e.target.value)
+                          }
+                        >
+                          <option value={0}>Reto</option>
+                          <option value={1}>Funil/V</option>
+                          <option value={2}>Duplo V</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Controles específicos para Fundo Reto */}
+                    {configArmazem.tipo_fundo === 0 && (
+                      <div className="alert alert-light">
+                        <h6>Configurações do Fundo Reto:</h6>
+                        <div className="row">
+                          <div className="col-md-6">
+                            <label className="form-label">
+                              Altura do Fundo Reto:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="0"
+                              max="30"
+                              value={configArmazem.altura_fundo_reto || 10}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "altura_fundo_reto",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.altura_fundo_reto || 10}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Controles específicos para Funil V */}
+                    {configArmazem.tipo_fundo === 1 && (
+                      <div className="alert alert-light">
+                        <h6>Configurações do Funil V:</h6>
+                        <div className="row">
+                          <div className="col-md-4">
+                            <label className="form-label">
+                              Altura do Funil:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="20"
+                              max="80"
+                              value={configArmazem.altura_funil_v || 40}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "altura_funil_v",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.altura_funil_v || 40}
+                            </span>
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label">
+                              Posição da Ponta (Esq ← → Dir):
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="-1"
+                              max="1"
+                              step="0.1"
+                              value={configArmazem.posicao_ponta_v || 0}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "posicao_ponta_v",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.posicao_ponta_v || 0}
+                            </span>
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label">
+                              Largura da Abertura:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="5"
+                              max="50"
+                              value={configArmazem.largura_abertura_v || 20}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "largura_abertura_v",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.largura_abertura_v || 20}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Controles específicos para Duplo V */}
+                    {configArmazem.tipo_fundo === 2 && (
+                      <div className="alert alert-light">
+                        <h6>Configurações do Duplo V:</h6>
+                        <div className="row mb-2">
+                          <div className="col-md-4">
+                            <label className="form-label">
+                              Altura dos Funis:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="20"
+                              max="70"
+                              value={configArmazem.altura_duplo_v || 35}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "altura_duplo_v",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.altura_duplo_v || 35}
+                            </span>
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label">
+                              Posição V Esquerdo:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="-1"
+                              max="0"
+                              step="0.1"
+                              value={configArmazem.posicao_v_esquerdo || -0.5}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "posicao_v_esquerdo",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.posicao_v_esquerdo || -0.5}
+                            </span>
+                          </div>
+                          <div className="col-md-4">
+                            <label className="form-label">
+                              Posição V Direito:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="0"
+                              max="1"
+                              step="0.1"
+                              value={configArmazem.posicao_v_direito || 0.5}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "posicao_v_direito",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.posicao_v_direito || 0.5}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="row">
+                          <div className="col-md-6">
+                            <label className="form-label">
+                              Largura das Aberturas:
+                            </label>
+                            <input
+                              type="range"
+                              className="form-range"
+                              min="5"
+                              max="40"
+                              value={
+                                configArmazem.largura_abertura_duplo_v || 15
+                              }
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "largura_abertura_duplo_v",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <span className="badge bg-secondary">
+                              {configArmazem.largura_abertura_duplo_v || 15}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Seção 4: Configuração dos Sensores */}
+                <div className="card mb-3">
+                  <div className="card-header bg-success text-white">
+                    <h6 className="mb-0">🌡️ Configuração dos Sensores</h6>
+                  </div>
+                  <div className="card-body">
+                    <div className="row">
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          Escala dos Sensores:
+                        </label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="30"
+                          value={configArmazem.escala_sensores}
+                          onChange={(e) =>
+                            handleArmazemChange(
+                              "escala_sensores",
+                              e.target.value,
+                            )
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.escala_sensores}
+                        </span>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          Distância Y Sensores:
+                        </label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="8"
+                          max="20"
+                          value={configArmazem.dist_y_sensores}
+                          onChange={(e) =>
+                            handleArmazemChange(
+                              "dist_y_sensores",
+                              e.target.value,
+                            )
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.dist_y_sensores}
+                        </span>
+                      </div>
+                      <div className="col-md-4">
+                        <label className="form-label">
+                          Intensidade do Fundo:
+                        </label>
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="50"
+                          value={configArmazem.intensidade_fundo}
+                          onChange={(e) =>
+                            handleArmazemChange(
+                              "intensidade_fundo",
+                              e.target.value,
+                            )
+                          }
+                        />
+                        <span className="badge bg-secondary">
+                          {configArmazem.intensidade_fundo}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </>
             )}
 
@@ -1193,11 +1547,11 @@ const ModeladorSVG = () => {
                 } else {
                   setConfigArmazem(config);
                 }
-                setNomeConfiguracao(metadata.name || '');
+                setNomeConfiguracao(metadata.name || "");
               }}
               onConfigurationSave={(name, config) => {
                 setNomeConfiguracao(name);
-                setForceUpdateLista(prev => prev + 1);
+                setForceUpdateLista((prev) => prev + 1);
               }}
             />
           </div>
