@@ -305,6 +305,7 @@ const ModeladorSVG = () => {
         <rect
           key={`pendulo-${pendulo.numero}`}
           id={`C${index + 1}`}
+          className="pendulo-element"
           x={xCabo - escala_sensores / 2}
           y={yPendulo}
           width={escala_sensores}
@@ -320,6 +321,7 @@ const ModeladorSVG = () => {
         <text
           key={`texto-pendulo-${pendulo.numero}`}
           id={`TC${index + 1}`}
+          className="pendulo-element"
           x={xCabo}
           y={yPendulo + escala_sensores / 4}
           textAnchor="middle"
@@ -345,6 +347,7 @@ const ModeladorSVG = () => {
             <rect
               key={`sensor-${pendulo.numero}-${s}`}
               id={`C${index + 1}S${s}`}
+              className="sensor-element"
               x={xCabo - escala_sensores / 2}
               y={ySensor}
               width={escala_sensores}
@@ -362,6 +365,7 @@ const ModeladorSVG = () => {
             <text
               key={`texto-sensor-${pendulo.numero}-${s}`}
               id={`TC${index + 1}S${s}`}
+              className="sensor-element"
               x={xCabo}
               y={ySensor + escala_sensores / 4}
               textAnchor="middle"
@@ -379,6 +383,7 @@ const ModeladorSVG = () => {
             <text
               key={`nome-sensor-${pendulo.numero}-${s}`}
               id={`TIND${index + 1}S${s}`}
+              className="sensor-element"
               x={xCabo - escala_sensores / 2 - 2}
               y={ySensor + escala_sensores / 4}
               textAnchor="end"
@@ -412,58 +417,70 @@ const ModeladorSVG = () => {
     const pb = configArmazem.pb;
     const yPendulo = pb + 15 + posicao_vertical;
 
-    Object.entries(dadosArco.leitura).forEach(
-      ([idCabo, sensores], penduloIndex) => {
-        // Recalcular posição X do cabo com os novos parâmetros
-        const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
-        const xCabo = xCaboBase + posicao_horizontal + (dist_x_sensores * penduloIndex);
+    // Use requestAnimationFrame para suavizar as atualizações
+    requestAnimationFrame(() => {
+      Object.entries(dadosArco.leitura).forEach(
+        ([idCabo, sensores], penduloIndex) => {
+          // Recalcular posição X do cabo com os novos parâmetros
+          const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
+          const xCabo = xCaboBase + posicao_horizontal + (dist_x_sensores * penduloIndex);
 
-        // Atualizar posição do pêndulo
-        const pendulo = document.getElementById(`C${penduloIndex + 1}`);
-        const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`);
-        if (pendulo && textoPendulo) {
-          pendulo.setAttribute("x", xCabo - escala_sensores / 2);
-          pendulo.setAttribute("y", yPendulo);
-          textoPendulo.setAttribute("x", xCabo);
-          textoPendulo.setAttribute("y", yPendulo + escala_sensores / 4);
-        }
-
-        Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
-          const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25;
-          
-          const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
-          const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
-          const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`);
-          
-          if (!rec || !txt || !nomeTexto) return;
-
-          // Atualizar posicionamento
-          rec.setAttribute("x", xCabo - escala_sensores / 2);
-          rec.setAttribute("y", ySensor);
-          rec.setAttribute("width", escala_sensores);
-          rec.setAttribute("height", escala_sensores / 2);
-          
-          txt.setAttribute("x", xCabo);
-          txt.setAttribute("y", ySensor + escala_sensores / 4);
-          txt.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
-          
-          nomeTexto.setAttribute("x", xCabo - escala_sensores / 2 - 2);
-          nomeTexto.setAttribute("y", ySensor + escala_sensores / 4);
-          nomeTexto.setAttribute("font-size", escala_sensores * 0.4 - 1.5);
-
-          // Atualizar dados
-          txt.textContent = falha ? "ERRO" : temp.toFixed(1);
-          if (!nivel) {
-            rec.setAttribute("fill", "#e6e6e6");
-            txt.setAttribute("fill", "black");
-          } else {
-            const cor = corFaixaExata(temp);
-            rec.setAttribute("fill", cor);
-            txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
+          // Atualizar posição do pêndulo
+          const pendulo = document.getElementById(`C${penduloIndex + 1}`);
+          const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`);
+          if (pendulo && textoPendulo) {
+            // Aplicar transições suaves usando CSS transforms quando possível
+            pendulo.style.transition = 'all 0.15s ease-out';
+            textoPendulo.style.transition = 'all 0.15s ease-out';
+            
+            pendulo.setAttribute("x", xCabo - escala_sensores / 2);
+            pendulo.setAttribute("y", yPendulo);
+            textoPendulo.setAttribute("x", xCabo);
+            textoPendulo.setAttribute("y", yPendulo + escala_sensores / 4);
           }
-        });
-      },
-    );
+
+          Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
+            const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25;
+            
+            const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
+            const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
+            const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`);
+            
+            if (!rec || !txt || !nomeTexto) return;
+
+            // Aplicar transições suaves
+            rec.style.transition = 'all 0.15s ease-out';
+            txt.style.transition = 'all 0.15s ease-out';
+            nomeTexto.style.transition = 'all 0.15s ease-out';
+
+            // Atualizar posicionamento
+            rec.setAttribute("x", xCabo - escala_sensores / 2);
+            rec.setAttribute("y", ySensor);
+            rec.setAttribute("width", escala_sensores);
+            rec.setAttribute("height", escala_sensores / 2);
+            
+            txt.setAttribute("x", xCabo);
+            txt.setAttribute("y", ySensor + escala_sensores / 4);
+            txt.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
+            
+            nomeTexto.setAttribute("x", xCabo - escala_sensores / 2 - 2);
+            nomeTexto.setAttribute("y", ySensor + escala_sensores / 4);
+            nomeTexto.setAttribute("font-size", escala_sensores * 0.4 - 1.5);
+
+            // Atualizar dados
+            txt.textContent = falha ? "ERRO" : temp.toFixed(1);
+            if (!nivel) {
+              rec.setAttribute("fill", "#e6e6e6");
+              txt.setAttribute("fill", "black");
+            } else {
+              const cor = corFaixaExata(temp);
+              rec.setAttribute("fill", cor);
+              txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
+            }
+          });
+        },
+      );
+    });
   };
 
   // useEffect para atualizar sensores quando dados ou configurações mudarem
@@ -472,7 +489,7 @@ const ModeladorSVG = () => {
       // Pequeno delay para garantir que o DOM foi renderizado
       setTimeout(() => {
         atualizarSensores(dados);
-      }, 100);
+      }, 50); // Reduzido para resposta mais rápida
     }
   }, [dados, arcoAtual, tipoAtivo, configArmazem.escala_sensores, configArmazem.dist_y_sensores, configArmazem.dist_x_sensores, configArmazem.posicao_horizontal, configArmazem.posicao_vertical]);
 
@@ -756,6 +773,9 @@ const ModeladorSVG = () => {
     );
   };
 
+  // Debounce ref para otimizar atualizações
+  const debounceTimeoutRef = React.useRef(null);
+
   // Handlers para mudança de configuração
   const handleSiloChange = (campo, valor) => {
     setConfigSilo((prev) => ({
@@ -769,16 +789,24 @@ const ModeladorSVG = () => {
       ...configArmazem,
       [campo]: parseFloat(valor),
     };
+    
+    // Limpar timeout anterior se existir
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
     setConfigArmazem(novaConfig);
 
-    // Atualizar também o modelo atual
-    setModelosArcos(prev => ({
-      ...prev,
-      [modeloArcoAtual]: {
-        ...prev[modeloArcoAtual],
-        config: novaConfig
-      }
-    }));
+    // Debounce para atualizar modelos (evita atualizações excessivas)
+    debounceTimeoutRef.current = setTimeout(() => {
+      setModelosArcos(prev => ({
+        ...prev,
+        [modeloArcoAtual]: {
+          ...prev[modeloArcoAtual],
+          config: novaConfig
+        }
+      }));
+    }, 50); // 50ms de debounce
   };
 
   // Handlers para modelos de arcos
@@ -2592,6 +2620,16 @@ const ModeladorSVG = () => {
                   }}
                   xmlns="http://www.w3.org/2000/svg"
                 >
+                  <style>
+                    {`
+                      .sensor-element {
+                        transition: all 0.15s ease-out;
+                      }
+                      .pendulo-element {
+                        transition: all 0.15s ease-out;
+                      }
+                    `}
+                  </style>
                   {tipoAtivo === "silo" ? (
                     <>
                       <g transform={transformSilo}>{renderFundoSilo()}</g>
