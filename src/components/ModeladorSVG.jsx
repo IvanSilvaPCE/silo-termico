@@ -55,7 +55,9 @@ const ModeladorSVG = () => {
     // Configuração dos Sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
-    intensidade_fundo: 20,
+    dist_x_sensores: 0,
+    posicao_horizontal: 0,
+    posicao_vertical: 0,
   });
 
   // Estados para modelos de arcos
@@ -274,7 +276,7 @@ const ModeladorSVG = () => {
     else return "#f700ff";
   };
 
-  // Renderizar sensores básicos - igual ao Armazem.jsx
+  // Renderizar sensores básicos - com funcionalidade dos novos campos
   const renderSensoresArmazem = () => {
     if (!layoutsAutomaticos || !analiseArcos) return [];
 
@@ -286,12 +288,16 @@ const ModeladorSVG = () => {
 
     const escala_sensores = configArmazem.escala_sensores;
     const dist_y_sensores = configArmazem.dist_y_sensores;
+    const dist_x_sensores = configArmazem.dist_x_sensores || 0;
+    const posicao_horizontal = configArmazem.posicao_horizontal || 0;
+    const posicao_vertical = configArmazem.posicao_vertical || 0;
     const pb = configArmazem.pb; // Usar configuração do usuário
-    const yPendulo = pb + 15; // Posição dos pêndulos - FORA do armazém
+    const yPendulo = pb + 15 + posicao_vertical; // Posição dos pêndulos com ajuste vertical
 
-    // Renderizar todos os pêndulos em ordem sequencial - igual ao Armazem.jsx
+    // Renderizar todos os pêndulos em ordem sequencial
     arcoInfo.pendulos.forEach((pendulo, index) => {
-      const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
+      const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index];
+      const xCabo = xCaboBase + posicao_horizontal + (dist_x_sensores * index); // Aplicar ajustes horizontais
       const numSensores = pendulo.totalSensores;
 
       // Retângulo do nome do pêndulo - igual ao Armazem.jsx
@@ -327,14 +333,14 @@ const ModeladorSVG = () => {
         </text>,
       );
 
-      // Renderizar TODOS os sensores de 1 até numSensores - igual ao Armazem.jsx
+      // Renderizar TODOS os sensores de 1 até numSensores com posicionamento ajustado
       for (let s = 1; s <= numSensores; s++) {
-        const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
+        const ySensor = yPendulo - dist_y_sensores * s - 25; // Aplicar distância Y configurada
 
-        // Garantir que o sensor está dentro dos limites do SVG - usar altura calculada
+        // Garantir que o sensor está dentro dos limites do SVG
         const [, alturaSVG] = calcularDimensoesSVG();
         if (ySensor > 10 && ySensor < alturaSVG - 60) {
-          // Retângulo do sensor com cor padrão - igual ao Armazem.jsx
+          // Retângulo do sensor com posicionamento ajustado
           elementos.push(
             <rect
               key={`sensor-${pendulo.numero}-${s}`}
@@ -351,7 +357,7 @@ const ModeladorSVG = () => {
             />,
           );
 
-          // Texto do valor do sensor com valor padrão - igual ao Armazem.jsx
+          // Texto do valor do sensor com posicionamento ajustado
           elementos.push(
             <text
               key={`texto-sensor-${pendulo.numero}-${s}`}
@@ -368,7 +374,7 @@ const ModeladorSVG = () => {
             </text>,
           );
 
-          // Nome do sensor (S1, S2, etc.) - igual ao Armazem.jsx
+          // Nome do sensor (S1, S2, etc.) com posicionamento ajustado
           elementos.push(
             <text
               key={`nome-sensor-${pendulo.numero}-${s}`}
@@ -391,17 +397,61 @@ const ModeladorSVG = () => {
     return elementos;
   };
 
-  // Função para atualizar sensores com dados reais - exatamente igual ao Armazem.jsx
+  // Função para atualizar sensores com dados reais e posicionamento dinâmico
   const atualizarSensores = (dadosArco) => {
-    if (!dadosArco?.leitura || !analiseArcos) return;
+    if (!dadosArco?.leitura || !analiseArcos || !layoutsAutomaticos) return;
+
+    const layoutArco = layoutsAutomaticos[`arco_${arcoAtual}`];
+    if (!layoutArco) return;
+
+    const escala_sensores = configArmazem.escala_sensores;
+    const dist_y_sensores = configArmazem.dist_y_sensores;
+    const dist_x_sensores = configArmazem.dist_x_sensores || 0;
+    const posicao_horizontal = configArmazem.posicao_horizontal || 0;
+    const posicao_vertical = configArmazem.posicao_vertical || 0;
+    const pb = configArmazem.pb;
+    const yPendulo = pb + 15 + posicao_vertical;
 
     Object.entries(dadosArco.leitura).forEach(
       ([idCabo, sensores], penduloIndex) => {
+        // Recalcular posição X do cabo com os novos parâmetros
+        const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
+        const xCabo = xCaboBase + posicao_horizontal + (dist_x_sensores * penduloIndex);
+
+        // Atualizar posição do pêndulo
+        const pendulo = document.getElementById(`C${penduloIndex + 1}`);
+        const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`);
+        if (pendulo && textoPendulo) {
+          pendulo.setAttribute("x", xCabo - escala_sensores / 2);
+          pendulo.setAttribute("y", yPendulo);
+          textoPendulo.setAttribute("x", xCabo);
+          textoPendulo.setAttribute("y", yPendulo + escala_sensores / 4);
+        }
+
         Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
+          const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25;
+          
           const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
           const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
-          if (!rec || !txt) return;
+          const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`);
+          
+          if (!rec || !txt || !nomeTexto) return;
 
+          // Atualizar posicionamento
+          rec.setAttribute("x", xCabo - escala_sensores / 2);
+          rec.setAttribute("y", ySensor);
+          rec.setAttribute("width", escala_sensores);
+          rec.setAttribute("height", escala_sensores / 2);
+          
+          txt.setAttribute("x", xCabo);
+          txt.setAttribute("y", ySensor + escala_sensores / 4);
+          txt.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
+          
+          nomeTexto.setAttribute("x", xCabo - escala_sensores / 2 - 2);
+          nomeTexto.setAttribute("y", ySensor + escala_sensores / 4);
+          nomeTexto.setAttribute("font-size", escala_sensores * 0.4 - 1.5);
+
+          // Atualizar dados
           txt.textContent = falha ? "ERRO" : temp.toFixed(1);
           if (!nivel) {
             rec.setAttribute("fill", "#e6e6e6");
@@ -416,7 +466,7 @@ const ModeladorSVG = () => {
     );
   };
 
-  // useEffect para atualizar sensores quando dados mudarem - igual ao Armazem.jsx
+  // useEffect para atualizar sensores quando dados ou configurações mudarem
   useEffect(() => {
     if (dados && tipoAtivo === "armazem") {
       // Pequeno delay para garantir que o DOM foi renderizado
@@ -424,7 +474,7 @@ const ModeladorSVG = () => {
         atualizarSensores(dados);
       }, 100);
     }
-  }, [dados, arcoAtual, tipoAtivo, configArmazem]);
+  }, [dados, arcoAtual, tipoAtivo, configArmazem.escala_sensores, configArmazem.dist_y_sensores, configArmazem.dist_x_sensores, configArmazem.posicao_horizontal, configArmazem.posicao_vertical]);
 
   // Renderizar base do armazém
   const renderArmazem = () => {
@@ -740,7 +790,7 @@ const ModeladorSVG = () => {
 
     for (let i = 1; i <= qtd; i++) {
       let posicao, nome;
-      
+
       if (qtd === 1) {
         // 1 modelo: serve para tudo
         posicao = "todos";
@@ -853,7 +903,7 @@ const ModeladorSVG = () => {
       if (numeroArco === 1 || numeroArco === totalArcos) {
         return Object.values(modelos).find(modelo => modelo.posicao === "frente_fundo") || modelos[1];
       }
-      
+
       // Arcos intermediários alternam entre par e ímpar
       const isPar = numeroArco % 2 === 0;
       const posicaoProcurada = isPar ? "par" : "impar";
@@ -952,7 +1002,7 @@ const ModeladorSVG = () => {
 
       // Determinar qual modelo deve ser usado para o arco atual no preview
       const modeloParaArcoAtual = determinarModeloParaArco(arcoAtual);
-      
+
       // Se o modelo carregado é o que deve ser usado para o arco atual, aplicar a configuração
       if (modeloParaArcoAtual && modeloParaArcoAtual.posicao === dadosModelo.posicao) {
         setConfigArmazem(dadosModelo.config);
@@ -966,7 +1016,7 @@ const ModeladorSVG = () => {
             nome: dadosModelo.nome,
           },
         };
-        
+
         // Recalcular o modelo para o arco atual com os dados atualizados
         const modeloCorretoParaArco = determinarModeloParaArcoComModelos(arcoAtual, modelosAtualizados);
         if (modeloCorretoParaArco && modeloCorretoParaArco.config) {
@@ -1195,7 +1245,9 @@ const ModeladorSVG = () => {
         // Configuração dos Sensores
         escala_sensores: 16,
         dist_y_sensores: 12,
-        intensidade_fundo: 20,
+        dist_x_sensores: 0,
+        posicao_horizontal: 0,
+        posicao_vertical: 0,
       };
 
       setConfigArmazem(configPadrao);
@@ -1523,7 +1575,7 @@ const ModeladorSVG = () => {
                           {Array.from({ length: quantidadeModelosArcos }, (_, i) => {
                             const modeloNum = i + 1;
                             let descricaoModelo = "";
-                            
+
                             if (quantidadeModelosArcos === 1) {
                               descricaoModelo = "todos";
                             } else if (quantidadeModelosArcos === 2) {
@@ -1538,7 +1590,7 @@ const ModeladorSVG = () => {
                               else if (modeloNum === 3) descricaoModelo = "impar";
                               else descricaoModelo = "fundo";
                             }
-                            
+
                             return (
                               <option key={modeloNum} value={modeloNum}>
                                 Modelo {modeloNum} - {descricaoModelo}
@@ -2296,7 +2348,7 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "escala_sensores",
-                                e.target.value,
+                                e.target.value
                               )
                             }
                           />
@@ -2330,7 +2382,7 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "dist_y_sensores",
-                                e.target.value,
+                                e.target.value
                               )
                             }
                           />
@@ -2341,7 +2393,9 @@ const ModeladorSVG = () => {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("dist_y_sensores", 12)}
+                              onClick={() =>
+                                handleArmazemChange("dist_y_sensores", 12)
+                              }
                               title="Resetar para padrão (12)"
                             >
                               ×
@@ -2351,32 +2405,105 @@ const ModeladorSVG = () => {
                       </div>
                       <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
                         <label className="form-label">
-                          Intensidade do Fundo:
+                          Distância X Sensores:
                         </label>
                         <div className="d-flex align-items-center flex-wrap">
                           <input
                             type="range"
                             className="form-range me-2 flex-grow-1"
                             style={{ minWidth: "120px" }}
-                            min="10"
-                            max="50"
-                            value={configArmazem.intensidade_fundo}
+                            min="-20"
+                            max="20"
+                            value={configArmazem.dist_x_sensores}
                             onChange={(e) =>
                               handleArmazemChange(
-                                "intensidade_fundo",
-                                e.target.value,
+                                "dist_x_sensores",
+                                e.target.value
                               )
                             }
                           />
                           <div className="d-flex align-items-center">
                             <span className="badge bg-secondary me-2">
-                              {configArmazem.intensidade_fundo}
+                              {configArmazem.dist_x_sensores}
                             </span>
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("intensidade_fundo", 20)}
-                              title="Resetar para padrão (20)"
+                              onClick={() =>
+                                handleArmazemChange("dist_x_sensores", 0)
+                              }
+                              title="Resetar para padrão (0)"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
+                        <label className="form-label">
+                          Posição Horizontal:
+                        </label>
+                        <div className="d-flex align-items-center flex-wrap">
+                          <input
+                            type="range"
+                            className="form-range me-2 flex-grow-1"
+                            style={{ minWidth: "120px" }}
+                            min="-50"
+                            max="50"
+                            value={configArmazem.posicao_horizontal}
+                            onChange={(e) =>
+                              handleArmazemChange(
+                                "posicao_horizontal",
+                                e.target.value
+                              )
+                            }
+                          />
+                          <div className="d-flex align-items-center">
+                            <span className="badge bg-secondary me-2">
+                              {configArmazem.posicao_horizontal}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() =>
+                                handleArmazemChange("posicao_horizontal", 0)
+                              }
+                              title="Resetar para padrão (0)"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
+                        <label className="form-label">
+                          Posição Vertical:
+                        </label>
+                        <div className="d-flex align-items-center flex-wrap">
+                          <input
+                            type="range"
+                            className="form-range me-2 flex-grow-1"
+                            style={{ minWidth: "120px" }}
+                            min="-30"
+                            max="30"
+                            value={configArmazem.posicao_vertical}
+                            onChange={(e) =>
+                              handleArmazemChange(
+                                "posicao_vertical",
+                                e.target.value
+                              )                            }
+                          />
+                          <div className="d-flex align-items-center">
+                            <span className="badge bg-secondary me-2">
+                              {configArmazem.posicao_vertical}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() =>
+                                handleArmazemChange("posicao_vertical", 0)
+                              }
+                              title="Resetar para padrão (0)"
                             >
                               ×
                             </button>

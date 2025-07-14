@@ -1,4 +1,3 @@
-
 // Exemplos de configurações que podem ser salvas no banco
 
 export const exemploConfigSiloIndustrial = {
@@ -83,30 +82,32 @@ export const exemploConfigArmazemMedio = {
     lf: 250,
     le: 15,
     ht: 50,
-    
+
     // Configuração do Telhado
     tipo_telhado: 1,
     curvatura_topo: 30,
-    
+
     // Configuração do Fundo
     tipo_fundo: 0,
     altura_fundo_reto: 0,
-    
+
     // Configurações Funil V
     altura_funil_v: 40,
     posicao_ponta_v: 0,
     largura_abertura_v: 20,
-    
+
     // Configurações Duplo V
     altura_duplo_v: 35,
     posicao_v_esquerdo: -0.5,
     posicao_v_direito: 0.5,
     largura_abertura_duplo_v: 15,
-    
+
     // Configuração dos Sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
-    intensidade_fundo: 20,
+    dist_x_sensores: 0,
+    posicao_horizontal: 0,
+    posicao_vertical: 0,
   }
 };
 
@@ -131,7 +132,9 @@ export const exemploConfigArmazemFunilV = {
     largura_abertura_v: 25,
     escala_sensores: 18,
     dist_y_sensores: 14,
-    intensidade_fundo: 25,
+    dist_x_sensores: 0,
+    posicao_horizontal: 0,
+    posicao_vertical: 0,
   }
 };
 
@@ -157,7 +160,8 @@ export const exemploConfigArmazemDuploV = {
     largura_abertura_duplo_v: 18,
     escala_sensores: 20,
     dist_y_sensores: 15,
-    intensidade_fundo: 30,
-  }sensores: 12,
+    dist_x_sensores: 0,
+    posicao_horizontal: 0,
+    posicao_vertical: 0,
   }
 };
