@@ -294,10 +294,19 @@ const ModeladorSVG = () => {
     const pb = configArmazem.pb; // Usar configuração do usuário
     const yPendulo = pb + 15 + posicao_vertical; // Posição dos pêndulos com ajuste vertical
 
+    // Calcular índice do cabo central
+    const totalCabos = arcoInfo.pendulos.length;
+    const indiceCentral = Math.floor((totalCabos - 1) / 2);
+
     // Renderizar todos os pêndulos em ordem sequencial
     arcoInfo.pendulos.forEach((pendulo, index) => {
       const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index];
-      const xCabo = xCaboBase + posicao_horizontal + (dist_x_sensores * index); // Aplicar ajustes horizontais
+      
+      // Calcular deslocamento baseado na distância do cabo central
+      const distanciaDoMeio = index - indiceCentral;
+      const deslocamentoX = distanciaDoMeio * dist_x_sensores;
+      
+      const xCabo = xCaboBase + posicao_horizontal + deslocamentoX; // Aplicar ajustes horizontais
       const numSensores = pendulo.totalSensores;
 
       // Retângulo do nome do pêndulo - igual ao Armazem.jsx
@@ -419,11 +428,17 @@ const ModeladorSVG = () => {
 
     // Use requestAnimationFrame para suavizar as atualizações
     requestAnimationFrame(() => {
+      // Calcular índice do cabo central para a nova lógica
+      const totalCabos = Object.keys(dadosArco.leitura).length;
+      const indiceCentral = Math.floor((totalCabos - 1) / 2);
+
       Object.entries(dadosArco.leitura).forEach(
         ([idCabo, sensores], penduloIndex) => {
-          // Recalcular posição X do cabo com os novos parâmetros
+          // Recalcular posição X do cabo com os novos parâmetros (expandir a partir do centro)
           const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
-          const xCabo = xCaboBase + posicao_horizontal + (dist_x_sensores * penduloIndex);
+          const distanciaDoMeio = penduloIndex - indiceCentral;
+          const deslocamentoX = distanciaDoMeio * dist_x_sensores;
+          const xCabo = xCaboBase + posicao_horizontal + deslocamentoX;
 
           // Atualizar posição do pêndulo
           const pendulo = document.getElementById(`C${penduloIndex + 1}`);
