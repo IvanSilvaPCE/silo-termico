@@ -58,6 +58,17 @@ const ModeladorSVG = () => {
     intensidade_fundo: 20,
   });
 
+  // Estados para modelos de arcos
+  const [quantidadeModelosArcos, setQuantidadeModelosArcos] = useState(1);
+  const [modeloArcoAtual, setModeloArcoAtual] = useState(1);
+  const [modelosArcos, setModelosArcos] = useState({
+    1: {
+      posicao: "frente", // frente, par, impar, fundo
+      config: { ...configArmazem },
+      nome: "Modelo Arco 1"
+    }
+  });
+
   const [tipoAtivo, setTipoAtivo] = useState("silo");
   const [nomeConfiguracao, setNomeConfiguracao] = useState("");
   const [forceUpdateLista, setForceUpdateLista] = useState(0);
@@ -154,17 +165,10 @@ const ModeladorSVG = () => {
     };
   };
 
-  // Carregar configurações salvas
+  // NÃO carregar configurações automaticamente - sempre começar com reset
   useEffect(() => {
-    const configSalvaSilo = localStorage.getItem("configSilo");
-    const configSalvaArmazem = localStorage.getItem("configArmazem");
-
-    if (configSalvaSilo) {
-      setConfigSilo(JSON.parse(configSalvaSilo));
-    }
-    if (configSalvaArmazem) {
-      setConfigArmazem(JSON.parse(configSalvaArmazem));
-    }
+    // Componente sempre inicia com configuração padrão (reset)
+    // Usuário deve carregar manualmente se quiser usar configuração salva
   }, []);
 
   // Funções de renderização do Silo
@@ -711,15 +715,113 @@ const ModeladorSVG = () => {
   };
 
   const handleArmazemChange = (campo, valor) => {
-    setConfigArmazem((prev) => ({
-      ...prev,
+    const novaConfig = {
+      ...configArmazem,
       [campo]: parseFloat(valor),
+    };
+    setConfigArmazem(novaConfig);
+
+    // Atualizar também o modelo atual
+    setModelosArcos(prev => ({
+      ...prev,
+      [modeloArcoAtual]: {
+        ...prev[modeloArcoAtual],
+        config: novaConfig
+      }
     }));
   };
 
-  // Função para mudar arco (igual ao Armazem.jsx)
+  // Handlers para modelos de arcos
+  const handleQuantidadeModelosChange = (quantidade) => {
+    const qtd = parseInt(quantidade);
+    setQuantidadeModelosArcos(qtd);
+
+    const novosModelos = {};
+    const posicoes = ["frente", "par", "impar", "fundo"];
+
+    for (let i = 1; i <= qtd; i++) {
+      let posicao;
+      if (i === 1) posicao = "frente";
+      else if (i === qtd && qtd > 1) posicao = "fundo";
+      else if (i % 2 === 0) posicao = "par";
+      else posicao = "impar";
+
+      novosModelos[i] = modelosArcos[i] || {
+        posicao,
+        config: { ...configArmazem },
+        nome: `Modelo Arco ${i}`
+      };
+    }
+
+    setModelosArcos(novosModelos);
+
+    // Se o modelo atual não existe mais, voltar para o primeiro
+    if (modeloArcoAtual > qtd) {
+      setModeloArcoAtual(1);
+      setConfigArmazem(novosModelos[1].config);
+    }
+  };
+
+  const handleModeloArcoChange = (numeroModelo) => {
+    setModeloArcoAtual(numeroModelo);
+    setConfigArmazem(modelosArcos[numeroModelo].config);
+  };
+
+  const handlePosicaoArcoChange = (posicao) => {
+    setModelosArcos(prev => ({
+      ...prev,
+      [modeloArcoAtual]: {
+        ...prev[modeloArcoAtual],
+        posicao
+      }
+    }));
+  };
+
+  const handleNomeModeloChange = (nome) => {
+    setModelosArcos(prev => ({
+      ...prev,
+      [modeloArcoAtual]: {
+        ...prev[modeloArcoAtual],
+        nome
+      }
+    }));
+  };
+
+  // Função para determinar qual modelo usar baseado no arco atual
+  const determinarModeloParaArco = (numeroArco) => {
+    if (!analiseArcos) return 1;
+
+    const totalArcos = analiseArcos.totalArcos;
+
+    // Primeiro arco sempre usa modelo "frente"
+    if (numeroArco === 1) {
+      return Object.values(modelosArcos).find(modelo => modelo.posicao === "frente") || modelosArcos[1];
+    }
+
+    // Último arco sempre usa modelo "fundo"
+    if (numeroArco === totalArcos) {
+      return Object.values(modelosArcos).find(modelo => modelo.posicao === "fundo") || modelosArcos[1];
+    }
+
+    // Arcos intermediários alternam entre par e ímpar
+    const isPar = numeroArco % 2 === 0;
+    const posicaoProcurada = isPar ? "par" : "impar";
+
+    return Object.values(modelosArcos).find(modelo => modelo.posicao === posicaoProcurada) || modelosArcos[1];
+  };
+
+  // Função para mudar arco e aplicar configuração correspondente
   const mudarArco = (novoArco) => {
     setArcoAtual(novoArco);
+
+    // Determinar qual modelo usar para este arco
+    const modeloParaArco = determinarModeloParaArco(novoArco);
+
+    // Aplicar a configuração do modelo correspondente
+    if (modeloParaArco && modeloParaArco.config) {
+      setConfigArmazem(modeloParaArco.config);
+    }
+
     if (dadosPortal) {
       const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(
         dadosPortal,
@@ -729,7 +831,85 @@ const ModeladorSVG = () => {
     }
   };
 
-  // Salvar configuração
+  // Salvar apenas o modelo de arco atual
+  const salvarModeloArco = () => {
+    const nomeModelo = modelosArcos[modeloArcoAtual]?.nome || `Modelo Arco ${modeloArcoAtual}`;
+
+    const dadosModelo = {
+      posicao: modelosArcos[modeloArcoAtual].posicao,
+      config: configArmazem,
+      nome: nomeModelo,
+      numeroModelo: modeloArcoAtual,
+      timestamp: new Date().toISOString(),
+      tipo: "modelo_arco_individual",
+    };
+
+    // Salvar modelo independente (não vinculado a armazém específico)
+    localStorage.setItem(
+      `modeloArco_${nomeModelo}`,
+      JSON.stringify(dadosModelo),
+    );
+
+    // Atualizar também nos modelos locais
+    setModelosArcos((prev) => ({
+      ...prev,
+      [modeloArcoAtual]: {
+        ...prev[modeloArcoAtual],
+        config: configArmazem,
+      },
+    }));
+
+    alert(`Modelo de arco "${nomeModelo}" salvo com sucesso!`);
+  };
+
+  // Carregar modelo de arco específico
+  const carregarModeloArco = (nomeModelo) => {
+    const modeloSalvo = localStorage.getItem(`modeloArco_${nomeModelo}`);
+
+    if (modeloSalvo) {
+      const dadosModelo = JSON.parse(modeloSalvo);
+
+      // Atualizar configuração atual
+      setConfigArmazem(dadosModelo.config);
+
+      // Atualizar modelo atual nos modelos locais
+      setModelosArcos((prev) => ({
+        ...prev,
+        [modeloArcoAtual]: {
+          posicao: dadosModelo.posicao,
+          config: dadosModelo.config,
+          nome: dadosModelo.nome,
+        },
+      }));
+
+      alert(`Modelo de arco "${nomeModelo}" carregado com sucesso!`);
+    } else {
+      alert("Modelo de arco não encontrado!");
+    }
+  };
+
+  // Listar modelos de arcos salvos
+  const listarModelosArcosSalvos = () => {
+    const prefixo = `modeloArco_`;
+    const modelos = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const chave = localStorage.key(i);
+      if (chave && chave.startsWith(prefixo)) {
+        const nome = chave.replace(prefixo, "");
+        modelos.push(nome);
+      }
+    }
+    return modelos;
+  };
+
+  // Deletar modelo de arco
+  const deletarModeloArco = (nomeModelo) => {
+    localStorage.removeItem(`modeloArco_${nomeModelo}`);
+    alert(`Modelo "${nomeModelo}" removido com sucesso!`);
+    setForceUpdateLista((prev) => prev + 1);
+  };
+
+  // Salvar configuração completa do armazém (todos os modelos)
   const salvarConfiguracao = () => {
     if (!nomeConfiguracao.trim()) {
       alert("Digite um nome para salvar a configuração!");
@@ -742,14 +922,39 @@ const ModeladorSVG = () => {
         `configSilo_${nomeConfiguracao}`,
         JSON.stringify(configSilo),
       );
+      alert(`Configuração Silo "${nomeConfiguracao}" salva com sucesso!`);
     } else {
-      localStorage.setItem("configArmazem", JSON.stringify(configArmazem));
+      // Atualizar o modelo atual antes de salvar
+      const modelosAtualizados = {
+        ...modelosArcos,
+        [modeloArcoAtual]: {
+          ...modelosArcos[modeloArcoAtual],
+          config: configArmazem,
+        },
+      };
+
+      // Salvar configuração completa com todos os modelos
+      const configCompleta = {
+        nome: nomeConfiguracao,
+        quantidadeModelos: quantidadeModelosArcos,
+        modelosArcos: modelosAtualizados,
+        modeloAtual: modeloArcoAtual,
+        timestamp: new Date().toISOString(),
+        versao: "2.0",
+        tipo: "configuracao_armazem_completa",
+      };
+
+      localStorage.setItem("configArmazem", JSON.stringify(configCompleta));
       localStorage.setItem(
         `configArmazem_${nomeConfiguracao}`,
-        JSON.stringify(configArmazem),
+        JSON.stringify(configCompleta),
+      );
+
+      alert(
+        `Configuração completa do armazém "${nomeConfiguracao}" salva com sucesso!`,
       );
     }
-    alert(`Configuração ${tipoAtivo} "${nomeConfiguracao}" salva com sucesso!`);
+
     setForceUpdateLista((prev) => prev + 1);
   };
 
@@ -761,13 +966,48 @@ const ModeladorSVG = () => {
     const configSalva = localStorage.getItem(chave);
 
     if (configSalva) {
+      const dadosCarregados = JSON.parse(configSalva);
+
       if (tipoAtivo === "silo") {
-        setConfigSilo(JSON.parse(configSalva));
+        setConfigSilo(dadosCarregados);
+        alert("Configuração do silo carregada com sucesso!");
       } else {
-        setConfigArmazem(JSON.parse(configSalva));
+        // Verificar se é uma configuração nova (com modelos) ou antiga
+        if (
+          dadosCarregados.modelosArcos &&
+          dadosCarregados.tipo === "configuracao_armazem_completa"
+        ) {
+          // Configuração nova - carregar todos os modelos
+          setQuantidadeModelosArcos(dadosCarregados.quantidadeModelos);
+          setModelosArcos(dadosCarregados.modelosArcos);
+          setModeloArcoAtual(dadosCarregados.modeloAtual);
+
+          // Definir a configuração atual baseada no modelo atual
+          const modeloAtualCarregado =
+            dadosCarregados.modelosArcos[dadosCarregados.modeloAtual];
+          if (modeloAtualCarregado) {
+            setConfigArmazem(modeloAtualCarregado.config);
+          }
+
+          alert(
+            `Configuração completa do armazém "${nome}" carregada com ${dadosCarregados.quantidadeModelos} modelos de arcos!`,
+          );
+        } else {
+          // Configuração antiga - converter para novo formato
+          setConfigArmazem(dadosCarregados);
+          setQuantidadeModelosArcos(1);
+          setModelosArcos({
+            1: {
+              posicao: "frente",
+              config: dadosCarregados,
+              nome: "Modelo Arco 1 (frente)",
+            },
+          });
+          setModeloArcoAtual(1);
+          alert("Configuração antiga convertida para o novo formato!");
+        }
       }
       setNomeConfiguracao(nome);
-      alert("Configuração carregada com sucesso!");
     } else {
       alert("Configuração não encontrada!");
     }
@@ -826,7 +1066,7 @@ const ModeladorSVG = () => {
         da: 35,
       });
     } else {
-      setConfigArmazem({
+      const configPadrao = {
         // Dimensões Básicas
         pb: 185,
         lb: 350,
@@ -859,7 +1099,18 @@ const ModeladorSVG = () => {
         escala_sensores: 16,
         dist_y_sensores: 12,
         intensidade_fundo: 20,
+      };
+
+      setConfigArmazem(configPadrao);
+      setQuantidadeModelosArcos(1);
+      setModelosArcos({
+        1: {
+          posicao: "frente",
+          config: configPadrao,
+          nome: "Modelo Arco 1 (frente)",
+        },
       });
+      setModeloArcoAtual(1);
     }
   };
 
@@ -1065,6 +1316,148 @@ const ModeladorSVG = () => {
             {/* Controles para Armazém */}
             {tipoAtivo === "armazem" && (
               <>
+                {/* Seção 0: Configuração de Modelos de Arcos */}
+                <div className="card mb-3">
+                  <div className="card-header bg-dark text-white">
+                    <h6 className="mb-0">🏗️ Modelos de Arcos do Armazém</h6>
+                  </div>
+                  <div className="card-body">
+                    <div className="row mb-3">
+                      <div className="col-md-6">
+                        <label className="form-label">Quantidade de Modelos:</label>
+                        <select
+                          className="form-select"
+                          value={quantidadeModelosArcos}
+                          onChange={(e) => handleQuantidadeModelosChange(e.target.value)}
+                        >
+                          <option value={1}>1 Modelo</option>
+                          <option value={2}>2 Modelos</option>
+                          <option value={3}>3 Modelos</option>
+                          <option value={4}>4 Modelos</option>
+                        </select>
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Modelo Atual:</label>
+                        <select
+                          className="form-select"
+                          value={modeloArcoAtual}
+                          onChange={(e) => handleModeloArcoChange(parseInt(e.target.value))}
+                        >
+                          {Array.from({ length: quantidadeModelosArcos }, (_, i) => (
+                            <option key={i + 1} value={i + 1}>
+                              Modelo {i + 1} - {modelosArcos[i + 1]?.posicao || ""}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-6">
+                        <label className="form-label">Nome do Modelo:</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          value={modelosArcos[modeloArcoAtual]?.nome || ""}
+                          onChange={(e) => handleNomeModeloChange(e.target.value)}
+                          placeholder="Nome do modelo"
+                        />
+                      </div>
+                      <div className="col-md-6">
+                        <label className="form-label">Posição no Armazém:</label>
+                        <select
+                          className="form-select"
+                          value={modelosArcos[modeloArcoAtual]?.posicao || "frente"}
+                          onChange={(e) => handlePosicaoArcoChange(e.target.value)}
+                        >
+                          <option value="frente">Frente (1º Arco)</option>
+                          <option value="par">Par (2º, 4º, 6º...)</option>
+                          <option value="impar">Ímpar (3º, 5º, 7º...)</option>
+                          <option value="fundo">Fundo (Último Arco)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="alert alert-info">
+                      <strong>Configurando:</strong> {modelosArcos[modeloArcoAtual]?.nome || ""} 
+                      <span className="badge bg-primary ms-2">
+                        {modelosArcos[modeloArcoAtual]?.posicao || ""}
+                      </span>
+                      <br />
+                      <small>
+                        Ajuste as configurações abaixo para este modelo específico. 
+                        As alterações são aplicadas em tempo real.
+                      </small>
+                    </div>
+
+                    {/* Controles para salvar/carregar modelo individual */}
+                    <div className="mt-3">
+                      <div className="row mb-2">
+                        <div className="col-md-6">
+                          <button 
+                            className="btn btn-success btn-sm w-100"
+                            onClick={salvarModeloArco}
+                          >
+                            💾 Salvar Modelo Atual
+                          </button>
+                        </div>
+                        <div className="col-md-6">
+                          <select 
+                            className="form-select form-select-sm"
+                            onChange={(e) => e.target.value && carregarModeloArco(e.target.value)}
+                            defaultValue=""
+                          >
+                            <option value="">Carregar Modelo Salvo</option>
+                            {listarModelosArcosSalvos().map(nome => (
+                              <option key={nome} value={nome}>{nome}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Lista de modelos salvos */}
+                      {listarModelosArcosSalvos().length > 0 && (
+                        <div className="alert alert-light">
+                          <h6>Modelos Salvos:</h6>
+                          <div className="d-flex flex-wrap gap-1">
+                            {listarModelosArcosSalvos().map(nome => (
+                              <span key={nome} className="badge bg-secondary position-relative">
+                                {nome}
+                                <button
+                                  type="button"
+                                  className="btn-close btn-close-white"
+                                  style={{ fontSize: '8px', marginLeft: '5px' }}
+                                  onClick={() => deletarModeloArco(nome)}
+                                  aria-label="Close"
+                                ></button>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Resumo dos modelos */}
+                    <div className="mt-3">
+                      <h6>Resumo dos Modelos:</h6>
+                      <div className="row">
+                        {Array.from({ length: quantidadeModelosArcos }, (_, i) => (
+                          <div key={i + 1} className="col-md-6 mb-2">
+                            <div className={`card ${modeloArcoAtual === i + 1 ? 'border-primary' : ''}`}>
+                              <div className="card-body p-2">
+                                <small>
+                                  <strong>Modelo {i + 1}:</strong> {modelosArcos[i + 1]?.posicao || ""}<br />
+                                  {modelosArcos[i + 1]?.nome || ""}
+                                </small>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Seção 1: Dimensões Básicas */}
                 <div className="card mb-3">
                   <div className="card-header bg-primary text-white">
@@ -1530,13 +1923,79 @@ const ModeladorSVG = () => {
 
             {/* Gerenciamento de Configurações */}
             <hr className="my-3" />
-            <h6 className="text-success mb-3">Gerenciar Modelos</h6>
+            <h6 className="text-success mb-3">
+              {tipoAtivo === "armazem" ? "Salvar Configuração Completa do Armazém" : "Gerenciar Configuração do Silo"}
+            </h6>
+
+            {tipoAtivo === "armazem" && (
+              <div className="alert alert-info mb-3">
+                <small>
+                  <strong>📋 Configuração Completa:</strong> Salva TODOS os modelos de arcos configurados + configurações gerais do armazém.
+                  <br />
+                  <strong>🔄 Ao carregar:</strong> Todos os arcos ficarão como você configurou (frente, par, ímpar, fundo).
+                </small>
+              </div>
+            )}
+
+            <div className="mb-3">
+              <label className="form-label">
+                {tipoAtivo === "armazem" ? "Nome da Configuração Completa do Armazém:" : "Nome da Configuração:"}
+              </label>
+              <input
+                type="text"
+                className="form-control"
+                value={nomeConfiguracao}
+                onChange={(e) => setNomeConfiguracao(e.target.value)}
+                placeholder={tipoAtivo === "armazem" ? "Ex: Armazém Principal 2024" : "Nome da configuração"}
+              />
+            </div>
 
             <div className="d-grid gap-2 mb-3">
+              <button 
+                className="btn btn-success"
+                onClick={salvarConfiguracao}
+                disabled={!nomeConfiguracao.trim()}
+              >
+                💾 {tipoAtivo === "armazem" ? `Salvar Armazém Completo (${quantidadeModelosArcos} modelos)` : "Salvar Configuração"}
+              </button>
+
               <button className="btn btn-warning" onClick={resetarPadrao}>
-                Resetar para Padrão
+                🔄 Resetar para Padrão
               </button>
             </div>
+
+            {/* Lista de configurações salvas */}
+            {configsMemoized.length > 0 && (
+              <div className="card">
+                <div className="card-header">
+                  <h6 className="mb-0">
+                    {tipoAtivo === "armazem" ? "Configurações Completas do Armazém" : "Configurações do Silo"}
+                  </h6>
+                </div>
+                <div className="card-body">
+                  {configsMemoized.map(nome => (
+                    <div key={nome} className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="text-truncate">{nome}</span>
+                      <div className="btn-group btn-group-sm">
+                        <button
+                          className="btn btn-outline-success"
+                          onClick={() => carregarConfiguracao(nome)}
+                          title={tipoAtivo === "armazem" ? "Carregar todos os modelos de arcos" : "Carregar configuração"}
+                        >
+                          🔄 Carregar
+                        </button>
+                        <button
+                          className="btn btn-outline-danger"
+                          onClick={() => deletarConfiguracao(nome)}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <ModelConfigurationManager
               type={tipoAtivo}
@@ -1576,8 +2035,14 @@ const ModeladorSVG = () => {
             >
               <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">
-                  Preview - {tipoAtivo === "silo" ? "Silo" : "Armazém"}
+                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modelosArcos[modeloArcoAtual]?.nome || "Modelo 1"}`}
                 </h5>
+                {tipoAtivo === "armazem" && (
+                  <small>
+                    Posição: {modelosArcos[modeloArcoAtual]?.posicao || "frente"} | 
+                    Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
+                  </small>
+                )}
               </div>
               <div
                 className="card-body text-center d-flex align-items-center justify-content-center p-1"
@@ -1645,6 +2110,10 @@ const ModeladorSVG = () => {
                       <strong>
                         Arco {arcoAtual} de {analiseArcos.totalArcos}
                       </strong>
+                      <br />
+                      <small className="text-muted">
+                        Aplicando: {determinarModeloParaArco(arcoAtual)?.nome || "Modelo padrão"}
+                      </small>
                     </div>
                     <div className="col-md-4 text-end">
                       <span className="badge bg-info">
@@ -1652,6 +2121,16 @@ const ModeladorSVG = () => {
                         pêndulos,{" "}
                         {analiseArcos.arcos[arcoAtual]?.totalSensores || 0}{" "}
                         sensores
+                      </span>
+                      <br />
+                      <span className={`badge mt-1 ${
+                        arcoAtual === 1 ? 'bg-success' : 
+                        arcoAtual === analiseArcos.totalArcos ? 'bg-danger' :
+                        arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning'
+                      }`}>
+                        {arcoAtual === 1 ? 'FRENTE' : 
+                         arcoAtual === analiseArcos.totalArcos ? 'FUNDO' :
+                         arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'}
                       </span>
                     </div>
                   </div>
