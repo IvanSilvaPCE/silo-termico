@@ -433,11 +433,28 @@ const ModeladorSVG = () => {
             pendulo.style.transition = 'all 0.15s ease-out';
             textoPendulo.style.transition = 'all 0.15s ease-out';
             
-            pendulo.setAttribute("x", xCabo - escala_sensores / 2);
-            pendulo.setAttribute("y", yPendulo);
-            textoPendulo.setAttribute("x", xCabo);
-            textoPendulo.setAttribute("y", yPendulo + escala_sensores / 4);
-            textoPendulo.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
+            // Atualizar posições apenas se diferentes
+            const novoX = (xCabo - escala_sensores / 2).toString();
+            const novoY = yPendulo.toString();
+            const novoTextoX = xCabo.toString();
+            const novoTextoY = (yPendulo + escala_sensores / 4).toString();
+            const novoFontSize = (escala_sensores * 0.4 - 0.5).toString();
+            
+            if (pendulo.getAttribute("x") !== novoX) {
+              pendulo.setAttribute("x", novoX);
+            }
+            if (pendulo.getAttribute("y") !== novoY) {
+              pendulo.setAttribute("y", novoY);
+            }
+            if (textoPendulo.getAttribute("x") !== novoTextoX) {
+              textoPendulo.setAttribute("x", novoTextoX);
+            }
+            if (textoPendulo.getAttribute("y") !== novoTextoY) {
+              textoPendulo.setAttribute("y", novoTextoY);
+            }
+            if (textoPendulo.getAttribute("font-size") !== novoFontSize) {
+              textoPendulo.setAttribute("font-size", novoFontSize);
+            }
           }
 
           Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
@@ -454,23 +471,57 @@ const ModeladorSVG = () => {
             txt.style.transition = 'all 0.15s ease-out';
             nomeTexto.style.transition = 'all 0.15s ease-out';
 
-            // Atualizar posicionamento do retângulo do sensor
-            rec.setAttribute("x", xCabo - escala_sensores / 2);
-            rec.setAttribute("y", ySensor);
-            rec.setAttribute("width", escala_sensores);
-            rec.setAttribute("height", escala_sensores / 2);
+            // Calcular novos valores
+            const novoRecX = (xCabo - escala_sensores / 2).toString();
+            const novoRecY = ySensor.toString();
+            const novoRecWidth = escala_sensores.toString();
+            const novoRecHeight = (escala_sensores / 2).toString();
             
-            // Atualizar posicionamento e tamanho do texto da temperatura
-            txt.setAttribute("x", xCabo);
-            txt.setAttribute("y", ySensor + escala_sensores / 4);
-            txt.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
+            const novoTxtX = xCabo.toString();
+            const novoTxtY = (ySensor + escala_sensores / 4).toString();
+            const novoTxtFontSize = (escala_sensores * 0.4 - 0.5).toString();
             
-            // Atualizar posicionamento e tamanho do nome do sensor
-            nomeTexto.setAttribute("x", xCabo - escala_sensores / 2 - 2);
-            nomeTexto.setAttribute("y", ySensor + escala_sensores / 4);
-            nomeTexto.setAttribute("font-size", escala_sensores * 0.4 - 1.5);
+            const novoNomeX = (xCabo - escala_sensores / 2 - 2).toString();
+            const novoNomeY = (ySensor + escala_sensores / 4).toString();
+            const novoNomeFontSize = (escala_sensores * 0.4 - 1.5).toString();
+            
+            // Atualizar posicionamento do retângulo do sensor apenas se diferentes
+            if (rec.getAttribute("x") !== novoRecX) {
+              rec.setAttribute("x", novoRecX);
+            }
+            if (rec.getAttribute("y") !== novoRecY) {
+              rec.setAttribute("y", novoRecY);
+            }
+            if (rec.getAttribute("width") !== novoRecWidth) {
+              rec.setAttribute("width", novoRecWidth);
+            }
+            if (rec.getAttribute("height") !== novoRecHeight) {
+              rec.setAttribute("height", novoRecHeight);
+            }
+            
+            // Atualizar posicionamento e tamanho do texto da temperatura apenas se diferentes
+            if (txt.getAttribute("x") !== novoTxtX) {
+              txt.setAttribute("x", novoTxtX);
+            }
+            if (txt.getAttribute("y") !== novoTxtY) {
+              txt.setAttribute("y", novoTxtY);
+            }
+            if (txt.getAttribute("font-size") !== novoTxtFontSize) {
+              txt.setAttribute("font-size", novoTxtFontSize);
+            }
+            
+            // Atualizar posicionamento e tamanho do nome do sensor apenas se diferentes
+            if (nomeTexto.getAttribute("x") !== novoNomeX) {
+              nomeTexto.setAttribute("x", novoNomeX);
+            }
+            if (nomeTexto.getAttribute("y") !== novoNomeY) {
+              nomeTexto.setAttribute("y", novoNomeY);
+            }
+            if (nomeTexto.getAttribute("font-size") !== novoNomeFontSize) {
+              nomeTexto.setAttribute("font-size", novoNomeFontSize);
+            }
 
-            // Atualizar dados com suavização
+            // Atualizar dados com suavização - evitar mudanças desnecessárias
             const novoTexto = falha ? "ERRO" : temp.toFixed(1);
             if (txt.textContent !== novoTexto) {
               txt.textContent = novoTexto;
