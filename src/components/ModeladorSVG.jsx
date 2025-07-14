@@ -429,7 +429,7 @@ const ModeladorSVG = () => {
           const pendulo = document.getElementById(`C${penduloIndex + 1}`);
           const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`);
           if (pendulo && textoPendulo) {
-            // Aplicar transições suaves usando CSS transforms quando possível
+            // Aplicar transições suaves usando CSS
             pendulo.style.transition = 'all 0.15s ease-out';
             textoPendulo.style.transition = 'all 0.15s ease-out';
             
@@ -437,6 +437,7 @@ const ModeladorSVG = () => {
             pendulo.setAttribute("y", yPendulo);
             textoPendulo.setAttribute("x", xCabo);
             textoPendulo.setAttribute("y", yPendulo + escala_sensores / 4);
+            textoPendulo.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
           }
 
           Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
@@ -448,27 +449,33 @@ const ModeladorSVG = () => {
             
             if (!rec || !txt || !nomeTexto) return;
 
-            // Aplicar transições suaves
+            // Aplicar transições suaves para todos os elementos
             rec.style.transition = 'all 0.15s ease-out';
             txt.style.transition = 'all 0.15s ease-out';
             nomeTexto.style.transition = 'all 0.15s ease-out';
 
-            // Atualizar posicionamento
+            // Atualizar posicionamento do retângulo do sensor
             rec.setAttribute("x", xCabo - escala_sensores / 2);
             rec.setAttribute("y", ySensor);
             rec.setAttribute("width", escala_sensores);
             rec.setAttribute("height", escala_sensores / 2);
             
+            // Atualizar posicionamento e tamanho do texto da temperatura
             txt.setAttribute("x", xCabo);
             txt.setAttribute("y", ySensor + escala_sensores / 4);
             txt.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
             
+            // Atualizar posicionamento e tamanho do nome do sensor
             nomeTexto.setAttribute("x", xCabo - escala_sensores / 2 - 2);
             nomeTexto.setAttribute("y", ySensor + escala_sensores / 4);
             nomeTexto.setAttribute("font-size", escala_sensores * 0.4 - 1.5);
 
-            // Atualizar dados
-            txt.textContent = falha ? "ERRO" : temp.toFixed(1);
+            // Atualizar dados com suavização
+            const novoTexto = falha ? "ERRO" : temp.toFixed(1);
+            if (txt.textContent !== novoTexto) {
+              txt.textContent = novoTexto;
+            }
+            
             if (!nivel) {
               rec.setAttribute("fill", "#e6e6e6");
               txt.setAttribute("fill", "black");
@@ -2626,6 +2633,12 @@ const ModeladorSVG = () => {
                         transition: all 0.15s ease-out;
                       }
                       .pendulo-element {
+                        transition: all 0.15s ease-out;
+                      }
+                      text {
+                        transition: all 0.15s ease-out;
+                      }
+                      rect {
                         transition: all 0.15s ease-out;
                       }
                     `}
