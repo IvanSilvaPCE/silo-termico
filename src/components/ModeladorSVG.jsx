@@ -486,18 +486,24 @@ const ModeladorSVG = () => {
             txt.style.transition = 'all 0.15s ease-out';
             nomeTexto.style.transition = 'all 0.15s ease-out';
 
-            // Calcular novos valores
-            const novoRecX = (xCabo - escala_sensores / 2).toString();
-            const novoRecY = ySensor.toString();
+            // Calcular posição base do retângulo
+            const posicaoRetanguloX = xCabo - escala_sensores / 2;
+            const posicaoRetanguloY = ySensor;
+            const centroRetanguloX = posicaoRetanguloX + escala_sensores / 2;
+            const centroRetanguloY = posicaoRetanguloY + escala_sensores / 4;
+
+            // Calcular novos valores baseados na mesma origem
+            const novoRecX = posicaoRetanguloX.toString();
+            const novoRecY = posicaoRetanguloY.toString();
             const novoRecWidth = escala_sensores.toString();
             const novoRecHeight = (escala_sensores / 2).toString();
 
-            const novoTxtX = xCabo.toString();
-            const novoTxtY = (ySensor + escala_sensores / 4).toString();
+            const novoTxtX = centroRetanguloX.toString();
+            const novoTxtY = centroRetanguloY.toString();
             const novoTxtFontSize = (escala_sensores * 0.4 - 0.5).toString();
 
-            const novoNomeX = (xCabo - escala_sensores / 2 - 2).toString();
-            const novoNomeY = (ySensor + escala_sensores / 4).toString();
+            const novoNomeX = (posicaoRetanguloX - 2).toString();
+            const novoNomeY = centroRetanguloY.toString();
             const novoNomeFontSize = (escala_sensores * 0.4 - 1.5).toString();
 
             // Atualizar posicionamento do retângulo do sensor apenas se diferentes
