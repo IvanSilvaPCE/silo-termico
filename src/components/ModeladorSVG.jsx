@@ -2513,8 +2513,8 @@ const ModeladorSVG = () => {
                             type="range"
                             className="form-range me-2 flex-grow-1"
                             style={{ minWidth: "120px" }}
-                            min="-20"
-                            max="20"
+                            min="-100"
+                            max="100"
                             value={configArmazem.dist_x_sensores}
                             onChange={(e) =>
                               handleArmazemChange(
