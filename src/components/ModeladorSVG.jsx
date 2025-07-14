@@ -432,14 +432,14 @@ const ModeladorSVG = () => {
             // Aplicar transições suaves usando CSS
             pendulo.style.transition = 'all 0.15s ease-out';
             textoPendulo.style.transition = 'all 0.15s ease-out';
-            
+
             // Atualizar posições apenas se diferentes
             const novoX = (xCabo - escala_sensores / 2).toString();
             const novoY = yPendulo.toString();
             const novoTextoX = xCabo.toString();
             const novoTextoY = (yPendulo + escala_sensores / 4).toString();
             const novoFontSize = (escala_sensores * 0.4 - 0.5).toString();
-            
+
             if (pendulo.getAttribute("x") !== novoX) {
               pendulo.setAttribute("x", novoX);
             }
@@ -459,11 +459,11 @@ const ModeladorSVG = () => {
 
           Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
             const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25;
-            
+
             const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
             const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
             const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`);
-            
+
             if (!rec || !txt || !nomeTexto) return;
 
             // Aplicar transições suaves para todos os elementos
@@ -476,15 +476,15 @@ const ModeladorSVG = () => {
             const novoRecY = ySensor.toString();
             const novoRecWidth = escala_sensores.toString();
             const novoRecHeight = (escala_sensores / 2).toString();
-            
+
             const novoTxtX = xCabo.toString();
             const novoTxtY = (ySensor + escala_sensores / 4).toString();
             const novoTxtFontSize = (escala_sensores * 0.4 - 0.5).toString();
-            
+
             const novoNomeX = (xCabo - escala_sensores / 2 - 2).toString();
             const novoNomeY = (ySensor + escala_sensores / 4).toString();
             const novoNomeFontSize = (escala_sensores * 0.4 - 1.5).toString();
-            
+
             // Atualizar posicionamento do retângulo do sensor apenas se diferentes
             if (rec.getAttribute("x") !== novoRecX) {
               rec.setAttribute("x", novoRecX);
@@ -498,7 +498,7 @@ const ModeladorSVG = () => {
             if (rec.getAttribute("height") !== novoRecHeight) {
               rec.setAttribute("height", novoRecHeight);
             }
-            
+
             // Atualizar posicionamento e tamanho do texto da temperatura apenas se diferentes
             if (txt.getAttribute("x") !== novoTxtX) {
               txt.setAttribute("x", novoTxtX);
@@ -509,7 +509,7 @@ const ModeladorSVG = () => {
             if (txt.getAttribute("font-size") !== novoTxtFontSize) {
               txt.setAttribute("font-size", novoTxtFontSize);
             }
-            
+
             // Atualizar posicionamento e tamanho do nome do sensor apenas se diferentes
             if (nomeTexto.getAttribute("x") !== novoNomeX) {
               nomeTexto.setAttribute("x", novoNomeX);
@@ -526,7 +526,7 @@ const ModeladorSVG = () => {
             if (txt.textContent !== novoTexto) {
               txt.textContent = novoTexto;
             }
-            
+
             if (!nivel) {
               rec.setAttribute("fill", "#e6e6e6");
               txt.setAttribute("fill", "black");
@@ -788,7 +788,7 @@ const ModeladorSVG = () => {
         L ${le} ${pb - hb + extensao}
         L ${le} ${pb - ht}
         A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
-        L ${lb - le} ${pb - hb + extensão}
+        L ${lb - le} ${pb - hb + extensao}
         L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
         Z
       `;
@@ -847,12 +847,12 @@ const ModeladorSVG = () => {
       ...configArmazem,
       [campo]: parseFloat(valor),
     };
-    
+
     // Limpar timeout anterior se existir
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-    
+
     setConfigArmazem(novaConfig);
 
     // Debounce para atualizar modelos (evita atualizações excessivas)
