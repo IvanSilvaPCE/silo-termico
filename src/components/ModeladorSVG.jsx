@@ -58,6 +58,7 @@ const ModeladorSVG = () => {
     dist_x_sensores: 0,
     posicao_horizontal: 0,
     posicao_vertical: 0,
+    afastamento_vertical_pendulo: 0,
   });
 
   // Estados para modelos de arcos
@@ -291,6 +292,7 @@ const ModeladorSVG = () => {
     const dist_x_sensores = configArmazem.dist_x_sensores || 0;
     const posicao_horizontal = configArmazem.posicao_horizontal || 0;
     const posicao_vertical = configArmazem.posicao_vertical || 0;
+    const afastamento_vertical_pendulo = configArmazem.afastamento_vertical_pendulo || 0;
     const pb = configArmazem.pb; // Usar configuração do usuário
     const yPendulo = pb + 15 + posicao_vertical; // Posição dos pêndulos com ajuste vertical
 
@@ -346,7 +348,7 @@ const ModeladorSVG = () => {
 
       // Renderizar TODOS os sensores de 1 até numSensores com posicionamento ajustado
       for (let s = 1; s <= numSensores; s++) {
-        const ySensor = yPendulo - dist_y_sensores * s - 25; // Aplicar distância Y configurada
+        const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo; // Aplicar distância Y configurada e afastamento vertical
 
         // Garantir que o sensor está dentro dos limites do SVG
         const [, alturaSVG] = calcularDimensoesSVG();
@@ -423,6 +425,7 @@ const ModeladorSVG = () => {
     const dist_x_sensores = configArmazem.dist_x_sensores || 0;
     const posicao_horizontal = configArmazem.posicao_horizontal || 0;
     const posicao_vertical = configArmazem.posicao_vertical || 0;
+    const afastamento_vertical_pendulo = configArmazem.afastamento_vertical_pendulo || 0;
     const pb = configArmazem.pb;
     const yPendulo = pb + 15 + posicao_vertical;
 
@@ -473,7 +476,7 @@ const ModeladorSVG = () => {
           }
 
           Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
-            const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25;
+            const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25 - afastamento_vertical_pendulo;
 
             const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
             const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
@@ -570,7 +573,7 @@ const ModeladorSVG = () => {
         atualizarSensores(dados);
       }, 50); // Reduzido para resposta mais rápida
     }
-  }, [dados, arcoAtual, tipoAtivo, configArmazem.escala_sensores, configArmazem.dist_y_sensores, configArmazem.dist_x_sensores, configArmazem.posicao_horizontal, configArmazem.posicao_vertical]);
+  }, [dados, arcoAtual, tipoAtivo, configArmazem.escala_sensores, configArmazem.dist_y_sensores, configArmazem.dist_x_sensores, configArmazem.posicao_horizontal, configArmazem.posicao_vertical, configArmazem.afastamento_vertical_pendulo]);
 
   // Renderizar base do armazém
   const renderArmazem = () => {
@@ -1355,6 +1358,7 @@ const ModeladorSVG = () => {
         dist_x_sensores: 0,
         posicao_horizontal: 0,
         posicao_vertical: 0,
+        afastamento_vertical_pendulo: 0,
       };
 
       setConfigArmazem(configPadrao);
@@ -2591,8 +2595,8 @@ const ModeladorSVG = () => {
                             type="range"
                             className="form-range me-2 flex-grow-1"
                             style={{ minWidth: "120px" }}
-                            min="-30"
-                            max="30"
+                            min="-100"
+                            max="100"
                             value={configArmazem.posicao_vertical}
                             onChange={(e) =>
                               handleArmazemChange(
@@ -2609,6 +2613,42 @@ const ModeladorSVG = () => {
                               className="btn btn-sm btn-outline-secondary"
                               onClick={() =>
                                 handleArmazemChange("posicao_vertical", 0)
+                              }
+                              title="Resetar para padrão (0)"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
+                        <label className="form-label">
+                          Afastamento Vertical Pêndulo:
+                        </label>
+                        <div className="d-flex align-items-center flex-wrap">
+                          <input
+                            type="range"
+                            className="form-range me-2 flex-grow-1"
+                            style={{ minWidth: "120px" }}
+                            min="-50"
+                            max="50"
+                            value={configArmazem.afastamento_vertical_pendulo || 0}
+                            onChange={(e) =>
+                              handleArmazemChange(
+                                "afastamento_vertical_pendulo",
+                                e.target.value
+                              )
+                            }
+                          />
+                          <div className="d-flex align-items-center">
+                            <span className="badge bg-secondary me-2">
+                              {configArmazem.afastamento_vertical_pendulo || 0}
+                            </span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-secondary"
+                              onClick={() =>
+                                handleArmazemChange("afastamento_vertical_pendulo", 0)
                               }
                               title="Resetar para padrão (0)"
                             >
