@@ -701,54 +701,32 @@ const ModeladorSVG = () => {
       largura_abertura_v = 20,
     } = configArmazem;
 
-    // Calcular posição da ponta do V
+    // Calcular posição do centro
     const centroBase = lb / 2;
-    const deslocamentoPonta = lb * 0.3 * posicao_ponta_v; // Máximo 30% da largura
+    const deslocamentoPonta = lb * 0.1 * posicao_ponta_v;
     const pontaX = centroBase + deslocamentoPonta;
 
     // Ajustar posição para alinhar melhor com a base
-    const ajuste_base = 5; // Mover o fundo mais para baixo
+    const ajuste_base = -4;
 
-    // Criar V suave que vai do início ao fim do elemento
-    const inicioEsquerdo = le;
-    const fimDireito = lb - le;
-    const larguraTotal = fimDireito - inicioEsquerdo;
+    // Criar descida suave das bordas ao centro - sem V no meio
+    const p1 = [lb, pb - hb + ajuste_base]; // direita superior
+    const p2 = [lb - le, pb - hb + ajuste_base + altura_funil_v * 0.2]; // início descida direita
+    const p3 = [lb - (lb - lf) / 2, pb - hb + ajuste_base + altura_funil_v * 0.5]; // meio direito descendo suave
     
-    // Pontos para criar um V suave
-    const numPontos = 8; // Número de pontos para suavizar a curva
-    let pontos = [];
+    // Área central baixa - abertura no fundo
+    const p4 = [pontaX + largura_abertura_v / 2, pb - hb + ajuste_base + altura_funil_v]; // lado direito da abertura
+    const p5 = [pontaX - largura_abertura_v / 2, pb - hb + ajuste_base + altura_funil_v]; // lado esquerdo da abertura
     
-    // Borda superior (reta)
-    pontos.push([lb, pb - hb + ajuste_base]); // p1
-    pontos.push([lb - le, pb - hb + ajuste_base]); // p2
-    
-    // Lado direito do V (suave)
-    for (let i = 0; i <= numPontos; i++) {
-      const t = i / numPontos; // Interpolação de 0 a 1
-      const x = fimDireito - (t * (fimDireito - pontaX - largura_abertura_v / 2));
-      const y = (pb - hb + ajuste_base) - (t * altura_funil_v);
-      pontos.push([x, y]);
-    }
-    
-    // Abertura do funil (pequena abertura na ponta)
-    pontos.push([pontaX + largura_abertura_v / 2, pb - altura_funil_v + ajuste_base]);
-    pontos.push([pontaX, pb + ajuste_base]); // Ponta do V
-    pontos.push([pontaX - largura_abertura_v / 2, pb - altura_funil_v + ajuste_base]);
-    
-    // Lado esquerdo do V (suave)
-    for (let i = numPontos; i >= 0; i--) {
-      const t = i / numPontos; // Interpolação de 1 a 0
-      const x = inicioEsquerdo + (t * (pontaX - largura_abertura_v / 2 - inicioEsquerdo));
-      const y = (pb - hb + ajuste_base) - (t * altura_funil_v);
-      pontos.push([x, y]);
-    }
+    const p6 = [(lb - lf) / 2, pb - hb + ajuste_base + altura_funil_v * 0.5]; // meio esquerdo descendo suave
+    const p7 = [le, pb - hb + ajuste_base + altura_funil_v * 0.2]; // início descida esquerda
     
     // Completar o polígono
-    pontos.push([le, pb - hb + ajuste_base]); // p6
-    pontos.push([0, pb - hb + ajuste_base]); // p7
-    pontos.push([0, pb + ajuste_base]); // p8
-    pontos.push([lb, pb + ajuste_base]); // p9
+    const p8 = [0, pb - hb + ajuste_base]; // esquerda superior
+    const p9 = [0, pb + ajuste_base]; // esquerda inferior
+    const p10 = [lb, pb + ajuste_base]; // direita inferior
 
+    const pontos = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10];
     const pathBase = pontos.map(p => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
@@ -770,60 +748,39 @@ const ModeladorSVG = () => {
 
     const centroBase = lb / 2;
 
-    // Calcular posições das pontas dos Vs
+    // Calcular posições dos pontos baixos
     const pontaEsquerdaX = centroBase + lb * 0.2 * posicao_v_esquerdo;
     const pontaDireitaX = centroBase + lb * 0.2 * posicao_v_direito;
 
     // Ajustar posição para alinhar melhor com a base
-    const ajuste_base = 5; // Mover o fundo mais para baixo
+    const ajuste_base = -4;
 
-    // Pontos para criar Vs suaves
-    const numPontos = 6; // Número de pontos para suavizar as curvas
-    let pontos = [];
+    // Criar descida suave das bordas para duas aberturas - sem V no meio
+    const p1 = [lb, pb - hb + ajuste_base]; // direita superior
+    const p2 = [lb - le, pb - hb + ajuste_base + altura_duplo_v * 0.2]; // início descida direita
+    const p3 = [lb - (lb - lf) / 2, pb - hb + ajuste_base + altura_duplo_v * 0.4]; // meio direito descendo
     
-    // Borda superior (reta)
-    pontos.push([lb, pb - hb + ajuste_base]); // p1
-    pontos.push([lb - le, pb - hb + ajuste_base]); // p2
+    // Primeira abertura (lado direito)
+    const p4 = [pontaDireitaX + largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura direita
+    const p5 = [pontaDireitaX - largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura direita
     
-    // V direito (suave) - do lado direito até a ponta direita
-    const inicioVDireito = lb - le;
-    for (let i = 0; i <= numPontos; i++) {
-      const t = i / numPontos; // Interpolação de 0 a 1
-      const x = inicioVDireito - (t * (inicioVDireito - pontaDireitaX - largura_abertura_duplo_v / 2));
-      const y = (pb - hb + ajuste_base) - (t * altura_duplo_v);
-      pontos.push([x, y]);
-    }
+    // Área central elevada
+    const p6 = [centroBase + 20, pb - hb + ajuste_base + altura_duplo_v * 0.3]; // transição central direita
+    const p7 = [centroBase - 20, pb - hb + ajuste_base + altura_duplo_v * 0.3]; // transição central esquerda
     
-    // Abertura do V direito
-    pontos.push([pontaDireitaX + largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
-    pontos.push([pontaDireitaX, pb + ajuste_base]); // Ponta do V direito
-    pontos.push([pontaDireitaX - largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
+    // Segunda abertura (lado esquerdo)
+    const p8 = [pontaEsquerdaX + largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura esquerda
+    const p9 = [pontaEsquerdaX - largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura esquerda
     
-    // Área entre os Vs (suave)
-    const alturaMedia = pb - altura_duplo_v * 0.7 + ajuste_base;
-    pontos.push([centroBase + (pontaDireitaX - centroBase) * 0.3, alturaMedia]);
-    pontos.push([centroBase, alturaMedia]); // Meio entre os Vs
-    pontos.push([centroBase + (pontaEsquerdaX - centroBase) * 0.3, alturaMedia]);
-    
-    // V esquerdo (suave) - da ponta esquerda até o lado esquerdo
-    pontos.push([pontaEsquerdaX + largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
-    pontos.push([pontaEsquerdaX, pb + ajuste_base]); // Ponta do V esquerdo
-    pontos.push([pontaEsquerdaX - largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
-    
-    const fimVEsquerdo = le;
-    for (let i = numPontos; i >= 0; i--) {
-      const t = i / numPontos; // Interpolação de 1 a 0
-      const x = fimVEsquerdo + (t * (pontaEsquerdaX - largura_abertura_duplo_v / 2 - fimVEsquerdo));
-      const y = (pb - hb + ajuste_base) - (t * altura_duplo_v);
-      pontos.push([x, y]);
-    }
+    const p10 = [(lb - lf) / 2, pb - hb + ajuste_base + altura_duplo_v * 0.4]; // meio esquerdo descendo
+    const p11 = [le, pb - hb + ajuste_base + altura_duplo_v * 0.2]; // início descida esquerda
     
     // Completar o polígono
-    pontos.push([le, pb - hb + ajuste_base]); // p10
-    pontos.push([0, pb - hb + ajuste_base]); // p11
-    pontos.push([0, pb + ajuste_base]); // p12
-    pontos.push([lb, pb + ajuste_base]); // p13
+    const p12 = [0, pb - hb + ajuste_base]; // esquerda superior
+    const p13 = [0, pb + ajuste_base]; // esquerda inferior
+    const p14 = [lb, pb + ajuste_base]; // direita inferior
 
+    const pontos = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14];
     const pathBase = pontos.map(p => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
