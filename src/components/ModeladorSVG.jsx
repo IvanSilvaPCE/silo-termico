@@ -872,23 +872,36 @@ const ModeladorSVG = () => {
       [campo]: parseFloat(valor),
     };
 
-    // Limpar timeout anterior se existir
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
     setConfigArmazem(novaConfig);
 
-    // Debounce para atualizar modelos (evita atualizações excessivas)
-    debounceTimeoutRef.current = setTimeout(() => {
-      setModelosArcos(prev => ({
-        ...prev,
+    // Atualizar modelo atual se estiver selecionado
+    if (modeloArcoAtual) {
+      const modelosAtualizados = {
+        ...modelosArcos,
         [modeloArcoAtual]: {
-          ...prev[modeloArcoAtual],
+          ...modelosArcos[modeloArcoAtual],
           config: novaConfig
         }
-      }));
-    }, 50); // 50ms de debounce
+      };
+      setModelosArcos(modelosAtualizados);
+
+      // Salvar automaticamente no localStorage
+      salvarModelosAutomatico(modelosAtualizados);
+    }
+  };
+
+  // Função para salvar modelos automaticamente no localStorage
+  const salvarModelosAutomatico = (modelos) => {
+    const configCompleta = {
+      quantidadeModelos: quantidadeModelosArcos,
+      modelosArcos: modelos,
+      modeloAtual: modeloArcoAtual,
+      timestamp: new Date().toISOString(),
+      versao: "2.0",
+      tipo: "configuracao_armazem_completa",
+    };
+    
+    localStorage.setItem("configArmazem", JSON.stringify(configCompleta));
   };
 
   // Handlers para modelos de arcos
@@ -957,11 +970,17 @@ const ModeladorSVG = () => {
       setModeloArcoAtual(1);
       setConfigArmazem(novosModelos[1].config);
     }
+
+    // Salvar automaticamente
+    salvarModelosAutomatico(novosModelos);
   };
 
   const handleModeloArcoChange = (numeroModelo) => {
     setModeloArcoAtual(numeroModelo);
     setConfigArmazem(modelosArcos[numeroModelo].config);
+
+    // Salvar automaticamente ao trocar modelo
+    salvarModelosAutomatico(modelosArcos);
 
     // Automação: navegar para arco representativo do modelo selecionado
     if (analiseArcos && modelosArcos[numeroModelo]) {
@@ -1012,23 +1031,27 @@ const ModeladorSVG = () => {
   };
 
   const handlePosicaoArcoChange = (posicao) => {
-    setModelosArcos(prev => ({
-      ...prev,
+    const modelosAtualizados = {
+      ...modelosArcos,
       [modeloArcoAtual]: {
-        ...prev[modeloArcoAtual],
+        ...modelosArcos[modeloArcoAtual],
         posicao
       }
-    }));
+    };
+    setModelosArcos(modelosAtualizados);
+    salvarModelosAutomatico(modelosAtualizados);
   };
 
   const handleNomeModeloChange = (nome) => {
-    setModelosArcos(prev => ({
-      ...prev,
+    const modelosAtualizados = {
+      ...modelosArcos,
       [modeloArcoAtual]: {
-        ...prev[modeloArcoAtual],
+        ...modelosArcos[modeloArcoAtual],
         nome
       }
-    }));
+    };
+    setModelosArcos(modelosAtualizados);
+    salvarModelosAutomatico(modelosAtualizados);
   };
 
   // Função para determinar qual modelo usar baseado no arco atual
@@ -1164,7 +1187,6 @@ const ModeladorSVG = () => {
       // Após salvar, resetar para configuração padrão para nova modelagem
       resetarPadrao();
       setNomeConfiguracao("");
-      alert("Configuração resetada para nova modelagem!");
     }
 
     setForceUpdateLista((prev) => prev + 1);
@@ -2707,11 +2729,11 @@ const ModeladorSVG = () => {
             >
               <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">
-                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modelosArcos[modeloArcoAtual]?.nome || "Modelo 1"}`}
+                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modeloArcoAtual ? modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` : "Nenhum modelo selecionado"}`}
                 </h5>
-                {tipoAtivo === "armazem" && (
+                {tipoAtivo === "armazem" && modeloArcoAtual && (
                   <small>
-                    Posição: {modelosArcos[modeloArcoAtual]?.posicao || "frente"} | 
+                    Posição: {modelosArcos[modeloArcoAtual]?.posicao || "todos"} | 
                     Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
                   </small>
                 )}
@@ -2801,32 +2823,9 @@ const ModeladorSVG = () => {
                       <strong>
                         Arco {arcoAtual} de {analiseArcos.totalArcos}
                       </strong>
-                      {(() => {
-                        // Verificar se este arco é representativo do modelo atual
-                        const modeloAtual = modelosArcos[modeloArcoAtual];
-                        const posicaoModelo = modeloAtual?.posicao;
-                        let isRepresentativo = false;
-
-                        if (quantidadeModelosArcos === 1) {
-                          isRepresentativo = true; // todos são representativos
-                        } else if (quantidadeModelosArcos === 2) {
-                          if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
-                          if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
-                        } else if (quantidadeModelosArcos === 3) {
-                          if (posicaoModelo === "frente_fundo" && arcoAtual === 1) isRepresentativo = true;
-                          if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
-                          if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
-                        } else if (quantidadeModelosArcos === 4) {
-                          if (posicaoModelo === "frente" && arcoAtual === 1) isRepresentativo = true;
-                          if (posicaoModelo === "fundo" && arcoAtual === analiseArcos.totalArcos) isRepresentativo = true;
-                          if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
-                          if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
-                        }
-
-                        return isRepresentativo && quantidadeModelosArcos > 1 && modeloArcoAtual ? (
-                          <span className="badge bg-warning text-dark ms-2">EDITANDO</span>
-                        ) : null;
-                      })()}
+                      {modeloArcoAtual && (
+                        <span className="badge bg-warning text-dark ms-2">EDITANDO</span>
+                      )}
                       <br />
                       <small className="text-muted">
                         Aplicando: {determinarModeloParaArco(arcoAtual)?.nome || "Modelo padrão"}
