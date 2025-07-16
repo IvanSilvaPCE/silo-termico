@@ -303,11 +303,11 @@ const ModeladorSVG = () => {
     // Renderizar todos os pêndulos em ordem sequencial
     arcoInfo.pendulos.forEach((pendulo, index) => {
       const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index];
-      
+
       // Calcular deslocamento baseado na distância do cabo central
       const distanciaDoMeio = index - indiceCentral;
       const deslocamentoX = distanciaDoMeio * dist_x_sensores;
-      
+
       const xCabo = xCaboBase + posicao_horizontal + deslocamentoX; // Aplicar ajustes horizontais
       const numSensores = pendulo.totalSensores;
 
@@ -962,13 +962,13 @@ const ModeladorSVG = () => {
   const handleModeloArcoChange = (numeroModelo) => {
     setModeloArcoAtual(numeroModelo);
     setConfigArmazem(modelosArcos[numeroModelo].config);
-    
+
     // Automação: navegar para arco representativo do modelo selecionado
     if (analiseArcos && modelosArcos[numeroModelo]) {
       const posicaoModelo = modelosArcos[numeroModelo].posicao;
       const totalArcos = analiseArcos.totalArcos;
       let arcoRepresentativo = 1; // padrão
-      
+
       if (quantidadeModelosArcos === 1) {
         // 1 modelo: todos iguais - manter arco atual
         arcoRepresentativo = arcoAtual;
@@ -1000,10 +1000,10 @@ const ModeladorSVG = () => {
           arcoRepresentativo = 1; // primeiro arco (ímpar)
         }
       }
-      
+
       // Garantir que o arco está dentro dos limites
       arcoRepresentativo = Math.max(1, Math.min(totalArcos, arcoRepresentativo));
-      
+
       // Navegar para o arco representativo
       if (arcoRepresentativo !== arcoAtual) {
         mudarArco(arcoRepresentativo);
@@ -1038,24 +1038,28 @@ const ModeladorSVG = () => {
 
   // Função auxiliar para determinar modelo com parâmetros específicos
   const determinarModeloParaArcoComModelos = (numeroArco, modelos) => {
-    if (!analiseArcos) return modelos[1];
+    const totalArcos = analiseArcos?.totalArcos || 1;
+    const quantidadeModelos = Object.keys(modelos || {}).length;
 
-    const totalArcos = analiseArcos.totalArcos;
+    // Garantir que temos modelos válidos
+    if (!modelos || quantidadeModelos === 0) {
+      return null;
+    }
 
-    // 1 modelo: usar para tudo
-    if (quantidadeModelosArcos === 1) {
-      return Object.values(modelos).find(modelo => modelo.posicao === "todos") || modelos[1];
+    // 1 modelo: todos os arcos usam o mesmo modelo
+    if (quantidadeModelos === 1) {
+      return modelos[1];
     }
 
     // 2 modelos: Par e Ímpar
-    if (quantidadeModelosArcos === 2) {
+    if (quantidadeModelos === 2) {
       const isPar = numeroArco % 2 === 0;
       const posicaoProcurada = isPar ? "par" : "impar";
       return Object.values(modelos).find(modelo => modelo.posicao === posicaoProcurada) || modelos[1];
     }
 
     // 3 modelos: Frente/Fundo, Par, Ímpar
-    if (quantidadeModelosArcos === 3) {
+    if (quantidadeModelos === 3) {
       // Primeiro e último arco usam modelo frente_fundo
       if (numeroArco === 1 || numeroArco === totalArcos) {
         return Object.values(modelos).find(modelo => modelo.posicao === "frente_fundo") || modelos[1];
@@ -1068,7 +1072,7 @@ const ModeladorSVG = () => {
     }
 
     // 4 modelos: Frente, Par, Ímpar, Fundo
-    if (quantidadeModelosArcos === 4) {
+    if (quantidadeModelos === 4) {
       // Primeiro arco usa modelo "frente"
       if (numeroArco === 1) {
         return Object.values(modelos).find(modelo => modelo.posicao === "frente") || modelos[1];
@@ -2866,7 +2870,7 @@ const ModeladorSVG = () => {
                         const modeloAtual = modelosArcos[modeloArcoAtual];
                         const posicaoModelo = modeloAtual?.posicao;
                         let isRepresentativo = false;
-                        
+
                         if (quantidadeModelosArcos === 1) {
                           isRepresentativo = true; // todos são representativos
                         } else if (quantidadeModelosArcos === 2) {
@@ -2882,7 +2886,7 @@ const ModeladorSVG = () => {
                           if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
                           if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
                         }
-                        
+
                         return isRepresentativo && quantidadeModelosArcos > 1 ? (
                           <span className="badge bg-warning text-dark ms-2">EDITANDO</span>
                         ) : null;
