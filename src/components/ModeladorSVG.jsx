@@ -2559,8 +2559,8 @@ const ModeladorSVG = () => {
                             type="range"
                             className="form-range me-2 flex-grow-1"
                             style={{ minWidth: "120px" }}
-                            min="-50"
-                            max="50"
+                            min="-150"
+                            max="150"
                             value={configArmazem.posicao_horizontal}
                             onChange={(e) =>
                               handleArmazemChange(
