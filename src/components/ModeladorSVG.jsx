@@ -2741,11 +2741,11 @@ const ModeladorSVG = () => {
             >
               <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">
-                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modeloArcoAtual ? modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` : "Nenhum modelo selecionado"}`}
+                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modeloArcoAtual ? modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` : "Visualização Geral"}`}
                 </h5>
                 {tipoAtivo === "armazem" && modeloArcoAtual && (
                   <small>
-                    Posição: {modelosArcos[modeloArcoAtual]?.posicao || "todos"} | 
+                    Posição: {quantidadeModelosArcos === 1 ? "Modelo Único" : modelosArcos[modeloArcoAtual]?.posicao || ""} | 
                     Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
                   </small>
                 )}
@@ -2862,7 +2862,7 @@ const ModeladorSVG = () => {
                         arcoAtual === analiseArcos.totalArcos ? 'bg-danger' :
                         arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning'
                       }`}>
-                        {quantidadeModelosArcos === 1 ? 'TODOS' :
+                        {quantidadeModelosArcos === 1 ? 'MODELO ÚNICO' :
                          quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR') :
                          quantidadeModelosArcos === 3 ? (
                            arcoAtual === 1 || arcoAtual === analiseArcos.totalArcos ? 'FRENTE/FUNDO' :
