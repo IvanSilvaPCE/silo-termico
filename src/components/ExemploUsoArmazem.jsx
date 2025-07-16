@@ -26,7 +26,7 @@ const ExemploUsoArmazem = () => {
   const estatisticas = getEstatisticas();
   const alertas = getSensoresComAlerta();
 
-  if (carregando) {
+  if (carregando) { 
     return (
       <div className="d-flex justify-content-center p-4">
         <div className="spinner-border" role="status">
