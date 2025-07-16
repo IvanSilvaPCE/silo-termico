@@ -1766,25 +1766,16 @@ const ModeladorSVG = () => {
 
                     {modeloArcoAtual && (
                       <div className="alert alert-info">
-                        <strong>EDITANDO:</strong> {modelosArcos[modeloArcoAtual]?.nome || ""} 
+                        <strong>EDITANDO:</strong> {modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}
                         <span className="badge bg-primary ms-2">
                           {modelosArcos[modeloArcoAtual]?.posicao || ""}
                         </span>
-                        <br />
-                        <small>
-                          Ajuste as configurações abaixo para este modelo específico. 
-                          As alterações são aplicadas em tempo real.
-                        </small>
                       </div>
                     )}
 
                     {!modeloArcoAtual && (
                       <div className="alert alert-warning">
                         <strong>⚠️ Nenhum modelo selecionado</strong>
-                        <br />
-                        <small>
-                          Selecione um modelo acima para começar a editar suas configurações.
-                        </small>
                       </div>
                     )}
 
