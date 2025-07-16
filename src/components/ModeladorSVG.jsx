@@ -71,6 +71,9 @@ const ModeladorSVG = () => {
       nome: "Modelo Único"
     }
   });
+  
+  // Estados para modelos salvos (separados dos temporários)
+  const [modelosSalvos, setModelosSalvos] = useState({});
 
   const [tipoAtivo, setTipoAtivo] = useState("silo");
   const [nomeConfiguracao, setNomeConfiguracao] = useState("");
@@ -168,11 +171,63 @@ const ModeladorSVG = () => {
     };
   };
 
-  // NÃO carregar configurações automaticamente - sempre começar com reset
+  // Sempre iniciar com configuração padrão
   useEffect(() => {
-    // Componente sempre inicia com configuração padrão (reset)
-    // Usuário deve carregar manualmente se quiser usar configuração salva
+    resetarModelosParaPadrao();
   }, []);
+
+  // Função para resetar modelos para configuração padrão
+  const resetarModelosParaPadrao = () => {
+    const configPadrao = {
+      // Dimensões Básicas
+      pb: 185,
+      lb: 350,
+      hb: 30,
+      hf: 5,
+      lf: 250,
+      le: 15,
+      ht: 50,
+
+      // Configuração do Telhado
+      tipo_telhado: 1,
+      curvatura_topo: 30,
+
+      // Configuração do Fundo
+      tipo_fundo: 0,
+      altura_fundo_reto: 10,
+
+      // Configurações Funil V
+      altura_funil_v: 40,
+      posicao_ponta_v: 0,
+      largura_abertura_v: 20,
+
+      // Configurações Duplo V
+      altura_duplo_v: 35,
+      posicao_v_esquerdo: -0.5,
+      posicao_v_direito: 0.5,
+      largura_abertura_duplo_v: 15,
+
+      // Configuração dos Sensores
+      escala_sensores: 16,
+      dist_y_sensores: 12,
+      dist_x_sensores: 0,
+      posicao_horizontal: 0,
+      posicao_vertical: 0,
+      afastamento_vertical_pendulo: 0,
+    };
+
+    setConfigArmazem(configPadrao);
+    setQuantidadeModelosArcos(1);
+    setModelosArcos({
+      1: {
+        posicao: "todos",
+        config: configPadrao,
+        nome: "Modelo Único",
+      },
+    });
+    setModeloArcoAtual(null); // Não selecionar modelo inicial
+    setModelosSalvos({});
+  };
 
   // Funções de renderização do Silo
   const renderFundoSilo = () => {
@@ -575,6 +630,18 @@ const ModeladorSVG = () => {
     }
   }, [dados, arcoAtual, tipoAtivo, configArmazem.escala_sensores, configArmazem.dist_y_sensores, configArmazem.dist_x_sensores, configArmazem.posicao_horizontal, configArmazem.posicao_vertical, configArmazem.afastamento_vertical_pendulo]);
 
+  // useEffect para reagir a mudanças nos modelos carregados e aplicar configuração correta
+  useEffect(() => {
+    if (tipoAtivo === "armazem" && Object.keys(modelosArcos).length > 0 && !modeloArcoAtual) {
+      // Se não há modelo selecionado para edição, aplicar configuração baseada no arco atual
+      const modeloParaArco = determinarModeloParaArco(arcoAtual);
+      if (modeloParaArco && modeloParaArco.config) {
+        console.log(`Aplicando automaticamente configuração do modelo ${modeloParaArco.nome} para arco ${arcoAtual}`);
+        setConfigArmazem(modeloParaArco.config);
+      }
+    }
+  }, [modelosArcos, arcoAtual, modeloArcoAtual, tipoAtivo]);
+
   // Renderizar base do armazém
   const renderArmazem = () => {
     const { tipo_fundo } = configArmazem;
@@ -642,23 +709,47 @@ const ModeladorSVG = () => {
     // Ajustar posição para alinhar melhor com a base
     const ajuste_base = 5; // Mover o fundo mais para baixo
 
-    const p1 = [lb, pb - hb + ajuste_base];
-    const p2 = [lb - le, pb - hb + ajuste_base];
-    const p3 = [
-      pontaX + largura_abertura_v / 2,
-      pb - altura_funil_v + ajuste_base,
-    ];
-    const p4 = [pontaX, pb + ajuste_base]; // Ponta do V
-    const p5 = [
-      pontaX - largura_abertura_v / 2,
-      pb - altura_funil_v + ajuste_base,
-    ];
-    const p6 = [le, pb - hb + ajuste_base];
-    const p7 = [0, pb - hb + ajuste_base];
-    const p8 = [0, pb + ajuste_base];
-    const p9 = [lb, pb + ajuste_base];
+    // Criar V suave que vai do início ao fim do elemento
+    const inicioEsquerdo = le;
+    const fimDireito = lb - le;
+    const larguraTotal = fimDireito - inicioEsquerdo;
+    
+    // Pontos para criar um V suave
+    const numPontos = 8; // Número de pontos para suavizar a curva
+    let pontos = [];
+    
+    // Borda superior (reta)
+    pontos.push([lb, pb - hb + ajuste_base]); // p1
+    pontos.push([lb - le, pb - hb + ajuste_base]); // p2
+    
+    // Lado direito do V (suave)
+    for (let i = 0; i <= numPontos; i++) {
+      const t = i / numPontos; // Interpolação de 0 a 1
+      const x = fimDireito - (t * (fimDireito - pontaX - largura_abertura_v / 2));
+      const y = (pb - hb + ajuste_base) - (t * altura_funil_v);
+      pontos.push([x, y]);
+    }
+    
+    // Abertura do funil (pequena abertura na ponta)
+    pontos.push([pontaX + largura_abertura_v / 2, pb - altura_funil_v + ajuste_base]);
+    pontos.push([pontaX, pb + ajuste_base]); // Ponta do V
+    pontos.push([pontaX - largura_abertura_v / 2, pb - altura_funil_v + ajuste_base]);
+    
+    // Lado esquerdo do V (suave)
+    for (let i = numPontos; i >= 0; i--) {
+      const t = i / numPontos; // Interpolação de 1 a 0
+      const x = inicioEsquerdo + (t * (pontaX - largura_abertura_v / 2 - inicioEsquerdo));
+      const y = (pb - hb + ajuste_base) - (t * altura_funil_v);
+      pontos.push([x, y]);
+    }
+    
+    // Completar o polígono
+    pontos.push([le, pb - hb + ajuste_base]); // p6
+    pontos.push([0, pb - hb + ajuste_base]); // p7
+    pontos.push([0, pb + ajuste_base]); // p8
+    pontos.push([lb, pb + ajuste_base]); // p9
 
-    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")}`;
+    const pathBase = pontos.map(p => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
@@ -686,40 +777,54 @@ const ModeladorSVG = () => {
     // Ajustar posição para alinhar melhor com a base
     const ajuste_base = 5; // Mover o fundo mais para baixo
 
-    const p1 = [lb, pb - hb + ajuste_base];
-    const p2 = [lb - le, pb - hb + ajuste_base];
+    // Pontos para criar Vs suaves
+    const numPontos = 6; // Número de pontos para suavizar as curvas
+    let pontos = [];
+    
+    // Borda superior (reta)
+    pontos.push([lb, pb - hb + ajuste_base]); // p1
+    pontos.push([lb - le, pb - hb + ajuste_base]); // p2
+    
+    // V direito (suave) - do lado direito até a ponta direita
+    const inicioVDireito = lb - le;
+    for (let i = 0; i <= numPontos; i++) {
+      const t = i / numPontos; // Interpolação de 0 a 1
+      const x = inicioVDireito - (t * (inicioVDireito - pontaDireitaX - largura_abertura_duplo_v / 2));
+      const y = (pb - hb + ajuste_base) - (t * altura_duplo_v);
+      pontos.push([x, y]);
+    }
+    
+    // Abertura do V direito
+    pontos.push([pontaDireitaX + largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
+    pontos.push([pontaDireitaX, pb + ajuste_base]); // Ponta do V direito
+    pontos.push([pontaDireitaX - largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
+    
+    // Área entre os Vs (suave)
+    const alturaMedia = pb - altura_duplo_v * 0.7 + ajuste_base;
+    pontos.push([centroBase + (pontaDireitaX - centroBase) * 0.3, alturaMedia]);
+    pontos.push([centroBase, alturaMedia]); // Meio entre os Vs
+    pontos.push([centroBase + (pontaEsquerdaX - centroBase) * 0.3, alturaMedia]);
+    
+    // V esquerdo (suave) - da ponta esquerda até o lado esquerdo
+    pontos.push([pontaEsquerdaX + largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
+    pontos.push([pontaEsquerdaX, pb + ajuste_base]); // Ponta do V esquerdo
+    pontos.push([pontaEsquerdaX - largura_abertura_duplo_v / 2, pb - altura_duplo_v + ajuste_base]);
+    
+    const fimVEsquerdo = le;
+    for (let i = numPontos; i >= 0; i--) {
+      const t = i / numPontos; // Interpolação de 1 a 0
+      const x = fimVEsquerdo + (t * (pontaEsquerdaX - largura_abertura_duplo_v / 2 - fimVEsquerdo));
+      const y = (pb - hb + ajuste_base) - (t * altura_duplo_v);
+      pontos.push([x, y]);
+    }
+    
+    // Completar o polígono
+    pontos.push([le, pb - hb + ajuste_base]); // p10
+    pontos.push([0, pb - hb + ajuste_base]); // p11
+    pontos.push([0, pb + ajuste_base]); // p12
+    pontos.push([lb, pb + ajuste_base]); // p13
 
-    // V direito
-    const p3 = [
-      pontaDireitaX + largura_abertura_duplo_v / 2,
-      pb - altura_duplo_v + ajuste_base,
-    ];
-    const p4 = [pontaDireitaX, pb + ajuste_base]; // Ponta do V direito
-    const p5 = [
-      pontaDireitaX - largura_abertura_duplo_v / 2,
-      pb - altura_duplo_v + ajuste_base,
-    ];
-
-    // Meio entre os Vs
-    const p6 = [centroBase, pb - altura_duplo_v * 0.7 + ajuste_base];
-
-    // V esquerdo
-    const p7 = [
-      pontaEsquerdaX + largura_abertura_duplo_v / 2,
-      pb - altura_duplo_v + ajuste_base,
-    ];
-    const p8 = [pontaEsquerdaX, pb + ajuste_base]; // Ponta do V esquerdo
-    const p9 = [
-      pontaEsquerdaX - largura_abertura_duplo_v / 2,
-      pb - altura_duplo_v + ajuste_base,
-    ];
-
-    const p10 = [le, pb - hb + ajuste_base];
-    const p11 = [0, pb - hb + ajuste_base];
-    const p12 = [0, pb + ajuste_base];
-    const p13 = [lb, pb + ajuste_base];
-
-    const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")} ${p9.join(",")} ${p10.join(",")} ${p11.join(",")} ${p12.join(",")} ${p13.join(",")}`;
+    const pathBase = pontos.map(p => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
@@ -915,11 +1020,11 @@ const ModeladorSVG = () => {
       let posicao, nome;
 
       if (qtd === 1) {
-        // 1 modelo: serve para tudo
+        // 1 modelo: todos são iguais
         posicao = "todos";
         nome = "Modelo Único";
       } else if (qtd === 2) {
-        // 2 modelos: 1-Par, 2-Ímpar
+        // 2 modelos: 1-Par (2º, 4º, 6º...), 2-Ímpar (1º, 3º, 5º...)
         if (i === 1) {
           posicao = "par";
           nome = "Modelo Par";
@@ -928,7 +1033,7 @@ const ModeladorSVG = () => {
           nome = "Modelo Ímpar";
         }
       } else if (qtd === 3) {
-        // 3 modelos: 1-Frente/Fundo, 2-Par, 3-Ímpar
+        // 3 modelos: 1-Frente/Fundo (1º e último), 2-Par (2º, 4º, 6º...), 3-Ímpar (3º, 5º, 7º...)
         if (i === 1) {
           posicao = "frente_fundo";
           nome = "Modelo Frente/Fundo";
@@ -940,7 +1045,7 @@ const ModeladorSVG = () => {
           nome = "Modelo Ímpar";
         }
       } else if (qtd === 4) {
-        // 4 modelos: 1-Frente, 2-Par, 3-Ímpar, 4-Fundo
+        // 4 modelos: 1-Frente (1º), 2-Par (2º, 4º, 6º...), 3-Ímpar (3º, 5º, 7º...), 4-Fundo (último)
         if (i === 1) {
           posicao = "frente";
           nome = "Modelo Frente";
@@ -992,11 +1097,11 @@ const ModeladorSVG = () => {
         // 1 modelo: todos iguais - manter arco atual
         arcoRepresentativo = arcoAtual;
       } else if (quantidadeModelosArcos === 2) {
-        // 2 modelos: par/ímpar
-        if (posicaoModelo === "par") {
-          arcoRepresentativo = 2; // segundo arco (par)
-        } else if (posicaoModelo === "impar") {
+        // 2 modelos: ímpar (1º, 3º, 5º...) e par (2º, 4º, 6º...)
+        if (posicaoModelo === "impar") {
           arcoRepresentativo = 1; // primeiro arco (ímpar)
+        } else if (posicaoModelo === "par") {
+          arcoRepresentativo = 2; // segundo arco (par)
         }
       } else if (quantidadeModelosArcos === 3) {
         // 3 modelos: frente_fundo/par/ímpar
@@ -1005,18 +1110,18 @@ const ModeladorSVG = () => {
         } else if (posicaoModelo === "par") {
           arcoRepresentativo = 2; // segundo arco (par)
         } else if (posicaoModelo === "impar") {
-          arcoRepresentativo = 1; // primeiro arco (ímpar)
+          arcoRepresentativo = 3; // terceiro arco (ímpar)
         }
       } else if (quantidadeModelosArcos === 4) {
         // 4 modelos: frente/par/ímpar/fundo
         if (posicaoModelo === "frente") {
           arcoRepresentativo = 1; // primeiro arco
-        } else if (posicaoModelo === "fundo") {
-          arcoRepresentativo = totalArcos; // último arco
         } else if (posicaoModelo === "par") {
           arcoRepresentativo = 2; // segundo arco (par)
         } else if (posicaoModelo === "impar") {
-          arcoRepresentativo = 1; // primeiro arco (ímpar)
+          arcoRepresentativo = 3; // terceiro arco (ímpar)
+        } else if (posicaoModelo === "fundo") {
+          arcoRepresentativo = totalArcos; // último arco
         }
       }
 
@@ -1054,9 +1159,32 @@ const ModeladorSVG = () => {
     salvarModelosAutomatico(modelosAtualizados);
   };
 
+  // Função para salvar modelo individual
+  const salvarModeloAtual = () => {
+    if (!modeloArcoAtual) {
+      alert("Selecione um modelo para salvar!");
+      return;
+    }
+
+    const modeloParaSalvar = {
+      ...modelosArcos[modeloArcoAtual],
+      config: configArmazem // Usar a configuração atual
+    };
+
+    const novosSalvos = {
+      ...modelosSalvos,
+      [modeloArcoAtual]: modeloParaSalvar
+    };
+
+    setModelosSalvos(novosSalvos);
+    alert(`Modelo ${modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`);
+  };
+
   // Função para determinar qual modelo usar baseado no arco atual
   const determinarModeloParaArco = (numeroArco) => {
-    return determinarModeloParaArcoComModelos(numeroArco, modelosArcos);
+    const resultado = determinarModeloParaArcoComModelos(numeroArco, modelosArcos);
+    console.log(`Determinando modelo para arco ${numeroArco}:`, resultado);
+    return resultado;
   };
 
   // Função auxiliar para determinar modelo com parâmetros específicos
@@ -1071,48 +1199,48 @@ const ModeladorSVG = () => {
 
     // 1 modelo: todos os arcos usam o mesmo modelo
     if (quantidadeModelos === 1) {
-      return modelos[1];
+      return modelos[1] || null;
     }
 
-    // 2 modelos: Par e Ímpar
+    // 2 modelos: Par (2º, 4º, 6º...) e Ímpar (1º, 3º, 5º...)
     if (quantidadeModelos === 2) {
-      const isPar = numeroArco % 2 === 0;
-      const posicaoProcurada = isPar ? "par" : "impar";
-      return Object.values(modelos).find(modelo => modelo.posicao === posicaoProcurada) || modelos[1];
+      const isImpar = numeroArco % 2 === 1;
+      const posicaoProcurada = isImpar ? "impar" : "par";
+      return Object.values(modelos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || modelos[1] || null;
     }
 
-    // 3 modelos: Frente/Fundo, Par, Ímpar
+    // 3 modelos: Frente/Fundo (1º e último), Par (2º, 4º, 6º...), Ímpar (3º, 5º, 7º...)
     if (quantidadeModelos === 3) {
       // Primeiro e último arco usam modelo frente_fundo
       if (numeroArco === 1 || numeroArco === totalArcos) {
-        return Object.values(modelos).find(modelo => modelo.posicao === "frente_fundo") || modelos[1];
+        return Object.values(modelos).find(modelo => modelo && modelo.posicao === "frente_fundo") || modelos[1] || null;
       }
 
-      // Arcos intermediários alternam entre par e ímpar
-      const isPar = numeroArco % 2 === 0;
-      const posicaoProcurada = isPar ? "par" : "impar";
-      return Object.values(modelos).find(modelo => modelo.posicao === posicaoProcurada) || modelos[1];
+      // Arcos intermediários: a partir do 2º arco, par e ímpar
+      const isParIntermediario = numeroArco % 2 === 0;
+      const posicaoProcurada = isParIntermediario ? "par" : "impar";
+      return Object.values(modelos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || modelos[1] || null;
     }
 
-    // 4 modelos: Frente, Par, Ímpar, Fundo
+    // 4 modelos: Frente (1º), Par (2º, 4º, 6º...), Ímpar (3º, 5º, 7º...), Fundo (último)
     if (quantidadeModelos === 4) {
       // Primeiro arco usa modelo "frente"
       if (numeroArco === 1) {
-        return Object.values(modelos).find(modelo => modelo.posicao === "frente") || modelos[1];
+        return Object.values(modelos).find(modelo => modelo && modelo.posicao === "frente") || modelos[1] || null;
       }
 
       // Último arco usa modelo "fundo"
       if (numeroArco === totalArcos) {
-        return Object.values(modelos).find(modelo => modelo.posicao === "fundo") || modelos[1];
+        return Object.values(modelos).find(modelo => modelo && modelo.posicao === "fundo") || modelos[1] || null;
       }
 
-      // Arcos intermediários alternam entre par e ímpar
-      const isPar = numeroArco % 2 === 0;
-      const posicaoProcurada = isPar ? "par" : "impar";
-      return Object.values(modelos).find(modelo => modelo.posicao === posicaoProcurada) || modelos[1];
+      // Arcos intermediários: a partir do 2º arco, par e ímpar
+      const isParIntermediario = numeroArco % 2 === 0;
+      const posicaoProcurada = isParIntermediario ? "par" : "impar";
+      return Object.values(modelos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || modelos[1] || null;
     }
 
-    return modelos[1];
+    return modelos[1] || null;
   };
 
   // Função para mudar arco e aplicar configuração correspondente
@@ -1154,37 +1282,21 @@ const ModeladorSVG = () => {
       );
       alert(`Configuração Silo "${nomeConfiguracao}" salva com sucesso!`);
     } else {
-      // Atualizar TODOS os modelos antes de salvar, não apenas o atual
-      const modelosFinalizados = { ...modelosArcos };
-      
-      // Se há um modelo sendo editado, atualizar ele com a configuração atual
-      if (modeloArcoAtual) {
-        modelosFinalizados[modeloArcoAtual] = {
-          ...modelosArcos[modeloArcoAtual],
-          config: configArmazem,
-        };
-      }
-
-      // Verificar se todos os modelos têm configurações válidas
+      // Verificar se todos os modelos foram salvos
       let modelosCompletos = true;
-      for (let i = 1; i <= quantidadeModelosArcos; i++) {
-        if (!modelosFinalizados[i] || !modelosFinalizados[i].config) {
-          modelosCompletos = false;
-          break;
-        }
-      }
-
-      if (!modelosCompletos) {
-        alert(`Atenção: Nem todos os ${quantidadeModelosArcos} modelos foram configurados. Configure todos os modelos antes de salvar.`);
+      const modelosSalvosCount = Object.keys(modelosSalvos).length;
+      
+      if (modelosSalvosCount !== quantidadeModelosArcos) {
+        alert(`Atenção: Você tem ${quantidadeModelosArcos} modelos configurados, mas apenas ${modelosSalvosCount} foram salvos. Salve todos os modelos antes de salvar o armazém.`);
         return;
       }
 
-      // Salvar configuração completa com todos os modelos
+      // Salvar configuração completa com modelos salvos
       const configCompleta = {
         nome: nomeConfiguracao,
         quantidadeModelos: quantidadeModelosArcos,
-        modelosArcos: modelosFinalizados,
-        modeloAtual: modeloArcoAtual,
+        modelosArcos: modelosSalvos, // Usar modelos salvos em vez dos temporários
+        modeloAtual: null, // Resetar modelo atual
         timestamp: new Date().toISOString(),
         versao: "2.0",
         tipo: "configuracao_armazem_completa",
@@ -1197,7 +1309,7 @@ const ModeladorSVG = () => {
       );
 
       // Mostrar detalhes dos modelos salvos
-      const detalhesModelos = Object.entries(modelosFinalizados)
+      const detalhesModelos = Object.entries(modelosSalvos)
         .map(([num, modelo]) => `${num}: ${modelo.nome} (${modelo.posicao})`)
         .join(', ');
 
@@ -1205,8 +1317,8 @@ const ModeladorSVG = () => {
         `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!\n\nModelos salvos: ${detalhesModelos}`,
       );
 
-      // Após salvar, resetar para configuração padrão para nova modelagem
-      resetarPadrao();
+      // Após salvar, resetar TUDO para configuração padrão
+      resetarModelosParaPadrao();
       setNomeConfiguracao("");
     }
 
@@ -1233,21 +1345,31 @@ const ModeladorSVG = () => {
           dadosCarregados.tipo === "configuracao_armazem_completa"
         ) {
           // Configuração nova - carregar todos os modelos
+          console.log('Carregando configuração completa:', dadosCarregados);
+          
           setQuantidadeModelosArcos(dadosCarregados.quantidadeModelos);
           setModelosArcos(dadosCarregados.modelosArcos);
-          setModeloArcoAtual(dadosCarregados.modeloAtual);
+          setModelosSalvos(dadosCarregados.modelosArcos); // Restaurar modelos salvos
+          setModeloArcoAtual(null); // Não selecionar modelo inicial
 
-          // Determinar qual modelo deve ser usado para o arco atual no preview
-          const modeloParaArcoAtual = determinarModeloParaArcoComModelos(arcoAtual, dadosCarregados.modelosArcos);
-          if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
-            setConfigArmazem(modeloParaArcoAtual.config);
-          } else {
-            // Fallback para o modelo atual carregado
-            const modeloAtualCarregado = dadosCarregados.modelosArcos[dadosCarregados.modeloAtual];
-            if (modeloAtualCarregado) {
-              setConfigArmazem(modeloAtualCarregado.config);
+          // Aguardar um momento para garantir que os estados foram atualizados
+          setTimeout(() => {
+            // Determinar qual modelo deve ser usado para o arco atual no preview
+            const modeloParaArcoAtual = determinarModeloParaArcoComModelos(arcoAtual, dadosCarregados.modelosArcos);
+            console.log('Modelo para arco atual:', modeloParaArcoAtual);
+            
+            if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
+              setConfigArmazem(modeloParaArcoAtual.config);
+              console.log('Aplicando configuração do modelo:', modeloParaArcoAtual.nome);
+            } else {
+              // Fallback para o primeiro modelo carregado
+              const primeiroModelo = dadosCarregados.modelosArcos[1];
+              if (primeiroModelo && primeiroModelo.config) {
+                setConfigArmazem(primeiroModelo.config);
+                console.log('Aplicando configuração do primeiro modelo como fallback');
+              }
             }
-          }
+          }, 100);
 
           alert(
             `Configuração completa do armazém "${nome}" carregada com ${dadosCarregados.quantidadeModelos} modelos de arcos!`,
@@ -1256,14 +1378,14 @@ const ModeladorSVG = () => {
           // Configuração antiga - converter para novo formato
           setConfigArmazem(dadosCarregados);
           setQuantidadeModelosArcos(1);
-          setModelosArcos({
-            1: {
-              posicao: "todos",
-              config: dadosCarregados,
-              nome: "Modelo Único",
-            },
-          });
-          setModeloArcoAtual(1);
+          const modeloUnico = {
+            posicao: "todos",
+            config: dadosCarregados,
+            nome: "Modelo Único",
+          };
+          setModelosArcos({ 1: modeloUnico });
+          setModelosSalvos({ 1: modeloUnico }); // Salvar automaticamente
+          setModeloArcoAtual(null);
           alert("Configuração antiga convertida para o novo formato!");
         }
       }
@@ -1694,16 +1816,29 @@ const ModeladorSVG = () => {
                             if (quantidadeModelosArcos === 1) {
                               descricaoModelo = "todos";
                             } else if (quantidadeModelosArcos === 2) {
-                              descricaoModelo = modeloNum === 1 ? "par" : "impar";
+                              if (modeloNum === 1) {
+                                descricaoModelo = "par";
+                              } else {
+                                descricaoModelo = "impar";
+                              }
                             } else if (quantidadeModelosArcos === 3) {
-                              if (modeloNum === 1) descricaoModelo = "frente/fundo";
-                              else if (modeloNum === 2) descricaoModelo = "par";
-                              else descricaoModelo = "impar";
+                              if (modeloNum === 1) {
+                                descricaoModelo = "frente/fundo";
+                              } else if (modeloNum === 2) {
+                                descricaoModelo = "par";
+                              } else {
+                                descricaoModelo = "impar";
+                              }
                             } else if (quantidadeModelosArcos === 4) {
-                              if (modeloNum === 1) descricaoModelo = "frente";
-                              else if (modeloNum === 2) descricaoModelo = "par";
-                              else if (modeloNum === 3) descricaoModelo = "impar";
-                              else descricaoModelo = "fundo";
+                              if (modeloNum === 1) {
+                                descricaoModelo = "frente";
+                              } else if (modeloNum === 2) {
+                                descricaoModelo = "par";
+                              } else if (modeloNum === 3) {
+                                descricaoModelo = "impar";
+                              } else {
+                                descricaoModelo = "fundo";
+                              }
                             }
 
                             return (
@@ -1722,7 +1857,7 @@ const ModeladorSVG = () => {
                         <input
                           type="text"
                           className="form-control"
-                          value={modelosArcos[modeloArcoAtual]?.nome || ""}
+                          value={modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.nome || "") : ""}
                           onChange={(e) => handleNomeModeloChange(e.target.value)}
                           placeholder="Nome do modelo"
                           disabled={!modeloArcoAtual}
@@ -1732,7 +1867,7 @@ const ModeladorSVG = () => {
                         <label className="form-label">Posição no Armazém:</label>
                         <select
                           className="form-select"
-                          value={modelosArcos[modeloArcoAtual]?.posicao || ""}
+                          value={modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.posicao || "") : ""}
                           onChange={(e) => handlePosicaoArcoChange(e.target.value)}
                           disabled={!modeloArcoAtual}
                         >
@@ -1766,10 +1901,24 @@ const ModeladorSVG = () => {
 
                     {modeloArcoAtual && (
                       <div className="alert alert-info">
-                        <strong>EDITANDO:</strong> {modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}
-                        <span className="badge bg-primary ms-2">
-                          {modelosArcos[modeloArcoAtual]?.posicao || ""}
-                        </span>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <strong>EDITANDO:</strong> {modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}
+                            <span className="badge bg-primary ms-2">
+                              {modelosArcos[modeloArcoAtual]?.posicao || ""}
+                            </span>
+                            {modelosSalvos[modeloArcoAtual] && (
+                              <span className="badge bg-success ms-2">SALVO</span>
+                            )}
+                          </div>
+                          <button 
+                            className="btn btn-sm btn-success"
+                            onClick={salvarModeloAtual}
+                            title="Salvar este modelo"
+                          >
+                            💾 Salvar Modelo
+                          </button>
+                        </div>
                       </div>
                     )}
 
@@ -1789,14 +1938,24 @@ const ModeladorSVG = () => {
                           <div key={i + 1} className="col-lg-6 col-md-12 col-sm-12 mb-2">
                             <div className={`card ${modeloArcoAtual === i + 1 ? 'border-primary' : ''}`}>
                               <div className="card-body p-2">
-                                <small>
-                                  <strong>Modelo {i + 1}:</strong> {modelosArcos[i + 1]?.posicao || ""}<br />
-                                  {modelosArcos[i + 1]?.nome || ""}
-                                </small>
+                                <div className="d-flex justify-content-between align-items-start">
+                                  <small>
+                                    <strong>Modelo {i + 1}:</strong> {modelosArcos[i + 1]?.posicao || ""}<br />
+                                    {modelosArcos[i + 1]?.nome || ""}
+                                  </small>
+                                  {modelosSalvos[i + 1] && (
+                                    <span className="badge bg-success badge-sm">✓</span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         ))}
+                      </div>
+                      <div className="mt-2">
+                        <small className="text-muted">
+                          <strong>Status:</strong> {Object.keys(modelosSalvos).length} de {quantidadeModelosArcos} modelos salvos
+                        </small>
                       </div>
                     </div>
                   </div>
@@ -2627,11 +2786,16 @@ const ModeladorSVG = () => {
               </>
             )}
 
-            {/* Botão de Reset */}
+            {/* Botões de Reset */}
             <div className="d-grid gap-2 mb-3">
               <button className="btn btn-warning" onClick={resetarPadrao}>
                 🔄 Resetar para Padrão
               </button>
+              {tipoAtivo === "armazem" && (
+                <button className="btn btn-outline-warning" onClick={resetarModelosParaPadrao}>
+                  🗑️ Limpar Todos os Modelos
+                </button>
+              )}
             </div>
 
             {/* Gerenciador de Configurações */}
@@ -2741,12 +2905,21 @@ const ModeladorSVG = () => {
             >
               <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">
-                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modeloArcoAtual ? modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` : "Visualização Geral"}`}
+                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}` : "Visualização Geral"}`}
                 </h5>
-                {tipoAtivo === "armazem" && modeloArcoAtual && (
+                {tipoAtivo === "armazem" && (
                   <small>
-                    Posição: {quantidadeModelosArcos === 1 ? "Modelo Único" : modelosArcos[modeloArcoAtual]?.posicao || ""} | 
-                    Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
+                    {modeloArcoAtual ? (
+                      <>
+                        Posição: {quantidadeModelosArcos === 1 ? "Modelo Único" : modelosArcos[modeloArcoAtual]?.posicao || ""} | 
+                        Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
+                      </>
+                    ) : (
+                      <>
+                        Visualizando: {determinarModeloParaArco(arcoAtual)?.nome || "Modelo padrão"} | 
+                        {quantidadeModelosArcos} modelo{quantidadeModelosArcos > 1 ? 's' : ''} configurado{quantidadeModelosArcos > 1 ? 's' : ''}
+                      </>
+                    )}
                   </small>
                 )}
               </div>
@@ -2853,7 +3026,7 @@ const ModeladorSVG = () => {
                       <br />
                       <span className={`badge mt-1 ${
                         quantidadeModelosArcos === 1 ? 'bg-info' :
-                        quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning') :
+                        quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 1 ? 'bg-warning' : 'bg-primary') :
                         quantidadeModelosArcos === 3 ? (
                           arcoAtual === 1 || arcoAtual === analiseArcos.totalArcos ? 'bg-success' :
                           arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning'
@@ -2862,8 +3035,8 @@ const ModeladorSVG = () => {
                         arcoAtual === analiseArcos.totalArcos ? 'bg-danger' :
                         arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning'
                       }`}>
-                        {quantidadeModelosArcos === 1 ? 'MODELO ÚNICO' :
-                         quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR') :
+                        {quantidadeModelosArcos === 1 ? 'TODOS' :
+                         quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 1 ? 'ÍMPAR' : 'PAR') :
                          quantidadeModelosArcos === 3 ? (
                            arcoAtual === 1 || arcoAtual === analiseArcos.totalArcos ? 'FRENTE/FUNDO' :
                            arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'
