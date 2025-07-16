@@ -1160,6 +1160,11 @@ const ModeladorSVG = () => {
       alert(
         `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!`,
       );
+
+      // Após salvar, resetar para configuração padrão para nova modelagem
+      resetarPadrao();
+      setNomeConfiguracao("");
+      alert("Configuração resetada para nova modelagem!");
     }
 
     setForceUpdateLista((prev) => prev + 1);
