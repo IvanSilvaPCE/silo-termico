@@ -1154,20 +1154,36 @@ const ModeladorSVG = () => {
       );
       alert(`Configuração Silo "${nomeConfiguracao}" salva com sucesso!`);
     } else {
-      // Atualizar o modelo atual antes de salvar
-      const modelosAtualizados = {
-        ...modelosArcos,
-        [modeloArcoAtual]: {
+      // Atualizar TODOS os modelos antes de salvar, não apenas o atual
+      const modelosFinalizados = { ...modelosArcos };
+      
+      // Se há um modelo sendo editado, atualizar ele com a configuração atual
+      if (modeloArcoAtual) {
+        modelosFinalizados[modeloArcoAtual] = {
           ...modelosArcos[modeloArcoAtual],
           config: configArmazem,
-        },
-      };
+        };
+      }
+
+      // Verificar se todos os modelos têm configurações válidas
+      let modelosCompletos = true;
+      for (let i = 1; i <= quantidadeModelosArcos; i++) {
+        if (!modelosFinalizados[i] || !modelosFinalizados[i].config) {
+          modelosCompletos = false;
+          break;
+        }
+      }
+
+      if (!modelosCompletos) {
+        alert(`Atenção: Nem todos os ${quantidadeModelosArcos} modelos foram configurados. Configure todos os modelos antes de salvar.`);
+        return;
+      }
 
       // Salvar configuração completa com todos os modelos
       const configCompleta = {
         nome: nomeConfiguracao,
         quantidadeModelos: quantidadeModelosArcos,
-        modelosArcos: modelosAtualizados,
+        modelosArcos: modelosFinalizados,
         modeloAtual: modeloArcoAtual,
         timestamp: new Date().toISOString(),
         versao: "2.0",
@@ -1180,8 +1196,13 @@ const ModeladorSVG = () => {
         JSON.stringify(configCompleta),
       );
 
+      // Mostrar detalhes dos modelos salvos
+      const detalhesModelos = Object.entries(modelosFinalizados)
+        .map(([num, modelo]) => `${num}: ${modelo.nome} (${modelo.posicao})`)
+        .join(', ');
+
       alert(
-        `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!`,
+        `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!\n\nModelos salvos: ${detalhesModelos}`,
       );
 
       // Após salvar, resetar para configuração padrão para nova modelagem
