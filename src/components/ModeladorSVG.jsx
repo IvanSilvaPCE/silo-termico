@@ -63,7 +63,7 @@ const ModeladorSVG = () => {
 
   // Estados para modelos de arcos
   const [quantidadeModelosArcos, setQuantidadeModelosArcos] = useState(1);
-  const [modeloArcoAtual, setModeloArcoAtual] = useState(1);
+  const [modeloArcoAtual, setModeloArcoAtual] = useState(null);
   const [modelosArcos, setModelosArcos] = useState({
     1: {
       posicao: "todos", // todos, frente, par, impar, fundo, frente_fundo
@@ -1640,9 +1640,10 @@ const ModeladorSVG = () => {
                         <label className="form-label">Modelo Atual:</label>
                         <select
                           className="form-select"
-                          value={modeloArcoAtual}
+                          value={modeloArcoAtual || ""}
                           onChange={(e) => handleModeloArcoChange(parseInt(e.target.value))}
                         >
+                          <option value="">Selecione Modelo</option>
                           {Array.from({ length: quantidadeModelosArcos }, (_, i) => {
                             const modeloNum = i + 1;
                             let descricaoModelo = "";
@@ -1681,14 +1682,16 @@ const ModeladorSVG = () => {
                           value={modelosArcos[modeloArcoAtual]?.nome || ""}
                           onChange={(e) => handleNomeModeloChange(e.target.value)}
                           placeholder="Nome do modelo"
+                          disabled={!modeloArcoAtual}
                         />
                       </div>
                       <div className="col-lg-6 col-md-12 mb-3">
                         <label className="form-label">Posição no Armazém:</label>
                         <select
                           className="form-select"
-                          value={modelosArcos[modeloArcoAtual]?.posicao || "frente"}
+                          value={modelosArcos[modeloArcoAtual]?.posicao || ""}
                           onChange={(e) => handlePosicaoArcoChange(e.target.value)}
+                          disabled={!modeloArcoAtual}
                         >
                           {quantidadeModelosArcos === 1 && (
                             <option value="todos">Todos os Arcos</option>
@@ -1718,17 +1721,29 @@ const ModeladorSVG = () => {
                       </div>
                     </div>
 
-                    <div className="alert alert-info">
-                      <strong>Configurando:</strong> {modelosArcos[modeloArcoAtual]?.nome || ""} 
-                      <span className="badge bg-primary ms-2">
-                        {modelosArcos[modeloArcoAtual]?.posicao || ""}
-                      </span>
-                      <br />
-                      <small>
-                        Ajuste as configurações abaixo para este modelo específico. 
-                        As alterações são aplicadas em tempo real.
-                      </small>
-                    </div>
+                    {modeloArcoAtual && (
+                      <div className="alert alert-info">
+                        <strong>EDITANDO:</strong> {modelosArcos[modeloArcoAtual]?.nome || ""} 
+                        <span className="badge bg-primary ms-2">
+                          {modelosArcos[modeloArcoAtual]?.posicao || ""}
+                        </span>
+                        <br />
+                        <small>
+                          Ajuste as configurações abaixo para este modelo específico. 
+                          As alterações são aplicadas em tempo real.
+                        </small>
+                      </div>
+                    )}
+
+                    {!modeloArcoAtual && (
+                      <div className="alert alert-warning">
+                        <strong>⚠️ Nenhum modelo selecionado</strong>
+                        <br />
+                        <small>
+                          Selecione um modelo acima para começar a editar suas configurações.
+                        </small>
+                      </div>
+                    )}
 
                     
 
@@ -2780,15 +2795,6 @@ const ModeladorSVG = () => {
                         >
                           Próximo →
                         </button>
-                        {quantidadeModelosArcos > 1 && (
-                          <button
-                            className="btn btn-warning btn-sm"
-                            onClick={() => handleModeloArcoChange(modeloArcoAtual)}
-                            title="Voltar ao arco representativo do modelo atual"
-                          >
-                            🎯 Editar
-                          </button>
-                        )}
                       </div>
                     </div>
                     <div className="col-md-4 text-center">
@@ -2817,7 +2823,7 @@ const ModeladorSVG = () => {
                           if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
                         }
 
-                        return isRepresentativo && quantidadeModelosArcos > 1 ? (
+                        return isRepresentativo && quantidadeModelosArcos > 1 && modeloArcoAtual ? (
                           <span className="badge bg-warning text-dark ms-2">EDITANDO</span>
                         ) : null;
                       })()}
