@@ -1116,105 +1116,6 @@ const ModeladorSVG = () => {
     }
   };
 
-  // Salvar apenas o modelo de arco atual
-  const salvarModeloArco = () => {
-    const nomeModelo = modelosArcos[modeloArcoAtual]?.nome || `Modelo Arco ${modeloArcoAtual}`;
-
-    const dadosModelo = {
-      posicao: modelosArcos[modeloArcoAtual].posicao,
-      config: configArmazem,
-      nome: nomeModelo,
-      numeroModelo: modeloArcoAtual,
-      timestamp: new Date().toISOString(),
-      tipo: "modelo_arco_individual",
-    };
-
-    // Salvar modelo independente (não vinculado a armazém específico)
-    localStorage.setItem(
-      `modeloArco_${nomeModelo}`,
-      JSON.stringify(dadosModelo),
-    );
-
-    // Atualizar também nos modelos locais
-    setModelosArcos((prev) => ({
-      ...prev,
-      [modeloArcoAtual]: {
-        ...prev[modeloArcoAtual],
-        config: configArmazem,
-      },
-    }));
-
-    alert(`Modelo de arco "${nomeModelo}" salvo com sucesso!`);
-  };
-
-  // Carregar modelo de arco específico
-  const carregarModeloArco = (nomeModelo) => {
-    const modeloSalvo = localStorage.getItem(`modeloArco_${nomeModelo}`);
-
-    if (modeloSalvo) {
-      const dadosModelo = JSON.parse(modeloSalvo);
-
-      // Atualizar modelo atual nos modelos locais
-      setModelosArcos((prev) => ({
-        ...prev,
-        [modeloArcoAtual]: {
-          posicao: dadosModelo.posicao,
-          config: dadosModelo.config,
-          nome: dadosModelo.nome,
-        },
-      }));
-
-      // Determinar qual modelo deve ser usado para o arco atual no preview
-      const modeloParaArcoAtual = determinarModeloParaArco(arcoAtual);
-
-      // Se o modelo carregado é o que deve ser usado para o arco atual, aplicar a configuração
-      if (modeloParaArcoAtual && modeloParaArcoAtual.posicao === dadosModelo.posicao) {
-        setConfigArmazem(dadosModelo.config);
-      } else {
-        // Se não, aplicar a configuração do modelo correto para o arco atual
-        const modelosAtualizados = {
-          ...modelosArcos,
-          [modeloArcoAtual]: {
-            posicao: dadosModelo.posicao,
-            config: dadosModelo.config,
-            nome: dadosModelo.nome,
-          },
-        };
-
-        // Recalcular o modelo para o arco atual com os dados atualizados
-        const modeloCorretoParaArco = determinarModeloParaArcoComModelos(arcoAtual, modelosAtualizados);
-        if (modeloCorretoParaArco && modeloCorretoParaArco.config) {
-          setConfigArmazem(modeloCorretoParaArco.config);
-        }
-      }
-
-      alert(`Modelo de arco "${nomeModelo}" carregado com sucesso!`);
-    } else {
-      alert("Modelo de arco não encontrado!");
-    }
-  };
-
-  // Listar modelos de arcos salvos
-  const listarModelosArcosSalvos = () => {
-    const prefixo = `modeloArco_`;
-    const modelos = [];
-    for (let i = 0; i < localStorage.length; i++) {
-      const chave = localStorage.key(i);
-      if (chave && chave.startsWith(prefixo)) {
-        const nome = chave.replace(prefixo, "");
-        modelos.push(nome);
-      }
-    }
-    return modelos;
-  };
-
-  // Deletar modelo de arco
-  const deletarModeloArco = (nomeModelo) => {
-    localStorage.removeItem(`modeloArco_${nomeModelo}`);
-    alert(`Modelo "${nomeModelo}" removido com sucesso!`);
-    setForceUpdateLista((prev) => prev + 1);
-  };
-
   // Salvar configuração completa do armazém (todos os modelos)
   const salvarConfiguracao = () => {
     if (!nomeConfiguracao.trim()) {
@@ -1257,7 +1158,7 @@ const ModeladorSVG = () => {
       );
 
       alert(
-        `Configuração completa do armazém "${nomeConfiguracao}" salva com sucesso!`,
+        `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!`,
       );
     }
 
@@ -1824,52 +1725,7 @@ const ModeladorSVG = () => {
                       </small>
                     </div>
 
-                    {/* Controles para salvar/carregar modelo individual */}
-                    <div className="mt-3">
-                      <div className="row mb-2">
-                        <div className="col-lg-6 col-md-12 mb-2">
-                          <button 
-                            className="btn btn-success btn-sm w-100"
-                            onClick={salvarModeloArco}
-                          >
-                            💾 Salvar Modelo Atual
-                          </button>
-                        </div>
-                        <div className="col-lg-6 col-md-12 mb-2">
-                          <select 
-                            className="form-select form-select-sm"
-                            onChange={(e) => e.target.value && carregarModeloArco(e.target.value)}
-                            defaultValue=""
-                          >
-                            <option value="">Carregar Modelo Salvo</option>
-                            {listarModelosArcosSalvos().map(nome => (
-                              <option key={nome} value={nome}>{nome}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      {/* Lista de modelos salvos */}
-                      {listarModelosArcosSalvos().length > 0 && (
-                        <div className="alert alert-light">
-                          <h6>Modelos Salvos:</h6>
-                          <div className="d-flex flex-wrap gap-1">
-                            {listarModelosArcosSalvos().map(nome => (
-                              <span key={nome} className="badge bg-secondary position-relative">
-                                {nome}
-                                <button
-                                  type="button"
-                                  className="btn-close btn-close-white"
-                                  style={{ fontSize: '8px', marginLeft: '5px' }}
-                                  onClick={() => deletarModeloArco(nome)}
-                                  aria-label="Close"
-                                ></button>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
+                    
 
                     {/* Resumo dos modelos */}
                     <div className="mt-3">
@@ -2724,22 +2580,91 @@ const ModeladorSVG = () => {
               </button>
             </div>
 
-            <ModelConfigurationManager
-              type={tipoAtivo}
-              currentConfig={tipoAtivo === "silo" ? configSilo : configArmazem}
-              onConfigurationLoad={(config, metadata) => {
-                if (tipoAtivo === "silo") {
-                  setConfigSilo(config);
-                } else {
-                  setConfigArmazem(config);
-                }
-                setNomeConfiguracao(metadata.name || "");
-              }}
-              onConfigurationSave={(name, config) => {
-                setNomeConfiguracao(name);
-                setForceUpdateLista((prev) => prev + 1);
-              }}
-            />
+            {/* Gerenciador de Configurações */}
+            <div className="card mt-3">
+              <div className="card-header bg-info text-white">
+                <h6 className="mb-0">📋 Gerenciar Configurações</h6>
+              </div>
+              <div className="card-body">
+                <div className="mb-3">
+                  <label className="form-label">Nome da Configuração:</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={nomeConfiguracao}
+                    onChange={(e) => setNomeConfiguracao(e.target.value)}
+                    placeholder="Digite o nome para salvar/carregar"
+                  />
+                </div>
+
+                <div className="d-grid gap-2 mb-3">
+                  <button
+                    className="btn btn-success"
+                    onClick={salvarConfiguracao}
+                    disabled={!nomeConfiguracao.trim()}
+                  >
+                    💾 Salvar {tipoAtivo === "silo" ? "Silo" : "Armazém"} Completo
+                  </button>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => carregarConfiguracao(nomeConfiguracao)}
+                    disabled={!nomeConfiguracao.trim()}
+                  >
+                    📂 Carregar Configuração
+                  </button>
+                </div>
+
+                {/* Lista de configurações salvas */}
+                {configsMemoized.length > 0 && (
+                  <div className="alert alert-light">
+                    <h6>Configurações Salvas:</h6>
+                    <div className="d-flex flex-wrap gap-1">
+                      {configsMemoized.map((nome) => (
+                        <span key={nome} className="badge bg-secondary position-relative">
+                          {nome}
+                          <button
+                            type="button"
+                            className="btn-close btn-close-white"
+                            style={{ fontSize: "8px", marginLeft: "5px" }}
+                            onClick={() => deletarConfiguracao(nome)}
+                            aria-label="Close"
+                          ></button>
+                        </span>
+                      ))}
+                    </div>
+                    <div className="mt-2">
+                      <small className="text-muted">
+                        Clique em uma configuração para carregar rapidamente:
+                      </small>
+                      <div className="d-flex flex-wrap gap-1 mt-1">
+                        {configsMemoized.map((nome) => (
+                          <button
+                            key={nome}
+                            type="button"
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => {
+                              setNomeConfiguracao(nome);
+                              carregarConfiguracao(nome);
+                            }}
+                          >
+                            {nome}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {tipoAtivo === "armazem" && (
+                  <div className="alert alert-info">
+                    <small>
+                      <strong>📌 Dica:</strong> Quando salvar um armazém, todos os {quantidadeModelosArcos} modelos de arcos configurados serão salvos junto. 
+                      Ao carregar, a configuração completa será restaurada com todos os modelos.
+                    </small>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
