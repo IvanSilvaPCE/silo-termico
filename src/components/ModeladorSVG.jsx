@@ -962,6 +962,53 @@ const ModeladorSVG = () => {
   const handleModeloArcoChange = (numeroModelo) => {
     setModeloArcoAtual(numeroModelo);
     setConfigArmazem(modelosArcos[numeroModelo].config);
+    
+    // Automação: navegar para arco representativo do modelo selecionado
+    if (analiseArcos && modelosArcos[numeroModelo]) {
+      const posicaoModelo = modelosArcos[numeroModelo].posicao;
+      const totalArcos = analiseArcos.totalArcos;
+      let arcoRepresentativo = 1; // padrão
+      
+      if (quantidadeModelosArcos === 1) {
+        // 1 modelo: todos iguais - manter arco atual
+        arcoRepresentativo = arcoAtual;
+      } else if (quantidadeModelosArcos === 2) {
+        // 2 modelos: par/ímpar
+        if (posicaoModelo === "par") {
+          arcoRepresentativo = 2; // segundo arco (par)
+        } else if (posicaoModelo === "impar") {
+          arcoRepresentativo = 1; // primeiro arco (ímpar)
+        }
+      } else if (quantidadeModelosArcos === 3) {
+        // 3 modelos: frente_fundo/par/ímpar
+        if (posicaoModelo === "frente_fundo") {
+          arcoRepresentativo = 1; // primeiro arco
+        } else if (posicaoModelo === "par") {
+          arcoRepresentativo = 2; // segundo arco (par)
+        } else if (posicaoModelo === "impar") {
+          arcoRepresentativo = 1; // primeiro arco (ímpar)
+        }
+      } else if (quantidadeModelosArcos === 4) {
+        // 4 modelos: frente/par/ímpar/fundo
+        if (posicaoModelo === "frente") {
+          arcoRepresentativo = 1; // primeiro arco
+        } else if (posicaoModelo === "fundo") {
+          arcoRepresentativo = totalArcos; // último arco
+        } else if (posicaoModelo === "par") {
+          arcoRepresentativo = 2; // segundo arco (par)
+        } else if (posicaoModelo === "impar") {
+          arcoRepresentativo = 1; // primeiro arco (ímpar)
+        }
+      }
+      
+      // Garantir que o arco está dentro dos limites
+      arcoRepresentativo = Math.max(1, Math.min(totalArcos, arcoRepresentativo));
+      
+      // Navegar para o arco representativo
+      if (arcoRepresentativo !== arcoAtual) {
+        mudarArco(arcoRepresentativo);
+      }
+    }
   };
 
   const handlePosicaoArcoChange = (posicao) => {
@@ -1042,15 +1089,18 @@ const ModeladorSVG = () => {
   };
 
   // Função para mudar arco e aplicar configuração correspondente
-  const mudarArco = (novoArco) => {
+  const mudarArco = (novoArco, forcarAplicarConfiguracao = true) => {
     setArcoAtual(novoArco);
 
-    // Determinar qual modelo usar para este arco
-    const modeloParaArco = determinarModeloParaArco(novoArco);
+    // Só aplicar configuração se forçado (navegação automática) ou se não estiver editando um modelo específico
+    if (forcarAplicarConfiguracao) {
+      // Determinar qual modelo usar para este arco
+      const modeloParaArco = determinarModeloParaArco(novoArco);
 
-    // Aplicar a configuração do modelo correspondente
-    if (modeloParaArco && modeloParaArco.config) {
-      setConfigArmazem(modeloParaArco.config);
+      // Aplicar a configuração do modelo correspondente
+      if (modeloParaArco && modeloParaArco.config) {
+        setConfigArmazem(modeloParaArco.config);
+      }
     }
 
     if (dadosPortal) {
@@ -2774,31 +2824,69 @@ const ModeladorSVG = () => {
                 <div className="card-footer bg-light">
                   <div className="row align-items-center">
                     <div className="col-md-4">
-                      <div className="d-flex gap-2">
+                      <div className="d-flex gap-1 flex-wrap">
                         <button
-                          className="btn btn-outline-primary"
-                          onClick={() => mudarArco(Math.max(1, arcoAtual - 1))}
+                          className="btn btn-outline-primary btn-sm"
+                          onClick={() => mudarArco(Math.max(1, arcoAtual - 1), false)}
                           disabled={arcoAtual <= 1}
+                          title="Navegar livremente preservando configuração atual"
                         >
                           ← Anterior
                         </button>
                         <button
-                          className="btn btn-outline-primary"
+                          className="btn btn-outline-primary btn-sm"
                           onClick={() =>
                             mudarArco(
                               Math.min(analiseArcos.totalArcos, arcoAtual + 1),
+                              false
                             )
                           }
                           disabled={arcoAtual >= analiseArcos.totalArcos}
+                          title="Navegar livremente preservando configuração atual"
                         >
                           Próximo →
                         </button>
+                        {quantidadeModelosArcos > 1 && (
+                          <button
+                            className="btn btn-warning btn-sm"
+                            onClick={() => handleModeloArcoChange(modeloArcoAtual)}
+                            title="Voltar ao arco representativo do modelo atual"
+                          >
+                            🎯 Editar
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="col-md-4 text-center">
                       <strong>
                         Arco {arcoAtual} de {analiseArcos.totalArcos}
                       </strong>
+                      {(() => {
+                        // Verificar se este arco é representativo do modelo atual
+                        const modeloAtual = modelosArcos[modeloArcoAtual];
+                        const posicaoModelo = modeloAtual?.posicao;
+                        let isRepresentativo = false;
+                        
+                        if (quantidadeModelosArcos === 1) {
+                          isRepresentativo = true; // todos são representativos
+                        } else if (quantidadeModelosArcos === 2) {
+                          if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
+                          if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
+                        } else if (quantidadeModelosArcos === 3) {
+                          if (posicaoModelo === "frente_fundo" && arcoAtual === 1) isRepresentativo = true;
+                          if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
+                          if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
+                        } else if (quantidadeModelosArcos === 4) {
+                          if (posicaoModelo === "frente" && arcoAtual === 1) isRepresentativo = true;
+                          if (posicaoModelo === "fundo" && arcoAtual === analiseArcos.totalArcos) isRepresentativo = true;
+                          if (posicaoModelo === "par" && arcoAtual === 2) isRepresentativo = true;
+                          if (posicaoModelo === "impar" && arcoAtual === 1) isRepresentativo = true;
+                        }
+                        
+                        return isRepresentativo && quantidadeModelosArcos > 1 ? (
+                          <span className="badge bg-warning text-dark ms-2">EDITANDO</span>
+                        ) : null;
+                      })()}
                       <br />
                       <small className="text-muted">
                         Aplicando: {determinarModeloParaArco(arcoAtual)?.nome || "Modelo padrão"}
