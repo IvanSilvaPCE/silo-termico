@@ -17,6 +17,30 @@
   }
 }
 
+/* Corrigir scroll duplo no mobile */
+@media (max-width: 576px) {
+  .modelador-painel-controles {
+    height: auto !important;
+    overflow-y: visible !important;
+    max-height: none !important;
+  }
+  
+  /* Permitir scroll natural da página no mobile */
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  
+  /* Ajustar altura do container principal no mobile */
+  .container-fluid {
+    min-height: auto !important;
+  }
+  
+  .row.g-0 {
+    min-height: auto !important;
+  }
+}
+
 /* Melhorias para botões da navegação */
 .navbar-nav .btn {
   min-width: 80px;

@@ -1689,14 +1689,15 @@ const ModeladorSVG = () => {
       <div className="row g-0">
         {/* Painel de Controles */}
         <div
-          className="col-xl-3 col-lg-4 col-md-5 col-sm-12"
+          className="col-xl-3 col-lg-4 col-md-5 col-sm-12 modelador-painel-controles"
           style={{
-            height: "100vh",
-            overflowY: "auto",
+            height: window.innerWidth <= 576 ? "auto" : "100vh",
+            overflowY: window.innerWidth <= 576 ? "visible" : "auto",
             position: "relative",
             borderRight: "2px solid #dee2e6",
             backgroundColor: "#f8f9fa",
             zIndex: 1000,
+            maxHeight: window.innerWidth <= 576 ? "none" : "100vh",
           }}
         >
           <div className="p-3">
@@ -3158,8 +3159,9 @@ const ModeladorSVG = () => {
           className="col-xl-9 col-lg-8 col-md-7 col-sm-12"
           style={{
             padding: "10px",
-            height: "100vh",
-            overflow: "hidden",
+            height: window.innerWidth <= 576 ? "auto" : "100vh",
+            overflow: window.innerWidth <= 576 ? "visible" : "hidden",
+            minHeight: window.innerWidth <= 576 ? "400px" : "100vh",
           }}
         >
           <div

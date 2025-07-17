@@ -7,6 +7,7 @@ import Silo3D from './components/Silo3D';
 import Armazem3D from './components/Armazem3D';
 import dadosSimulados from "./dados";
 import dadosSimuladosSilo from "./dadosSilo";
+import "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 const App = () => {
   const [dados, setDados] = useState(null);
