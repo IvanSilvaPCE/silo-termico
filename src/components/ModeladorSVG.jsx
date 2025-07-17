@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import LayoutManager from "../utils/layoutManager";
-import ModelConfigurationManager from "./ModelConfigurationManager";
 
 const ModeladorSVG = () => {
   // Estados para configurações do Silo
@@ -96,7 +95,7 @@ const ModeladorSVG = () => {
       try {
         // Carregar dados do arquivo JSON
         const response = await fetch(
-          "/attached_assets/modeloRotaArmazemPortal_1751897945212.json",
+          "/models/modeloRotaArmazemPortal_1751897945212.json",
         );
         const dadosArmazemPortal = await response.json();
         setDadosPortal(dadosArmazemPortal);
@@ -1250,12 +1249,23 @@ const ModeladorSVG = () => {
       config: configArmazem, // Usar a configuração atual
     };
 
+    // Atualizar tanto modelosArcos quanto modelosSalvos
+    const modelosAtualizados = {
+      ...modelosArcos,
+      [modeloArcoAtual]: modeloParaSalvar,
+    };
+
     const novosSalvos = {
       ...modelosSalvos,
       [modeloArcoAtual]: modeloParaSalvar,
     };
 
+    setModelosArcos(modelosAtualizados);
     setModelosSalvos(novosSalvos);
+    
+    // Salvar automaticamente no localStorage também
+    salvarModelosAutomatico(modelosAtualizados);
+    
     alert(
       `Modelo ${modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`,
     );
@@ -1413,11 +1423,26 @@ const ModeladorSVG = () => {
         return;
       }
 
-      // Salvar configuração completa com modelos salvos
+      // Garantir que todos os modelos estão atualizados com as configurações mais recentes
+      const modelosParaSalvar = {};
+      for (let i = 1; i <= quantidadeModelosArcos; i++) {
+        if (modelosSalvos[i]) {
+          // Se o modelo foi salvo, usar a configuração salva
+          modelosParaSalvar[i] = modelosSalvos[i];
+        } else if (modelosArcos[i]) {
+          // Se não foi salvo, usar a configuração atual
+          modelosParaSalvar[i] = {
+            ...modelosArcos[i],
+            config: i === modeloArcoAtual ? configArmazem : modelosArcos[i].config
+          };
+        }
+      }
+
+      // Salvar configuração completa com modelos atualizados
       const configCompleta = {
         nome: nomeConfiguracao,
         quantidadeModelos: quantidadeModelosArcos,
-        modelosArcos: modelosSalvos, // Usar modelos salvos em vez dos temporários
+        modelosArcos: modelosParaSalvar,
         modeloAtual: null, // Resetar modelo atual
         timestamp: new Date().toISOString(),
         versao: "2.0",
@@ -1431,7 +1456,7 @@ const ModeladorSVG = () => {
       );
 
       // Mostrar detalhes dos modelos salvos
-      const detalhesModelos = Object.entries(modelosSalvos)
+      const detalhesModelos = Object.entries(modelosParaSalvar)
         .map(([num, modelo]) => `${num}: ${modelo.nome} (${modelo.posicao})`)
         .join(", ");
 
@@ -1439,8 +1464,9 @@ const ModeladorSVG = () => {
         `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!\n\nModelos salvos: ${detalhesModelos}`,
       );
 
-      // Após salvar, resetar TUDO para configuração padrão
+      // Após salvar, resetar TUDO para configuração padrão e limpar status salvos
       resetarModelosParaPadrao();
+      setModelosSalvos({}); // Limpar modelos salvos
       setNomeConfiguracao("");
     }
 
@@ -1663,15 +1689,14 @@ const ModeladorSVG = () => {
       <div className="row g-0">
         {/* Painel de Controles */}
         <div
-          className="col-lg-3 col-md-4 bg-light border-end"
+          className="col-xl-3 col-lg-4 col-md-5 col-sm-12"
           style={{
             height: "100vh",
             overflowY: "auto",
-            position: "fixed",
-            top: "0",
-            left: "0",
-            zIndex: 1000,
+            position: "relative",
             borderRight: "2px solid #dee2e6",
+            backgroundColor: "#f8f9fa",
+            zIndex: 1000,
           }}
         >
           <div className="p-3">
@@ -2157,186 +2182,136 @@ const ModeladorSVG = () => {
                     <h6 className="mb-0">📐 Dimensões Básicas do Armazém</h6>
                   </div>
                   <div className="card-body">
-                    <div className="row">
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Profundidade Base (pb):
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="100"
-                            max="300"
-                            value={configArmazem.pb}
-                            onChange={(e) =>
-                              handleArmazemChange("pb", e.target.value)
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.pb}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("pb", 185)}
-                              title="Resetar para padrão (185)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Profundidade Base (pb):</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="100"
+                          max="300"
+                          value={configArmazem.pb}
+                          onChange={(e) => handleArmazemChange("pb", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.pb}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("pb", 185)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">Largura Base (lb):</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="200"
-                            max="500"
-                            value={configArmazem.lb}
-                            onChange={(e) =>
-                              handleArmazemChange("lb", e.target.value)
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.lb}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("lb", 350)}
-                              title="Resetar para padrão (350)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Largura Base (lb):</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="200"
+                          max="500"
+                          value={configArmazem.lb}
+                          onChange={(e) => handleArmazemChange("lb", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.lb}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("lb", 350)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">Altura Base (hb):</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="10"
-                            max="80"
-                            value={configArmazem.hb}
-                            onChange={(e) =>
-                              handleArmazemChange("hb", e.target.value)
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.hb}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("hb", 30)}
-                              title="Resetar para padrão (30)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Altura Base (hb):</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="80"
+                          value={configArmazem.hb}
+                          onChange={(e) => handleArmazemChange("hb", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.hb}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("hb", 30)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Largura Frente (lf):
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="150"
-                            max="350"
-                            value={configArmazem.lf}
-                            onChange={(e) =>
-                              handleArmazemChange("lf", e.target.value)
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.lf}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("lf", 250)}
-                              title="Resetar para padrão (250)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Largura Frente (lf):</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="150"
+                          max="350"
+                          value={configArmazem.lf}
+                          onChange={(e) => handleArmazemChange("lf", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.lf}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("lf", 250)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Largura Estrutura (le):
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="5"
-                            max="50"
-                            value={configArmazem.le}
-                            onChange={(e) =>
-                              handleArmazemChange("le", e.target.value)
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.le}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("le", 15)}
-                              title="Resetar para padrão (15)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Largura Estrutura (le):</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="5"
+                          max="50"
+                          value={configArmazem.le}
+                          onChange={(e) => handleArmazemChange("le", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.le}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("le", 15)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">Altura Teto (ht):</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="20"
-                            max="100"
-                            value={configArmazem.ht}
-                            onChange={(e) =>
-                              handleArmazemChange("ht", e.target.value)
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.ht}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("ht", 50)}
-                              title="Resetar para padrão (50)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Altura Teto (ht):</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="20"
+                          max="100"
+                          value={configArmazem.ht}
+                          onChange={(e) => handleArmazemChange("ht", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.ht}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("ht", 50)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2348,70 +2323,48 @@ const ModeladorSVG = () => {
                     <h6 className="mb-0">🏠 Configuração do Telhado</h6>
                   </div>
                   <div className="card-body">
-                    <div className="row">
-                      <div className="col-lg-12 col-md-12 mb-3">
-                        <label className="form-label">Tipo do Telhado:</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <select
-                            className="form-select me-2 flex-grow-1"
-                            style={{ minWidth: "150px" }}
-                            value={configArmazem.tipo_telhado}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "tipo_telhado",
-                                e.target.value,
-                              )
-                            }
-                          >
-                            <option value={1}>Pontudo</option>
-                            <option value={2}>Arredondado</option>
-                            <option value={3}>Arco</option>
-                          </select>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() =>
-                              handleArmazemChange("tipo_telhado", 1)
-                            }
-                            title="Resetar para padrão (Pontudo)"
-                          >
-                            ×
-                          </button>
-                        </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Tipo do Telhado:</label>
+                      <div className="input-group input-group-sm">
+                        <select
+                          className="form-select"
+                          value={configArmazem.tipo_telhado}
+                          onChange={(e) => handleArmazemChange("tipo_telhado", e.target.value)}
+                        >
+                          <option value={1}>Pontudo</option>
+                          <option value={2}>Arredondado</option>
+                          <option value={3}>Arco</option>
+                        </select>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("tipo_telhado", 1)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-lg-12 col-md-12 mb-3">
-                        <label className="form-label">Curvatura do Topo:</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="10"
-                            max="80"
-                            value={configArmazem.curvatura_topo}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "curvatura_topo",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.curvatura_topo}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange("curvatura_topo", 30)
-                              }
-                              title="Resetar para padrão (30)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Curvatura do Topo:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="80"
+                          value={configArmazem.curvatura_topo}
+                          onChange={(e) => handleArmazemChange("curvatura_topo", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.curvatura_topo}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("curvatura_topo", 30)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -2423,31 +2376,26 @@ const ModeladorSVG = () => {
                     <h6 className="mb-0">⬇️ Configuração do Fundo</h6>
                   </div>
                   <div className="card-body">
-                    <div className="row">
-                      <div className="col-lg-12 col-md-12 mb-3">
-                        <label className="form-label">Tipo do Fundo:</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <select
-                            className="form-select me-2 flex-grow-1"
-                            style={{ minWidth: "150px" }}
-                            value={configArmazem.tipo_fundo}
-                            onChange={(e) =>
-                              handleArmazemChange("tipo_fundo", e.target.value)
-                            }
-                          >
-                            <option value={0}>Reto</option>
-                            <option value={1}>Funil/V</option>
-                            <option value={2}>Duplo V</option>
-                          </select>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-secondary"
-                            onClick={() => handleArmazemChange("tipo_fundo", 0)}
-                            title="Resetar para padrão (Reto)"
-                          >
-                            ×
-                          </button>
-                        </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Tipo do Fundo:</label>
+                      <div className="input-group input-group-sm">
+                        <select
+                          className="form-select"
+                          value={configArmazem.tipo_fundo}
+                          onChange={(e) => handleArmazemChange("tipo_fundo", e.target.value)}
+                        >
+                          <option value={0}>Reto</option>
+                          <option value={1}>Funil/V</option>
+                          <option value={2}>Duplo V</option>
+                        </select>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("tipo_fundo", 0)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
 
@@ -2497,93 +2445,50 @@ const ModeladorSVG = () => {
                     )}
 
                     {/* Controles de Movimentação do Fundo (para todos os tipos) */}
-                    <div className="alert alert-warning">
-                      <h6>🔄 Movimentação do Fundo (Todos os Tipos):</h6>
-                      <div className="row">
-                        <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
-                          <label className="form-label">
-                            Deslocamento Horizontal:
-                          </label>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <input
-                              type="range"
-                              className="form-range me-2 flex-grow-1"
-                              style={{ minWidth: "120px" }}
-                              min="-100"
-                              max="100"
-                              value={
-                                configArmazem.deslocamento_horizontal_fundo || 0
-                              }
-                              onChange={(e) =>
-                                handleArmazemChange(
-                                  "deslocamento_horizontal_fundo",
-                                  e.target.value,
-                                )
-                              }
-                            />
-                            <div className="d-flex align-items-center">
-                              <span className="badge bg-secondary me-2">
-                                {configArmazem.deslocamento_horizontal_fundo ||
-                                  0}
-                              </span>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() =>
-                                  handleArmazemChange(
-                                    "deslocamento_horizontal_fundo",
-                                    0,
-                                  )
-                                }
-                                title="Resetar para padrão (0)"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
+                    <div className="alert alert-warning p-2">
+                      <h6 className="small">🔄 Movimentação do Fundo (Todos os Tipos):</h6>
+                      <div className="mb-2">
+                        <label className="small fw-bold">Deslocamento Horizontal:</label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="range"
+                            className="form-range"
+                            min="-100"
+                            max="100"
+                            value={configArmazem.deslocamento_horizontal_fundo || 0}
+                            onChange={(e) => handleArmazemChange("deslocamento_horizontal_fundo", e.target.value)}
+                          />
+                          <span className="input-group-text">{configArmazem.deslocamento_horizontal_fundo || 0}</span>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => handleArmazemChange("deslocamento_horizontal_fundo", 0)}
+                            title="Reset"
+                          >
+                            ×
+                          </button>
                         </div>
-                        <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
-                          <label className="form-label">
-                            Deslocamento Vertical:
-                          </label>
-                          <div className="d-flex align-items-center flex-wrap">
-                            <input
-                              type="range"
-                              className="form-range me-2 flex-grow-1"
-                              style={{ minWidth: "120px" }}
-                              min="-100"
-                              max="100"
-                              value={
-                                configArmazem.deslocamento_vertical_fundo || 0
-                              }
-                              onChange={(e) =>
-                                handleArmazemChange(
-                                  "deslocamento_vertical_fundo",
-                                  e.target.value,
-                                )
-                              }
-                            />
-                            <div className="d-flex align-items-center">
-                              <span className="badge bg-secondary me-2">
-                                {configArmazem.deslocamento_vertical_fundo || 0}
-                              </span>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() =>
-                                  handleArmazemChange(
-                                    "deslocamento_vertical_fundo",
-                                    obterDeslocamentoVerticalPadrao(
-                                      configArmazem.tipo_fundo,
-                                    ),
-                                  )
-                                }
-                                title={`Resetar para padrão (${obterDeslocamentoVerticalPadrao(configArmazem.tipo_fundo)})`}
-                              >
-                                ×
-                              </button>
-                            </div>
-                          </div>
+                      </div>
+                      <div className="mb-2">
+                        <label className="small fw-bold">Deslocamento Vertical:</label>
+                        <div className="input-group input-group-sm">
+                          <input
+                            type="range"
+                            className="form-range"
+                            min="-100"
+                            max="100"
+                            value={configArmazem.deslocamento_vertical_fundo || 0}
+                            onChange={(e) => handleArmazemChange("deslocamento_vertical_fundo", e.target.value)}
+                          />
+                          <span className="input-group-text">{configArmazem.deslocamento_vertical_fundo || 0}</span>
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary"
+                            onClick={() => handleArmazemChange("deslocamento_vertical_fundo", obterDeslocamentoVerticalPadrao(configArmazem.tipo_fundo))}
+                            title="Reset"
+                          >
+                            ×
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -3002,225 +2907,136 @@ const ModeladorSVG = () => {
                     <h6 className="mb-0">🌡️ Configuração dos Sensores</h6>
                   </div>
                   <div className="card-body">
-                    <div className="row">
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Escala dos Sensores:
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="10"
-                            max="30"
-                            value={configArmazem.escala_sensores}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "escala_sensores",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.escala_sensores}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange("escala_sensores", 16)
-                              }
-                              title="Resetar para padrão (16)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Escala dos Sensores:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="10"
+                          max="30"
+                          value={configArmazem.escala_sensores}
+                          onChange={(e) => handleArmazemChange("escala_sensores", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.escala_sensores}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("escala_sensores", 16)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Distância Y Sensores:
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="8"
-                            max="20"
-                            value={configArmazem.dist_y_sensores}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "dist_y_sensores",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.dist_y_sensores}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange("dist_y_sensores", 12)
-                              }
-                              title="Resetar para padrão (12)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Distância Y Sensores:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="8"
+                          max="20"
+                          value={configArmazem.dist_y_sensores}
+                          onChange={(e) => handleArmazemChange("dist_y_sensores", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.dist_y_sensores}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("dist_y_sensores", 12)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Distância X Sensores:
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="-100"
-                            max="100"
-                            value={configArmazem.dist_x_sensores}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "dist_x_sensores",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.dist_x_sensores}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange("dist_x_sensores", 0)
-                              }
-                              title="Resetar para padrão (0)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Distância X Sensores:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="-100"
+                          max="100"
+                          value={configArmazem.dist_x_sensores}
+                          onChange={(e) => handleArmazemChange("dist_x_sensores", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.dist_x_sensores}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("dist_x_sensores", 0)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Posição Horizontal:
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="-150"
-                            max="150"
-                            value={configArmazem.posicao_horizontal}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "posicao_horizontal",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.posicao_horizontal}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange("posicao_horizontal", 0)
-                              }
-                              title="Resetar para padrão (0)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Posição Horizontal:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="-150"
+                          max="150"
+                          value={configArmazem.posicao_horizontal}
+                          onChange={(e) => handleArmazemChange("posicao_horizontal", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.posicao_horizontal}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("posicao_horizontal", 0)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">Posição Vertical:</label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="-100"
-                            max="100"
-                            value={configArmazem.posicao_vertical}
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "posicao_vertical",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.posicao_vertical}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange("posicao_vertical", 0)
-                              }
-                              title="Resetar para padrão (0)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Posição Vertical:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="-100"
+                          max="100"
+                          value={configArmazem.posicao_vertical}
+                          onChange={(e) => handleArmazemChange("posicao_vertical", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.posicao_vertical}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("posicao_vertical", 0)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
-                      <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Afastamento Vertical Pêndulo:
-                        </label>
-                        <div className="d-flex align-items-center flex-wrap">
-                          <input
-                            type="range"
-                            className="form-range me-2 flex-grow-1"
-                            style={{ minWidth: "120px" }}
-                            min="-50"
-                            max="50"
-                            value={
-                              configArmazem.afastamento_vertical_pendulo || 0
-                            }
-                            onChange={(e) =>
-                              handleArmazemChange(
-                                "afastamento_vertical_pendulo",
-                                e.target.value,
-                              )
-                            }
-                          />
-                          <div className="d-flex align-items-center">
-                            <span className="badge bg-secondary me-2">
-                              {configArmazem.afastamento_vertical_pendulo || 0}
-                            </span>
-                            <button
-                              type="button"
-                              className="btn btn-sm btn-outline-secondary"
-                              onClick={() =>
-                                handleArmazemChange(
-                                  "afastamento_vertical_pendulo",
-                                  0,
-                                )
-                              }
-                              title="Resetar para padrão (0)"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        </div>
+                    </div>
+                    <div className="mb-2">
+                      <label className="small fw-bold">Afastamento Vertical Pêndulo:</label>
+                      <div className="input-group input-group-sm">
+                        <input
+                          type="range"
+                          className="form-range"
+                          min="-50"
+                          max="50"
+                          value={configArmazem.afastamento_vertical_pendulo || 0}
+                          onChange={(e) => handleArmazemChange("afastamento_vertical_pendulo", e.target.value)}
+                        />
+                        <span className="input-group-text">{configArmazem.afastamento_vertical_pendulo || 0}</span>
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => handleArmazemChange("afastamento_vertical_pendulo", 0)}
+                          title="Reset"
+                        >
+                          ×
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -3339,71 +3155,84 @@ const ModeladorSVG = () => {
 
         {/* Área de Visualização */}
         <div
-          className="col-lg-9 col-md-8"
+          className="col-xl-9 col-lg-8 col-md-7 col-sm-12"
           style={{
-            marginLeft: "25%",
-            paddingLeft: "10px",
-            paddingRight: "10px",
+            padding: "10px",
+            height: "100vh",
+            overflow: "hidden",
           }}
         >
           <div
-            className="d-flex justify-content-center align-items-center"
-            style={{ height: "85vh", paddingTop: "5px", paddingBottom: "5px" }}
+            className="d-flex justify-content-center align-items-center h-100"
+            style={{ 
+              minHeight: "400px"
+            }}
           >
             <div
-              className="card w-100"
-              style={{ height: "calc(85vh - 10px)", maxWidth: "100%" }}
+              className="card w-100 h-100"
+              style={{ 
+                maxWidth: "100%",
+                minHeight: "400px",
+                maxHeight: "calc(100vh - 20px)"
+              }}
             >
               <div className="card-header bg-primary text-white">
-                <h5 className="mb-0">
-                  Preview -{" "}
-                  {tipoAtivo === "silo"
-                    ? "Silo"
-                    : `Armazém - ${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}` : "Visualização Geral"}`}
-                </h5>
-                {tipoAtivo === "armazem" && (
-                  <small>
-                    {modeloArcoAtual ? (
-                      <>
-                        Posição:{" "}
-                        {quantidadeModelosArcos === 1
-                          ? "Modelo Único"
-                          : modelosArcos[modeloArcoAtual]?.posicao || ""}{" "}
-                        | Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
-                      </>
-                    ) : (
-                      <>
-                        Visualizando:{" "}
-                        {determinarModeloParaArco(arcoAtual)?.nome ||
-                          "Modelo padrão"}{" "}
-                        |{quantidadeModelosArcos} modelo
-                        {quantidadeModelosArcos > 1 ? "s" : ""} configurado
-                        {quantidadeModelosArcos > 1 ? "s" : ""}
-                      </>
-                    )}
-                  </small>
-                )}
+                <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+                  <h6 className="mb-1 mb-md-0">
+                    Preview -{" "}
+                    {tipoAtivo === "silo"
+                      ? "Silo"
+                      : `${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}` : "Visualização Geral"}`}
+                  </h6>
+                  {tipoAtivo === "armazem" && (
+                    <small className="text-white-50">
+                      {modeloArcoAtual ? (
+                        <>
+                          {quantidadeModelosArcos === 1
+                            ? "Modelo Único"
+                            : modelosArcos[modeloArcoAtual]?.posicao || ""}{" "}
+                          | {modeloArcoAtual}/{quantidadeModelosArcos}
+                        </>
+                      ) : (
+                        <>
+                          {determinarModeloParaArco(arcoAtual)?.nome ||
+                            "Padrão"}{" "}
+                          | {quantidadeModelosArcos} modelo
+                          {quantidadeModelosArcos > 1 ? "s" : ""}
+                        </>
+                      )}
+                    </small>
+                  )}
+                </div>
               </div>
               <div
-                className="card-body text-center d-flex align-items-center justify-content-center p-1"
-                style={{ height: "calc(100% - 80px)" }}
+                className="card-body text-center d-flex align-items-center justify-content-center p-2"
+                style={{ 
+                  height: "calc(100% - 120px)", 
+                  overflow: "auto",
+                  minHeight: "300px"
+                }}
               >
                 <svg
                   width="100%"
                   height="100%"
                   viewBox={`0 0 ${larguraSVG} ${alturaSVG}`}
                   style={{
+                    width: "100%",
+                    height: "100%",
                     maxWidth: "100%",
                     maxHeight: "100%",
-                    border: "2px solid #ddd",
+                    minHeight: "250px",
+                    border: "1px solid #ddd",
                     backgroundColor: "#f8f9fa",
-                    borderRadius: "8px",
+                    borderRadius: "4px",
                     shapeRendering: "geometricPrecision",
                     textRendering: "geometricPrecision",
                     imageRendering: "optimizeQuality",
                     fillRule: "evenodd",
                     clipRule: "evenodd",
                   }}
+                  preserveAspectRatio="xMidYMid meet"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <style>
@@ -3438,10 +3267,10 @@ const ModeladorSVG = () => {
 
               {/* Navegação de Arcos para Armazém */}
               {tipoAtivo === "armazem" && analiseArcos && (
-                <div className="card-footer bg-light">
-                  <div className="row align-items-center">
-                    <div className="col-md-4">
-                      <div className="d-flex gap-1 flex-wrap">
+                <div className="card-footer bg-light p-2">
+                  <div className="row g-2 align-items-center">
+                    <div className="col-lg-4 col-md-12 col-sm-12">
+                      <div className="d-flex gap-1 justify-content-center justify-content-lg-start">
                         <button
                           className="btn btn-outline-primary btn-sm"
                           onClick={() =>
@@ -3467,75 +3296,76 @@ const ModeladorSVG = () => {
                         </button>
                       </div>
                     </div>
-                    <div className="col-md-4 text-center">
-                      <strong>
-                        Arco {arcoAtual} de {analiseArcos.totalArcos}
-                      </strong>
-                      {modeloArcoAtual && (
-                        <span className="badge bg-warning text-dark ms-2">
-                          EDITANDO
-                        </span>
-                      )}
-                      <br />
-                      <small className="text-muted">
-                        Aplicando:{" "}
+                    <div className="col-lg-4 col-md-6 col-sm-12 text-center">
+                      <div>
+                        <strong className="text-nowrap">
+                          Arco {arcoAtual}/{analiseArcos.totalArcos}
+                        </strong>
+                        {modeloArcoAtual && (
+                          <span className="badge bg-warning text-dark ms-1">
+                            EDIT
+                          </span>
+                        )}
+                      </div>
+                      <small className="text-muted d-block">
                         {determinarModeloParaArco(arcoAtual)?.nome ||
-                          "Modelo padrão"}
+                          "Padrão"}
                       </small>
                     </div>
-                    <div className="col-md-4 text-end">
-                      <span className="badge bg-info">
-                        {analiseArcos.arcos[arcoAtual]?.totalPendulos || 0}{" "}
-                        pêndulos,{" "}
-                        {analiseArcos.arcos[arcoAtual]?.totalSensores || 0}{" "}
-                        sensores
-                      </span>
-                      <br />
-                      <span
-                        className={`badge mt-1 ${
-                          quantidadeModelosArcos === 1
-                            ? "bg-info"
-                            : quantidadeModelosArcos === 2
-                              ? arcoAtual % 2 === 1
-                                ? "bg-warning"
-                                : "bg-primary"
-                              : quantidadeModelosArcos === 3
-                                ? arcoAtual === 1 ||
-                                  arcoAtual === analiseArcos.totalArcos
-                                  ? "bg-success"
-                                  : arcoAtual % 2 === 0
-                                    ? "bg-primary"
-                                    : "bg-warning"
-                                : arcoAtual === 1
-                                  ? "bg-success"
-                                  : arcoAtual === analiseArcos.totalArcos
-                                    ? "bg-danger"
+                    <div className="col-lg-4 col-md-6 col-sm-12 text-center text-lg-end">
+                      <div>
+                        <span className="badge bg-info">
+                          {analiseArcos.arcos[arcoAtual]?.totalPendulos || 0}P,{" "}
+                          {analiseArcos.arcos[arcoAtual]?.totalSensores || 0}S
+                        </span>
+                      </div>
+                      <div className="mt-1">
+                        <span
+                          className={`badge ${
+                            quantidadeModelosArcos === 1
+                              ? "bg-info"
+                              : quantidadeModelosArcos === 2
+                                ? arcoAtual % 2 === 1
+                                  ? "bg-warning"
+                                  : "bg-primary"
+                                : quantidadeModelosArcos === 3
+                                  ? arcoAtual === 1 ||
+                                    arcoAtual === analiseArcos.totalArcos
+                                    ? "bg-success"
                                     : arcoAtual % 2 === 0
                                       ? "bg-primary"
                                       : "bg-warning"
-                        }`}
-                      >
-                        {quantidadeModelosArcos === 1
-                          ? "TODOS"
-                          : quantidadeModelosArcos === 2
-                            ? arcoAtual % 2 === 1
-                              ? "ÍMPAR"
-                              : "PAR"
-                            : quantidadeModelosArcos === 3
-                              ? arcoAtual === 1 ||
-                                arcoAtual === analiseArcos.totalArcos
-                                ? "FRENTE/FUNDO"
-                                : arcoAtual % 2 === 0
-                                  ? "PAR"
-                                  : "ÍMPAR"
-                              : arcoAtual === 1
-                                ? "FRENTE"
-                                : arcoAtual === analiseArcos.totalArcos
-                                  ? "FUNDO"
+                                  : arcoAtual === 1
+                                    ? "bg-success"
+                                    : arcoAtual === analiseArcos.totalArcos
+                                      ? "bg-danger"
+                                      : arcoAtual % 2 === 0
+                                        ? "bg-primary"
+                                        : "bg-warning"
+                          }`}
+                        >
+                          {quantidadeModelosArcos === 1
+                            ? "TODOS"
+                            : quantidadeModelosArcos === 2
+                              ? arcoAtual % 2 === 1
+                                ? "ÍMPAR"
+                                : "PAR"
+                              : quantidadeModelosArcos === 3
+                                ? arcoAtual === 1 ||
+                                  arcoAtual === analiseArcos.totalArcos
+                                  ? "F/F"
                                   : arcoAtual % 2 === 0
                                     ? "PAR"
-                                    : "ÍMPAR"}
-                      </span>
+                                    : "ÍMPAR"
+                                : arcoAtual === 1
+                                  ? "FRENTE"
+                                  : arcoAtual === analiseArcos.totalArcos
+                                    ? "FUNDO"
+                                    : arcoAtual % 2 === 0
+                                      ? "PAR"
+                                      : "ÍMPAR"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>

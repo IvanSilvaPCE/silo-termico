@@ -515,7 +515,7 @@ const Armazem3D = () => {
     const carregarDados = async () => {
       try {
         setCarregando(true);
-        const response = await fetch("/attached_assets/modeloRotaArmazemPortal_1751897945212.json");
+        const response = await fetch("/models/modeloRotaArmazemPortal_1751897945212.json");
         const dadosCarregados = await response.json();
         setDados(dadosCarregados);
 

@@ -20,7 +20,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         const inicializarDados = async () => {
             try {
                 // Carregar dados do arquivo JSON
-                const response = await fetch('/attached_assets/modeloRotaArmazemPortal_1751897945212.json');
+                const response = await fetch('/models/modeloRotaArmazemPortal_1751897945212.json');
                 const dadosArmazemPortal = await response.json();
                 setDadosPortal(dadosArmazemPortal);
 

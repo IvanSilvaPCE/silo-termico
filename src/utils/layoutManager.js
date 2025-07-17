@@ -8,7 +8,7 @@ class LayoutManager {
 
     try {
       // Layout antigo (mantido comentado)
-      const response = await fetch('/attached_assets/armazem_1751288511791.json');
+      const response = await fetch('/models/armazem_1751288511791.json');
       this.layoutsArmazem = await response.json();
       return this.layoutsArmazem;
     } catch (error) {
@@ -22,7 +22,7 @@ class LayoutManager {
     if (this.layoutsArmazemPortal) return this.layoutsArmazemPortal;
 
     try {
-      const response = await fetch('/attached_assets/modeloRotaCelular1ArmazemPortal_1751295173920.json');
+      const response = await fetch('/models/modeloRotaCelular1ArmazemPortal_1751295173920.json');
       this.layoutsArmazemPortal = await response.json();
       return this.layoutsArmazemPortal;
     } catch (error) {

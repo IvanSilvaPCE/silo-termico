@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import SiloSVG from "./components/Silo";
 import ArmazemSVG from './components/Armazem';
@@ -11,63 +12,65 @@ const App = () => {
   const [dados, setDados] = useState(null);
   const [dadosArm, setDadosArm] = useState(null);
   const [dadosSilo, setDadosSilo] = useState(null);
-  const [telaAtiva, setTelaAtiva] = useState("modelador"); // "modelador", "silo", "armazem"
+  const [telaAtiva, setTelaAtiva] = useState("modelador");
 
   useEffect(() => {
     setDadosArm(dadosSimulados);
     setDadosSilo(dadosSimuladosSilo);
   }, []);
 
-  // useEffect(() => {
-  //   // fetch("http://172.16.1.85:3333/termometria/151/-1") // produza grande
-  //   // fetch("http://172.16.1.85:3333/termometria/101/-1")  // " Global "
-  //   fetch("http://172.16.1.85:3333/termometria/101/962")  // " Global "
-  //   // fetch("http://172.16.1.85:3333/termometria/140/-1")  // " Produza Silo 4 "
-  //     // fetch("http://172.16.1.85:3333/termometria/142/-1")  // " Produza Silo 5 "
-  //     // fetch("http://172.16.1.85:3333/termometria/101/-1") // Silo Local
-  //     // fetch("http://172.16.1.85:3333/termometria/101/623") // Produza
-  //     .then((resp) => resp.json())
-  //     .then((data) => setDados(data))
-  //     .catch((err) => console.error(err));
-  // }, []);
-
-  // if (!dados) return <div>Carregando...</div>;
-
   const renderNavegacao = () => (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-0">
-      <div className="container-fluid px-4">
-        <span className="navbar-brand">Sistema de Monitoramento</span>
-        <div className="navbar-nav d-flex flex-wrap">
-          <button 
-            className={`btn ${telaAtiva === "modelador" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
-            onClick={() => setTelaAtiva("modelador")}
-          >
-            Modelador SVG
-          </button>
-          <button 
-            className={`btn ${telaAtiva === "silo" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
-            onClick={() => setTelaAtiva("silo")}
-          >
-            Silo 2D
-          </button>
-          <button 
-            className={`btn ${telaAtiva === "silo3d" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
-            onClick={() => setTelaAtiva("silo3d")}
-          >
-            Silo 3D
-          </button>
-          <button 
-            className={`btn ${telaAtiva === "armazem" ? "btn-light" : "btn-outline-light"} me-1 mb-1`}
-            onClick={() => setTelaAtiva("armazem")}
-          >
-            Armazém 2D
-          </button>
-          <button 
-            className={`btn ${telaAtiva === "armazem3d" ? "btn-light" : "btn-outline-light"} mb-1`}
-            onClick={() => setTelaAtiva("armazem3d")}
-          >
-            Armazém 3D
-          </button>
+    <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-0 sticky-top">
+      <div className="container-fluid px-2 px-md-4">
+        <span className="navbar-brand fs-6 fs-md-5 me-2">Sistema de Monitoramento</span>
+        
+        {/* Botão do menu mobile */}
+        <button 
+          className="navbar-toggler border-0 p-1" 
+          type="button" 
+          data-bs-toggle="collapse" 
+          data-bs-target="#navbarNav"
+          aria-controls="navbarNav" 
+          aria-expanded="false" 
+          aria-label="Toggle navigation"
+        >
+          <span className="navbar-toggler-icon"></span>
+        </button>
+
+        {/* Menu colapsável */}
+        <div className="collapse navbar-collapse" id="navbarNav">
+          <div className="navbar-nav ms-auto d-flex flex-column flex-lg-row gap-1 mt-2 mt-lg-0">
+            <button 
+              className={`btn btn-sm ${telaAtiva === "modelador" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
+              onClick={() => setTelaAtiva("modelador")}
+            >
+              <span className="d-none d-sm-inline">Modelador </span>SVG
+            </button>
+            <button 
+              className={`btn btn-sm ${telaAtiva === "silo" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
+              onClick={() => setTelaAtiva("silo")}
+            >
+              Silo 2D
+            </button>
+            <button 
+              className={`btn btn-sm ${telaAtiva === "silo3d" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
+              onClick={() => setTelaAtiva("silo3d")}
+            >
+              Silo 3D
+            </button>
+            <button 
+              className={`btn btn-sm ${telaAtiva === "armazem" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
+              onClick={() => setTelaAtiva("armazem")}
+            >
+              <span className="d-none d-sm-inline">Armazém </span>2D
+            </button>
+            <button 
+              className={`btn btn-sm ${telaAtiva === "armazem3d" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
+              onClick={() => setTelaAtiva("armazem3d")}
+            >
+              <span className="d-none d-sm-inline">Armazém </span>3D
+            </button>
+          </div>
         </div>
       </div>
     </nav>
@@ -91,11 +94,11 @@ const App = () => {
   };
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh' }}>
+    <div className="d-flex flex-column" style={{ minHeight: '100vh' }}>
       {renderNavegacao()}
-      <div style={{ width: '100%' }}>
+      <main className="flex-grow-1 overflow-hidden">
         {renderConteudo()}
-      </div>
+      </main>
     </div>
   );
 };

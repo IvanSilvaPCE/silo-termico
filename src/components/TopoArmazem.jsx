@@ -18,7 +18,7 @@ const TopoArmazem = ({ onArcoSelecionado, arcoAtual, onFecharTopo }) => {
 
                 // Carregar dados do modelo da API
                 const response = await fetch(
-                    "/attached_assets/modeloRotaArmazemPortal_1751897945212.json",
+                    "/models/modeloRotaArmazemPortal_1751897945212.json",
                 );
                 const dadosJSON = await response.json();
 
