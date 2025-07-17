@@ -68,10 +68,10 @@ const ModeladorSVG = () => {
     1: {
       posicao: "todos", // todos, frente, par, impar, fundo, frente_fundo
       config: { ...configArmazem },
-      nome: "Modelo Único"
-    }
+      nome: "Modelo Único",
+    },
   });
-  
+
   // Estados para modelos salvos (separados dos temporários)
   const [modelosSalvos, setModelosSalvos] = useState({});
 
@@ -176,6 +176,21 @@ const ModeladorSVG = () => {
     resetarModelosParaPadrao();
   }, []);
 
+  // Aplicar deslocamento vertical correto quando componente carrega
+  useEffect(() => {
+    if (configArmazem.tipo_fundo !== undefined) {
+      const deslocamentoPadrao = obterDeslocamentoVerticalPadrao(
+        configArmazem.tipo_fundo,
+      );
+      if (configArmazem.deslocamento_vertical_fundo !== deslocamentoPadrao) {
+        setConfigArmazem((prev) => ({
+          ...prev,
+          deslocamento_vertical_fundo: deslocamentoPadrao,
+        }));
+      }
+    }
+  }, [configArmazem.tipo_fundo]);
+
   // Função para resetar modelos para configuração padrão
   const resetarModelosParaPadrao = () => {
     const configPadrao = {
@@ -197,22 +212,21 @@ const ModeladorSVG = () => {
       altura_fundo_reto: 10,
 
       // Configurações Funil V
-      altura_funil_v: 40,
+      altura_funil_v: 18,
       posicao_ponta_v: 0,
-      largura_abertura_v: 20,
       inclinacao_funil_v: 1,
 
       // Configurações Duplo V
-      altura_duplo_v: 35,
-      posicao_v_esquerdo: -0.5,
-      posicao_v_direito: 0.5,
-      largura_abertura_duplo_v: 15,
+      altura_duplo_v: 22,
+      posicao_v_esquerdo: -1,
+      posicao_v_direito: 1,
+      largura_abertura_duplo_v: 2,
       altura_plataforma_duplo_v: 0.3,
-      largura_plataforma_duplo_v: 40,
+      largura_plataforma_duplo_v: 10,
 
       // Configurações de Movimentação do Fundo
       deslocamento_horizontal_fundo: 0,
-      deslocamento_vertical_fundo: 0,
+      deslocamento_vertical_fundo: -1,
 
       // Configuração dos Sensores
       escala_sensores: 16,
@@ -354,7 +368,8 @@ const ModeladorSVG = () => {
     const dist_x_sensores = configArmazem.dist_x_sensores || 0;
     const posicao_horizontal = configArmazem.posicao_horizontal || 0;
     const posicao_vertical = configArmazem.posicao_vertical || 0;
-    const afastamento_vertical_pendulo = configArmazem.afastamento_vertical_pendulo || 0;
+    const afastamento_vertical_pendulo =
+      configArmazem.afastamento_vertical_pendulo || 0;
     const pb = configArmazem.pb; // Usar configuração do usuário
     const yPendulo = pb + 15 + posicao_vertical; // Posição dos pêndulos com ajuste vertical
 
@@ -410,7 +425,8 @@ const ModeladorSVG = () => {
 
       // Renderizar TODOS os sensores de 1 até numSensores com posicionamento ajustado
       for (let s = 1; s <= numSensores; s++) {
-        const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo; // Aplicar distância Y configurada e afastamento vertical
+        const ySensor =
+          yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo; // Aplicar distância Y configurada e afastamento vertical
 
         // Garantir que o sensor está dentro dos limites do SVG
         const [, alturaSVG] = calcularDimensoesSVG();
@@ -487,7 +503,8 @@ const ModeladorSVG = () => {
     const dist_x_sensores = configArmazem.dist_x_sensores || 0;
     const posicao_horizontal = configArmazem.posicao_horizontal || 0;
     const posicao_vertical = configArmazem.posicao_vertical || 0;
-    const afastamento_vertical_pendulo = configArmazem.afastamento_vertical_pendulo || 0;
+    const afastamento_vertical_pendulo =
+      configArmazem.afastamento_vertical_pendulo || 0;
     const pb = configArmazem.pb;
     const yPendulo = pb + 15 + posicao_vertical;
 
@@ -500,7 +517,8 @@ const ModeladorSVG = () => {
       Object.entries(dadosArco.leitura).forEach(
         ([idCabo, sensores], penduloIndex) => {
           // Recalcular posição X do cabo com os novos parâmetros (expandir a partir do centro)
-          const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
+          const xCaboBase =
+            layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
           const distanciaDoMeio = penduloIndex - indiceCentral;
           const deslocamentoX = distanciaDoMeio * dist_x_sensores;
           const xCabo = xCaboBase + posicao_horizontal + deslocamentoX;
@@ -510,8 +528,8 @@ const ModeladorSVG = () => {
           const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`);
           if (pendulo && textoPendulo) {
             // Aplicar transições suaves usando CSS
-            pendulo.style.transition = 'all 0.15s ease-out';
-            textoPendulo.style.transition = 'all 0.15s ease-out';
+            pendulo.style.transition = "all 0.15s ease-out";
+            textoPendulo.style.transition = "all 0.15s ease-out";
 
             // Atualizar posições apenas se diferentes
             const novoX = (xCabo - escala_sensores / 2).toString();
@@ -538,18 +556,24 @@ const ModeladorSVG = () => {
           }
 
           Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
-            const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25 - afastamento_vertical_pendulo;
+            const ySensor =
+              yPendulo -
+              dist_y_sensores * parseInt(s) -
+              25 -
+              afastamento_vertical_pendulo;
 
             const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
             const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
-            const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`);
+            const nomeTexto = document.getElementById(
+              `TIND${penduloIndex + 1}S${s}`,
+            );
 
             if (!rec || !txt || !nomeTexto) return;
 
             // Aplicar transições suaves para todos os elementos
-            rec.style.transition = 'all 0.15s ease-out';
-            txt.style.transition = 'all 0.15s ease-out';
-            nomeTexto.style.transition = 'all 0.15s ease-out';
+            rec.style.transition = "all 0.15s ease-out";
+            txt.style.transition = "all 0.15s ease-out";
+            nomeTexto.style.transition = "all 0.15s ease-out";
 
             // Calcular posição base do retângulo
             const posicaoRetanguloX = xCabo - escala_sensores / 2;
@@ -635,15 +659,31 @@ const ModeladorSVG = () => {
         atualizarSensores(dados);
       }, 50); // Reduzido para resposta mais rápida
     }
-  }, [dados, arcoAtual, tipoAtivo, configArmazem.escala_sensores, configArmazem.dist_y_sensores, configArmazem.dist_x_sensores, configArmazem.posicao_horizontal, configArmazem.posicao_vertical, configArmazem.afastamento_vertical_pendulo]);
+  }, [
+    dados,
+    arcoAtual,
+    tipoAtivo,
+    configArmazem.escala_sensores,
+    configArmazem.dist_y_sensores,
+    configArmazem.dist_x_sensores,
+    configArmazem.posicao_horizontal,
+    configArmazem.posicao_vertical,
+    configArmazem.afastamento_vertical_pendulo,
+  ]);
 
   // useEffect para reagir a mudanças nos modelos carregados e aplicar configuração correta
   useEffect(() => {
-    if (tipoAtivo === "armazem" && Object.keys(modelosArcos).length > 0 && !modeloArcoAtual) {
+    if (
+      tipoAtivo === "armazem" &&
+      Object.keys(modelosArcos).length > 0 &&
+      !modeloArcoAtual
+    ) {
       // Se não há modelo selecionado para edição, aplicar configuração baseada no arco atual
       const modeloParaArco = determinarModeloParaArco(arcoAtual);
       if (modeloParaArco && modeloParaArco.config) {
-        console.log(`Aplicando automaticamente configuração do modelo ${modeloParaArco.nome} para arco ${arcoAtual}`);
+        console.log(
+          `Aplicando automaticamente configuração do modelo ${modeloParaArco.nome} para arco ${arcoAtual}`,
+        );
         setConfigArmazem(modeloParaArco.config);
       }
     }
@@ -673,12 +713,12 @@ const ModeladorSVG = () => {
 
   // Renderizar base normal (fundo reto)
   const renderBaseNormal = () => {
-    const { 
-      pb, 
-      lb, 
-      hb, 
-      le, 
-      lf, 
+    const {
+      pb,
+      lb,
+      hb,
+      le,
+      lf,
       altura_fundo_reto = 10,
       deslocamento_horizontal_fundo = 0,
       deslocamento_vertical_fundo = 0,
@@ -693,8 +733,14 @@ const ModeladorSVG = () => {
 
     const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base];
     const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base];
-    const p3 = [lb - (lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_aplicada + ajuste_base];
-    const p4 = [(lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_aplicada + ajuste_base];
+    const p3 = [
+      lb - (lb - lf) / 2 + ajuste_horizontal,
+      pb - altura_fundo_aplicada + ajuste_base,
+    ];
+    const p4 = [
+      (lb - lf) / 2 + ajuste_horizontal,
+      pb - altura_fundo_aplicada + ajuste_base,
+    ];
     const p5 = [le + ajuste_horizontal, pb - hb + ajuste_base];
     const p6 = [0 + ajuste_horizontal, pb - hb + ajuste_base];
     const p7 = [0 + ajuste_horizontal, pb + ajuste_base];
@@ -737,21 +783,27 @@ const ModeladorSVG = () => {
     // Criar descida angular com inclinação ajustável
     const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base]; // direita superior
     const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida direita
-    
+
     // Descida com inclinação até o ponto do V (lado direito)
-    const p3 = [pontaX + largura_abertura_v / 2 + inclinacao_direita + ajuste_horizontal, pb - hb + ajuste_base + altura_funil_v]; // lado direito da abertura com inclinação
-    const p4 = [pontaX - largura_abertura_v / 2 - inclinacao_esquerda + ajuste_horizontal, pb - hb + ajuste_base + altura_funil_v]; // lado esquerdo da abertura com inclinação
-    
+    const p3 = [
+      pontaX + largura_abertura_v / 2 + inclinacao_direita + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_funil_v,
+    ]; // lado direito da abertura com inclinação
+    const p4 = [
+      pontaX - largura_abertura_v / 2 - inclinacao_esquerda + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_funil_v,
+    ]; // lado esquerdo da abertura com inclinação
+
     // Descida com inclinação até o início esquerdo (lado esquerdo)
     const p5 = [le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida esquerda
-    
+
     // Completar o polígono
     const p6 = [0 + ajuste_horizontal, pb - hb + ajuste_base]; // esquerda superior
     const p7 = [0 + ajuste_horizontal, pb + ajuste_base]; // esquerda inferior
     const p8 = [lb + ajuste_horizontal, pb + ajuste_base]; // direita inferior
 
     const pontos = [p1, p2, p3, p4, p5, p6, p7, p8];
-    const pathBase = pontos.map(p => p.join(",")).join(" ");
+    const pathBase = pontos.map((p) => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
@@ -785,31 +837,49 @@ const ModeladorSVG = () => {
     // Criar descida angular como o fundo reto, mas com duas aberturas (duplo V)
     const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base]; // direita superior
     const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida direita
-    
+
     // Descida reta para a primeira abertura (lado direito)
-    const p3 = [pontaDireitaX + largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura direita
-    const p4 = [pontaDireitaX - largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura direita
-    
+    const p3 = [
+      pontaDireitaX + largura_abertura_duplo_v / 2 + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_duplo_v,
+    ]; // lado direito da abertura direita
+    const p4 = [
+      pontaDireitaX - largura_abertura_duplo_v / 2 + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_duplo_v,
+    ]; // lado esquerdo da abertura direita
+
     // Área central elevada (plataforma entre os dois V) - usando configuração do usuário
     const alturaPlataforma = configArmazem.altura_plataforma_duplo_v || 0.3;
     const larguraPlataforma = configArmazem.largura_plataforma_duplo_v || 40;
-    const p5 = [centroBase + larguraPlataforma / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v * alturaPlataforma]; // transição central direita
-    const p6 = [centroBase - larguraPlataforma / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v * alturaPlataforma]; // transição central esquerda
-    
+    const p5 = [
+      centroBase + larguraPlataforma / 2 + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_duplo_v * alturaPlataforma,
+    ]; // transição central direita
+    const p6 = [
+      centroBase - larguraPlataforma / 2 + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_duplo_v * alturaPlataforma,
+    ]; // transição central esquerda
+
     // Descida reta para a segunda abertura (lado esquerdo)
-    const p7 = [pontaEsquerdaX + largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura esquerda
-    const p8 = [pontaEsquerdaX - largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura esquerda
-    
+    const p7 = [
+      pontaEsquerdaX + largura_abertura_duplo_v / 2 + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_duplo_v,
+    ]; // lado direito da abertura esquerda
+    const p8 = [
+      pontaEsquerdaX - largura_abertura_duplo_v / 2 + ajuste_horizontal,
+      pb - hb + ajuste_base + altura_duplo_v,
+    ]; // lado esquerdo da abertura esquerda
+
     // Descida reta até o início esquerdo (lado esquerdo)
     const p9 = [le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida esquerda
-    
+
     // Completar o polígono
     const p10 = [0 + ajuste_horizontal, pb - hb + ajuste_base]; // esquerda superior
     const p11 = [0 + ajuste_horizontal, pb + ajuste_base]; // esquerda inferior
     const p12 = [lb + ajuste_horizontal, pb + ajuste_base]; // direita inferior
 
     const pontos = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12];
-    const pathBase = pontos.map(p => p.join(",")).join(" ");
+    const pathBase = pontos.map((p) => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
   };
@@ -948,6 +1018,20 @@ const ModeladorSVG = () => {
   // Debounce ref para otimizar atualizações
   const debounceTimeoutRef = React.useRef(null);
 
+  // Função para obter deslocamento vertical padrão baseado no tipo de fundo
+  const obterDeslocamentoVerticalPadrao = (tipoFundo) => {
+    switch (tipoFundo) {
+      case 0:
+        return 0; // Reto
+      case 1:
+        return 7; // Funil V
+      case 2:
+        return 10; // Duplo V
+      default:
+        return 0;
+    }
+  };
+
   // Handlers para mudança de configuração
   const handleSiloChange = (campo, valor) => {
     setConfigSilo((prev) => ({
@@ -962,6 +1046,13 @@ const ModeladorSVG = () => {
       [campo]: parseFloat(valor),
     };
 
+    // Se o tipo de fundo mudou, ajustar automaticamente o deslocamento vertical para o padrão
+    if (campo === "tipo_fundo") {
+      novaConfig.deslocamento_vertical_fundo = obterDeslocamentoVerticalPadrao(
+        parseFloat(valor),
+      );
+    }
+
     setConfigArmazem(novaConfig);
 
     // Atualizar modelo atual se estiver selecionado
@@ -970,8 +1061,8 @@ const ModeladorSVG = () => {
         ...modelosArcos,
         [modeloArcoAtual]: {
           ...modelosArcos[modeloArcoAtual],
-          config: novaConfig
-        }
+          config: novaConfig,
+        },
       };
       setModelosArcos(modelosAtualizados);
 
@@ -990,7 +1081,7 @@ const ModeladorSVG = () => {
       versao: "2.0",
       tipo: "configuracao_armazem_completa",
     };
-    
+
     localStorage.setItem("configArmazem", JSON.stringify(configCompleta));
   };
 
@@ -1049,7 +1140,7 @@ const ModeladorSVG = () => {
       novosModelos[i] = modelosArcos[i] || {
         posicao,
         config: { ...configArmazem },
-        nome
+        nome,
       };
     }
 
@@ -1111,7 +1202,10 @@ const ModeladorSVG = () => {
       }
 
       // Garantir que o arco está dentro dos limites
-      arcoRepresentativo = Math.max(1, Math.min(totalArcos, arcoRepresentativo));
+      arcoRepresentativo = Math.max(
+        1,
+        Math.min(totalArcos, arcoRepresentativo),
+      );
 
       // Navegar para o arco representativo
       if (arcoRepresentativo !== arcoAtual) {
@@ -1125,8 +1219,8 @@ const ModeladorSVG = () => {
       ...modelosArcos,
       [modeloArcoAtual]: {
         ...modelosArcos[modeloArcoAtual],
-        posicao
-      }
+        posicao,
+      },
     };
     setModelosArcos(modelosAtualizados);
     salvarModelosAutomatico(modelosAtualizados);
@@ -1137,8 +1231,8 @@ const ModeladorSVG = () => {
       ...modelosArcos,
       [modeloArcoAtual]: {
         ...modelosArcos[modeloArcoAtual],
-        nome
-      }
+        nome,
+      },
     };
     setModelosArcos(modelosAtualizados);
     salvarModelosAutomatico(modelosAtualizados);
@@ -1153,21 +1247,26 @@ const ModeladorSVG = () => {
 
     const modeloParaSalvar = {
       ...modelosArcos[modeloArcoAtual],
-      config: configArmazem // Usar a configuração atual
+      config: configArmazem, // Usar a configuração atual
     };
 
     const novosSalvos = {
       ...modelosSalvos,
-      [modeloArcoAtual]: modeloParaSalvar
+      [modeloArcoAtual]: modeloParaSalvar,
     };
 
     setModelosSalvos(novosSalvos);
-    alert(`Modelo ${modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`);
+    alert(
+      `Modelo ${modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`,
+    );
   };
 
   // Função para determinar qual modelo usar baseado no arco atual
   const determinarModeloParaArco = (numeroArco) => {
-    const resultado = determinarModeloParaArcoComModelos(numeroArco, modelosArcos);
+    const resultado = determinarModeloParaArcoComModelos(
+      numeroArco,
+      modelosArcos,
+    );
     console.log(`Determinando modelo para arco ${numeroArco}:`, resultado);
     return resultado;
   };
@@ -1191,38 +1290,74 @@ const ModeladorSVG = () => {
     if (quantidadeModelos === 2) {
       const isImpar = numeroArco % 2 === 1;
       const posicaoProcurada = isImpar ? "impar" : "par";
-      return Object.values(modelos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || modelos[1] || null;
+      return (
+        Object.values(modelos).find(
+          (modelo) => modelo && modelo.posicao === posicaoProcurada,
+        ) ||
+        modelos[1] ||
+        null
+      );
     }
 
     // 3 modelos: Frente/Fundo (1º e último), Par (2º, 4º, 6º...), Ímpar (3º, 5º, 7º...)
     if (quantidadeModelos === 3) {
       // Primeiro e último arco usam modelo frente_fundo
       if (numeroArco === 1 || numeroArco === totalArcos) {
-        return Object.values(modelos).find(modelo => modelo && modelo.posicao === "frente_fundo") || modelos[1] || null;
+        return (
+          Object.values(modelos).find(
+            (modelo) => modelo && modelo.posicao === "frente_fundo",
+          ) ||
+          modelos[1] ||
+          null
+        );
       }
 
       // Arcos intermediários: a partir do 2º arco, par e ímpar
       const isParIntermediario = numeroArco % 2 === 0;
       const posicaoProcurada = isParIntermediario ? "par" : "impar";
-      return Object.values(modelos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || modelos[1] || null;
+      return (
+        Object.values(modelos).find(
+          (modelo) => modelo && modelo.posicao === posicaoProcurada,
+        ) ||
+        modelos[1] ||
+        null
+      );
     }
 
     // 4 modelos: Frente (1º), Par (2º, 4º, 6º...), Ímpar (3º, 5º, 7º...), Fundo (último)
     if (quantidadeModelos === 4) {
       // Primeiro arco usa modelo "frente"
       if (numeroArco === 1) {
-        return Object.values(modelos).find(modelo => modelo && modelo.posicao === "frente") || modelos[1] || null;
+        return (
+          Object.values(modelos).find(
+            (modelo) => modelo && modelo.posicao === "frente",
+          ) ||
+          modelos[1] ||
+          null
+        );
       }
 
       // Último arco usa modelo "fundo"
       if (numeroArco === totalArcos) {
-        return Object.values(modelos).find(modelo => modelo && modelo.posicao === "fundo") || modelos[1] || null;
+        return (
+          Object.values(modelos).find(
+            (modelo) => modelo && modelo.posicao === "fundo",
+          ) ||
+          modelos[1] ||
+          null
+        );
       }
 
       // Arcos intermediários: a partir do 2º arco, par e ímpar
       const isParIntermediario = numeroArco % 2 === 0;
       const posicaoProcurada = isParIntermediario ? "par" : "impar";
-      return Object.values(modelos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || modelos[1] || null;
+      return (
+        Object.values(modelos).find(
+          (modelo) => modelo && modelo.posicao === posicaoProcurada,
+        ) ||
+        modelos[1] ||
+        null
+      );
     }
 
     return modelos[1] || null;
@@ -1270,9 +1405,11 @@ const ModeladorSVG = () => {
       // Verificar se todos os modelos foram salvos
       let modelosCompletos = true;
       const modelosSalvosCount = Object.keys(modelosSalvos).length;
-      
+
       if (modelosSalvosCount !== quantidadeModelosArcos) {
-        alert(`Atenção: Você tem ${quantidadeModelosArcos} modelos configurados, mas apenas ${modelosSalvosCount} foram salvos. Salve todos os modelos antes de salvar o armazém.`);
+        alert(
+          `Atenção: Você tem ${quantidadeModelosArcos} modelos configurados, mas apenas ${modelosSalvosCount} foram salvos. Salve todos os modelos antes de salvar o armazém.`,
+        );
         return;
       }
 
@@ -1296,7 +1433,7 @@ const ModeladorSVG = () => {
       // Mostrar detalhes dos modelos salvos
       const detalhesModelos = Object.entries(modelosSalvos)
         .map(([num, modelo]) => `${num}: ${modelo.nome} (${modelo.posicao})`)
-        .join(', ');
+        .join(", ");
 
       alert(
         `Configuração completa do armazém "${nomeConfiguracao}" salva com todos os ${quantidadeModelosArcos} modelos de arcos!\n\nModelos salvos: ${detalhesModelos}`,
@@ -1330,8 +1467,8 @@ const ModeladorSVG = () => {
           dadosCarregados.tipo === "configuracao_armazem_completa"
         ) {
           // Configuração nova - carregar todos os modelos
-          console.log('Carregando configuração completa:', dadosCarregados);
-          
+          console.log("Carregando configuração completa:", dadosCarregados);
+
           setQuantidadeModelosArcos(dadosCarregados.quantidadeModelos);
           setModelosArcos(dadosCarregados.modelosArcos);
           setModelosSalvos(dadosCarregados.modelosArcos); // Restaurar modelos salvos
@@ -1340,18 +1477,26 @@ const ModeladorSVG = () => {
           // Aguardar um momento para garantir que os estados foram atualizados
           setTimeout(() => {
             // Determinar qual modelo deve ser usado para o arco atual no preview
-            const modeloParaArcoAtual = determinarModeloParaArcoComModelos(arcoAtual, dadosCarregados.modelosArcos);
-            console.log('Modelo para arco atual:', modeloParaArcoAtual);
-            
+            const modeloParaArcoAtual = determinarModeloParaArcoComModelos(
+              arcoAtual,
+              dadosCarregados.modelosArcos,
+            );
+            console.log("Modelo para arco atual:", modeloParaArcoAtual);
+
             if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
               setConfigArmazem(modeloParaArcoAtual.config);
-              console.log('Aplicando configuração do modelo:', modeloParaArcoAtual.nome);
+              console.log(
+                "Aplicando configuração do modelo:",
+                modeloParaArcoAtual.nome,
+              );
             } else {
               // Fallback para o primeiro modelo carregado
               const primeiroModelo = dadosCarregados.modelosArcos[1];
               if (primeiroModelo && primeiroModelo.config) {
                 setConfigArmazem(primeiroModelo.config);
-                console.log('Aplicando configuração do primeiro modelo como fallback');
+                console.log(
+                  "Aplicando configuração do primeiro modelo como fallback",
+                );
               }
             }
           }, 100);
@@ -1467,7 +1612,7 @@ const ModeladorSVG = () => {
 
         // Configurações de Movimentação do Fundo (todos os tipos)
         deslocamento_horizontal_fundo: 0,
-        deslocamento_vertical_fundo: 0,
+        deslocamento_vertical_fundo: -1,
 
         // Configuração dos Sensores
         escala_sensores: 16,
@@ -1705,7 +1850,9 @@ const ModeladorSVG = () => {
                           min="2"
                           max="6"
                           value={configSilo.na}
-                          onChange={(e) => handleSiloChange("na", e.target.value)}
+                          onChange={(e) =>
+                            handleSiloChange("na", e.target.value)
+                          }
                         />
                         <button
                           type="button"
@@ -1729,7 +1876,9 @@ const ModeladorSVG = () => {
                           min="10"
                           max="60"
                           value={configSilo.ds}
-                          onChange={(e) => handleSiloChange("ds", e.target.value)}
+                          onChange={(e) =>
+                            handleSiloChange("ds", e.target.value)
+                          }
                         />
                         <button
                           type="button"
@@ -1753,7 +1902,9 @@ const ModeladorSVG = () => {
                           min="20"
                           max="60"
                           value={configSilo.da}
-                          onChange={(e) => handleSiloChange("da", e.target.value)}
+                          onChange={(e) =>
+                            handleSiloChange("da", e.target.value)
+                          }
                         />
                         <button
                           type="button"
@@ -1781,11 +1932,15 @@ const ModeladorSVG = () => {
                   <div className="card-body">
                     <div className="row mb-3">
                       <div className="col-lg-6 col-md-12 mb-3">
-                        <label className="form-label">Quantidade de Modelos:</label>
+                        <label className="form-label">
+                          Quantidade de Modelos:
+                        </label>
                         <select
                           className="form-select"
                           value={quantidadeModelosArcos}
-                          onChange={(e) => handleQuantidadeModelosChange(e.target.value)}
+                          onChange={(e) =>
+                            handleQuantidadeModelosChange(e.target.value)
+                          }
                         >
                           <option value={1}>1 Modelo</option>
                           <option value={2}>2 Modelos</option>
@@ -1798,47 +1953,52 @@ const ModeladorSVG = () => {
                         <select
                           className="form-select"
                           value={modeloArcoAtual || ""}
-                          onChange={(e) => handleModeloArcoChange(parseInt(e.target.value))}
+                          onChange={(e) =>
+                            handleModeloArcoChange(parseInt(e.target.value))
+                          }
                         >
                           <option value="">Selecione Modelo</option>
-                          {Array.from({ length: quantidadeModelosArcos }, (_, i) => {
-                            const modeloNum = i + 1;
-                            let descricaoModelo = "";
+                          {Array.from(
+                            { length: quantidadeModelosArcos },
+                            (_, i) => {
+                              const modeloNum = i + 1;
+                              let descricaoModelo = "";
 
-                            if (quantidadeModelosArcos === 1) {
-                              descricaoModelo = "todos";
-                            } else if (quantidadeModelosArcos === 2) {
-                              if (modeloNum === 1) {
-                                descricaoModelo = "par";
-                              } else {
-                                descricaoModelo = "impar";
+                              if (quantidadeModelosArcos === 1) {
+                                descricaoModelo = "todos";
+                              } else if (quantidadeModelosArcos === 2) {
+                                if (modeloNum === 1) {
+                                  descricaoModelo = "par";
+                                } else {
+                                  descricaoModelo = "impar";
+                                }
+                              } else if (quantidadeModelosArcos === 3) {
+                                if (modeloNum === 1) {
+                                  descricaoModelo = "frente/fundo";
+                                } else if (modeloNum === 2) {
+                                  descricaoModelo = "par";
+                                } else {
+                                  descricaoModelo = "impar";
+                                }
+                              } else if (quantidadeModelosArcos === 4) {
+                                if (modeloNum === 1) {
+                                  descricaoModelo = "frente";
+                                } else if (modeloNum === 2) {
+                                  descricaoModelo = "par";
+                                } else if (modeloNum === 3) {
+                                  descricaoModelo = "impar";
+                                } else {
+                                  descricaoModelo = "fundo";
+                                }
                               }
-                            } else if (quantidadeModelosArcos === 3) {
-                              if (modeloNum === 1) {
-                                descricaoModelo = "frente/fundo";
-                              } else if (modeloNum === 2) {
-                                descricaoModelo = "par";
-                              } else {
-                                descricaoModelo = "impar";
-                              }
-                            } else if (quantidadeModelosArcos === 4) {
-                              if (modeloNum === 1) {
-                                descricaoModelo = "frente";
-                              } else if (modeloNum === 2) {
-                                descricaoModelo = "par";
-                              } else if (modeloNum === 3) {
-                                descricaoModelo = "impar";
-                              } else {
-                                descricaoModelo = "fundo";
-                              }
-                            }
 
-                            return (
-                              <option key={modeloNum} value={modeloNum}>
-                                Modelo {modeloNum} - {descricaoModelo}
-                              </option>
-                            );
-                          })}
+                              return (
+                                <option key={modeloNum} value={modeloNum}>
+                                  Modelo {modeloNum} - {descricaoModelo}
+                                </option>
+                              );
+                            },
+                          )}
                         </select>
                       </div>
                     </div>
@@ -1849,18 +2009,32 @@ const ModeladorSVG = () => {
                         <input
                           type="text"
                           className="form-control"
-                          value={modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.nome || "") : ""}
-                          onChange={(e) => handleNomeModeloChange(e.target.value)}
+                          value={
+                            modeloArcoAtual
+                              ? modelosArcos[modeloArcoAtual]?.nome || ""
+                              : ""
+                          }
+                          onChange={(e) =>
+                            handleNomeModeloChange(e.target.value)
+                          }
                           placeholder="Nome do modelo"
                           disabled={!modeloArcoAtual}
                         />
                       </div>
                       <div className="col-lg-6 col-md-12 mb-3">
-                        <label className="form-label">Posição no Armazém:</label>
+                        <label className="form-label">
+                          Posição no Armazém:
+                        </label>
                         <select
                           className="form-select"
-                          value={modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.posicao || "") : ""}
-                          onChange={(e) => handlePosicaoArcoChange(e.target.value)}
+                          value={
+                            modeloArcoAtual
+                              ? modelosArcos[modeloArcoAtual]?.posicao || ""
+                              : ""
+                          }
+                          onChange={(e) =>
+                            handlePosicaoArcoChange(e.target.value)
+                          }
                           disabled={!modeloArcoAtual}
                         >
                           {quantidadeModelosArcos === 1 && (
@@ -1869,21 +2043,29 @@ const ModeladorSVG = () => {
                           {quantidadeModelosArcos === 2 && (
                             <>
                               <option value="par">Par (2º, 4º, 6º...)</option>
-                              <option value="impar">Ímpar (1º, 3º, 5º...)</option>
+                              <option value="impar">
+                                Ímpar (1º, 3º, 5º...)
+                              </option>
                             </>
                           )}
                           {quantidadeModelosArcos === 3 && (
                             <>
-                              <option value="frente_fundo">Frente/Fundo (1º e Último)</option>
+                              <option value="frente_fundo">
+                                Frente/Fundo (1º e Último)
+                              </option>
                               <option value="par">Par (2º, 4º, 6º...)</option>
-                              <option value="impar">Ímpar (3º, 5º, 7º...)</option>
+                              <option value="impar">
+                                Ímpar (3º, 5º, 7º...)
+                              </option>
                             </>
                           )}
                           {quantidadeModelosArcos === 4 && (
                             <>
                               <option value="frente">Frente (1º Arco)</option>
                               <option value="par">Par (2º, 4º, 6º...)</option>
-                              <option value="impar">Ímpar (3º, 5º, 7º...)</option>
+                              <option value="impar">
+                                Ímpar (3º, 5º, 7º...)
+                              </option>
                               <option value="fundo">Fundo (Último Arco)</option>
                             </>
                           )}
@@ -1895,15 +2077,19 @@ const ModeladorSVG = () => {
                       <div className="alert alert-info">
                         <div className="d-flex justify-content-between align-items-center">
                           <div>
-                            <strong>EDITANDO:</strong> {modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}
+                            <strong>EDITANDO:</strong>{" "}
+                            {modelosArcos[modeloArcoAtual]?.nome ||
+                              `Modelo ${modeloArcoAtual}`}
                             <span className="badge bg-primary ms-2">
                               {modelosArcos[modeloArcoAtual]?.posicao || ""}
                             </span>
                             {modelosSalvos[modeloArcoAtual] && (
-                              <span className="badge bg-success ms-2">SALVO</span>
+                              <span className="badge bg-success ms-2">
+                                SALVO
+                              </span>
                             )}
                           </div>
-                          <button 
+                          <button
                             className="btn btn-sm btn-success"
                             onClick={salvarModeloAtual}
                             title="Salvar este modelo"
@@ -1920,33 +2106,45 @@ const ModeladorSVG = () => {
                       </div>
                     )}
 
-                    
-
                     {/* Resumo dos modelos */}
                     <div className="mt-3">
                       <h6>Resumo dos Modelos:</h6>
                       <div className="row">
-                        {Array.from({ length: quantidadeModelosArcos }, (_, i) => (
-                          <div key={i + 1} className="col-lg-6 col-md-12 col-sm-12 mb-2">
-                            <div className={`card ${modeloArcoAtual === i + 1 ? 'border-primary' : ''}`}>
-                              <div className="card-body p-2">
-                                <div className="d-flex justify-content-between align-items-start">
-                                  <small>
-                                    <strong>Modelo {i + 1}:</strong> {modelosArcos[i + 1]?.posicao || ""}<br />
-                                    {modelosArcos[i + 1]?.nome || ""}
-                                  </small>
-                                  {modelosSalvos[i + 1] && (
-                                    <span className="badge bg-success badge-sm">✓</span>
-                                  )}
+                        {Array.from(
+                          { length: quantidadeModelosArcos },
+                          (_, i) => (
+                            <div
+                              key={i + 1}
+                              className="col-lg-6 col-md-12 col-sm-12 mb-2"
+                            >
+                              <div
+                                className={`card ${modeloArcoAtual === i + 1 ? "border-primary" : ""}`}
+                              >
+                                <div className="card-body p-2">
+                                  <div className="d-flex justify-content-between align-items-start">
+                                    <small>
+                                      <strong>Modelo {i + 1}:</strong>{" "}
+                                      {modelosArcos[i + 1]?.posicao || ""}
+                                      <br />
+                                      {modelosArcos[i + 1]?.nome || ""}
+                                    </small>
+                                    {modelosSalvos[i + 1] && (
+                                      <span className="badge bg-success badge-sm">
+                                        ✓
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ),
+                        )}
                       </div>
                       <div className="mt-2">
                         <small className="text-muted">
-                          <strong>Status:</strong> {Object.keys(modelosSalvos).length} de {quantidadeModelosArcos} modelos salvos
+                          <strong>Status:</strong>{" "}
+                          {Object.keys(modelosSalvos).length} de{" "}
+                          {quantidadeModelosArcos} modelos salvos
                         </small>
                       </div>
                     </div>
@@ -2159,7 +2357,10 @@ const ModeladorSVG = () => {
                             style={{ minWidth: "150px" }}
                             value={configArmazem.tipo_telhado}
                             onChange={(e) =>
-                              handleArmazemChange("tipo_telhado", e.target.value)
+                              handleArmazemChange(
+                                "tipo_telhado",
+                                e.target.value,
+                              )
                             }
                           >
                             <option value={1}>Pontudo</option>
@@ -2169,7 +2370,9 @@ const ModeladorSVG = () => {
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-secondary"
-                            onClick={() => handleArmazemChange("tipo_telhado", 1)}
+                            onClick={() =>
+                              handleArmazemChange("tipo_telhado", 1)
+                            }
                             title="Resetar para padrão (Pontudo)"
                           >
                             ×
@@ -2200,7 +2403,9 @@ const ModeladorSVG = () => {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("curvatura_topo", 30)}
+                              onClick={() =>
+                                handleArmazemChange("curvatura_topo", 30)
+                              }
                               title="Resetar para padrão (30)"
                             >
                               ×
@@ -2277,7 +2482,9 @@ const ModeladorSVG = () => {
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("altura_fundo_reto", 10)}
+                                  onClick={() =>
+                                    handleArmazemChange("altura_fundo_reto", 10)
+                                  }
                                   title="Resetar para padrão (10)"
                                 >
                                   ×
@@ -2304,7 +2511,9 @@ const ModeladorSVG = () => {
                               style={{ minWidth: "120px" }}
                               min="-100"
                               max="100"
-                              value={configArmazem.deslocamento_horizontal_fundo || 0}
+                              value={
+                                configArmazem.deslocamento_horizontal_fundo || 0
+                              }
                               onChange={(e) =>
                                 handleArmazemChange(
                                   "deslocamento_horizontal_fundo",
@@ -2314,12 +2523,18 @@ const ModeladorSVG = () => {
                             />
                             <div className="d-flex align-items-center">
                               <span className="badge bg-secondary me-2">
-                                {configArmazem.deslocamento_horizontal_fundo || 0}
+                                {configArmazem.deslocamento_horizontal_fundo ||
+                                  0}
                               </span>
                               <button
                                 type="button"
                                 className="btn btn-sm btn-outline-secondary"
-                                onClick={() => handleArmazemChange("deslocamento_horizontal_fundo", 0)}
+                                onClick={() =>
+                                  handleArmazemChange(
+                                    "deslocamento_horizontal_fundo",
+                                    0,
+                                  )
+                                }
                                 title="Resetar para padrão (0)"
                               >
                                 ×
@@ -2338,7 +2553,9 @@ const ModeladorSVG = () => {
                               style={{ minWidth: "120px" }}
                               min="-100"
                               max="100"
-                              value={configArmazem.deslocamento_vertical_fundo || 0}
+                              value={
+                                configArmazem.deslocamento_vertical_fundo || 0
+                              }
                               onChange={(e) =>
                                 handleArmazemChange(
                                   "deslocamento_vertical_fundo",
@@ -2353,8 +2570,15 @@ const ModeladorSVG = () => {
                               <button
                                 type="button"
                                 className="btn btn-sm btn-outline-secondary"
-                                onClick={() => handleArmazemChange("deslocamento_vertical_fundo", 0)}
-                                title="Resetar para padrão (0)"
+                                onClick={() =>
+                                  handleArmazemChange(
+                                    "deslocamento_vertical_fundo",
+                                    obterDeslocamentoVerticalPadrao(
+                                      configArmazem.tipo_fundo,
+                                    ),
+                                  )
+                                }
+                                title={`Resetar para padrão (${obterDeslocamentoVerticalPadrao(configArmazem.tipo_fundo)})`}
                               >
                                 ×
                               </button>
@@ -2380,7 +2604,7 @@ const ModeladorSVG = () => {
                                 style={{ minWidth: "120px" }}
                                 min="10"
                                 max="120"
-                                value={configArmazem.altura_funil_v || 40}
+                                value={configArmazem.altura_funil_v || 18}
                                 onChange={(e) =>
                                   handleArmazemChange(
                                     "altura_funil_v",
@@ -2390,13 +2614,15 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.altura_funil_v || 40}
+                                  {configArmazem.altura_funil_v || 18}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("altura_funil_v", 40)}
-                                  title="Resetar para padrão (40)"
+                                  onClick={() =>
+                                    handleArmazemChange("altura_funil_v", 18)
+                                  }
+                                  title="Resetar para padrão (18)"
                                 >
                                   ×
                                 </button>
@@ -2430,7 +2656,9 @@ const ModeladorSVG = () => {
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("posicao_ponta_v", 0)}
+                                  onClick={() =>
+                                    handleArmazemChange("posicao_ponta_v", 0)
+                                  }
                                   title="Resetar para padrão (0)"
                                 >
                                   ×
@@ -2464,7 +2692,12 @@ const ModeladorSVG = () => {
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("largura_abertura_v", 20)}
+                                  onClick={() =>
+                                    handleArmazemChange(
+                                      "largura_abertura_v",
+                                      20,
+                                    )
+                                  }
                                   title="Resetar para padrão (20)"
                                 >
                                   ×
@@ -2482,7 +2715,7 @@ const ModeladorSVG = () => {
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
                                 min="0"
-                                max="5"
+                                max="10"
                                 step="0.1"
                                 value={configArmazem.inclinacao_funil_v || 1}
                                 onChange={(e) =>
@@ -2499,7 +2732,9 @@ const ModeladorSVG = () => {
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("inclinacao_funil_v", 1)}
+                                  onClick={() =>
+                                    handleArmazemChange("inclinacao_funil_v", 1)
+                                  }
                                   title="Resetar para padrão (1)"
                                 >
                                   ×
@@ -2527,7 +2762,7 @@ const ModeladorSVG = () => {
                                 style={{ minWidth: "120px" }}
                                 min="10"
                                 max="120"
-                                value={configArmazem.altura_duplo_v || 35}
+                                value={configArmazem.altura_duplo_v || 22}
                                 onChange={(e) =>
                                   handleArmazemChange(
                                     "altura_duplo_v",
@@ -2537,13 +2772,15 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.altura_duplo_v || 35}
+                                  {configArmazem.altura_duplo_v || 22}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("altura_duplo_v", 35)}
-                                  title="Resetar para padrão (35)"
+                                  onClick={() =>
+                                    handleArmazemChange("altura_duplo_v", 22)
+                                  }
+                                  title="Resetar para padrão (22)"
                                 >
                                   ×
                                 </button>
@@ -2572,13 +2809,18 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.posicao_v_esquerdo || -0.5}
+                                  {configArmazem.posicao_v_esquerdo || -1}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("posicao_v_esquerdo", -0.5)}
-                                  title="Resetar para padrão (-0.5)"
+                                  onClick={() =>
+                                    handleArmazemChange(
+                                      "posicao_v_esquerdo",
+                                      -1,
+                                    )
+                                  }
+                                  title="Resetar para padrão (-1)"
                                 >
                                   ×
                                 </button>
@@ -2607,13 +2849,15 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.posicao_v_direito || 0.5}
+                                  {configArmazem.posicao_v_direito || 1}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("posicao_v_direito", 0.5)}
-                                  title="Resetar para padrão (0.5)"
+                                  onClick={() =>
+                                    handleArmazemChange("posicao_v_direito", 1)
+                                  }
+                                  title="Resetar para padrão (1)"
                                 >
                                   ×
                                 </button>
@@ -2643,13 +2887,18 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.largura_abertura_duplo_v || 15}
+                                  {configArmazem.largura_abertura_duplo_v || 2}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("largura_abertura_duplo_v", 15)}
-                                  title="Resetar para padrão (15)"
+                                  onClick={() =>
+                                    handleArmazemChange(
+                                      "largura_abertura_duplo_v",
+                                      2,
+                                    )
+                                  }
+                                  title="Resetar para padrão (2)"
                                 >
                                   ×
                                 </button>
@@ -2668,7 +2917,9 @@ const ModeladorSVG = () => {
                                 min="0"
                                 max="1"
                                 step="0.1"
-                                value={configArmazem.altura_plataforma_duplo_v || 0.3}
+                                value={
+                                  configArmazem.altura_plataforma_duplo_v || 0.3
+                                }
                                 onChange={(e) =>
                                   handleArmazemChange(
                                     "altura_plataforma_duplo_v",
@@ -2678,12 +2929,18 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.altura_plataforma_duplo_v || 0.3}
+                                  {configArmazem.altura_plataforma_duplo_v ||
+                                    0.3}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("altura_plataforma_duplo_v", 0.3)}
+                                  onClick={() =>
+                                    handleArmazemChange(
+                                      "altura_plataforma_duplo_v",
+                                      0.3,
+                                    )
+                                  }
                                   title="Resetar para padrão (0.3)"
                                 >
                                   ×
@@ -2702,7 +2959,9 @@ const ModeladorSVG = () => {
                                 style={{ minWidth: "120px" }}
                                 min="10"
                                 max="120"
-                                value={configArmazem.largura_plataforma_duplo_v || 40}
+                                value={
+                                  configArmazem.largura_plataforma_duplo_v || 40
+                                }
                                 onChange={(e) =>
                                   handleArmazemChange(
                                     "largura_plataforma_duplo_v",
@@ -2712,13 +2971,19 @@ const ModeladorSVG = () => {
                               />
                               <div className="d-flex align-items-center">
                                 <span className="badge bg-secondary me-2">
-                                  {configArmazem.largura_plataforma_duplo_v || 40}
+                                  {configArmazem.largura_plataforma_duplo_v ||
+                                    10}
                                 </span>
                                 <button
                                   type="button"
                                   className="btn btn-sm btn-outline-secondary"
-                                  onClick={() => handleArmazemChange("largura_plataforma_duplo_v", 40)}
-                                  title="Resetar para padrão (40)"
+                                  onClick={() =>
+                                    handleArmazemChange(
+                                      "largura_plataforma_duplo_v",
+                                      10,
+                                    )
+                                  }
+                                  title="Resetar para padrão (10)"
                                 >
                                   ×
                                 </button>
@@ -2753,7 +3018,7 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "escala_sensores",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                           />
@@ -2764,7 +3029,9 @@ const ModeladorSVG = () => {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
-                              onClick={() => handleArmazemChange("escala_sensores", 16)}
+                              onClick={() =>
+                                handleArmazemChange("escala_sensores", 16)
+                              }
                               title="Resetar para padrão (16)"
                             >
                               ×
@@ -2787,7 +3054,7 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "dist_y_sensores",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                           />
@@ -2823,7 +3090,7 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "dist_x_sensores",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                           />
@@ -2859,7 +3126,7 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "posicao_horizontal",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                           />
@@ -2881,9 +3148,7 @@ const ModeladorSVG = () => {
                         </div>
                       </div>
                       <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
-                        <label className="form-label">
-                          Posição Vertical:
-                        </label>
+                        <label className="form-label">Posição Vertical:</label>
                         <div className="d-flex align-items-center flex-wrap">
                           <input
                             type="range"
@@ -2895,8 +3160,9 @@ const ModeladorSVG = () => {
                             onChange={(e) =>
                               handleArmazemChange(
                                 "posicao_vertical",
-                                e.target.value
-                              )                            }
+                                e.target.value,
+                              )
+                            }
                           />
                           <div className="d-flex align-items-center">
                             <span className="badge bg-secondary me-2">
@@ -2926,11 +3192,13 @@ const ModeladorSVG = () => {
                             style={{ minWidth: "120px" }}
                             min="-50"
                             max="50"
-                            value={configArmazem.afastamento_vertical_pendulo || 0}
+                            value={
+                              configArmazem.afastamento_vertical_pendulo || 0
+                            }
                             onChange={(e) =>
                               handleArmazemChange(
                                 "afastamento_vertical_pendulo",
-                                e.target.value
+                                e.target.value,
                               )
                             }
                           />
@@ -2942,7 +3210,10 @@ const ModeladorSVG = () => {
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
                               onClick={() =>
-                                handleArmazemChange("afastamento_vertical_pendulo", 0)
+                                handleArmazemChange(
+                                  "afastamento_vertical_pendulo",
+                                  0,
+                                )
                               }
                               title="Resetar para padrão (0)"
                             >
@@ -2963,7 +3234,10 @@ const ModeladorSVG = () => {
                 🔄 Resetar para Padrão
               </button>
               {tipoAtivo === "armazem" && (
-                <button className="btn btn-outline-warning" onClick={resetarModelosParaPadrao}>
+                <button
+                  className="btn btn-outline-warning"
+                  onClick={resetarModelosParaPadrao}
+                >
                   🗑️ Limpar Todos os Modelos
                 </button>
               )}
@@ -2992,7 +3266,8 @@ const ModeladorSVG = () => {
                     onClick={salvarConfiguracao}
                     disabled={!nomeConfiguracao.trim()}
                   >
-                    💾 Salvar {tipoAtivo === "silo" ? "Silo" : "Armazém"} Completo
+                    💾 Salvar {tipoAtivo === "silo" ? "Silo" : "Armazém"}{" "}
+                    Completo
                   </button>
                   <button
                     className="btn btn-primary"
@@ -3009,7 +3284,10 @@ const ModeladorSVG = () => {
                     <h6>Configurações Salvas:</h6>
                     <div className="d-flex flex-wrap gap-1">
                       {configsMemoized.map((nome) => (
-                        <span key={nome} className="badge bg-secondary position-relative">
+                        <span
+                          key={nome}
+                          className="badge bg-secondary position-relative"
+                        >
                           {nome}
                           <button
                             type="button"
@@ -3047,8 +3325,10 @@ const ModeladorSVG = () => {
                 {tipoAtivo === "armazem" && (
                   <div className="alert alert-info">
                     <small>
-                      <strong>📌 Dica:</strong> Quando salvar um armazém, todos os {quantidadeModelosArcos} modelos de arcos configurados serão salvos junto. 
-                      Ao carregar, a configuração completa será restaurada com todos os modelos.
+                      <strong>📌 Dica:</strong> Quando salvar um armazém, todos
+                      os {quantidadeModelosArcos} modelos de arcos configurados
+                      serão salvos junto. Ao carregar, a configuração completa
+                      será restaurada com todos os modelos.
                     </small>
                   </div>
                 )}
@@ -3067,28 +3347,38 @@ const ModeladorSVG = () => {
           }}
         >
           <div
-            className="d-flex justify-content-center align-items-center p-2"
-            style={{ height: "90vh" }}
+            className="d-flex justify-content-center align-items-center"
+            style={{ height: "85vh", paddingTop: "5px", paddingBottom: "5px" }}
           >
             <div
               className="card w-100"
-              style={{ height: "75vh", maxWidth: "100%" }}
+              style={{ height: "calc(85vh - 10px)", maxWidth: "100%" }}
             >
               <div className="card-header bg-primary text-white">
                 <h5 className="mb-0">
-                  Preview - {tipoAtivo === "silo" ? "Silo" : `Armazém - ${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}` : "Visualização Geral"}`}
+                  Preview -{" "}
+                  {tipoAtivo === "silo"
+                    ? "Silo"
+                    : `Armazém - ${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`}` : "Visualização Geral"}`}
                 </h5>
                 {tipoAtivo === "armazem" && (
                   <small>
                     {modeloArcoAtual ? (
                       <>
-                        Posição: {quantidadeModelosArcos === 1 ? "Modelo Único" : modelosArcos[modeloArcoAtual]?.posicao || ""} | 
-                        Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
+                        Posição:{" "}
+                        {quantidadeModelosArcos === 1
+                          ? "Modelo Único"
+                          : modelosArcos[modeloArcoAtual]?.posicao || ""}{" "}
+                        | Modelo {modeloArcoAtual} de {quantidadeModelosArcos}
                       </>
                     ) : (
                       <>
-                        Visualizando: {determinarModeloParaArco(arcoAtual)?.nome || "Modelo padrão"} | 
-                        {quantidadeModelosArcos} modelo{quantidadeModelosArcos > 1 ? 's' : ''} configurado{quantidadeModelosArcos > 1 ? 's' : ''}
+                        Visualizando:{" "}
+                        {determinarModeloParaArco(arcoAtual)?.nome ||
+                          "Modelo padrão"}{" "}
+                        |{quantidadeModelosArcos} modelo
+                        {quantidadeModelosArcos > 1 ? "s" : ""} configurado
+                        {quantidadeModelosArcos > 1 ? "s" : ""}
                       </>
                     )}
                   </small>
@@ -3096,7 +3386,7 @@ const ModeladorSVG = () => {
               </div>
               <div
                 className="card-body text-center d-flex align-items-center justify-content-center p-1"
-                style={{ height: "calc(100% - 60px)" }}
+                style={{ height: "calc(100% - 80px)" }}
               >
                 <svg
                   width="100%"
@@ -3154,7 +3444,9 @@ const ModeladorSVG = () => {
                       <div className="d-flex gap-1 flex-wrap">
                         <button
                           className="btn btn-outline-primary btn-sm"
-                          onClick={() => mudarArco(Math.max(1, arcoAtual - 1), false)}
+                          onClick={() =>
+                            mudarArco(Math.max(1, arcoAtual - 1), false)
+                          }
                           disabled={arcoAtual <= 1}
                           title="Navegar livremente preservando configuração atual"
                         >
@@ -3165,7 +3457,7 @@ const ModeladorSVG = () => {
                           onClick={() =>
                             mudarArco(
                               Math.min(analiseArcos.totalArcos, arcoAtual + 1),
-                              false
+                              false,
                             )
                           }
                           disabled={arcoAtual >= analiseArcos.totalArcos}
@@ -3180,11 +3472,15 @@ const ModeladorSVG = () => {
                         Arco {arcoAtual} de {analiseArcos.totalArcos}
                       </strong>
                       {modeloArcoAtual && (
-                        <span className="badge bg-warning text-dark ms-2">EDITANDO</span>
+                        <span className="badge bg-warning text-dark ms-2">
+                          EDITANDO
+                        </span>
                       )}
                       <br />
                       <small className="text-muted">
-                        Aplicando: {determinarModeloParaArco(arcoAtual)?.nome || "Modelo padrão"}
+                        Aplicando:{" "}
+                        {determinarModeloParaArco(arcoAtual)?.nome ||
+                          "Modelo padrão"}
                       </small>
                     </div>
                     <div className="col-md-4 text-end">
@@ -3195,26 +3491,50 @@ const ModeladorSVG = () => {
                         sensores
                       </span>
                       <br />
-                      <span className={`badge mt-1 ${
-                        quantidadeModelosArcos === 1 ? 'bg-info' :
-                        quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 1 ? 'bg-warning' : 'bg-primary') :
-                        quantidadeModelosArcos === 3 ? (
-                          arcoAtual === 1 || arcoAtual === analiseArcos.totalArcos ? 'bg-success' :
-                          arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning'
-                        ) :
-                        arcoAtual === 1 ? 'bg-success' : 
-                        arcoAtual === analiseArcos.totalArcos ? 'bg-danger' :
-                        arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning'
-                      }`}>
-                        {quantidadeModelosArcos === 1 ? 'TODOS' :
-                         quantidadeModelosArcos === 2 ? (arcoAtual % 2 === 1 ? 'ÍMPAR' : 'PAR') :
-                         quantidadeModelosArcos === 3 ? (
-                           arcoAtual === 1 || arcoAtual === analiseArcos.totalArcos ? 'FRENTE/FUNDO' :
-                           arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'
-                         ) :
-                         arcoAtual === 1 ? 'FRENTE' : 
-                         arcoAtual === analiseArcos.totalArcos ? 'FUNDO' :
-                         arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'}
+                      <span
+                        className={`badge mt-1 ${
+                          quantidadeModelosArcos === 1
+                            ? "bg-info"
+                            : quantidadeModelosArcos === 2
+                              ? arcoAtual % 2 === 1
+                                ? "bg-warning"
+                                : "bg-primary"
+                              : quantidadeModelosArcos === 3
+                                ? arcoAtual === 1 ||
+                                  arcoAtual === analiseArcos.totalArcos
+                                  ? "bg-success"
+                                  : arcoAtual % 2 === 0
+                                    ? "bg-primary"
+                                    : "bg-warning"
+                                : arcoAtual === 1
+                                  ? "bg-success"
+                                  : arcoAtual === analiseArcos.totalArcos
+                                    ? "bg-danger"
+                                    : arcoAtual % 2 === 0
+                                      ? "bg-primary"
+                                      : "bg-warning"
+                        }`}
+                      >
+                        {quantidadeModelosArcos === 1
+                          ? "TODOS"
+                          : quantidadeModelosArcos === 2
+                            ? arcoAtual % 2 === 1
+                              ? "ÍMPAR"
+                              : "PAR"
+                            : quantidadeModelosArcos === 3
+                              ? arcoAtual === 1 ||
+                                arcoAtual === analiseArcos.totalArcos
+                                ? "FRENTE/FUNDO"
+                                : arcoAtual % 2 === 0
+                                  ? "PAR"
+                                  : "ÍMPAR"
+                              : arcoAtual === 1
+                                ? "FRENTE"
+                                : arcoAtual === analiseArcos.totalArcos
+                                  ? "FUNDO"
+                                  : arcoAtual % 2 === 0
+                                    ? "PAR"
+                                    : "ÍMPAR"}
                       </span>
                     </div>
                   </div>
