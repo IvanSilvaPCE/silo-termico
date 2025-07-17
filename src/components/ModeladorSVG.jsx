@@ -200,12 +200,19 @@ const ModeladorSVG = () => {
       altura_funil_v: 40,
       posicao_ponta_v: 0,
       largura_abertura_v: 20,
+      inclinacao_funil_v: 1,
 
       // Configurações Duplo V
       altura_duplo_v: 35,
       posicao_v_esquerdo: -0.5,
       posicao_v_direito: 0.5,
       largura_abertura_duplo_v: 15,
+      altura_plataforma_duplo_v: 0.3,
+      largura_plataforma_duplo_v: 40,
+
+      // Configurações de Movimentação do Fundo
+      deslocamento_horizontal_fundo: 0,
+      deslocamento_vertical_fundo: 0,
 
       // Configuração dos Sensores
       escala_sensores: 16,
@@ -666,22 +673,32 @@ const ModeladorSVG = () => {
 
   // Renderizar base normal (fundo reto)
   const renderBaseNormal = () => {
-    const { pb, lb, hb, le, lf, altura_fundo_reto = 10 } = configArmazem;
+    const { 
+      pb, 
+      lb, 
+      hb, 
+      le, 
+      lf, 
+      altura_fundo_reto = 10,
+      deslocamento_horizontal_fundo = 0,
+      deslocamento_vertical_fundo = 0,
+    } = configArmazem;
 
-    // Ajuste reduzido para metade
-    const ajuste_base = -4; // Ajuste menor para não subir tanto
+    // Ajuste base + deslocamentos do usuário
+    const ajuste_base = -4 + deslocamento_vertical_fundo;
+    const ajuste_horizontal = deslocamento_horizontal_fundo;
 
     // Usar altura_fundo_reto para definir a altura do fundo interno
     const altura_fundo_aplicada = altura_fundo_reto || 10;
 
-    const p1 = [lb, pb - hb + ajuste_base];
-    const p2 = [lb - le, pb - hb + ajuste_base];
-    const p3 = [lb - (lb - lf) / 2, pb - altura_fundo_aplicada + ajuste_base];
-    const p4 = [(lb - lf) / 2, pb - altura_fundo_aplicada + ajuste_base];
-    const p5 = [le, pb - hb + ajuste_base];
-    const p6 = [0, pb - hb + ajuste_base];
-    const p7 = [0, pb + ajuste_base];
-    const p8 = [lb, pb + ajuste_base];
+    const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base];
+    const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base];
+    const p3 = [lb - (lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_aplicada + ajuste_base];
+    const p4 = [(lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_aplicada + ajuste_base];
+    const p5 = [le + ajuste_horizontal, pb - hb + ajuste_base];
+    const p6 = [0 + ajuste_horizontal, pb - hb + ajuste_base];
+    const p7 = [0 + ajuste_horizontal, pb + ajuste_base];
+    const p8 = [lb + ajuste_horizontal, pb + ajuste_base];
 
     const pathBase = `${p1.join(",")} ${p2.join(",")} ${p3.join(",")} ${p4.join(",")} ${p5.join(",")} ${p6.join(",")} ${p7.join(",")} ${p8.join(",")}`;
 
@@ -699,6 +716,9 @@ const ModeladorSVG = () => {
       altura_funil_v = 40,
       posicao_ponta_v = 0, // -1 a 1 (esquerda para direita)
       largura_abertura_v = 20,
+      inclinacao_funil_v = 1, // Nova funcionalidade de inclinação
+      deslocamento_horizontal_fundo = 0,
+      deslocamento_vertical_fundo = 0,
     } = configArmazem;
 
     // Calcular posição do centro
@@ -706,27 +726,31 @@ const ModeladorSVG = () => {
     const deslocamentoPonta = lb * 0.1 * posicao_ponta_v;
     const pontaX = centroBase + deslocamentoPonta;
 
-    // Ajustar posição para alinhar melhor com a base
-    const ajuste_base = -4;
+    // Ajustar posição para alinhar melhor com a base + deslocamentos do usuário
+    const ajuste_base = -4 + deslocamento_vertical_fundo;
+    const ajuste_horizontal = deslocamento_horizontal_fundo;
 
-    // Criar descida suave das bordas ao centro - sem V no meio
-    const p1 = [lb, pb - hb + ajuste_base]; // direita superior
-    const p2 = [lb - le, pb - hb + ajuste_base + altura_funil_v * 0.2]; // início descida direita
-    const p3 = [lb - (lb - lf) / 2, pb - hb + ajuste_base + altura_funil_v * 0.5]; // meio direito descendo suave
+    // Aplicar inclinação nas paredes do funil
+    const inclinacao_direita = altura_funil_v * inclinacao_funil_v;
+    const inclinacao_esquerda = altura_funil_v * inclinacao_funil_v;
+
+    // Criar descida angular com inclinação ajustável
+    const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base]; // direita superior
+    const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida direita
     
-    // Área central baixa - abertura no fundo
-    const p4 = [pontaX + largura_abertura_v / 2, pb - hb + ajuste_base + altura_funil_v]; // lado direito da abertura
-    const p5 = [pontaX - largura_abertura_v / 2, pb - hb + ajuste_base + altura_funil_v]; // lado esquerdo da abertura
+    // Descida com inclinação até o ponto do V (lado direito)
+    const p3 = [pontaX + largura_abertura_v / 2 + inclinacao_direita + ajuste_horizontal, pb - hb + ajuste_base + altura_funil_v]; // lado direito da abertura com inclinação
+    const p4 = [pontaX - largura_abertura_v / 2 - inclinacao_esquerda + ajuste_horizontal, pb - hb + ajuste_base + altura_funil_v]; // lado esquerdo da abertura com inclinação
     
-    const p6 = [(lb - lf) / 2, pb - hb + ajuste_base + altura_funil_v * 0.5]; // meio esquerdo descendo suave
-    const p7 = [le, pb - hb + ajuste_base + altura_funil_v * 0.2]; // início descida esquerda
+    // Descida com inclinação até o início esquerdo (lado esquerdo)
+    const p5 = [le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida esquerda
     
     // Completar o polígono
-    const p8 = [0, pb - hb + ajuste_base]; // esquerda superior
-    const p9 = [0, pb + ajuste_base]; // esquerda inferior
-    const p10 = [lb, pb + ajuste_base]; // direita inferior
+    const p6 = [0 + ajuste_horizontal, pb - hb + ajuste_base]; // esquerda superior
+    const p7 = [0 + ajuste_horizontal, pb + ajuste_base]; // esquerda inferior
+    const p8 = [lb + ajuste_horizontal, pb + ajuste_base]; // direita inferior
 
-    const pontos = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10];
+    const pontos = [p1, p2, p3, p4, p5, p6, p7, p8];
     const pathBase = pontos.map(p => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
@@ -744,6 +768,8 @@ const ModeladorSVG = () => {
       posicao_v_esquerdo = -0.5, // -1 a 1
       posicao_v_direito = 0.5, // -1 a 1
       largura_abertura_duplo_v = 15,
+      deslocamento_horizontal_fundo = 0,
+      deslocamento_vertical_fundo = 0,
     } = configArmazem;
 
     const centroBase = lb / 2;
@@ -752,35 +778,37 @@ const ModeladorSVG = () => {
     const pontaEsquerdaX = centroBase + lb * 0.2 * posicao_v_esquerdo;
     const pontaDireitaX = centroBase + lb * 0.2 * posicao_v_direito;
 
-    // Ajustar posição para alinhar melhor com a base
-    const ajuste_base = -4;
+    // Ajustar posição para alinhar melhor com a base + deslocamentos do usuário
+    const ajuste_base = -4 + deslocamento_vertical_fundo;
+    const ajuste_horizontal = deslocamento_horizontal_fundo;
 
-    // Criar descida suave das bordas para duas aberturas - sem V no meio
-    const p1 = [lb, pb - hb + ajuste_base]; // direita superior
-    const p2 = [lb - le, pb - hb + ajuste_base + altura_duplo_v * 0.2]; // início descida direita
-    const p3 = [lb - (lb - lf) / 2, pb - hb + ajuste_base + altura_duplo_v * 0.4]; // meio direito descendo
+    // Criar descida angular como o fundo reto, mas com duas aberturas (duplo V)
+    const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base]; // direita superior
+    const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida direita
     
-    // Primeira abertura (lado direito)
-    const p4 = [pontaDireitaX + largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura direita
-    const p5 = [pontaDireitaX - largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura direita
+    // Descida reta para a primeira abertura (lado direito)
+    const p3 = [pontaDireitaX + largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura direita
+    const p4 = [pontaDireitaX - largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura direita
     
-    // Área central elevada
-    const p6 = [centroBase + 20, pb - hb + ajuste_base + altura_duplo_v * 0.3]; // transição central direita
-    const p7 = [centroBase - 20, pb - hb + ajuste_base + altura_duplo_v * 0.3]; // transição central esquerda
+    // Área central elevada (plataforma entre os dois V) - usando configuração do usuário
+    const alturaPlataforma = configArmazem.altura_plataforma_duplo_v || 0.3;
+    const larguraPlataforma = configArmazem.largura_plataforma_duplo_v || 40;
+    const p5 = [centroBase + larguraPlataforma / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v * alturaPlataforma]; // transição central direita
+    const p6 = [centroBase - larguraPlataforma / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v * alturaPlataforma]; // transição central esquerda
     
-    // Segunda abertura (lado esquerdo)
-    const p8 = [pontaEsquerdaX + largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura esquerda
-    const p9 = [pontaEsquerdaX - largura_abertura_duplo_v / 2, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura esquerda
+    // Descida reta para a segunda abertura (lado esquerdo)
+    const p7 = [pontaEsquerdaX + largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado direito da abertura esquerda
+    const p8 = [pontaEsquerdaX - largura_abertura_duplo_v / 2 + ajuste_horizontal, pb - hb + ajuste_base + altura_duplo_v]; // lado esquerdo da abertura esquerda
     
-    const p10 = [(lb - lf) / 2, pb - hb + ajuste_base + altura_duplo_v * 0.4]; // meio esquerdo descendo
-    const p11 = [le, pb - hb + ajuste_base + altura_duplo_v * 0.2]; // início descida esquerda
+    // Descida reta até o início esquerdo (lado esquerdo)
+    const p9 = [le + ajuste_horizontal, pb - hb + ajuste_base]; // início descida esquerda
     
     // Completar o polígono
-    const p12 = [0, pb - hb + ajuste_base]; // esquerda superior
-    const p13 = [0, pb + ajuste_base]; // esquerda inferior
-    const p14 = [lb, pb + ajuste_base]; // direita inferior
+    const p10 = [0 + ajuste_horizontal, pb - hb + ajuste_base]; // esquerda superior
+    const p11 = [0 + ajuste_horizontal, pb + ajuste_base]; // esquerda inferior
+    const p12 = [lb + ajuste_horizontal, pb + ajuste_base]; // direita inferior
 
-    const pontos = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14];
+    const pontos = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12];
     const pathBase = pontos.map(p => p.join(",")).join(" ");
 
     return <polygon fill="#999999" id="des_fundo" points={pathBase} />;
@@ -1427,12 +1455,19 @@ const ModeladorSVG = () => {
         altura_funil_v: 40,
         posicao_ponta_v: 0,
         largura_abertura_v: 20,
+        inclinacao_funil_v: 1,
 
         // Configurações Duplo V
         altura_duplo_v: 35,
         posicao_v_esquerdo: -0.5,
         posicao_v_direito: 0.5,
         largura_abertura_duplo_v: 15,
+        altura_plataforma_duplo_v: 0.3,
+        largura_plataforma_duplo_v: 40,
+
+        // Configurações de Movimentação do Fundo (todos os tipos)
+        deslocamento_horizontal_fundo: 0,
+        deslocamento_vertical_fundo: 0,
 
         // Configuração dos Sensores
         escala_sensores: 16,
@@ -2226,7 +2261,7 @@ const ModeladorSVG = () => {
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
                                 min="0"
-                                max="30"
+                                max="50"
                                 value={configArmazem.altura_fundo_reto || 10}
                                 onChange={(e) =>
                                   handleArmazemChange(
@@ -2254,12 +2289,87 @@ const ModeladorSVG = () => {
                       </div>
                     )}
 
+                    {/* Controles de Movimentação do Fundo (para todos os tipos) */}
+                    <div className="alert alert-warning">
+                      <h6>🔄 Movimentação do Fundo (Todos os Tipos):</h6>
+                      <div className="row">
+                        <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
+                          <label className="form-label">
+                            Deslocamento Horizontal:
+                          </label>
+                          <div className="d-flex align-items-center flex-wrap">
+                            <input
+                              type="range"
+                              className="form-range me-2 flex-grow-1"
+                              style={{ minWidth: "120px" }}
+                              min="-100"
+                              max="100"
+                              value={configArmazem.deslocamento_horizontal_fundo || 0}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "deslocamento_horizontal_fundo",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <div className="d-flex align-items-center">
+                              <span className="badge bg-secondary me-2">
+                                {configArmazem.deslocamento_horizontal_fundo || 0}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => handleArmazemChange("deslocamento_horizontal_fundo", 0)}
+                                title="Resetar para padrão (0)"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
+                          <label className="form-label">
+                            Deslocamento Vertical:
+                          </label>
+                          <div className="d-flex align-items-center flex-wrap">
+                            <input
+                              type="range"
+                              className="form-range me-2 flex-grow-1"
+                              style={{ minWidth: "120px" }}
+                              min="-100"
+                              max="100"
+                              value={configArmazem.deslocamento_vertical_fundo || 0}
+                              onChange={(e) =>
+                                handleArmazemChange(
+                                  "deslocamento_vertical_fundo",
+                                  e.target.value,
+                                )
+                              }
+                            />
+                            <div className="d-flex align-items-center">
+                              <span className="badge bg-secondary me-2">
+                                {configArmazem.deslocamento_vertical_fundo || 0}
+                              </span>
+                              <button
+                                type="button"
+                                className="btn btn-sm btn-outline-secondary"
+                                onClick={() => handleArmazemChange("deslocamento_vertical_fundo", 0)}
+                                title="Resetar para padrão (0)"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Controles específicos para Funil V */}
                     {configArmazem.tipo_fundo === 1 && (
                       <div className="alert alert-light">
                         <h6>Configurações do Funil V:</h6>
                         <div className="row">
-                          <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Altura do Funil:
                             </label>
@@ -2268,8 +2378,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="20"
-                                max="80"
+                                min="10"
+                                max="120"
                                 value={configArmazem.altura_funil_v || 40}
                                 onChange={(e) =>
                                   handleArmazemChange(
@@ -2293,7 +2403,7 @@ const ModeladorSVG = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Posição da Ponta (Esq ← → Dir):
                             </label>
@@ -2302,8 +2412,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="-1"
-                                max="1"
+                                min="-2"
+                                max="2"
                                 step="0.1"
                                 value={configArmazem.posicao_ponta_v || 0}
                                 onChange={(e) =>
@@ -2328,7 +2438,7 @@ const ModeladorSVG = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="col-xxl-4 col-xl-6 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Largura da Abertura:
                             </label>
@@ -2337,8 +2447,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="5"
-                                max="50"
+                                min="2"
+                                max="80"
                                 value={configArmazem.largura_abertura_v || 20}
                                 onChange={(e) =>
                                   handleArmazemChange(
@@ -2362,6 +2472,41 @@ const ModeladorSVG = () => {
                               </div>
                             </div>
                           </div>
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
+                            <label className="form-label">
+                              Inclinação das Paredes:
+                            </label>
+                            <div className="d-flex align-items-center flex-wrap">
+                              <input
+                                type="range"
+                                className="form-range me-2 flex-grow-1"
+                                style={{ minWidth: "120px" }}
+                                min="0"
+                                max="5"
+                                step="0.1"
+                                value={configArmazem.inclinacao_funil_v || 1}
+                                onChange={(e) =>
+                                  handleArmazemChange(
+                                    "inclinacao_funil_v",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                              <div className="d-flex align-items-center">
+                                <span className="badge bg-secondary me-2">
+                                  {configArmazem.inclinacao_funil_v || 1}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => handleArmazemChange("inclinacao_funil_v", 1)}
+                                  title="Resetar para padrão (1)"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -2371,7 +2516,7 @@ const ModeladorSVG = () => {
                       <div className="alert alert-light">
                         <h6>Configurações do Duplo V:</h6>
                         <div className="row">
-                          <div className="col-xxl-3 col-xl-4 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Altura dos Funis:
                             </label>
@@ -2380,8 +2525,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="20"
-                                max="70"
+                                min="10"
+                                max="120"
                                 value={configArmazem.altura_duplo_v || 35}
                                 onChange={(e) =>
                                   handleArmazemChange(
@@ -2405,7 +2550,7 @@ const ModeladorSVG = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="col-xxl-3 col-xl-4 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Posição V Esquerdo:
                             </label>
@@ -2414,8 +2559,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="-1"
-                                max="0"
+                                min="-2"
+                                max="0.5"
                                 step="0.1"
                                 value={configArmazem.posicao_v_esquerdo || -0.5}
                                 onChange={(e) =>
@@ -2440,7 +2585,7 @@ const ModeladorSVG = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="col-xxl-3 col-xl-4 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Posição V Direito:
                             </label>
@@ -2449,8 +2594,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="0"
-                                max="1"
+                                min="-0.5"
+                                max="2"
                                 step="0.1"
                                 value={configArmazem.posicao_v_direito || 0.5}
                                 onChange={(e) =>
@@ -2475,7 +2620,7 @@ const ModeladorSVG = () => {
                               </div>
                             </div>
                           </div>
-                          <div className="col-xxl-3 col-xl-4 col-lg-6 col-md-12 col-sm-12 mb-3">
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
                             <label className="form-label">
                               Largura das Aberturas:
                             </label>
@@ -2484,8 +2629,8 @@ const ModeladorSVG = () => {
                                 type="range"
                                 className="form-range me-2 flex-grow-1"
                                 style={{ minWidth: "120px" }}
-                                min="5"
-                                max="40"
+                                min="2"
+                                max="80"
                                 value={
                                   configArmazem.largura_abertura_duplo_v || 15
                                 }
@@ -2505,6 +2650,75 @@ const ModeladorSVG = () => {
                                   className="btn btn-sm btn-outline-secondary"
                                   onClick={() => handleArmazemChange("largura_abertura_duplo_v", 15)}
                                   title="Resetar para padrão (15)"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
+                            <label className="form-label">
+                              Altura da Plataforma Central:
+                            </label>
+                            <div className="d-flex align-items-center flex-wrap">
+                              <input
+                                type="range"
+                                className="form-range me-2 flex-grow-1"
+                                style={{ minWidth: "120px" }}
+                                min="0"
+                                max="1"
+                                step="0.1"
+                                value={configArmazem.altura_plataforma_duplo_v || 0.3}
+                                onChange={(e) =>
+                                  handleArmazemChange(
+                                    "altura_plataforma_duplo_v",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                              <div className="d-flex align-items-center">
+                                <span className="badge bg-secondary me-2">
+                                  {configArmazem.altura_plataforma_duplo_v || 0.3}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => handleArmazemChange("altura_plataforma_duplo_v", 0.3)}
+                                  title="Resetar para padrão (0.3)"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="col-xl-6 col-lg-6 col-md-6 col-sm-12 mb-3">
+                            <label className="form-label">
+                              Largura da Plataforma Central:
+                            </label>
+                            <div className="d-flex align-items-center flex-wrap">
+                              <input
+                                type="range"
+                                className="form-range me-2 flex-grow-1"
+                                style={{ minWidth: "120px" }}
+                                min="10"
+                                max="120"
+                                value={configArmazem.largura_plataforma_duplo_v || 40}
+                                onChange={(e) =>
+                                  handleArmazemChange(
+                                    "largura_plataforma_duplo_v",
+                                    e.target.value,
+                                  )
+                                }
+                              />
+                              <div className="d-flex align-items-center">
+                                <span className="badge bg-secondary me-2">
+                                  {configArmazem.largura_plataforma_duplo_v || 40}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-secondary"
+                                  onClick={() => handleArmazemChange("largura_plataforma_duplo_v", 40)}
+                                  title="Resetar para padrão (40)"
                                 >
                                   ×
                                 </button>
