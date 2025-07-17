@@ -24,10 +24,17 @@ const App = () => {
   const fecharMenuMobile = () => {
     const navbarCollapse = document.getElementById('navbarNav');
     if (navbarCollapse && navbarCollapse.classList.contains('show')) {
-      const bsCollapse = new window.bootstrap.Collapse(navbarCollapse, {
-        toggle: false
-      });
-      bsCollapse.hide();
+      // Método mais direto usando Bootstrap classes
+      const navbarToggler = document.querySelector('.navbar-toggler');
+      if (navbarToggler && window.bootstrap) {
+        const bsCollapse = new window.bootstrap.Collapse(navbarCollapse, {
+          toggle: false
+        });
+        bsCollapse.hide();
+      } else {
+        // Fallback manual se Bootstrap não estiver disponível
+        navbarCollapse.classList.remove('show');
+      }
     }
   };
 
@@ -62,7 +69,7 @@ const App = () => {
               className={`btn btn-sm ${telaAtiva === "modelador" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
               onClick={() => navegarPara("modelador")}
             >
-              <span className="d-none d-sm-inline">Modelador </span>SVG
+              Modelador SVG
             </button>
             <button 
               className={`btn btn-sm ${telaAtiva === "silo" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
@@ -80,13 +87,13 @@ const App = () => {
               className={`btn btn-sm ${telaAtiva === "armazem" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
               onClick={() => navegarPara("armazem")}
             >
-              <span className="d-none d-sm-inline">Armazém </span>2D
+              Armazem 2D
             </button>
             <button 
               className={`btn btn-sm ${telaAtiva === "armazem3d" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
               onClick={() => navegarPara("armazem3d")}
             >
-              <span className="d-none d-sm-inline">Armazém </span>3D
+              Armazem 3D
             </button>
           </div>
         </div>
