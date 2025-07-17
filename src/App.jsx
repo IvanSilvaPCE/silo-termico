@@ -20,6 +20,23 @@ const App = () => {
     setDadosSilo(dadosSimuladosSilo);
   }, []);
 
+  // Função para fechar o menu mobile
+  const fecharMenuMobile = () => {
+    const navbarCollapse = document.getElementById('navbarNav');
+    if (navbarCollapse && navbarCollapse.classList.contains('show')) {
+      const bsCollapse = new window.bootstrap.Collapse(navbarCollapse, {
+        toggle: false
+      });
+      bsCollapse.hide();
+    }
+  };
+
+  // Função para navegar e fechar menu
+  const navegarPara = (tela) => {
+    setTelaAtiva(tela);
+    fecharMenuMobile();
+  };
+
   const renderNavegacao = () => (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary mb-0 sticky-top">
       <div className="container-fluid px-2 px-md-4">
@@ -43,31 +60,31 @@ const App = () => {
           <div className="navbar-nav ms-auto d-flex flex-column flex-lg-row gap-1 mt-2 mt-lg-0">
             <button 
               className={`btn btn-sm ${telaAtiva === "modelador" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
-              onClick={() => setTelaAtiva("modelador")}
+              onClick={() => navegarPara("modelador")}
             >
               <span className="d-none d-sm-inline">Modelador </span>SVG
             </button>
             <button 
               className={`btn btn-sm ${telaAtiva === "silo" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
-              onClick={() => setTelaAtiva("silo")}
+              onClick={() => navegarPara("silo")}
             >
               Silo 2D
             </button>
             <button 
               className={`btn btn-sm ${telaAtiva === "silo3d" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
-              onClick={() => setTelaAtiva("silo3d")}
+              onClick={() => navegarPara("silo3d")}
             >
               Silo 3D
             </button>
             <button 
               className={`btn btn-sm ${telaAtiva === "armazem" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
-              onClick={() => setTelaAtiva("armazem")}
+              onClick={() => navegarPara("armazem")}
             >
               <span className="d-none d-sm-inline">Armazém </span>2D
             </button>
             <button 
               className={`btn btn-sm ${telaAtiva === "armazem3d" ? "btn-light" : "btn-outline-light"} mb-1 mb-lg-0`}
-              onClick={() => setTelaAtiva("armazem3d")}
+              onClick={() => navegarPara("armazem3d")}
             >
               <span className="d-none d-sm-inline">Armazém </span>3D
             </button>
