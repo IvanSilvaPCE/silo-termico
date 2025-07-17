@@ -67,7 +67,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
         );
         svgEl.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
         svgEl.setAttribute("width", "100%");
-        svgEl.setAttribute("height", "85vh");
+        svgEl.setAttribute("height", "70vh");
         svgEl.setAttribute("viewBox", `0 0 ${dimensoesSVG.largura} ${dimensoesSVG.altura}`);
         container.appendChild(svgEl);
 
@@ -451,7 +451,7 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
     );
 
     const RenderArmazem = () => (
-        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '85vh', minHeight: '400px' }} />
+        <div ref={containerRef} className="d-flex justify-content-center" style={{ height: '70vh', minHeight: '350px' }} />
     );
 
     return (
@@ -477,8 +477,8 @@ const ArmazemSVG = ({ dados: dadosExternos }) => {
                             display: 'flex', 
                             justifyContent: 'center', 
                             alignItems: 'center',
-                            minHeight: 'calc(100vh - 200px)',
-                            maxHeight: 'calc(100vh - 140px)',
+                            minHeight: 'calc(100vh - 220px)',
+                            maxHeight: 'calc(100vh - 160px)',
                             overflow: 'auto'
                         }}>
                             <RenderArmazem />

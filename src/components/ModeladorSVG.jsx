@@ -3171,11 +3171,12 @@ const ModeladorSVG = () => {
             }}
           >
             <div
-              className="card w-100 h-100"
+              className="card w-100"
               style={{ 
                 maxWidth: "100%",
                 minHeight: "400px",
-                maxHeight: "calc(100vh - 20px)"
+                maxHeight: "calc(100vh - 60px)",
+                height: "calc(100vh - 60px)"
               }}
             >
               <div className="card-header bg-primary text-white">
@@ -3210,9 +3211,10 @@ const ModeladorSVG = () => {
               <div
                 className="card-body text-center d-flex align-items-center justify-content-center p-2"
                 style={{ 
-                  height: "calc(100% - 120px)", 
+                  height: "calc(100vh - 250px)", 
                   overflow: "auto",
-                  minHeight: "300px"
+                  minHeight: "300px",
+                  maxHeight: "calc(100vh - 250px)"
                 }}
               >
                 <svg
@@ -3221,9 +3223,9 @@ const ModeladorSVG = () => {
                   viewBox={`0 0 ${larguraSVG} ${alturaSVG}`}
                   style={{
                     width: "100%",
-                    height: "100%",
+                    height: "auto",
                     maxWidth: "100%",
-                    maxHeight: "100%",
+                    maxHeight: "calc(100vh - 320px)",
                     minHeight: "250px",
                     border: "1px solid #ddd",
                     backgroundColor: "#f8f9fa",

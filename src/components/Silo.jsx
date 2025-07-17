@@ -522,9 +522,9 @@ export default function Silo({ dados }) {
       viewBox={`0 0 ${largura} ${altura}`}
       style={{
         maxWidth: "100%",
-        maxHeight: "85vh",
+        maxHeight: "70vh",
         height: "auto",
-        minHeight: "400px",
+        minHeight: "350px",
         shapeRendering: "auto",
         textRendering: "geometricPrecision",
         imageRendering: "optimizeQuality",
@@ -586,8 +586,8 @@ export default function Silo({ dados }) {
               display: 'flex', 
               justifyContent: 'center', 
               alignItems: 'center',
-              minHeight: 'calc(100vh - 140px)',
-              maxHeight: 'calc(100vh - 100px)',
+              minHeight: 'calc(100vh - 180px)',
+              maxHeight: 'calc(100vh - 140px)',
               overflow: 'auto'
             }}>
               {modo === "temperatura" ? <RenderSiloTemperatura /> : <RenderSiloMapa />}
