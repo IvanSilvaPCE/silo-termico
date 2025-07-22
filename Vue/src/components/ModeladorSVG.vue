@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-0">
     <div class="row g-0">
@@ -30,7 +29,7 @@
           <!-- Controles para Silo -->
           <template v-if="tipoAtivo === 'silo'">
             <h6 class="mt-3 text-primary">Dimensões do Silo</h6>
-            
+
             <div class="mb-3">
               <label class="form-label">Largura Base: {{ configSilo.lb }}px</label>
               <div class="d-flex align-items-center">
@@ -375,11 +374,11 @@
             <template #header>
               <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between text-white">
                 <h6 class="mb-1 mb-md-0">
-                  Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || \`Modelo ${modeloArcoAtual}\`}` : 'Visualização Geral'}` }}
+                  Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
                 </h6>
               </div>
             </template>
-            
+
             <div
               class="card-body text-center d-flex align-items-center justify-content-center p-2"
               :style="{
@@ -433,7 +432,7 @@ export default {
         dy: 0,
         da: 35
       },
-      
+
       // Estados para configurações do Armazém
       configArmazem: {
         pb: 185,
@@ -465,7 +464,7 @@ export default {
         posicao_vertical: 0,
         afastamento_vertical_pendulo: 0
       },
-      
+
       // Estados para modelos de arcos
       quantidadeModelosArcos: 1,
       modeloArcoAtual: null,
@@ -477,7 +476,7 @@ export default {
         }
       },
       modelosSalvos: {},
-      
+
       tipoAtivo: 'silo',
       nomeConfiguracao: '',
       larguraSVG: 400,
@@ -498,11 +497,11 @@ export default {
     onTipoChange() {
       this.updateSVG()
     },
-    
+
     onSiloChange() {
       this.updateSVG()
     },
-    
+
     onArmazemChange() {
       this.updateSVG()
       // Atualizar modelo atual se estiver selecionado
@@ -511,14 +510,14 @@ export default {
         this.salvarModelosAutomatico()
       }
     },
-    
+
     onQuantidadeModelosChange() {
       const qtd = parseInt(this.quantidadeModelosArcos)
       const novosModelos = {}
-      
+
       for (let i = 1; i <= qtd; i++) {
         let posicao, nome
-        
+
         if (qtd === 1) {
           posicao = 'todos'
           nome = 'Modelo Único'
@@ -556,32 +555,32 @@ export default {
             nome = 'Modelo Fundo'
           }
         }
-        
+
         novosModelos[i] = this.modelosArcos[i] || {
           posicao,
           config: { ...this.configArmazem },
           nome
         }
       }
-      
+
       this.modelosArcos = novosModelos
-      
+
       // Se o modelo atual não existe mais, voltar para o primeiro
       if (this.modeloArcoAtual > qtd) {
         this.modeloArcoAtual = 1
         this.configArmazem = { ...this.modelosArcos[1].config }
       }
-      
+
       this.salvarModelosAutomatico()
     },
-    
+
     onModeloArcoChange() {
       if (this.modeloArcoAtual) {
         this.configArmazem = { ...this.modelosArcos[this.modeloArcoAtual].config }
         this.salvarModelosAutomatico()
       }
     },
-    
+
     getDescricaoModelo(modeloNum) {
       if (this.quantidadeModelosArcos === 1) {
         return 'todos'
@@ -599,7 +598,7 @@ export default {
       }
       return ''
     },
-    
+
     salvarModeloAtual() {
       if (!this.modeloArcoAtual) {
         this.$bvToast.toast('Selecione um modelo para salvar!', {
@@ -609,24 +608,24 @@ export default {
         })
         return
       }
-      
+
       const modeloParaSalvar = {
         ...this.modelosArcos[this.modeloArcoAtual],
         config: { ...this.configArmazem }
       }
-      
+
       this.modelosArcos[this.modeloArcoAtual] = modeloParaSalvar
       this.modelosSalvos[this.modeloArcoAtual] = modeloParaSalvar
-      
+
       this.salvarModelosAutomatico()
-      
+
       this.$bvToast.toast(`Modelo ${this.modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`, {
         title: 'Sucesso',
         variant: 'success',
         autoHideDelay: 3000
       })
     },
-    
+
     salvarModelosAutomatico() {
       const configCompleta = {
         quantidadeModelos: this.quantidadeModelosArcos,
@@ -636,21 +635,21 @@ export default {
         versao: '2.0',
         tipo: 'configuracao_armazem_completa'
       }
-      
+
       localStorage.setItem('configArmazem', JSON.stringify(configCompleta))
     },
-    
+
     resetSiloField(campo, valor) {
       this.configSilo[campo] = valor
       this.updateSVG()
     },
-    
+
     resetArmazemField(campo, valor) {
       this.configArmazem[campo] = valor
       this.updateSVG()
       this.onArmazemChange()
     },
-    
+
     resetarPadrao() {
       if (this.tipoAtivo === 'silo') {
         this.configSilo = {
@@ -671,7 +670,7 @@ export default {
       }
       this.updateSVG()
     },
-    
+
     resetarModelosParaPadrao() {
       const configPadrao = {
         pb: 185,
@@ -703,7 +702,7 @@ export default {
         posicao_vertical: 0,
         afastamento_vertical_pendulo: 0
       }
-      
+
       this.configArmazem = { ...configPadrao }
       this.quantidadeModelosArcos = 1
       this.modelosArcos = {
@@ -716,7 +715,7 @@ export default {
       this.modeloArcoAtual = null
       this.modelosSalvos = {}
     },
-    
+
     salvarConfiguracao() {
       if (!this.nomeConfiguracao.trim()) {
         this.$bvToast.toast('Digite um nome para salvar a configuração!', {
@@ -726,7 +725,7 @@ export default {
         })
         return
       }
-      
+
       if (this.tipoAtivo === 'silo') {
         localStorage.setItem('configSilo', JSON.stringify(this.configSilo))
         localStorage.setItem(`configSilo_${this.nomeConfiguracao}`, JSON.stringify(this.configSilo))
@@ -745,31 +744,31 @@ export default {
           versao: '2.0',
           tipo: 'configuracao_armazem_completa'
         }
-        
+
         localStorage.setItem('configArmazem', JSON.stringify(configCompleta))
         localStorage.setItem(`configArmazem_${this.nomeConfiguracao}`, JSON.stringify(configCompleta))
-        
+
         this.$bvToast.toast(`Configuração completa do armazém "${this.nomeConfiguracao}" salva!`, {
           title: 'Sucesso',
           variant: 'success',
           autoHideDelay: 3000
         })
-        
+
         this.resetarModelosParaPadrao()
         this.modelosSalvos = {}
         this.nomeConfiguracao = ''
       }
     },
-    
+
     carregarConfiguracao() {
       if (!this.nomeConfiguracao) return
-      
+
       const chave = `config${this.tipoAtivo === 'silo' ? 'Silo' : 'Armazem'}_${this.nomeConfiguracao}`
       const configSalva = localStorage.getItem(chave)
-      
+
       if (configSalva) {
         const dadosCarregados = JSON.parse(configSalva)
-        
+
         if (this.tipoAtivo === 'silo') {
           this.configSilo = dadosCarregados
           this.$bvToast.toast('Configuração do silo carregada com sucesso!', {
@@ -783,12 +782,12 @@ export default {
             this.modelosArcos = dadosCarregados.modelosArcos
             this.modelosSalvos = dadosCarregados.modelosArcos
             this.modeloArcoAtual = null
-            
+
             const primeiroModelo = dadosCarregados.modelosArcos[1]
             if (primeiroModelo && primeiroModelo.config) {
               this.configArmazem = { ...primeiroModelo.config }
             }
-            
+
             this.$bvToast.toast(`Configuração completa do armazém "${this.nomeConfiguracao}" carregada!`, {
               title: 'Sucesso',
               variant: 'success',
@@ -812,12 +811,12 @@ export default {
         })
       }
     },
-    
+
     updateSVG() {
       this.calcularDimensoesSVG()
       this.generateSVG()
     },
-    
+
     calcularDimensoesSVG() {
       if (this.tipoAtivo === 'silo') {
         this.larguraSVG = this.configSilo.lb + (this.configSilo.aeradores_ativo ? this.configSilo.ds * 2 + 68 : 0)
@@ -827,7 +826,7 @@ export default {
         this.alturaSVG = Math.max(this.configArmazem.pb + this.configArmazem.ht + 50, 200)
       }
     },
-    
+
     generateSVG() {
       if (this.tipoAtivo === 'silo') {
         this.svgContent = this.renderSilo()
@@ -835,7 +834,7 @@ export default {
         this.svgContent = this.renderArmazem()
       }
     },
-    
+
     renderSilo() {
       const { lb, hs, hb, eb } = this.configSilo
       const p1 = [0, hs]
@@ -844,7 +843,7 @@ export default {
       const p4 = [lb / 2, 0]
       const p5 = [0, hb * 1.75]
       const points = `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]} ${p4[0]},${p4[1]} ${p5[0]},${p5[1]}`
-      
+
       let svg = `
         <g id="g_des_fundo">
           <polygon fill="#E7E7E7" points="${points}" />
@@ -852,23 +851,23 @@ export default {
           <ellipse fill="#CCCCCC" cx="${lb / 2}" cy="${hs - eb}" rx="${lb / 2}" ry="${hb}" />
         </g>
       `
-      
+
       if (this.configSilo.aeradores_ativo) {
         svg += this.renderAeradoresSilo()
       }
-      
+
       return svg
     },
-    
+
     renderAeradoresSilo() {
       const { na, ds, dy, da, lb, hs } = this.configSilo
       const posY = hs + dy - 30
       const posX = lb + ds * 2 - 31
       let aeradores = ''
-      
+
       const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z"
       const angles = [0, 60, 120, 180, 240, 300]
-      
+
       for (let id = 1; id <= na; id++) {
         let transform = ""
         if (id === 1) transform = `translate(-73, ${posY})`
@@ -877,7 +876,7 @@ export default {
         else if (id === 4) transform = `translate(${posX}, ${posY - 35 - da})`
         else if (id === 5) transform = `translate(-73, ${posY - 70 - da * 2})`
         else if (id === 6) transform = `translate(${posX}, ${posY - 70 - da * 2})`
-        
+
         aeradores += `
           <g transform="${transform}">
             <circle cx="${70 + 12.5 + 3.5}" cy="24" r="10" fill="#c5c5c5" />
@@ -889,24 +888,24 @@ export default {
           </g>
         `
       }
-      
+
       return aeradores
     },
-    
+
     renderArmazem() {
       return this.renderTelhado() + this.renderFundoArmazem()
     },
-    
+
     renderTelhado() {
       const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = this.configArmazem
-      
+
       if (tipo_telhado === 1) {
         // Pontudo
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 7
         }
-        
+
         const p1 = [(lb - lf) / 2, pb - hf + extensao]
         const p2 = [le, pb - hb + extensao]
         const p3 = [le, pb - ht]
@@ -914,18 +913,18 @@ export default {
         const p5 = [lb - le, pb - ht]
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
-        
+
         const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
-        
+
         return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" points="${pathTelhado}" />`
       }
-      
+
       return ''
     },
-    
+
     renderFundoArmazem() {
       const { tipo_fundo } = this.configArmazem
-      
+
       if (tipo_fundo === 0) {
         return this.renderBaseNormal()
       } else if (tipo_fundo === 1) {
@@ -933,17 +932,17 @@ export default {
       } else if (tipo_fundo === 2) {
         return this.renderBaseDuploV()
       }
-      
+
       return ''
     },
-    
+
     renderBaseNormal() {
       const { pb, lb, hb, le, lf, altura_fundo_reto = 10, deslocamento_horizontal_fundo = 0, deslocamento_vertical_fundo = 0 } = this.configArmazem
-      
+
       const ajuste_base = -4 + deslocamento_vertical_fundo
       const ajuste_horizontal = deslocamento_horizontal_fundo
       const altura_fundo_aplicada = altura_fundo_reto || 10
-      
+
       const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base]
       const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]
       const p3 = [lb - (lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_aplicada + ajuste_base]
@@ -952,19 +951,19 @@ export default {
       const p6 = [0 + ajuste_horizontal, pb - hb + ajuste_base]
       const p7 = [0 + ajuste_horizontal, pb + ajuste_base]
       const p8 = [lb + ajuste_horizontal, pb + ajuste_base]
-      
+
       const pathBase = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')} ${p8.join(',')}`
-      
+
       return `<polygon fill="#999999" points="${pathBase}" />`
     },
-    
+
     renderBaseFunilV() {
       // Implementação básica do funil V
       const { pb, lb, hb, le } = this.configArmazem
       const pathBase = `${lb},${pb - hb} ${lb - le},${pb - hb} ${lb/2},${pb} ${le},${pb - hb} 0,${pb - hb} 0,${pb} ${lb},${pb}`
       return `<polygon fill="#999999" points="${pathBase}" />`
     },
-    
+
     renderBaseDuploV() {
       // Implementação básica do duplo V
       const { pb, lb, hb, le } = this.configArmazem
