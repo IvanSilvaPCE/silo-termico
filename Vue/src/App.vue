@@ -71,8 +71,22 @@
 </template>
 
 <script>
+// Importar os componentes
+import ModeladorSVG from '@/components/ModeladorSVG.vue'
+import Silo2D from '@/components/Silo2D.vue'
+import Silo3D from '@/components/Silo3D.vue'
+import Armazem2D from '@/components/Armazem2D.vue'
+import Armazem3D from '@/components/Armazem3D.vue'
+
 export default {
   name: 'App',
+  components: {
+    ModeladorSVG,
+    Silo2D,
+    Silo3D,
+    Armazem2D,
+    Armazem3D
+  },
   data() {
     return {
       sistemaStatus: {
