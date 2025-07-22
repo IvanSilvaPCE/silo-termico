@@ -1550,7 +1550,7 @@ export default {
 
     renderBaseNormal() {
       const { 
-        pb, lb, hb, le, lf, 
+        pb, lb, hb, le, 
         altura_fundo_reto = 10, 
         deslocamento_horizontal_fundo = 0, 
         deslocamento_vertical_fundo = 0 
@@ -1576,7 +1576,7 @@ export default {
 
     renderBaseFunilV() {
       const { 
-        pb, lb, hb, le, lf,
+        pb, lb, hb, le,
         altura_funil_v = 40,
         posicao_ponta_v = 0,
         largura_abertura_v = 20,
