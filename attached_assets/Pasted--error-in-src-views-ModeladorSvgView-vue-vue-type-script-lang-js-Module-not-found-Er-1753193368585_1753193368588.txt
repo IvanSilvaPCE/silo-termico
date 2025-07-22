@@ -1,0 +1,64 @@
+ error  in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&        
+
+Module not found: Error: Can't resolve './components/ModeladorSVG.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+
+ error  in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&        
+
+Module not found: Error: Can't resolve './components/Silo2D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+
+ error  in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&        
+
+Module not found: Error: Can't resolve './components/Silo3D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+
+ error  in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&        
+
+Module not found: Error: Can't resolve './components/Armazem2D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+
+ error  in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&        
+
+Module not found: Error: Can't resolve './components/Armazem3D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+
+ERROR in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& (./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[0]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&) 1:0-57
+Module not found: Error: Can't resolve './components/ModeladorSVG.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+ @ ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& 1:0-210 1:226-229 1:231-438 1:231-438
+ @ ./src/views/ModeladorSvgView.vue 2:0-68 3:0-63 3:0-63 10:2-8
+ @ ./src/router/index.js 257:23-105
+ @ ./src/main.js 4:0-30 51:2-8
+
+ERROR in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& (./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[0]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&) 2:0-45
+Module not found: Error: Can't resolve './components/Silo2D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+ @ ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& 1:0-210 1:226-229 1:231-438 1:231-438
+ @ ./src/views/ModeladorSvgView.vue 2:0-68 3:0-63 3:0-63 10:2-8
+ @ ./src/router/index.js 257:23-105
+ @ ./src/main.js 4:0-30 51:2-8
+
+ERROR in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& (./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[0]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&) 3:0-45
+Module not found: Error: Can't resolve './components/Silo3D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+ @ ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& 1:0-210 1:226-229 1:231-438 1:231-438
+ @ ./src/views/ModeladorSvgView.vue 2:0-68 3:0-63 3:0-63 10:2-8
+ @ ./src/router/index.js 257:23-105
+ @ ./src/main.js 4:0-30 51:2-8
+
+ERROR in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& (./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[0]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&) 4:0-51
+Module not found: Error: Can't resolve './components/Armazem2D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+ @ ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& 1:0-210 1:226-229 1:231-438 1:231-438
+ @ ./src/views/ModeladorSvgView.vue 2:0-68 3:0-63 3:0-63 10:2-8
+ @ ./src/router/index.js 257:23-105
+ @ ./src/main.js 4:0-30 51:2-8
+
+ERROR in ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& (./node_modules/babel-loader/lib/index.js??clonedRuleSet-40.use[0]!./node_modules/@vue/vue-loader-v15/lib/index.js??vue-loader-options!./src/views/ModeladorSvgView.vue?vue&type=script&lang=js&) 5:0-51
+Module not found: Error: Can't resolve './components/Armazem3D.vue' in 'C:\xampp\htdocs\cloud\web\src\views'
+ @ ./src/views/ModeladorSvgView.vue?vue&type=script&lang=js& 1:0-210 1:226-229 1:231-438 1:231-438
+ @ ./src/views/ModeladorSvgView.vue 2:0-68 3:0-63 3:0-63 10:2-8
+ @ ./src/router/index.js 257:23-105
+ @ ./src/main.js 4:0-30 51:2-8
+
+ERROR in [eslint]
+C:\xampp\htdocs\cloud\web\src\components\modelador\ModeladorSVG.vue
+  1900:25  error  'lf' is assigned a value but never used  no-unused-vars   
+  1936:25  error  'lf' is assigned a value but never used  no-unused-vars   
+
+✖ 2 problems (2 errors, 0 warnings)
+
+
+webpack compiled with 6 errors
