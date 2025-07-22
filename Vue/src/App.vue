@@ -1,82 +1,81 @@
-
 <template>
   <div id="app">
-    <!-- Navbar -->
-    <b-navbar toggleable="lg" variant="primary" type="dark">
-      <b-navbar-brand href="/">
-        <b-icon icon="thermometer-half"></b-icon>
-        Silo Térmico
-      </b-navbar-brand>
+    <!-- Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Sistema de Monitoramento</a>
 
-      <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+        <button 
+          class="navbar-toggler" 
+          type="button" 
+          @click="toggleNavbar"
+          aria-controls="navbarNav" 
+          aria-expanded="false" 
+          aria-label="Toggle navigation"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-      <b-collapse id="nav-collapse" is-nav>
-        <b-navbar-nav>
-          <b-nav-item :to="{ name: 'ModeladorSVG' }" exact-active-class="active">
-            <b-icon icon="tools"></b-icon> Modelador SVG
-          </b-nav-item>
-          <b-nav-item :to="{ name: 'Silo2D' }" exact-active-class="active">
-            <b-icon icon="grid-3x3"></b-icon> Silo 2D
-          </b-nav-item>
-          <b-nav-item :to="{ name: 'Silo3D' }" exact-active-class="active">
-            <b-icon icon="cube"></b-icon> Silo 3D
-          </b-nav-item>
-          <b-nav-item :to="{ name: 'Armazem2D' }" exact-active-class="active">
-            <b-icon icon="building"></b-icon> Armazém 2D
-          </b-nav-item>
-          <b-nav-item :to="{ name: 'Armazem3D' }" exact-active-class="active">
-            <b-icon icon="box"></b-icon> Armazém 3D
-          </b-nav-item>
-        </b-navbar-nav>
-
-        <!-- Menu Mobile -->
-        <b-navbar-nav class="ml-auto d-lg-none">
-          <b-nav-item-dropdown text="Menu" right>
-            <b-dropdown-item :to="{ name: 'ModeladorSVG' }">Modelador SVG</b-dropdown-item>
-            <b-dropdown-item :to="{ name: 'Silo2D' }">Silo 2D</b-dropdown-item>
-            <b-dropdown-item :to="{ name: 'Silo3D' }">Silo 3D</b-dropdown-item>
-            <b-dropdown-item :to="{ name: 'Armazem2D' }">Armazém 2D</b-dropdown-item>
-            <b-dropdown-item :to="{ name: 'Armazem3D' }">Armazém 3D</b-dropdown-item>
-          </b-nav-item-dropdown>
-        </b-navbar-nav>
-
-        <!-- Status do Sistema -->
-        <b-navbar-nav class="ml-auto d-none d-lg-flex">
-          <b-nav-text class="d-flex align-items-center">
-            <b-icon 
-              :icon="sistemaStatus.online ? 'wifi' : 'wifi-off'" 
-              :variant="sistemaStatus.online ? 'success' : 'danger'"
-            ></b-icon>
-            <span class="ml-1">{{ sistemaStatus.online ? 'Online' : 'Offline' }}</span>
-          </b-nav-text>
-        </b-navbar-nav>
-      </b-collapse>
-    </b-navbar>
+        <div :class="['collapse', 'navbar-collapse', { show: showNavbar }]" id="navbarNav">
+          <ul class="navbar-nav ms-auto">
+            <li class="nav-item">
+              <button 
+                :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'modelador' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('modelador')"
+              >
+                🏗️ Modelador
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'silo2d' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('silo2d')"
+              >
+                🌾 Silo 2D
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'silo3d' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('silo3d')"
+              >
+                🎯 Silo 3D
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'armazem2d' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('armazem2d')"
+              >
+                🏢 Armazém 2D
+              </button>
+            </li>
+            <li class="nav-item">
+              <button 
+                :class="['btn', 'btn-sm', telaAtiva === 'armazem3d' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('armazem3d')"
+              >
+                🏭 Armazém 3D
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </nav>
 
     <!-- Conteúdo Principal -->
-    <main class="main-content">
-      <router-view/>
+    <main class="flex-grow-1 overflow-hidden">
+      <component :is="componenteAtivo" />
     </main>
-
-    <!-- Footer -->
-    <footer class="footer mt-auto py-2 bg-light text-center">
-      <div class="container-fluid">
-        <small class="text-muted">
-          Sistema de Monitoramento Térmico © 2024 | 
-          Última atualização: {{ ultimaAtualizacao }}
-        </small>
-      </div>
-    </footer>
   </div>
 </template>
 
 <script>
-// Importar os componentes
-import ModeladorSVG from '@/components/ModeladorSVG.vue'
-import Silo2D from '@/components/Silo2D.vue'
-import Silo3D from '@/components/Silo3D.vue'
-import Armazem2D from '@/components/Armazem2D.vue'
-import Armazem3D from '@/components/Armazem3D.vue'
+import ModeladorSVG from './components/ModeladorSVG.vue'
+import Silo2D from './components/Silo2D.vue'
+import Silo3D from './components/Silo3D.vue'
+import Armazem2D from './components/Armazem2D.vue'
+import Armazem3D from './components/Armazem3D.vue'
 
 export default {
   name: 'App',
@@ -89,39 +88,29 @@ export default {
   },
   data() {
     return {
-      sistemaStatus: {
-        online: true
-      },
-      ultimaAtualizacao: ''
+      telaAtiva: 'modelador',
+      showNavbar: false
     }
   },
-  mounted() {
-    this.initApp()
-    this.updateTime()
-    
-    // Atualizar horário a cada minuto
-    setInterval(this.updateTime, 60000)
-    
-    // Verificar status do sistema
-    setInterval(this.checkSystemStatus, 30000)
+  computed: {
+    componenteAtivo() {
+      const componentes = {
+        'modelador': 'ModeladorSVG',
+        'silo2d': 'Silo2D',
+        'silo3d': 'Silo3D', 
+        'armazem2d': 'Armazem2D',
+        'armazem3d': 'Armazem3D'
+      }
+      return componentes[this.telaAtiva] || 'ModeladorSVG'
+    }
   },
   methods: {
-    initApp() {
-      // Configurações iniciais da aplicação
-      this.updateTime()
-      this.checkSystemStatus()
-      
-      // Log para debugging
-      console.log('Aplicação Vue iniciada com sucesso!')
-      console.log('Vuex Store:', this.$store.state)
+    mudarTela(tela) {
+      this.telaAtiva = tela
+      this.showNavbar = false // Fechar navbar móvel após clique
     },
-    updateTime() {
-      this.ultimaAtualizacao = new Date().toLocaleString()
-    },
-    checkSystemStatus() {
-      // Simular verificação de status do sistema
-      // Em produção, isso seria uma chamada real para API
-      this.sistemaStatus.online = navigator.onLine
+    toggleNavbar() {
+      this.showNavbar = !this.showNavbar
     }
   }
 }
@@ -134,69 +123,44 @@ export default {
   flex-direction: column;
 }
 
-.main-content {
-  flex: 1;
-  width: 100%;
+/* Bootstrap overrides para melhor responsividade */
+.navbar-brand {
+  font-size: 1rem !important;
 }
 
-.footer {
-  margin-top: auto;
-}
-
-/* Estilos globais */
-body {
-  margin: 0;
-  padding: 0;
-}
-
-/* Responsividade para mobile */
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .navbar-brand {
-    font-size: 1rem;
-  }
-  
-  .nav-link {
-    padding: 0.25rem 0.5rem;
+    font-size: 1.25rem !important;
   }
 }
 
-/* Animações */
-.fade-enter-active, .fade-leave-active {
-  transition: opacity 0.3s;
+/* Melhorias para botões da navegação */
+.navbar-nav .btn {
+  min-width: 80px;
+  font-size: 0.875rem;
 }
 
-.fade-enter, .fade-leave-to {
-  opacity: 0;
+@media (min-width: 576px) {
+  .navbar-nav .btn {
+    min-width: 100px;
+  }
 }
 
-/* Cores personalizadas */
-.bg-primary {
-  background-color: #007bff !important;
+@media (min-width: 992px) {
+  .navbar-nav .btn {
+    font-size: 0.9rem;
+  }
 }
 
-.text-primary {
-  color: #007bff !important;
-}
+/* Corrigir scroll duplo no mobile */
+@media (max-width: 576px) {
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
 
-/* Melhorias visuais */
-.navbar {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.card {
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  border: none;
-}
-
-.btn {
-  border-radius: 0.25rem;
-}
-
-/* Loading styles */
-.loading-spinner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 200px;
+  .container-fluid {
+    min-height: auto !important;
+  }
 }
 </style>

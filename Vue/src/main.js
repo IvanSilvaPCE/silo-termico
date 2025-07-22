@@ -1,30 +1,25 @@
 
-import Vue from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
 import store from './store'
 
-// Bootstrap Vue
-import { BootstrapVue, IconsPlugin } from 'bootstrap-vue'
-import 'bootstrap/dist/css/bootstrap.css'
-import 'bootstrap-vue/dist/bootstrap-vue.css'
+// Importar Bootstrap CSS
+import 'bootstrap/dist/css/bootstrap.min.css'
+import 'bootstrap/dist/js/bootstrap.bundle.min.js'
 
-// V-Mask
-import VueMask from 'v-mask'
+// Importar BootstrapVue CSS (se estiver usando BootstrapVue 3)
+// import 'bootstrap-vue-3/dist/bootstrap-vue-3.css'
 
-// Vue Select
-import vSelect from 'vue-select'
-import 'vue-select/dist/vue-select.css'
+// Se estiver usando BootstrapVue 3, descomente as linhas abaixo:
+// import { BootstrapVue3 } from 'bootstrap-vue-3'
 
-Vue.use(BootstrapVue)
-Vue.use(IconsPlugin)
-Vue.use(VueMask)
-Vue.component('v-select', vSelect)
+const app = createApp(App)
 
-Vue.config.productionTip = false
+// Se estiver usando BootstrapVue 3, descomente a linha abaixo:
+// app.use(BootstrapVue3)
 
-new Vue({
-  router,
-  store,
-  render: h => h(App)
-}).$mount('#app')
+app.use(store)
+app.use(router)
+
+app.mount('#app')
