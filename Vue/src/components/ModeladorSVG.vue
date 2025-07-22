@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-0">
     <div class="row g-0">
@@ -30,7 +29,7 @@
           <!-- Controles para Silo -->
           <template v-if="tipoAtivo === 'silo'">
             <h6 class="mt-3 text-primary">Dimensões do Silo</h6>
-            
+
             <div class="mb-3">
               <label class="form-label">Largura Base: {{ configSilo.lb }}px</label>
               <div class="d-flex align-items-center">
@@ -380,7 +379,7 @@
                     </button>
                   </div>
                 </div>
-                
+
                 <div class="mb-2">
                   <label class="small fw-bold">Largura Base (lb):</label>
                   <div class="input-group input-group-sm">
@@ -545,7 +544,7 @@
                     </button>
                   </div>
                 </div>
-                
+
                 <div class="mb-2">
                   <label class="small fw-bold">Curvatura do Topo:</label>
                   <div class="input-group input-group-sm">
@@ -875,6 +874,7 @@
                           min="-100"
                           max="100"
                           class="form-range"
+```
                           @input="onArmazemChange"
                         />
                         <span class="input-group-text">{{ configArmazem.deslocamento_horizontal_fundo }}</span>
@@ -1678,7 +1678,7 @@ export default {
               alert('Configuração antiga convertida para o novo formato!')
             }
           }
-          
+
           if (!nome) {
             this.nomeConfiguracao = nomeConfig
           }
@@ -1897,7 +1897,7 @@ export default {
 
     renderBaseFunilV() {
       const { 
-        pb, lb, hb, le, lf,
+        pb, lb, hb, le,
         altura_funil_v = 40,
         posicao_ponta_v = 0,
         largura_abertura_v = 20,
@@ -2006,11 +2006,11 @@ export default {
     overflow-y: visible !important;
     max-height: none !important;
   }
-  
+
   .form-control, .form-select {
     font-size: 14px;
   }
-  
+
   .btn-sm {
     font-size: 12px;
     padding: 0.25rem 0.5rem;
