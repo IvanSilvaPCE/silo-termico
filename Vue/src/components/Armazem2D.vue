@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-1 p-md-2" style="min-height: 100vh; overflow: auto;">
     <div class="row">
@@ -682,7 +681,7 @@ export default {
   .fs-4 {
     font-size: 1.1rem !important;
   }
-  
+
   .svg-container {
     min-height: 300px;
     max-height: 400px;

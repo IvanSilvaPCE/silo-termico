@@ -496,7 +496,7 @@ export default {
       const sensores = []
       let nivelMaisAlto = 0
       
-      Object.entries(this.leitura).forEach(([pend, objSensores], idxCabo) => {
+      Object.entries(this.leitura).forEach(([, objSensores], idxCabo) => {
         const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo
         const yCabo = posYCabo[idxCabo]
         Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
