@@ -71,11 +71,11 @@
 </template>
 
 <script>
-import ModeladorSVG from './components/ModeladorSVG.vue'
-import Silo2D from './components/Silo2D.vue'
-import Silo3D from './components/Silo3D.vue'
-import Armazem2D from './components/Armazem2D.vue'
-import Armazem3D from './components/Armazem3D.vue'
+import ModeladorSVG from '@/components/modelador/ModeladorSVG.vue'
+import Silo2D from '@/components/modelador/Silo2D.vue'
+import Silo3D from '@/components/modelador/Silo3D.vue'
+import Armazem2D from '@/components/modelador/Armazem2D.vue'
+import Armazem3D from '@/components/modelador/Armazem3D.vue'
 
 export default {
   name: 'App',
