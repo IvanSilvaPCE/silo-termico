@@ -262,6 +262,23 @@
                   </b-button>
                 </div>
               </div>
+              
+              <div v-if="configArmazem.tipo_telhado === 2 || configArmazem.tipo_telhado === 3" class="mb-2">
+                <label class="small fw-bold">Curvatura do Topo:</label>
+                <div class="input-group input-group-sm">
+                  <b-form-input
+                    v-model.number="configArmazem.curvatura_topo"
+                    type="range"
+                    min="10"
+                    max="80"
+                    @input="onArmazemChange"
+                  />
+                  <span class="input-group-text">{{ configArmazem.curvatura_topo }}</span>
+                  <b-button variant="outline-secondary" @click="resetArmazemField('curvatura_topo', 30)" title="Reset">
+                    ×
+                  </b-button>
+                </div>
+              </div>
             </b-card>
 
             <!-- Seção 3: Configuração do Fundo -->
@@ -917,6 +934,58 @@ export default {
         const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
 
         return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" points="${pathTelhado}" />`
+      } else if (tipo_telhado === 2) {
+        // Arredondado
+        let extensao = 0
+        if (tipo_fundo === 1 || tipo_fundo === 2) {
+          extensao = 7
+        }
+
+        const p1 = [(lb - lf) / 2, pb - hf + extensao]
+        const p2 = [le, pb - hb + extensao]
+        const p3 = [le, pb - ht]
+        const p5 = [lb - le, pb - ht]
+        const p6 = [lb - le, pb - hb + extensao]
+        const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
+
+        // Usar curvatura_topo para criar o arco
+        const centroX = lb / 2
+        const centroY = pb - ht - curvatura_topo
+        const raio = curvatura_topo + 10
+
+        const pathTelhado = `
+          ${p1.join(',')} ${p2.join(',')} ${p3.join(',')} 
+          A ${raio} ${raio} 0 0 0 ${p5.join(',')} 
+          ${p6.join(',')} ${p7.join(',')}
+        `
+
+        return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" d="M ${pathTelhado} Z" />`
+      } else if (tipo_telhado === 3) {
+        // Arco
+        let extensao = 0
+        if (tipo_fundo === 1 || tipo_fundo === 2) {
+          extensao = 7
+        }
+
+        const p1 = [(lb - lf) / 2, pb - hf + extensao]
+        const p2 = [le, pb - hb + extensao]
+        const p3 = [le, pb - ht]
+        const p5 = [lb - le, pb - ht]
+        const p6 = [lb - le, pb - hb + extensao]
+        const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
+
+        // Usar curvatura_topo para criar arco mais pronunciado
+        const centroX = lb / 2
+        const alturaArco = ht + curvatura_topo
+        const raioArco = Math.max(lb / 3, curvatura_topo)
+
+        const pathArco = `
+          M ${p1.join(',')} L ${p2.join(',')} L ${p3.join(',')} 
+          Q ${centroX} ${pb - alturaArco} ${p5.join(',')} 
+          L ${p6.join(',')} L ${p7.join(',')} Z
+        `
+
+        return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" d="${pathArco}" />`
       }
 
       return ''
