@@ -1,102 +1,113 @@
 
 <template>
   <div id="app">
-    <b-navbar toggleable="lg" type="dark" variant="primary" class="mb-0">
-      <b-navbar-brand href="#" class="d-flex align-items-center">
-        <span class="fw-bold text-white">Sistema de Monitoramento</span>
+    <!-- Navbar -->
+    <b-navbar toggleable="lg" variant="primary" type="dark">
+      <b-navbar-brand href="/">
+        <b-icon icon="thermometer-half"></b-icon>
+        Silo Térmico
       </b-navbar-brand>
-      
-      <b-navbar-toggle target="nav-collapse" class="d-lg-none"></b-navbar-toggle>
-      
+
+      <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
+
       <b-collapse id="nav-collapse" is-nav>
-        <b-navbar-nav class="d-none d-lg-flex ms-auto">
-          <b-nav-item 
-            v-for="item in menuItems" 
-            :key="item.id"
-            :class="{ 'active': activeComponent === item.component }"
-            @click="setActiveComponent(item.component)"
-          >
-            {{ item.name }}
+        <b-navbar-nav>
+          <b-nav-item :to="{ name: 'ModeladorSVG' }" exact-active-class="active">
+            <b-icon icon="tools"></b-icon> Modelador SVG
           </b-nav-item>
+          <b-nav-item :to="{ name: 'Silo2D' }" exact-active-class="active">
+            <b-icon icon="grid-3x3"></b-icon> Silo 2D
+          </b-nav-item>
+          <b-nav-item :to="{ name: 'Silo3D' }" exact-active-class="active">
+            <b-icon icon="cube"></b-icon> Silo 3D
+          </b-nav-item>
+          <b-nav-item :to="{ name: 'Armazem2D' }" exact-active-class="active">
+            <b-icon icon="building"></b-icon> Armazém 2D
+          </b-nav-item>
+          <b-nav-item :to="{ name: 'Armazem3D' }" exact-active-class="active">
+            <b-icon icon="box"></b-icon> Armazém 3D
+          </b-nav-item>
+        </b-navbar-nav>
+
+        <!-- Menu Mobile -->
+        <b-navbar-nav class="ml-auto d-lg-none">
+          <b-nav-item-dropdown text="Menu" right>
+            <b-dropdown-item :to="{ name: 'ModeladorSVG' }">Modelador SVG</b-dropdown-item>
+            <b-dropdown-item :to="{ name: 'Silo2D' }">Silo 2D</b-dropdown-item>
+            <b-dropdown-item :to="{ name: 'Silo3D' }">Silo 3D</b-dropdown-item>
+            <b-dropdown-item :to="{ name: 'Armazem2D' }">Armazém 2D</b-dropdown-item>
+            <b-dropdown-item :to="{ name: 'Armazem3D' }">Armazém 3D</b-dropdown-item>
+          </b-nav-item-dropdown>
+        </b-navbar-nav>
+
+        <!-- Status do Sistema -->
+        <b-navbar-nav class="ml-auto d-none d-lg-flex">
+          <b-nav-text class="d-flex align-items-center">
+            <b-icon 
+              :icon="sistemaStatus.online ? 'wifi' : 'wifi-off'" 
+              :variant="sistemaStatus.online ? 'success' : 'danger'"
+            ></b-icon>
+            <span class="ml-1">{{ sistemaStatus.online ? 'Online' : 'Offline' }}</span>
+          </b-nav-text>
         </b-navbar-nav>
       </b-collapse>
     </b-navbar>
 
-    <!-- Menu Mobile -->
-    <b-offcanvas 
-      v-model="showMobileMenu"
-      id="mobileMenu"
-      title="Menu"
-      placement="start"
-      class="d-lg-none"
-    >
-      <b-list-group flush>
-        <b-list-group-item 
-          v-for="item in menuItems" 
-          :key="item.id"
-          button
-          :class="{ 'active': activeComponent === item.component }"
-          @click="setActiveComponentMobile(item.component)"
-        >
-          {{ item.name }}
-        </b-list-group-item>
-      </b-list-group>
-    </b-offcanvas>
-
-    <!-- Botão do Menu Mobile -->
-    <b-button
-      v-if="!showMobileMenu"
-      variant="primary"
-      class="d-lg-none position-fixed"
-      style="top: 10px; left: 10px; z-index: 1040;"
-      @click="showMobileMenu = true"
-    >
-      <b-icon icon="list"></b-icon>
-    </b-button>
-
     <!-- Conteúdo Principal -->
-    <div class="container-fluid p-0" style="height: calc(100vh - 56px);">
-      <component :is="activeComponent" />
-    </div>
+    <main class="main-content">
+      <router-view/>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer mt-auto py-2 bg-light text-center">
+      <div class="container-fluid">
+        <small class="text-muted">
+          Sistema de Monitoramento Térmico © 2024 | 
+          Última atualização: {{ ultimaAtualizacao }}
+        </small>
+      </div>
+    </footer>
   </div>
 </template>
 
 <script>
-import ModeladorSVG from '@/components/ModeladorSVG.vue'
-import Silo2D from '@/components/Silo2D.vue'
-import Silo3D from '@/components/Silo3D.vue'
-import Armazem2D from '@/components/Armazem2D.vue'
-import Armazem3D from '@/components/Armazem3D.vue'
-
 export default {
   name: 'App',
-  components: {
-    ModeladorSVG,
-    Silo2D,
-    Silo3D,
-    Armazem2D,
-    Armazem3D
-  },
   data() {
     return {
-      activeComponent: 'ModeladorSVG',
-      showMobileMenu: false,
-      menuItems: [
-        { id: 1, name: 'Modelador SVG', component: 'ModeladorSVG' },
-        { id: 2, name: 'Silo 2D', component: 'Silo2D' },
-        { id: 3, name: 'Silo 3D', component: 'Silo3D' },
-        { id: 4, name: 'Armazem 2D', component: 'Armazem2D' },
-        { id: 5, name: 'Armazem 3D', component: 'Armazem3D' }
-      ]
+      sistemaStatus: {
+        online: true
+      },
+      ultimaAtualizacao: ''
     }
   },
+  mounted() {
+    this.initApp()
+    this.updateTime()
+    
+    // Atualizar horário a cada minuto
+    setInterval(this.updateTime, 60000)
+    
+    // Verificar status do sistema
+    setInterval(this.checkSystemStatus, 30000)
+  },
   methods: {
-    setActiveComponent(component) {
-      this.activeComponent = component
+    initApp() {
+      // Configurações iniciais da aplicação
+      this.updateTime()
+      this.checkSystemStatus()
+      
+      // Log para debugging
+      console.log('Aplicação Vue iniciada com sucesso!')
+      console.log('Vuex Store:', this.$store.state)
     },
-    setActiveComponentMobile(component) {
-      this.activeComponent = component
-      this.showMobileMenu = false
+    updateTime() {
+      this.ultimaAtualizacao = new Date().toLocaleString()
+    },
+    checkSystemStatus() {
+      // Simular verificação de status do sistema
+      // Em produção, isso seria uma chamada real para API
+      this.sistemaStatus.online = navigator.onLine
     }
   }
 }
@@ -104,27 +115,74 @@ export default {
 
 <style>
 #app {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  height: 100vh;
-  background-color: #f8f9fa;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
-.navbar-nav .nav-item {
-  cursor: pointer;
+.main-content {
+  flex: 1;
+  width: 100%;
 }
 
-.navbar-nav .nav-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.footer {
+  margin-top: auto;
 }
 
-.navbar-nav .nav-item.active {
-  background-color: rgba(255, 255, 255, 0.2);
+/* Estilos globais */
+body {
+  margin: 0;
+  padding: 0;
 }
 
-.list-group-item.active {
-  background-color: #007bff;
-  border-color: #007bff;
+/* Responsividade para mobile */
+@media (max-width: 768px) {
+  .navbar-brand {
+    font-size: 1rem;
+  }
+  
+  .nav-link {
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Animações */
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
+
+/* Cores personalizadas */
+.bg-primary {
+  background-color: #007bff !important;
+}
+
+.text-primary {
+  color: #007bff !important;
+}
+
+/* Melhorias visuais */
+.navbar {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: none;
+}
+
+.btn {
+  border-radius: 0.25rem;
+}
+
+/* Loading styles */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
 }
 </style>

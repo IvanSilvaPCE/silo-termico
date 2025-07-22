@@ -1,108 +1,162 @@
 
 <template>
-  <div class="container-fluid h-100 p-3">
-    <div class="row mb-3">
-      <div class="col-12">
-        <h4 class="text-primary mb-3">Silo 2D - Monitoramento</h4>
+  <div class="container-fluid h-100">
+    <div class="row h-100">
+      <!-- Painel de Controles -->
+      <div class="col-lg-3 col-md-4 bg-light border-end p-3" style="height: 100vh; overflow-y: auto;">
+        <h5 class="mb-3 text-primary">Configurações Silo 2D</h5>
         
-        <b-card>
+        <!-- Configurações de Grid -->
+        <b-card class="mb-3">
           <template #header>
-            <div class="d-flex justify-content-between align-items-center">
-              <h6 class="mb-0">Controles do Silo</h6>
-              <b-button-group size="sm">
-                <b-button 
-                  :variant="modo === 'temperatura' ? 'primary' : 'outline-primary'"
-                  @click="setModo('temperatura')"
-                >
-                  Temperatura
-                </b-button>
-                <b-button 
-                  :variant="modo === 'mapa' ? 'primary' : 'outline-primary'"
-                  @click="setModo('mapa')"
-                >
-                  Mapa de Calor
-                </b-button>
-              </b-button-group>
-            </div>
+            <h6 class="mb-0">Grid de Temperatura</h6>
           </template>
           
-          <div class="row">
-            <div class="col-md-3">
-              <b-form-group label="Linhas" label-for="linhas">
-                <b-form-input 
-                  id="linhas" 
-                  v-model.number="dimensoes.linhas" 
-                  type="number" 
-                  min="5" 
-                  max="20"
-                  @input="atualizarSilo"
-                ></b-form-input>
-              </b-form-group>
+          <b-form-group label="Linhas" label-for="linhas">
+            <b-form-input 
+              id="linhas" 
+              v-model.number="config.linhas" 
+              type="number" 
+              min="5" 
+              max="20"
+              @input="updateGrid"
+            ></b-form-input>
+          </b-form-group>
+          
+          <b-form-group label="Colunas" label-for="colunas">
+            <b-form-input 
+              id="colunas" 
+              v-model.number="config.colunas" 
+              type="number" 
+              min="5" 
+              max="20"
+              @input="updateGrid"
+            ></b-form-input>
+          </b-form-group>
+          
+          <b-form-group label="Temperatura Mínima (°C)" label-for="tempMin">
+            <b-form-input 
+              id="tempMin" 
+              v-model.number="config.tempMin" 
+              type="number"
+              @input="updateGrid"
+            ></b-form-input>
+          </b-form-group>
+          
+          <b-form-group label="Temperatura Máxima (°C)" label-for="tempMax">
+            <b-form-input 
+              id="tempMax" 
+              v-model.number="config.tempMax" 
+              type="number"
+              @input="updateGrid"
+            ></b-form-input>
+          </b-form-group>
+        </b-card>
+
+        <!-- Simulação -->
+        <b-card class="mb-3">
+          <template #header>
+            <h6 class="mb-0">Simulação</h6>
+          </template>
+          
+          <b-form-group>
+            <b-form-checkbox v-model="simulacao.ativa" @change="toggleSimulacao">
+              Simulação Ativa
+            </b-form-checkbox>
+          </b-form-group>
+          
+          <b-form-group v-if="simulacao.ativa" label="Velocidade" label-for="velocidade">
+            <b-form-select 
+              id="velocidade" 
+              v-model="simulacao.velocidade"
+              :options="velocidadeOptions"
+            ></b-form-select>
+          </b-form-group>
+        </b-card>
+
+        <!-- Ações -->
+        <div class="d-grid gap-2">
+          <b-button variant="primary" @click="gerarDadosAleatorios">
+            <b-icon icon="shuffle"></b-icon> Gerar Dados
+          </b-button>
+          <b-button variant="success" @click="salvarDados">
+            <b-icon icon="save"></b-icon> Salvar
+          </b-button>
+          <b-button variant="secondary" @click="resetarGrid">
+            <b-icon icon="arrow-clockwise"></b-icon> Resetar
+          </b-button>
+        </div>
+      </div>
+
+      <!-- Grid de Temperatura -->
+      <div class="col-lg-9 col-md-8 d-flex align-items-center justify-content-center p-3">
+        <b-card class="w-100" style="height: calc(100vh - 60px);">
+          <template #header>
+            <h5 class="mb-0">Mapa de Calor - Silo 2D</h5>
+          </template>
+          
+          <div 
+            class="grid-container d-flex align-items-center justify-content-center"
+            style="height: calc(100vh - 200px); overflow: auto;"
+          >
+            <div 
+              class="temperature-grid"
+              :style="{ 
+                display: 'grid',
+                gridTemplateColumns: `repeat(${config.colunas}, 1fr)`,
+                gap: '2px',
+                maxWidth: '100%',
+                maxHeight: '100%'
+              }"
+            >
+              <div
+                v-for="(temperatura, index) in temperaturas"
+                :key="index"
+                class="grid-cell"
+                :style="{
+                  backgroundColor: getCorTemperatura(temperatura),
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold',
+                  color: temperatura > 50 ? 'white' : 'black',
+                  border: '1px solid #ccc',
+                  cursor: 'pointer'
+                }"
+                :title="`Temperatura: ${temperatura.toFixed(1)}°C`"
+                @click="selecionarCelula(index)"
+              >
+                {{ temperatura.toFixed(0) }}
+              </div>
             </div>
-            <div class="col-md-3">
-              <b-form-group label="Colunas" label-for="colunas">
-                <b-form-input 
-                  id="colunas" 
-                  v-model.number="dimensoes.colunas" 
-                  type="number" 
-                  min="5" 
-                  max="20"
-                  @input="atualizarSilo"
-                ></b-form-input>
-              </b-form-group>
-            </div>
-            <div class="col-md-3">
-              <b-form-group label="Temp. Mín." label-for="tempMin">
-                <b-form-input 
-                  id="tempMin" 
-                  v-model.number="temperaturaBounds.min" 
-                  type="number"
-                  @input="atualizarSilo"
-                ></b-form-input>
-              </b-form-group>
-            </div>
-            <div class="col-md-3">
-              <b-form-group label="Temp. Máx." label-for="tempMax">
-                <b-form-input 
-                  id="tempMax" 
-                  v-model.number="temperaturaBounds.max" 
-                  type="number"
-                  @input="atualizarSilo"
-                ></b-form-input>
-              </b-form-group>
+          </div>
+
+          <!-- Legenda -->
+          <div class="mt-3">
+            <h6>Legenda de Temperatura:</h6>
+            <div class="d-flex align-items-center gap-3 flex-wrap">
+              <div class="d-flex align-items-center">
+                <div style="width: 20px; height: 20px; background: #2196F3; margin-right: 5px;"></div>
+                <small>Fria (&lt; 25°C)</small>
+              </div>
+              <div class="d-flex align-items-center">
+                <div style="width: 20px; height: 20px; background: #4CAF50; margin-right: 5px;"></div>
+                <small>Normal (25-35°C)</small>
+              </div>
+              <div class="d-flex align-items-center">
+                <div style="width: 20px; height: 20px; background: #FF9800; margin-right: 5px;"></div>
+                <small>Quente (35-50°C)</small>
+              </div>
+              <div class="d-flex align-items-center">
+                <div style="width: 20px; height: 20px; background: #F44336; margin-right: 5px;"></div>
+                <small>Crítica (&gt; 50°C)</small>
+              </div>
             </div>
           </div>
         </b-card>
-      </div>
-    </div>
-    
-    <div class="row h-75">
-      <div class="col-12">
-        <div 
-          class="d-flex justify-content-center align-items-center"
-          :style="{ 
-            minHeight: 'calc(100vh - 180px)',
-            maxHeight: 'calc(100vh - 140px)',
-            overflow: 'auto'
-          }"
-        >
-          <svg
-            ref="siloSvg"
-            :viewBox="`0 0 ${largura} ${altura}`"
-            :style="{
-              maxWidth: '100%',
-              maxHeight: '70vh',
-              height: 'auto',
-              minHeight: '350px',
-              shapeRendering: 'auto',
-              textRendering: 'geometricPrecision',
-              imageRendering: 'optimizeQuality',
-              filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
-            }"
-            v-html="svgContent"
-          >
-          </svg>
-        </div>
       </div>
     </div>
   </div>
@@ -113,173 +167,139 @@ export default {
   name: 'Silo2D',
   data() {
     return {
-      modo: 'temperatura',
-      dimensoes: {
+      config: {
         linhas: 10,
-        colunas: 10
+        colunas: 10,
+        tempMin: 15,
+        tempMax: 60
       },
-      temperaturaBounds: {
-        min: 15,
-        max: 45
+      temperaturas: [],
+      simulacao: {
+        ativa: false,
+        velocidade: 1000,
+        intervalId: null
       },
-      largura: 800,
-      altura: 600,
-      svgContent: '',
-      dadosTemperatura: []
+      velocidadeOptions: [
+        { value: 500, text: 'Rápida' },
+        { value: 1000, text: 'Normal' },
+        { value: 2000, text: 'Lenta' }
+      ]
     }
   },
   mounted() {
-    this.gerarDadosTemperatura()
-    this.atualizarSilo()
+    this.gerarDadosAleatorios()
+  },
+  beforeDestroy() {
+    if (this.simulacao.intervalId) {
+      clearInterval(this.simulacao.intervalId)
+    }
   },
   methods: {
-    setModo(novoModo) {
-      this.modo = novoModo
-      this.atualizarSilo()
+    updateGrid() {
+      this.gerarDadosAleatorios()
     },
-    gerarDadosTemperatura() {
-      const { linhas, colunas } = this.dimensoes
-      const { min, max } = this.temperaturaBounds
+    gerarDadosAleatorios() {
+      const total = this.config.linhas * this.config.colunas
+      this.temperaturas = []
       
-      this.dadosTemperatura = []
-      for (let i = 0; i < linhas; i++) {
-        const linha = []
-        for (let j = 0; j < colunas; j++) {
-          const temp = min + Math.random() * (max - min)
-          linha.push(parseFloat(temp.toFixed(1)))
-        }
-        this.dadosTemperatura.push(linha)
+      for (let i = 0; i < total; i++) {
+        const temp = Math.random() * (this.config.tempMax - this.config.tempMin) + this.config.tempMin
+        this.temperaturas.push(temp)
       }
-    },
-    atualizarSilo() {
-      this.gerarDadosTemperatura()
-      this.renderizarSilo()
-    },
-    renderizarSilo() {
-      if (this.modo === 'temperatura') {
-        this.renderizarSiloTemperatura()
-      } else {
-        this.renderizarSiloMapaCalor()
-      }
-    },
-    renderizarSiloTemperatura() {
-      const { linhas, colunas } = this.dimensoes
-      const cellWidth = this.largura / colunas
-      const cellHeight = this.altura / linhas
-      
-      let svg = ''
-      
-      // Background
-      svg += `<rect width="${this.largura}" height="${this.altura}" fill="#f8f9fa" stroke="#dee2e6" stroke-width="2"/>`
-      
-      // Grid e valores de temperatura
-      for (let i = 0; i < linhas; i++) {
-        for (let j = 0; j < colunas; j++) {
-          const x = j * cellWidth
-          const y = i * cellHeight
-          const temp = this.dadosTemperatura[i][j]
-          const cor = this.getCorTemperatura(temp)
-          
-          svg += `
-            <rect x="${x}" y="${y}" width="${cellWidth}" height="${cellHeight}" 
-                  fill="${cor}" stroke="#333" stroke-width="1" opacity="0.8"/>
-            <text x="${x + cellWidth/2}" y="${y + cellHeight/2}" 
-                  text-anchor="middle" dominant-baseline="central" 
-                  font-size="12" font-family="Arial" fill="#333" font-weight="bold">
-              ${temp}°C
-            </text>
-          `
-        }
-      }
-      
-      this.svgContent = svg
-    },
-    renderizarSiloMapaCalor() {
-      const { linhas, colunas } = this.dimensoes
-      const cellWidth = this.largura / colunas
-      const cellHeight = this.altura / linhas
-      
-      let svg = ''
-      
-      // Background
-      svg += `<rect width="${this.largura}" height="${this.altura}" fill="#000" stroke="#333" stroke-width="2"/>`
-      
-      // Mapa de calor
-      for (let i = 0; i < linhas; i++) {
-        for (let j = 0; j < colunas; j++) {
-          const x = j * cellWidth
-          const y = i * cellHeight
-          const temp = this.dadosTemperatura[i][j]
-          const intensidade = this.getIntensidadeCalor(temp)
-          
-          svg += `
-            <rect x="${x}" y="${y}" width="${cellWidth}" height="${cellHeight}" 
-                  fill="hsl(${intensidade}, 100%, 50%)" stroke="none" opacity="0.9"/>
-          `
-        }
-      }
-      
-      // Adicionar legenda
-      svg += this.adicionarLegenda()
-      
-      this.svgContent = svg
     },
     getCorTemperatura(temp) {
-      const { min, max } = this.temperaturaBounds
-      const ratio = (temp - min) / (max - min)
-      
-      if (ratio < 0.3) return '#4CAF50'  // Verde
-      if (ratio < 0.6) return '#FFC107'  // Amarelo
-      if (ratio < 0.8) return '#FF9800'  // Laranja
-      return '#F44336'  // Vermelho
+      if (temp < 25) return '#2196F3'      // Azul - Fria
+      if (temp < 35) return '#4CAF50'      // Verde - Normal
+      if (temp < 50) return '#FF9800'      // Laranja - Quente
+      return '#F44336'                     // Vermelho - Crítica
     },
-    getIntensidadeCalor(temp) {
-      const { min, max } = this.temperaturaBounds
-      const ratio = (temp - min) / (max - min)
-      return Math.round(240 - (ratio * 240)) // De azul (240) para vermelho (0)
-    },
-    adicionarLegenda() {
-      const legendaX = this.largura - 80
-      const legendaY = 20
-      
-      let legenda = `
-        <rect x="${legendaX - 10}" y="${legendaY - 10}" width="70" height="100" 
-              fill="rgba(255,255,255,0.9)" stroke="#333" stroke-width="1"/>
-        <text x="${legendaX}" y="${legendaY}" font-size="12" font-family="Arial" fill="#333" font-weight="bold">
-          Legenda
-        </text>
-      `
-      
-      const cores = ['#4CAF50', '#FFC107', '#FF9800', '#F44336']
-      const labels = ['Baixa', 'Média', 'Alta', 'Crítica']
-      
-      cores.forEach((cor, index) => {
-        const y = legendaY + 15 + (index * 15)
-        legenda += `
-          <rect x="${legendaX}" y="${y}" width="12" height="12" fill="${cor}"/>
-          <text x="${legendaX + 16}" y="${y + 9}" font-size="10" font-family="Arial" fill="#333">
-            ${labels[index]}
-          </text>
-        `
+    selecionarCelula(index) {
+      this.$bvToast.toast(`Temperatura: ${this.temperaturas[index].toFixed(2)}°C`, {
+        title: `Célula ${index + 1}`,
+        variant: 'info',
+        autoHideDelay: 2000
       })
+    },
+    toggleSimulacao() {
+      if (this.simulacao.ativa) {
+        this.iniciarSimulacao()
+      } else {
+        this.pararSimulacao()
+      }
+    },
+    iniciarSimulacao() {
+      this.simulacao.intervalId = setInterval(() => {
+        this.gerarDadosAleatorios()
+      }, this.simulacao.velocidade)
+    },
+    pararSimulacao() {
+      if (this.simulacao.intervalId) {
+        clearInterval(this.simulacao.intervalId)
+        this.simulacao.intervalId = null
+      }
+    },
+    salvarDados() {
+      const dados = {
+        config: this.config,
+        temperaturas: this.temperaturas,
+        timestamp: new Date().getTime()
+      }
       
-      return legenda
+      localStorage.setItem(`silo2d_${dados.timestamp}`, JSON.stringify(dados))
+      
+      // Salvar no Vuex também
+      this.$store.dispatch('updateSiloData', dados)
+      
+      this.$bvToast.toast('Dados salvos com sucesso!', {
+        title: 'Sucesso',
+        variant: 'success',
+        autoHideDelay: 3000
+      })
+    },
+    resetarGrid() {
+      this.config = {
+        linhas: 10,
+        colunas: 10,
+        tempMin: 15,
+        tempMax: 60
+      }
+      this.pararSimulacao()
+      this.simulacao.ativa = false
+      this.gerarDadosAleatorios()
     }
   }
 }
 </script>
 
 <style scoped>
-.card-header {
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #dee2e6;
+.bg-light {
+  background-color: #f8f9fa !important;
 }
 
-.btn-group .btn {
-  transition: all 0.2s;
+.border-end {
+  border-right: 1px solid #dee2e6 !important;
 }
 
-.btn-group .btn:hover {
-  transform: translateY(-1px);
+.grid-cell {
+  transition: all 0.3s ease;
+}
+
+.grid-cell:hover {
+  transform: scale(1.1);
+  z-index: 1;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.temperature-grid {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+@media (max-width: 768px) {
+  .grid-cell {
+    width: 25px !important;
+    height: 25px !important;
+    font-size: 8px !important;
+  }
 }
 </style>
