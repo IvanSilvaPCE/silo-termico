@@ -19,6 +19,24 @@ mode = "sequential"
 task = "shell.exec"
 args = "npm run dev"
 
+[[workflows.workflow]]
+name = "React Dev"
+author = 45371843
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run dev"
+
+[[workflows.workflow]]
+name = "Vue Dev"
+author = 45371843
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Vue && npm run serve"
+
 [[ports]]
 localPort = 5173
 externalPort = 3000
