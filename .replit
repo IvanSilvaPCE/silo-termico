@@ -35,7 +35,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Vue && npm run serve"
+args = "cd Vue && npm install --legacy-peer-deps && npm run serve"
 
 [[workflows.workflow]]
 name = "Install All"
@@ -44,7 +44,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm install && cd Vue && npm install"
+args = "npm install && cd Vue && npm install --legacy-peer-deps"
 
 [[ports]]
 localPort = 5173
