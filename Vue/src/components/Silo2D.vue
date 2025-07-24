@@ -3,7 +3,7 @@
   <div class="container-fluid p-1 p-md-2" style="min-height: 100vh; overflow: auto;">
     <div class="row">
       <div class="col-12">
-        <h1 class="text-center mb-1 mb-md-2 fs-4 fs-md-1">Silo 2D - Monitoramento de Temperatura</h1>
+        <h1 class="text-center mb-1 mb-md-2 fs-4 fs-md-1">Silo - Monitoramento de Temperatura</h1>
         
         <div v-if="carregandoModo" class="d-flex justify-content-center m-2">
           <div class="spinner-border" role="status">
@@ -70,101 +70,6 @@
                   />
                 </g>
 
-                <!-- Sensores (modo temperatura) -->
-                <g v-if="modo === 'temperatura'">
-                  <g v-for="(sensores, pend) in leitura" :key="`cabo-${pend}`">
-                    <g v-for="(idxCabo, index) in [getCaboIndex(pend)]" :key="`cabo-idx-${index}`">
-                      <!-- Nome do pêndulo -->
-                      <rect
-                        :id="`C${pend}`"
-                        :x="getXCabo(idxCabo)"
-                        :y="getYPendulo(idxCabo)"
-                        :width="layout.desenho_sensores.escala_sensores"
-                        :height="layout.desenho_sensores.escala_sensores / 2"
-                        rx="2"
-                        ry="2"
-                        fill="#3A78FD"
-                      />
-                      <text
-                        :id="`TC${pend}`"
-                        :x="getXCabo(idxCabo) + layout.desenho_sensores.escala_sensores / 2"
-                        :y="getYPendulo(idxCabo) + layout.desenho_sensores.escala_sensores / 4"
-                        text-anchor="middle"
-                        dominant-baseline="central"
-                        font-weight="bold"
-                        :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5"
-                        font-family="Arial"
-                        fill="white"
-                      >
-                        {{ pend }}
-                      </text>
-
-                      <!-- Sensores individuais -->
-                      <g v-for="(valores, sensorKey) in sensores" :key="`sensor-${pend}-${sensorKey}`">
-                        <g v-for="sensor in [parseInt(sensorKey)]" :key="`s-${sensor}`">
-                          <!-- Nome do sensor -->
-                          <text
-                            :id="`TIND${pend}S${sensor}`"
-                            :x="layout.desenho_sensores.nome_sensores_direita === 0 ? getXCabo(idxCabo) - 2 : getXCabo(idxCabo) + layout.desenho_sensores.escala_sensores + 2"
-                            :y="getYSensor(idxCabo, sensor) + (layout.desenho_sensores.escala_sensores / 2) / 2"
-                            :text-anchor="layout.desenho_sensores.nome_sensores_direita === 0 ? 'end' : 'start'"
-                            dominant-baseline="central"
-                            font-weight="bold"
-                            :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 1.5"
-                            font-family="Arial"
-                            fill="black"
-                          >
-                            S{{ sensor }}
-                          </text>
-                          
-                          <!-- Retângulo do sensor -->
-                          <rect
-                            :id="`C${pend}S${sensor}`"
-                            :x="getXCabo(idxCabo)"
-                            :y="getYSensor(idxCabo, sensor)"
-                            :width="layout.desenho_sensores.escala_sensores"
-                            :height="layout.desenho_sensores.escala_sensores / 2"
-                            rx="2"
-                            ry="2"
-                            :fill="getSensorColor(valores)"
-                            stroke="black"
-                            :stroke-width="valores[1] ? 0.6 : 0.25"
-                          />
-                          
-                          <!-- Texto do sensor -->
-                          <text
-                            :id="`TC${pend}S${sensor}`"
-                            :x="getXCabo(idxCabo) + layout.desenho_sensores.escala_sensores / 2"
-                            :y="getYSensor(idxCabo, sensor) + (layout.desenho_sensores.escala_sensores / 2) / 2"
-                            text-anchor="middle"
-                            dominant-baseline="central"
-                            font-weight="bold"
-                            :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5"
-                            font-family="Arial"
-                            :fill="getSensorColor(valores) === '#ff2200' ? 'white' : 'black'"
-                          >
-                            {{ getSensorText(valores) }}
-                          </text>
-                          
-                          <!-- Overlay de erro -->
-                          <rect
-                            v-if="valores[3]"
-                            :id="`FC${pend}S${sensor}`"
-                            :x="getXCabo(idxCabo) - 0.5"
-                            :y="getYSensor(idxCabo, sensor) - 0.5"
-                            :width="layout.desenho_sensores.escala_sensores + 1"
-                            :height="layout.desenho_sensores.escala_sensores / 2 + 1"
-                            rx="2"
-                            ry="2"
-                            fill="red"
-                            fill-opacity="0.6"
-                          />
-                        </g>
-                      </g>
-                    </g>
-                  </g>
-                </g>
-
                 <!-- Mapa de Calor (modo mapa) -->
                 <g v-if="modo === 'mapa'">
                   <defs>
@@ -185,6 +90,99 @@
                       :height="bloco.height"
                       :fill="bloco.fill"
                     />
+                  </g>
+                </g>
+
+                <!-- Sensores (modo temperatura) -->
+                <g v-if="modo === 'temperatura'">
+                  <g v-for="(sensores, pend, penduloIndex) in leitura" :key="`cabo-${pend}`">
+                    <!-- Nome do pêndulo -->
+                    <rect
+                      :id="`C${pend}`"
+                      :x="getBaseX(penduloIndex)"
+                      :y="getYPendulo(penduloIndex)"
+                      :width="layout.desenho_sensores.escala_sensores"
+                      :height="layout.desenho_sensores.escala_sensores / 2"
+                      rx="2"
+                      ry="2"
+                      fill="#3A78FD"
+                    />
+                    <text
+                      :id="`TC${pend}`"
+                      :x="getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores / 2"
+                      :y="getYPendulo(penduloIndex) + layout.desenho_sensores.escala_sensores / 4"
+                      text-anchor="middle"
+                      dominant-baseline="central"
+                      font-weight="bold"
+                      :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5"
+                      font-family="Arial"
+                      fill="white"
+                    >
+                      {{ pend }}
+                    </text>
+
+                    <!-- Sensores individuais -->
+                    <g v-for="(valores, sensorKey) in sensores" :key="`sensor-${pend}-${sensorKey}`">
+                      <g v-for="sensor in [parseInt(sensorKey)]" :key="`s-${sensor}`">
+                        <!-- Nome do sensor -->
+                        <text
+                          :id="`TIND${pend}S${sensor}`"
+                          :x="layout.desenho_sensores.nome_sensores_direita === 0 ? getBaseX(penduloIndex) - 2 : getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores + 2"
+                          :y="getBaseY(penduloIndex) + (layout.desenho_sensores.escala_sensores / 2) / 2 - layout.desenho_sensores.dist_y_sensores * sensor"
+                          :text-anchor="layout.desenho_sensores.nome_sensores_direita === 0 ? 'end' : 'start'"
+                          dominant-baseline="central"
+                          font-weight="bold"
+                          :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 1.5"
+                          font-family="Arial"
+                          fill="black"
+                        >
+                          S{{ sensor }}
+                        </text>
+                        
+                        <!-- Retângulo do sensor -->
+                        <rect
+                          :id="`C${pend}S${sensor}`"
+                          :x="getBaseX(penduloIndex)"
+                          :y="getYSensor(penduloIndex, sensor)"
+                          :width="layout.desenho_sensores.escala_sensores"
+                          :height="layout.desenho_sensores.escala_sensores / 2"
+                          rx="2"
+                          ry="2"
+                          :fill="getSensorColor(valores)"
+                          stroke="black"
+                          :stroke-width="valores[1] ? 0.6 : 0.25"
+                        />
+                        
+                        <!-- Texto do sensor -->
+                        <text
+                          :id="`TC${pend}S${sensor}`"
+                          :x="getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores / 2"
+                          :y="getYSensor(penduloIndex, sensor) + (layout.desenho_sensores.escala_sensores / 2) / 2"
+                          text-anchor="middle"
+                          dominant-baseline="central"
+                          font-weight="bold"
+                          :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5"
+                          font-family="Arial"
+                          :fill="getSensorColor(valores) === '#ff2200' ? 'white' : 'black'"
+                        >
+                          {{ getSensorText(valores) }}
+                        </text>
+                        
+                        <!-- Overlay de erro -->
+                        <rect
+                          v-if="valores[3]"
+                          :id="`FC${pend}S${sensor}`"
+                          :x="getBaseX(penduloIndex) - 0.5"
+                          :y="getYSensor(penduloIndex, sensor) - 0.5"
+                          :width="layout.desenho_sensores.escala_sensores + 1"
+                          :height="layout.desenho_sensores.escala_sensores / 2 + 1"
+                          rx="2"
+                          ry="2"
+                          fill="red"
+                          fill-opacity="0.6"
+                        />
+                      </g>
+                    </g>
                   </g>
                 </g>
               </g>
@@ -219,7 +217,7 @@
                   </text>
                   
                   <!-- Pás do aerador -->
-                  <g v-if="getStatusAerador(id) === 3">
+                  <g v-if="getStatusAerador(id) === 3" :style="{ visibility: 'visible' }">
                     <animateTransform
                       attributeName="transform"
                       type="rotate"
@@ -229,16 +227,16 @@
                     />
                     <path
                       v-for="angle in [0, 60, 120, 180, 240, 300]"
-                      :key="`blade-${id}-${angle}`"
+                      :key="`blade-girando-${id}-${angle}`"
                       :d="dBlade"
                       fill="white"
                       :transform="angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`"
                     />
                   </g>
-                  <g v-else>
+                  <g v-else :style="{ visibility: 'visible' }">
                     <path
                       v-for="angle in [0, 60, 120, 180, 240, 300]"
-                      :key="`blade-static-${id}-${angle}`"
+                      :key="`blade-parado-${id}-${angle}`"
                       :d="dBlade"
                       fill="white"
                       :transform="angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`"
@@ -330,7 +328,7 @@ export default {
   methods: {
     async carregarDados() {
       try {
-        // Simular carregamento de dados do silo
+        // Dados simulados mais realistas seguindo o padrão React
         const dadosSimulados = {
           dados_layout: {
             tamanho_svg: [400, 300],
@@ -363,13 +361,18 @@ export default {
               '2': [24.1, false, false, false, true],
               '3': [22.8, false, false, false, true],
               '4': [25.2, false, false, false, true],
-              '5': [23.9, false, false, false, true]
+              '5': [23.9, false, false, false, true],
+              '6': [22.1, false, false, false, true],
+              '7': [24.3, false, false, false, true],
+              '8': [23.7, false, false, false, true]
             },
             'P2': {
               '1': [26.3, false, false, false, true],
               '2': [27.1, false, false, false, true],
               '3': [25.8, false, false, false, true],
-              '4': [28.2, false, false, false, true]
+              '4': [28.2, false, false, false, true],
+              '5': [26.9, false, false, false, true],
+              '6': [27.5, false, false, false, true]
             },
             'P3': {
               '1': [21.5, false, false, false, true],
@@ -377,7 +380,15 @@ export default {
               '3': [20.8, false, false, false, true],
               '4': [23.2, false, false, false, true],
               '5': [22.9, false, false, false, true],
-              '6': [21.4, false, false, false, true]
+              '6': [21.4, false, false, false, true],
+              '7': [22.8, false, false, false, true]
+            },
+            'P4': {
+              '1': [29.1, false, false, false, true],
+              '2': [30.2, false, false, false, true],
+              '3': [28.7, false, false, false, true],
+              '4': [31.1, false, false, false, true],
+              '5': [29.8, false, false, false, true]
             }
           },
           motor: {
@@ -416,39 +427,46 @@ export default {
       return temp
     },
 
-    getCaboIndex(pend) {
-      const pendulos = Object.keys(this.leitura)
-      return pendulos.indexOf(pend)
-    },
-
-    getXCabo(idxCabo) {
+    getBaseX(idxCabo) {
       if (!this.layout.desenho_sensores) return 0
-      const { pos_x_cabo, pos_x_cabos_uniforme, escala_sensores } = this.layout.desenho_sensores
+      const ds = this.layout.desenho_sensores
+      const escala = Number(ds.escala_sensores)
+      const posXCabo = ds.pos_x_cabo
+      const posXUniforme = Number(ds.pos_x_cabos_uniforme)
       const nCabos = Object.keys(this.leitura).length
-      const dist = pos_x_cabo[1] || 0
-      const totalWidthCabos = (nCabos - 1) * dist + escala_sensores
+      const dist = posXCabo[1] || 0
+      const totalWidthCabos = (nCabos - 1) * dist + escala
       const lb = this.layout.desenho_corte_silo.lb
       const offsetCabos = (lb - totalWidthCabos) / 2
       
-      return pos_x_cabos_uniforme === 0 ? pos_x_cabo[idxCabo] : offsetCabos + idxCabo * dist
+      return posXUniforme === 0 ? posXCabo[idxCabo] : offsetCabos + idxCabo * dist
+    },
+
+    getBaseY(idxCabo) {
+      if (!this.layout.desenho_sensores) return 0
+      return this.layout.desenho_sensores.pos_y_cabo[idxCabo]
     },
 
     getYPendulo(idxCabo) {
       if (!this.layout.desenho_sensores) return 0
-      const { pos_y_cabo, nome_cabo_acima, dist_y_nome_cabo, dist_y_sensores } = this.layout.desenho_sensores
-      const numSensores = Object.keys(this.leitura[Object.keys(this.leitura)[idxCabo]] || {}).length
-      const baseY = pos_y_cabo[idxCabo]
+      const ds = this.layout.desenho_sensores
+      const numSensores = Object.keys(Object.values(this.leitura)[idxCabo] || {}).length
+      const baseY = ds.pos_y_cabo[idxCabo]
+      const nomeCaboAcima = Number(ds.nome_cabo_acima)
+      const distYNomeCabo = ds.dist_y_nome_cabo[idxCabo]
+      const distYSensores = Number(ds.dist_y_sensores)
       
-      return nome_cabo_acima === 1
-        ? baseY - (numSensores + 1) * dist_y_sensores - dist_y_nome_cabo[idxCabo]
-        : baseY + dist_y_nome_cabo[idxCabo]
+      return nomeCaboAcima === 1
+        ? baseY - (numSensores + 1) * distYSensores - distYNomeCabo
+        : baseY + distYNomeCabo
     },
 
     getYSensor(idxCabo, sensor) {
       if (!this.layout.desenho_sensores) return 0
-      const { pos_y_cabo, dist_y_sensores } = this.layout.desenho_sensores
-      const baseY = pos_y_cabo[idxCabo]
-      return baseY - dist_y_sensores * sensor
+      const ds = this.layout.desenho_sensores
+      const baseY = ds.pos_y_cabo[idxCabo]
+      const distYSensores = Number(ds.dist_y_sensores)
+      return baseY - distYSensores * sensor
     },
 
     getTransformAerador(id) {
@@ -492,7 +510,7 @@ export default {
       const posXCabo = ds.pos_x_cabo
       const posXUniforme = Number(ds.pos_x_cabos_uniforme)
       
-      // Coletar sensores ativos
+      // Coletar sensores ativos e calcular nível de grão
       const sensores = []
       let nivelMaisAlto = 0
       
@@ -515,9 +533,32 @@ export default {
         })
       })
 
+      // Criar mapa de níveis por cabo para contorno ondulado
+      const niveisPorCabo = {}
+      Object.entries(this.leitura).forEach(([, objSensores], idxCabo) => {
+        const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo
+        let nivelMaisAltoNesteCabo = 0
+        
+        Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
+          const sensorIdx = parseInt(sensorKey, 10)
+          const t = parseFloat(dadosSensor[0])
+          const ativo = dadosSensor[4]
+          const ySensor = posYCabo[idxCabo] - distYSensores * sensorIdx
+          
+          if (ativo && t !== -1000) {
+            if (ySensor < nivelMaisAltoNesteCabo || nivelMaisAltoNesteCabo === 0) {
+              nivelMaisAltoNesteCabo = ySensor
+            }
+          }
+        })
+        
+        niveisPorCabo[xCabo] = nivelMaisAltoNesteCabo
+      })
+
       // Gerar grid de blocos
       const [largura, altura] = this.layout.tamanho_svg
-      const resolucao = 160
+      const isMobile = window.innerWidth < 768
+      const resolucao = isMobile ? 160 : 240
       const wCell = largura / resolucao
       const hCell = altura / resolucao
       const blocos = []
@@ -542,23 +583,68 @@ export default {
         return somaPesos === 0 ? -1000 : somaTemp / somaPesos
       }
 
-      // Verificar se tem grão
+      // Função para verificar se um ponto está na área com grão
       const temGraoNaPosicao = (cx, cy) => {
         const { hs } = this.layout.desenho_corte_silo
+        
+        // Encontrar os dois cabos mais próximos horizontalmente
+        const cabosOrdenados = Object.keys(niveisPorCabo)
+          .map(x => ({ x: parseFloat(x), nivel: niveisPorCabo[x] }))
+          .sort((a, b) => a.x - b.x)
+        
+        if (cabosOrdenados.length === 0) return false
+        
+        let nivelInterpolado = 0
+        
+        if (cabosOrdenados.length === 1) {
+          nivelInterpolado = cabosOrdenados[0].nivel
+        } else {
+          let caboEsquerda = cabosOrdenados[0]
+          let caboDireita = cabosOrdenados[cabosOrdenados.length - 1]
+          
+          // Encontrar os cabos que cercam o ponto cx
+          for (let i = 0; i < cabosOrdenados.length - 1; i++) {
+            if (cx >= cabosOrdenados[i].x && cx <= cabosOrdenados[i + 1].x) {
+              caboEsquerda = cabosOrdenados[i]
+              caboDireita = cabosOrdenados[i + 1]
+              break
+            }
+          }
+          
+          // Se cx está fora do range, usar o cabo mais próximo
+          if (cx < cabosOrdenados[0].x) {
+            nivelInterpolado = cabosOrdenados[0].nivel
+          } else if (cx > cabosOrdenados[cabosOrdenados.length - 1].x) {
+            nivelInterpolado = cabosOrdenados[cabosOrdenados.length - 1].nivel
+          } else {
+            // Interpolação linear entre os dois cabos
+            const distTotal = caboDireita.x - caboEsquerda.x
+            const distAtual = cx - caboEsquerda.x
+            const fator = distTotal === 0 ? 0 : distAtual / distTotal
+            
+            nivelInterpolado = caboEsquerda.nivel + (caboDireita.nivel - caboEsquerda.nivel) * fator
+          }
+        }
+        
+        if (nivelInterpolado === 0) return false
+        
         const margemSeguranca = 15
-        return cy >= nivelMaisAlto - margemSeguranca && cy <= hs
+        return cy >= nivelInterpolado - margemSeguranca && cy <= hs
       }
 
+      // Função para verificar se há sensores ativos na posição
       const temSensorAtivoNaPosicao = (cx, cy) => {
         const raioVerificacao = 50
         
         for (const sensor of sensores) {
           if (!sensor.ativo) continue
+          
           const distancia = Math.hypot(sensor.x - cx, sensor.y - cy)
           if (distancia <= raioVerificacao) {
             return true
           }
         }
+        
         return false
       }
 
