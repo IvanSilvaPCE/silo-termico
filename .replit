@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "npm run dev"]
 
 [workflows]
-runButton = "Dev Server"
+runButton = "Vue Dev"
 
 [[workflows.workflow]]
 name = "Dev Server"
@@ -26,7 +26,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "npm run dev"
+args = "npm install && npm run dev"
 
 [[workflows.workflow]]
 name = "Vue Dev"
@@ -35,7 +35,16 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Vue && npm run serve"
+args = "cd Vue && npm install && npm run serve"
+
+[[workflows.workflow]]
+name = "Install All"
+author = 45371843
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && cd Vue && npm install"
 
 [[ports]]
 localPort = 5173
