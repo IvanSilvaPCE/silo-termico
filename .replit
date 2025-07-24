@@ -56,6 +56,10 @@ task = "shell.exec"
 args = "cd Vue && rm -rf node_modules package-lock.json && npm cache clean --force && npm install --legacy-peer-deps"
 
 [[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
 localPort = 5173
 externalPort = 3000
 exposeLocalhost = true
