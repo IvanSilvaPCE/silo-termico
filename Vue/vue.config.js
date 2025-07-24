@@ -1,15 +1,14 @@
-
 module.exports = {
   devServer: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     port: 5000,
-    disableHostCheck: true
+    disableHostCheck: true,
   },
   configureWebpack: {
     resolve: {
       alias: {
-        '@': require('path').resolve(__dirname, 'src')
-      }
-    }
-  }
-}
+        "@": require("path").resolve(__dirname, "src"),
+      },
+    },
+  },
+};

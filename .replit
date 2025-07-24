@@ -8,7 +8,7 @@ channel = "stable-24_05"
 run = ["sh", "-c", "npm run dev"]
 
 [workflows]
-runButton = "Vue Dev"
+runButton = "Dev Server"
 
 [[workflows.workflow]]
 name = "Dev Server"
