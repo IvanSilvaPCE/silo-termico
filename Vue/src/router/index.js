@@ -4,8 +4,6 @@ import VueRouter from 'vue-router'
 import ModeladorSVG from '@/components/ModeladorSVG.vue'
 import Silo from '@/components/Silo.vue'
 import Armazem from '@/components/Armazem.vue'
-import Silo3D from '@/components/Silo3D.vue'
-import Armazem3D from '@/components/Armazem3D.vue'
 
 Vue.use(VueRouter)
 
@@ -33,12 +31,12 @@ const routes = [
   {
     path: '/silo3d',
     name: 'Silo3D',
-    component: Silo3D
+    component: ModeladorSVG // Temporário até criar Silo3D
   },
   {
     path: '/armazem3d',
     name: 'Armazem3D',
-    component: Armazem3D
+    component: ModeladorSVG // Temporário até criar Armazem3D
   }
 ]
 

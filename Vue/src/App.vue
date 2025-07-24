@@ -58,9 +58,7 @@
 <script>
 import ModeladorSVG from "./components/ModeladorSVG.vue";
 import SiloSVG from "./components/Silo.vue";
-import Silo3D from "./components/Silo3D.vue";
 import ArmazemSVG from "./components/Armazem.vue";
-import Armazem3D from "./components/Armazem3D.vue";
 import dadosSimulados from "./dados";
 import dadosSimuladosSilo from "./dadosSilo";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -70,9 +68,7 @@ export default {
   components: {
     ModeladorSVG,
     SiloSVG,
-    Silo3D,
     ArmazemSVG,
-    Armazem3D,
   },
   data() {
     return {
@@ -90,17 +86,17 @@ export default {
         case "silo":
           return "SiloSVG";
         case "silo3d":
-          return "Silo3D";
+          return "ModeladorSVG"; // Temporário até criar Silo3D
         case "armazem":
           return "ArmazemSVG";
         case "armazem3d":
-          return "Armazem3D";
+          return "ModeladorSVG"; // Temporário até criar Armazem3D
         default:
           return "ModeladorSVG";
       }
     },
     componenteDados() {
-      if (this.telaAtiva === "silo" || this.telaAtiva === "silo3d") {
+      if (this.telaAtiva === "silo") {
         return this.dadosSilo;
       }
       if (this.telaAtiva === "armazem") {

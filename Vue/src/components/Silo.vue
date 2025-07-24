@@ -144,13 +144,13 @@ export default {
               x: baseX + escala / 2,
               y: (
                 nomeCaboAcima === 1
-                  ? baseY - (numSensores + 1) * distYSensores + escala / 2.2 - distYNomeCabo[idxCabo]
-                  : baseY + distYNomeCabo[idxCabo] + escala / 2.2
+                  ? baseY - (numSensores + 1) * distYSensores + escala / 4 - distYNomeCabo[idxCabo]
+                  : baseY + distYNomeCabo[idxCabo] + escala / 4
               ),
               textAnchor: "middle",
-              alignmentBaseline: "middle", 
+              dominantBaseline: "central",
               fontWeight: "bold",
-              fontSize: escala * 0.4, 
+              fontSize: Math.max(escala * 0.15, 5),
               fontFamily: "Arial",
               fill: "white"
             }
@@ -171,9 +171,9 @@ export default {
                   x: nomeSensoresDireita === 0 ? xSensor - 2 : xSensor + escala + 2,
                   y: ySensor + (escala / 2) / 2,
                   textAnchor: nomeSensoresDireita === 0 ? "end" : "start",
-                  alignmentBaseline: "middle",
+                  dominantBaseline: "central",
                   fontWeight: "bold",
-                  fontSize: escala * 0.32,
+                  fontSize: Math.max(escala * 0.18, 5),
                   fontFamily: "Arial",
                   fill: "black"
                 }
@@ -199,9 +199,9 @@ export default {
                   x: xSensor + escala / 2,
                   y: ySensor + (escala / 2) / 2,
                   textAnchor: "middle",
-                  alignmentBaseline: "middle", // <-- Troque para alignmentBaseline
+                  dominantBaseline: "central",
                   fontWeight: "bold",
-                  fontSize: escala * 0.42, // <= melhor tamanho, igual React!
+                  fontSize: Math.max(escala * 0.15, 5),
                   fontFamily: "Arial",
                   fill: cor === "#ff2200" ? "white" : "black"
                 }
@@ -226,7 +226,7 @@ export default {
         ]);
       });
     },
-    renderMapaCalor() {
+    renderMapaCalor(h) {
       const ds = this.layout.desenho_sensores;
       const distYSensores = Number(ds.dist_y_sensores);
       const posYCabo = ds.pos_y_cabo;
@@ -255,12 +255,12 @@ export default {
 
       const [largura, altura] = this.layout.tamanho_svg;
       const isMobile = window.innerWidth < 768;
-      const resolucao = isMobile ? 160 : 240;
+      const resolucao = isMobile ? 120 : 180;
       const wCell = largura / resolucao;
       const hCell = altura / resolucao;
       const blocos = [];
 
-      function idw(cx, cy) {
+      const idw = (cx, cy) => {
         let somaPesos = 0;
         let somaTemp = 0;
         const power = 2;
@@ -275,7 +275,7 @@ export default {
         });
         if (!temSensorAtivo) return null;
         return somaPesos === 0 ? -1000 : somaTemp / somaPesos;
-      }
+      };
 
       const niveisPorCabo = {};
       Object.entries(this.leitura).forEach(([pend, objSensores], idxCabo) => {
@@ -295,62 +295,57 @@ export default {
         niveisPorCabo[xCabo] = nivelMaisAltoNesteCabo;
       });
 
-      function temGraoNaPosicao(cx, cy) {
-        const { hs } = this.layout.desenho_corte_silo;
-        const cabosOrdenados = Object.keys(niveisPorCabo)
-          .map(x => ({ x: parseFloat(x), nivel: niveisPorCabo[x] }))
-          .sort((a, b) => a.x - b.x);
-        if (cabosOrdenados.length === 0) return false;
-        let nivelInterpolado = 0;
-        if (cabosOrdenados.length === 1) {
-          nivelInterpolado = cabosOrdenados[0].nivel;
-        } else {
-          let caboEsquerda = cabosOrdenados[0];
-          let caboDireita = cabosOrdenados[cabosOrdenados.length - 1];
-          for (let i = 0; i < cabosOrdenados.length - 1; i++) {
-            if (cx >= cabosOrdenados[i].x && cx <= cabosOrdenados[i + 1].x) {
-              caboEsquerda = cabosOrdenados[i];
-              caboDireita = cabosOrdenados[i + 1];
-              break;
-            }
-          }
-          if (cx < cabosOrdenados[0].x) {
-            nivelInterpolado = cabosOrdenados[0].nivel;
-          } else if (cx > cabosOrdenados[cabosOrdenados.length - 1].x) {
-            nivelInterpolado = cabosOrdenados[cabosOrdenados.length - 1].nivel;
-          } else {
-            const distTotal = caboDireita.x - caboEsquerda.x;
-            const distAtual = cx - caboEsquerda.x;
-            const fator = distTotal === 0 ? 0 : distAtual / distTotal;
-            nivelInterpolado = caboEsquerda.nivel + (caboDireita.nivel - caboEsquerda.nivel) * fator;
-          }
+      const temGraoNaPosicao = (cx, cy) => {
+        const { lb, hs, hb } = this.layout.desenho_corte_silo;
+        
+        // Verificar se está dentro dos limites geométricos do silo
+        // Parte superior (cilíndrica)
+        if (cy >= 0 && cy <= hs) {
+          const distanciaCentro = Math.abs(cx - lb/2);
+          return distanciaCentro <= lb/2;
         }
-        if (nivelInterpolado === 0) return false;
-        const margemSeguranca = 15;
-        return cy >= nivelInterpolado - margemSeguranca && cy <= this.layout.desenho_corte_silo.hs;
-      }
+        
+        // Parte inferior (cônica)
+        if (cy > hs && cy <= hs + hb * 1.75) {
+          const alturaRelativa = cy - hs;
+          const alturaMaxCone = hb * 1.75;
+          const proporcao = 1 - (alturaRelativa / alturaMaxCone);
+          const raioNaAltura = (lb/2) * proporcao;
+          const distanciaCentro = Math.abs(cx - lb/2);
+          return distanciaCentro <= raioNaAltura;
+        }
+        
+        return false;
+      };
 
-      function temSensorAtivoNaPosicao(cx, cy) {
-        const raioVerificacao = 50;
+      const temSensorAtivoNaPosicao = (cx, cy) => {
+        const escala = Number(ds.escala_sensores);
+        const raioVerificacao = Math.max(escala * 2, 30);
         for (const sensor of sensores) {
           if (!sensor.ativo) continue;
           const distancia = Math.hypot(sensor.x - cx, sensor.y - cy);
           if (distancia <= raioVerificacao) return true;
         }
         return false;
-      }
+      };
 
       for (let i = 0; i < resolucao; i++) {
         for (let j = 0; j < resolucao; j++) {
           const cx = i * wCell + wCell / 2;
           const cy = j * hCell + hCell / 2;
           let cor;
-          if (temGraoNaPosicao.call(this, cx, cy) && temSensorAtivoNaPosicao(cx, cy)) {
-            const tempInterpolada = idw(cx, cy);
-            cor = tempInterpolada === null ? "#e7e7e7" : this.corFaixaExata(tempInterpolada);
+          
+          if (temGraoNaPosicao(cx, cy)) {
+            if (temSensorAtivoNaPosicao(cx, cy)) {
+              const tempInterpolada = idw(cx, cy);
+              cor = tempInterpolada === null ? "#f0f0f0" : this.corFaixaExata(tempInterpolada);
+            } else {
+              cor = "#f0f0f0"; // Grão presente mas sem sensor ativo
+            }
           } else {
-            cor = "#e7e7e7";
+            cor = "#e7e7e7"; // Área vazia (fora do silo)
           }
+          
           blocos.push(
             h("rect", {
               key: `${i}-${j}`,
@@ -511,11 +506,20 @@ export default {
               width: "100%",
               height: "auto",
               viewBox: `0 0 ${parent.largura} ${parent.altura}`,
-              style:
-                "max-width:100%;max-height:70vh;height:auto;min-height:350px;shape-rendering:auto;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd",
               preserveAspectRatio: "xMidYMid meet",
               xmlns: "http://www.w3.org/2000/svg",
             },
+            style: {
+              maxWidth: "100%",
+              maxHeight: "70vh",
+              height: "auto",
+              minHeight: "350px",
+              shapeRendering: "auto",
+              textRendering: "geometricPrecision",
+              imageRendering: "optimizeQuality",
+              fillRule: "evenodd",
+              clipRule: "evenodd"
+            }
           },
           [
             h(
@@ -538,11 +542,20 @@ export default {
               width: "100%",
               height: "auto",
               viewBox: `0 0 ${parent.largura} ${parent.altura}`,
-              style:
-                "max-width:100%;max-height:85vh;height:auto;min-height:400px;shape-rendering:geometricPrecision;text-rendering:geometricPrecision;image-rendering:optimizeQuality;fill-rule:evenodd;clip-rule:evenodd",
               preserveAspectRatio: "xMidYMid meet",
               xmlns: "http://www.w3.org/2000/svg",
             },
+            style: {
+              maxWidth: "100%",
+              maxHeight: "85vh",
+              height: "auto",
+              minHeight: "400px",
+              shapeRendering: "geometricPrecision",
+              textRendering: "geometricPrecision",
+              imageRendering: "optimizeQuality",
+              fillRule: "evenodd",
+              clipRule: "evenodd"
+            }
           },
           [
             h(
