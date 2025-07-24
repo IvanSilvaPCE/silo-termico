@@ -35,7 +35,7 @@ mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd Vue && npm install --legacy-peer-deps && npm run serve"
+args = "cd Vue && rm -rf node_modules package-lock.json && npm cache clean --force && npm install --legacy-peer-deps && npm run serve"
 
 [[workflows.workflow]]
 name = "Install All"
@@ -45,6 +45,15 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm install && cd Vue && npm install --legacy-peer-deps"
+
+[[workflows.workflow]]
+name = "Vue Clean Install"
+author = 45371843
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd Vue && rm -rf node_modules package-lock.json && npm cache clean --force && npm install --legacy-peer-deps"
 
 [[ports]]
 localPort = 5173
