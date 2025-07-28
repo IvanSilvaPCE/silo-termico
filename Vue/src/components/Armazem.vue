@@ -122,7 +122,7 @@ export default {
   methods: {
     async inicializarDados() {
       try {
-        const response = await fetch("/models/modeloRotaArmazemPortal_1751897945212.json");
+        const response = await fetch("./models/modeloRotaArmazemPortal_1751897945212.json");
         const dadosArmazemPortal = await response.json();
         this.dadosPortal = dadosArmazemPortal;
         this.analiseArcos = LayoutManager.analisarEstruturaArcos(dadosArmazemPortal);

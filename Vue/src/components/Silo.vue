@@ -4,70 +4,45 @@
     <div class="row">
       <div class="col-12">
         <h1 class="text-center mb-1 mb-md-2 fs-4 fs-md-1">Silo - Monitoramento de Temperatura</h1>
-        
+
         <div v-if="carregandoModo" class="d-flex justify-content-center m-2">
           <div class="spinner-border" role="status">
             <span class="visually-hidden"></span>
           </div>
         </div>
-        
+
         <div v-else>
-          <div 
-            class="svg-container mb-1 mb-md-2" 
-            :style="{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center',
-              minHeight: 'calc(100vh - 180px)',
-              maxHeight: 'calc(100vh - 140px)',
-              overflow: 'auto'
-            }"
-          >
-            <svg
-              v-if="dados"
-              width="100%"
-              height="auto"
-              :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`"
-              :style="{
-                maxWidth: '100%',
-                maxHeight: modo === 'temperatura' ? '70vh' : '85vh',
-                height: 'auto',
-                minHeight: modo === 'temperatura' ? '350px' : '400px',
-                shapeRendering: 'auto',
-                textRendering: 'geometricPrecision',
-                imageRendering: 'optimizeQuality',
-                fillRule: 'evenodd',
-                clipRule: 'evenodd'
-              }"
-              preserveAspectRatio="xMidYMid meet"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+          <div class="svg-container mb-1 mb-md-2" :style="{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: 'calc(100vh - 180px)',
+            maxHeight: 'calc(100vh - 140px)',
+            overflow: 'auto'
+          }">
+            <svg v-if="dados" width="100%" height="auto" :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
+              maxWidth: '100%',
+              maxHeight: modo === 'temperatura' ? '70vh' : '85vh',
+              height: 'auto',
+              minHeight: modo === 'temperatura' ? '350px' : '400px',
+              shapeRendering: 'auto',
+              textRendering: 'geometricPrecision',
+              imageRendering: 'optimizeQuality',
+              fillRule: 'evenodd',
+              clipRule: 'evenodd'
+            }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
               <g :transform="transformSilo">
                 <!-- Fundo do Silo -->
                 <g id="g_des_fundo">
-                  <polygon 
-                    fill="#E7E7E7" 
-                    :points="pontosFundoSilo" 
-                  />
-                  <path
-                    fill="#999999"
+                  <polygon fill="#E7E7E7" :points="pontosFundoSilo" />
+                  <path fill="#999999"
                     d="M71.6612 0.7892c-22.3726,7.3556 -44.7452,14.711 -67.1178,22.0666 -2.8377,0.9516 -4.5433,2.0295 -4.5433,3.0972 0,1.2723 2.1973,2.4833 6.1583,3.5826l65.1098 -26.4989c2.7618,-1.1944 5.9842,-1.6696 9.8636,0l65.35 26.5966c3.6894,-1.0265 5.9182,-2.2416 5.9182,-3.6803 0,-1.0677 -1.7056,-2.1456 -4.5433,-3.0972 -22.3726,-7.3556 -44.7453,-14.711 -67.1179,-22.0666 -2.9444,-1.0554 -5.9663,-1.0486 -9.0776,0z"
-                    :transform="`scale(${layout.desenho_corte_silo.lb / 152}, ${layout.desenho_corte_silo.hb / 15})`"
-                  />
-                  <ellipse 
-                    fill="#999999" 
-                    :cx="layout.desenho_corte_silo.lb / 2" 
-                    :cy="layout.desenho_corte_silo.hs" 
-                    :rx="layout.desenho_corte_silo.lb / 2" 
-                    :ry="layout.desenho_corte_silo.hb" 
-                  />
-                  <ellipse 
-                    fill="#CCCCCC" 
-                    :cx="layout.desenho_corte_silo.lb / 2" 
-                    :cy="layout.desenho_corte_silo.hs - layout.desenho_corte_silo.eb" 
-                    :rx="layout.desenho_corte_silo.lb / 2" 
-                    :ry="layout.desenho_corte_silo.hb" 
-                  />
+                    :transform="`scale(${layout.desenho_corte_silo.lb / 152}, ${layout.desenho_corte_silo.hb / 15})`" />
+                  <ellipse fill="#999999" :cx="layout.desenho_corte_silo.lb / 2" :cy="layout.desenho_corte_silo.hs"
+                    :rx="layout.desenho_corte_silo.lb / 2" :ry="layout.desenho_corte_silo.hb" />
+                  <ellipse fill="#CCCCCC" :cx="layout.desenho_corte_silo.lb / 2"
+                    :cy="layout.desenho_corte_silo.hs - layout.desenho_corte_silo.eb"
+                    :rx="layout.desenho_corte_silo.lb / 2" :ry="layout.desenho_corte_silo.hb" />
                 </g>
 
                 <!-- Mapa de Calor (modo mapa) -->
@@ -81,15 +56,8 @@
                     </clipPath>
                   </defs>
                   <g filter="url(#blurFilter)" clip-path="url(#clipSilo)">
-                    <rect
-                      v-for="(bloco, index) in blocosMapaCalor"
-                      :key="`bloco-${index}`"
-                      :x="bloco.x"
-                      :y="bloco.y"
-                      :width="bloco.width"
-                      :height="bloco.height"
-                      :fill="bloco.fill"
-                    />
+                    <rect v-for="(bloco, index) in blocosMapaCalor" :key="`bloco-${index}`" :x="bloco.x" :y="bloco.y"
+                      :width="bloco.width" :height="bloco.height" :fill="bloco.fill" />
                   </g>
                 </g>
 
@@ -97,27 +65,13 @@
                 <g v-if="modo === 'temperatura'">
                   <g v-for="(sensores, pend, penduloIndex) in leitura" :key="`cabo-${pend}`">
                     <!-- Nome do pêndulo -->
-                    <rect
-                      :id="`C${pend}`"
-                      :x="getBaseX(penduloIndex)"
-                      :y="getYPendulo(penduloIndex)"
+                    <rect :id="`C${pend}`" :x="getBaseX(penduloIndex)" :y="getYPendulo(penduloIndex)"
                       :width="layout.desenho_sensores.escala_sensores"
-                      :height="layout.desenho_sensores.escala_sensores / 2"
-                      rx="2"
-                      ry="2"
-                      fill="#3A78FD"
-                    />
-                    <text
-                      :id="`TC${pend}`"
-                      :x="getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores / 2"
-                      :y="getYPendulo(penduloIndex) + layout.desenho_sensores.escala_sensores / 4"
-                      text-anchor="middle"
-                      dominant-baseline="central"
-                      font-weight="bold"
-                      :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5"
-                      font-family="Arial"
-                      fill="white"
-                    >
+                      :height="layout.desenho_sensores.escala_sensores / 2" rx="2" ry="2" fill="#3A78FD" />
+                    <text :id="`TC${pend}`" :x="getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores / 2"
+                      :y="getYPendulo(penduloIndex) + layout.desenho_sensores.escala_sensores / 4" text-anchor="middle"
+                      dominant-baseline="central" font-weight="bold"
+                      :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5" font-family="Arial" fill="white">
                       {{ pend }}
                     </text>
 
@@ -125,62 +79,37 @@
                     <g v-for="(valores, sensorKey) in sensores" :key="`sensor-${pend}-${sensorKey}`">
                       <g v-for="sensor in [parseInt(sensorKey)]" :key="`s-${sensor}`">
                         <!-- Nome do sensor -->
-                        <text
-                          :id="`TIND${pend}S${sensor}`"
+                        <text :id="`TIND${pend}S${sensor}`"
                           :x="layout.desenho_sensores.nome_sensores_direita === 0 ? getBaseX(penduloIndex) - 2 : getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores + 2"
                           :y="getBaseY(penduloIndex) + (layout.desenho_sensores.escala_sensores / 2) / 2 - layout.desenho_sensores.dist_y_sensores * sensor"
                           :text-anchor="layout.desenho_sensores.nome_sensores_direita === 0 ? 'end' : 'start'"
-                          dominant-baseline="central"
-                          font-weight="bold"
-                          :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 1.5"
-                          font-family="Arial"
-                          fill="black"
-                        >
+                          dominant-baseline="central" font-weight="bold"
+                          :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 1.5" font-family="Arial"
+                          fill="black">
                           S{{ sensor }}
                         </text>
-                        
+
                         <!-- Retângulo do sensor -->
-                        <rect
-                          :id="`C${pend}S${sensor}`"
-                          :x="getBaseX(penduloIndex)"
-                          :y="getYSensor(penduloIndex, sensor)"
+                        <rect :id="`C${pend}S${sensor}`" :x="getBaseX(penduloIndex)" :y="getYSensor(penduloIndex, sensor)"
                           :width="layout.desenho_sensores.escala_sensores"
-                          :height="layout.desenho_sensores.escala_sensores / 2"
-                          rx="2"
-                          ry="2"
-                          :fill="getSensorColor(valores)"
-                          stroke="black"
-                          :stroke-width="valores[1] ? 0.6 : 0.25"
-                        />
-                        
+                          :height="layout.desenho_sensores.escala_sensores / 2" rx="2" ry="2"
+                          :fill="getSensorColor(valores)" stroke="black" :stroke-width="valores[1] ? 0.6 : 0.25" />
+
                         <!-- Texto do sensor -->
-                        <text
-                          :id="`TC${pend}S${sensor}`"
+                        <text :id="`TC${pend}S${sensor}`"
                           :x="getBaseX(penduloIndex) + layout.desenho_sensores.escala_sensores / 2"
                           :y="getYSensor(penduloIndex, sensor) + (layout.desenho_sensores.escala_sensores / 2) / 2"
-                          text-anchor="middle"
-                          dominant-baseline="central"
-                          font-weight="bold"
-                          :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5"
-                          font-family="Arial"
-                          :fill="getSensorColor(valores) === '#ff2200' ? 'white' : 'black'"
-                        >
+                          text-anchor="middle" dominant-baseline="central" font-weight="bold"
+                          :font-size="layout.desenho_sensores.escala_sensores * 0.4 - 0.5" font-family="Arial"
+                          :fill="getSensorColor(valores) === '#ff2200' ? 'white' : 'black'">
                           {{ getSensorText(valores) }}
                         </text>
-                        
+
                         <!-- Overlay de erro -->
-                        <rect
-                          v-if="valores[3]"
-                          :id="`FC${pend}S${sensor}`"
-                          :x="getBaseX(penduloIndex) - 0.5"
-                          :y="getYSensor(penduloIndex, sensor) - 0.5"
-                          :width="layout.desenho_sensores.escala_sensores + 1"
-                          :height="layout.desenho_sensores.escala_sensores / 2 + 1"
-                          rx="2"
-                          ry="2"
-                          fill="red"
-                          fill-opacity="0.6"
-                        />
+                        <rect v-if="valores[3]" :id="`FC${pend}S${sensor}`" :x="getBaseX(penduloIndex) - 0.5"
+                          :y="getYSensor(penduloIndex, sensor) - 0.5" :width="layout.desenho_sensores.escala_sensores + 1"
+                          :height="layout.desenho_sensores.escala_sensores / 2 + 1" rx="2" ry="2" fill="red"
+                          fill-opacity="0.6" />
                       </g>
                     </g>
                   </g>
@@ -189,65 +118,32 @@
 
               <!-- Aeradores -->
               <g v-if="layout.aeradores && layout.aeradores.na > 0">
-                <g 
-                  v-for="id in layout.aeradores.na" 
-                  :key="`aerador-${id}`"
-                  :id="`aerador_${id}`" 
-                  :transform="getTransformAerador(id)"
-                >
-                  <circle
-                    :id="`fundo_aerador_${id}`"
-                    :cx="70 + 12.5 + 3.5"
-                    cy="24"
-                    r="10"
-                    :fill="getCorAerador(id)"
-                  />
+                <g v-for="id in layout.aeradores.na" :key="`aerador-${id}`" :id="`aerador_${id}`"
+                  :transform="getTransformAerador(id)">
+                  <circle :id="`fundo_aerador_${id}`" :cx="70 + 12.5 + 3.5" cy="24" r="10" :fill="getCorAerador(id)" />
                   <rect x="86.5" y="2" width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
-                  <text
-                    :x="70 + 12.5 + 3.5"
-                    y="7"
-                    text-anchor="middle"
-                    dominant-baseline="central"
-                    font-weight="bold"
-                    font-size="6.5"
-                    font-family="Arial"
-                    fill="white"
-                  >
+                  <text :x="70 + 12.5 + 3.5" y="7" text-anchor="middle" dominant-baseline="central" font-weight="bold"
+                    font-size="6.5" font-family="Arial" fill="white">
                     AE-{{ id }}
                   </text>
-                  
+
                   <!-- Pás do aerador -->
                   <g v-if="getStatusAerador(id) === 3" :style="{ visibility: 'visible' }">
-                    <animateTransform
-                      attributeName="transform"
-                      type="rotate"
-                      dur="2s"
-                      values="0 86.35 24.05; 360 86.35 24.05;"
-                      repeatCount="indefinite"
-                    />
-                    <path
-                      v-for="angle in [0, 60, 120, 180, 240, 300]"
-                      :key="`blade-girando-${id}-${angle}`"
-                      :d="dBlade"
-                      fill="white"
-                      :transform="angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`"
-                    />
+                    <animateTransform attributeName="transform" type="rotate" dur="2s"
+                      values="0 86.35 24.05; 360 86.35 24.05;" repeatCount="indefinite" />
+                    <path v-for="angle in [0, 60, 120, 180, 240, 300]" :key="`blade-girando-${id}-${angle}`" :d="dBlade"
+                      fill="white" :transform="angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`" />
                   </g>
                   <g v-else :style="{ visibility: 'visible' }">
-                    <path
-                      v-for="angle in [0, 60, 120, 180, 240, 300]"
-                      :key="`blade-parado-${id}-${angle}`"
-                      :d="dBlade"
-                      fill="white"
-                      :transform="angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`"
-                    />
+                    <path v-for="angle in [0, 60, 120, 180, 240, 300]" :key="`blade-parado-${id}-${angle}`" :d="dBlade"
+                      fill="white" :transform="angle === 0 ? undefined : `rotate(${angle},86.35,24.05)`" />
                   </g>
                 </g>
               </g>
             </svg>
           </div>
         </div>
-        
+
         <div class="d-flex justify-content-center py-2">
           <button class="btn btn-primary" @click="trocarModo">
             {{ modo === 'temperatura' ? 'Ver Mapa de Calor' : 'Ver Temperatura' }}
@@ -328,76 +224,52 @@ export default {
   methods: {
     async carregarDados() {
       try {
-        // Dados simulados mais realistas seguindo o padrão React
-        const dadosSimulados = {
+        // Carregar dados do arquivo rotaSilo.json usando import
+        const dadosRotaSilo = await import('../rotaSilo.json')
+        const dadosReais = dadosRotaSilo.default || dadosRotaSilo
+        
+        // Reorganizar os dados para usar a sequência de pêndulos
+        const sequenciaPendulos = dadosReais.configuracao.sequencia_pendulos
+        const pendulosOriginais = dadosReais.pendulos
+        
+        // Reorganizar leitura baseada na sequência
+        const leituraOrganizada = {}
+        sequenciaPendulos.forEach(numeroPendulo => {
+          const chavePendulo = `P${numeroPendulo}`
+          if (pendulosOriginais[chavePendulo]) {
+            leituraOrganizada[chavePendulo] = pendulosOriginais[chavePendulo]
+          }
+        })
+        
+        // Montar estrutura de dados compatível
+        this.dados = {
+          dados_layout: dadosReais.configuracao,
+          leitura: leituraOrganizada,
+          motor: { statusMotor: [] } // Adicionar dados de motor se necessário
+        }
+        
+      } catch (error) {
+        console.error('Erro ao carregar dados do rotaSilo.json:', error)
+        // Fallback para dados básicos se houver erro
+        this.dados = {
           dados_layout: {
-            tamanho_svg: [400, 300],
-            desenho_corte_silo: {
-              lb: 200,
-              hs: 180,
-              hb: 15,
-              eb: 5
-            },
+            tamanho_svg: [525, 188],
+            desenho_corte_silo: { lb: 463, hs: 163, hb: 25, eb: 3 },
             desenho_sensores: {
               escala_sensores: 16,
               dist_y_sensores: 12,
-              pos_y_cabo: [160, 160, 160, 160, 160],
-              pos_x_cabo: [50, 25],
+              pos_y_cabo: [152],
+              pos_x_cabo: [9, 30],
               pos_x_cabos_uniforme: 1,
               nome_sensores_direita: 0,
               nome_cabo_acima: 0,
-              dist_y_nome_cabo: [10, 10, 10, 10, 10]
+              dist_y_nome_cabo: [0]
             },
-            aeradores: {
-              na: 4,
-              ds: 30,
-              dy: 0,
-              da: 35
-            }
+            aeradores: { na: 4, ds: -4, dy: 0, da: 0 }
           },
-          leitura: {
-            'P1': {
-              '1': [23.5, false, false, false, true],
-              '2': [24.1, false, false, false, true],
-              '3': [22.8, false, false, false, true],
-              '4': [25.2, false, false, false, true],
-              '5': [23.9, false, false, false, true],
-              '6': [22.1, false, false, false, true],
-              '7': [24.3, false, false, false, true],
-              '8': [23.7, false, false, false, true]
-            },
-            'P2': {
-              '1': [26.3, false, false, false, true],
-              '2': [27.1, false, false, false, true],
-              '3': [25.8, false, false, false, true],
-              '4': [28.2, false, false, false, true],
-              '5': [26.9, false, false, false, true],
-              '6': [27.5, false, false, false, true]
-            },
-            'P3': {
-              '1': [21.5, false, false, false, true],
-              '2': [22.1, false, false, false, true],
-              '3': [20.8, false, false, false, true],
-              '4': [23.2, false, false, false, true],
-              '5': [22.9, false, false, false, true],
-              '6': [21.4, false, false, false, true],
-              '7': [22.8, false, false, false, true]
-            },
-            'P4': {
-              '1': [29.1, false, false, false, true],
-              '2': [30.2, false, false, false, true],
-              '3': [28.7, false, false, false, true],
-              '4': [31.1, false, false, false, true],
-              '5': [29.8, false, false, false, true]
-            }
-          },
-          motor: {
-            statusMotor: [0, 3, 1, 4]
-          }
+          leitura: {},
+          motor: { statusMotor: [] }
         }
-        this.dados = dadosSimulados
-      } catch (error) {
-        console.error('Erro ao carregar dados do silo:', error)
       }
     },
 
@@ -416,6 +288,7 @@ export default {
     },
 
     getSensorColor(valores) {
+      // Se não tem grão (último item false), cor cinza
       if (valores[4] === false) return "#e7e7e7"
       const temp = parseFloat(valores[0])
       return this.corFaixaExata(temp)
@@ -434,17 +307,34 @@ export default {
       const posXCabo = ds.pos_x_cabo
       const posXUniforme = Number(ds.pos_x_cabos_uniforme)
       const nCabos = Object.keys(this.leitura).length
-      const dist = posXCabo[1] || 0
-      const totalWidthCabos = (nCabos - 1) * dist + escala
       const lb = this.layout.desenho_corte_silo.lb
-      const offsetCabos = (lb - totalWidthCabos) / 2
       
-      return posXUniforme === 0 ? posXCabo[idxCabo] : offsetCabos + idxCabo * dist
+      if (posXUniforme === 0) {
+        // Usar posições específicas do layout
+        return posXCabo[idxCabo] || 0
+      } else {
+        // Distribuição uniforme melhorada baseada no React
+        const offsetInicial = posXCabo[0] || 9 // Offset inicial
+        const distEntreCabos = posXCabo[1] || 30 // Distância entre cabos
+        
+        // Calcular a largura total ocupada pelos cabos
+        const larguraTotalCabos = (nCabos - 1) * distEntreCabos + escala
+        
+        // Se a largura total for menor que a largura do silo, centralizar
+        if (larguraTotalCabos < lb) {
+          const margemCentralizacao = (lb - larguraTotalCabos) / 2
+          return margemCentralizacao + idxCabo * distEntreCabos
+        } else {
+          // Se não couber, usar o offset inicial
+          return offsetInicial + idxCabo * distEntreCabos
+        }
+      }
     },
 
     getBaseY(idxCabo) {
       if (!this.layout.desenho_sensores) return 0
-      return this.layout.desenho_sensores.pos_y_cabo[idxCabo]
+      const ds = this.layout.desenho_sensores
+      return ds.pos_y_cabo[idxCabo] || ds.pos_y_cabo[0] || 160
     },
 
     getYPendulo(idxCabo) {
@@ -455,7 +345,7 @@ export default {
       const nomeCaboAcima = Number(ds.nome_cabo_acima)
       const distYNomeCabo = ds.dist_y_nome_cabo[idxCabo]
       const distYSensores = Number(ds.dist_y_sensores)
-      
+
       return nomeCaboAcima === 1
         ? baseY - (numSensores + 1) * distYSensores - distYNomeCabo
         : baseY + distYNomeCabo
@@ -475,14 +365,14 @@ export default {
       const { hs, lb } = this.layout.desenho_corte_silo
       const posY = hs + dy - 30
       const posX = lb + ds * 2 - 31
-      
+
       if (id === 1) return `translate(-73, ${posY})`
       else if (id === 2) return `translate(${posX}, ${posY})`
       else if (id === 3) return `translate(-73, ${posY - 35 - da})`
       else if (id === 4) return `translate(${posX}, ${posY - 35 - da})`
       else if (id === 5) return `translate(-73, ${posY - 70 - da * 2})`
       else if (id === 6) return `translate(${posX}, ${posY - 70 - da * 2})`
-      
+
       return ""
     },
 
@@ -509,23 +399,23 @@ export default {
       const posYCabo = ds.pos_y_cabo
       const posXCabo = ds.pos_x_cabo
       const posXUniforme = Number(ds.pos_x_cabos_uniforme)
-      
+
       // Coletar sensores ativos e calcular nível de grão
       const sensores = []
       let nivelMaisAlto = 0
-      
+
       Object.entries(this.leitura).forEach(([, objSensores], idxCabo) => {
-        const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo
+        const xCabo = this.getBaseX(idxCabo) + ds.escala_sensores / 2
         const yCabo = posYCabo[idxCabo]
         Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
           const sensorIdx = parseInt(sensorKey, 10)
           const t = parseFloat(dadosSensor[0])
-          const ativo = dadosSensor[4]
+          const temGrao = dadosSensor[4] // Último item indica se tem grão
           const ySensor = yCabo - distYSensores * sensorIdx
-          
-          sensores.push({ x: xCabo, y: ySensor, t, ativo })
-          
-          if (ativo && t !== -1000) {
+
+          sensores.push({ x: xCabo, y: ySensor, t, ativo: temGrao })
+
+          if (temGrao && t !== -1000) {
             if (ySensor < nivelMaisAlto || nivelMaisAlto === 0) {
               nivelMaisAlto = ySensor
             }
@@ -536,22 +426,22 @@ export default {
       // Criar mapa de níveis por cabo para contorno ondulado
       const niveisPorCabo = {}
       Object.entries(this.leitura).forEach(([, objSensores], idxCabo) => {
-        const xCabo = posXUniforme === 0 ? posXCabo[idxCabo] : posXCabo[0] + posXCabo[1] * idxCabo
+        const xCabo = this.getBaseX(idxCabo) + ds.escala_sensores / 2
         let nivelMaisAltoNesteCabo = 0
-        
+
         Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
           const sensorIdx = parseInt(sensorKey, 10)
           const t = parseFloat(dadosSensor[0])
-          const ativo = dadosSensor[4]
+          const temGrao = dadosSensor[4] // Último item indica se tem grão
           const ySensor = posYCabo[idxCabo] - distYSensores * sensorIdx
-          
-          if (ativo && t !== -1000) {
+
+          if (temGrao && t !== -1000) {
             if (ySensor < nivelMaisAltoNesteCabo || nivelMaisAltoNesteCabo === 0) {
               nivelMaisAltoNesteCabo = ySensor
             }
           }
         })
-        
+
         niveisPorCabo[xCabo] = nivelMaisAltoNesteCabo
       })
 
@@ -562,7 +452,7 @@ export default {
       const wCell = largura / resolucao
       const hCell = altura / resolucao
       const blocos = []
-      
+
       // Função IDW
       const idw = (cx, cy) => {
         let somaPesos = 0
@@ -586,22 +476,22 @@ export default {
       // Função para verificar se um ponto está na área com grão
       const temGraoNaPosicao = (cx, cy) => {
         const { hs } = this.layout.desenho_corte_silo
-        
+
         // Encontrar os dois cabos mais próximos horizontalmente
         const cabosOrdenados = Object.keys(niveisPorCabo)
           .map(x => ({ x: parseFloat(x), nivel: niveisPorCabo[x] }))
           .sort((a, b) => a.x - b.x)
-        
+
         if (cabosOrdenados.length === 0) return false
-        
+
         let nivelInterpolado = 0
-        
+
         if (cabosOrdenados.length === 1) {
           nivelInterpolado = cabosOrdenados[0].nivel
         } else {
           let caboEsquerda = cabosOrdenados[0]
           let caboDireita = cabosOrdenados[cabosOrdenados.length - 1]
-          
+
           // Encontrar os cabos que cercam o ponto cx
           for (let i = 0; i < cabosOrdenados.length - 1; i++) {
             if (cx >= cabosOrdenados[i].x && cx <= cabosOrdenados[i + 1].x) {
@@ -610,7 +500,7 @@ export default {
               break
             }
           }
-          
+
           // Se cx está fora do range, usar o cabo mais próximo
           if (cx < cabosOrdenados[0].x) {
             nivelInterpolado = cabosOrdenados[0].nivel
@@ -621,13 +511,13 @@ export default {
             const distTotal = caboDireita.x - caboEsquerda.x
             const distAtual = cx - caboEsquerda.x
             const fator = distTotal === 0 ? 0 : distAtual / distTotal
-            
+
             nivelInterpolado = caboEsquerda.nivel + (caboDireita.nivel - caboEsquerda.nivel) * fator
           }
         }
-        
+
         if (nivelInterpolado === 0) return false
-        
+
         const margemSeguranca = 15
         return cy >= nivelInterpolado - margemSeguranca && cy <= hs
       }
@@ -635,16 +525,16 @@ export default {
       // Função para verificar se há sensores ativos na posição
       const temSensorAtivoNaPosicao = (cx, cy) => {
         const raioVerificacao = 50
-        
+
         for (const sensor of sensores) {
           if (!sensor.ativo) continue
-          
+
           const distancia = Math.hypot(sensor.x - cx, sensor.y - cy)
           if (distancia <= raioVerificacao) {
             return true
           }
         }
-        
+
         return false
       }
 
@@ -652,7 +542,7 @@ export default {
         for (let j = 0; j < resolucao; j++) {
           const cx = i * wCell + wCell / 2
           const cy = j * hCell + hCell / 2
-          
+
           let cor
           if (temGraoNaPosicao(cx, cy) && temSensorAtivoNaPosicao(cx, cy)) {
             const tempInterpolada = idw(cx, cy)
@@ -670,7 +560,7 @@ export default {
           })
         }
       }
-      
+
       this.blocosMapaCalor = blocos
     },
 
@@ -695,7 +585,7 @@ export default {
   .fs-4 {
     font-size: 1.1rem !important;
   }
-  
+
   .svg-container {
     min-height: 300px;
     max-height: 400px;
