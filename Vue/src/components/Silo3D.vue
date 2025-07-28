@@ -19,12 +19,6 @@ import * as THREE from 'three';
 
 export default {
   name: 'Silo3D',
-  props: {
-    dados: {
-      type: Object,
-      default: null
-    }
-  },
   data() {
     return {
       autoRotate: true,
@@ -43,13 +37,12 @@ export default {
       mouseY: 0,
       cameraRadius: 10,
       cameraTheta: 0,
-      cameraPhi: Math.PI / 3
+      cameraPhi: Math.PI / 3,
+      dados: null
     };
   },
   mounted() {
-    if (this.dados) {
-      this.initThreeJS();
-    }
+    this.carregarDados();
   },
   beforeDestroy() {
     this.cleanup();
@@ -72,19 +65,83 @@ export default {
     }
   },
   methods: {
+    async carregarDados() {
+      try {
+        // Carregar dados do arquivo rotaSilo.json usando import
+        const dadosRotaSilo = await import('../rotaSilo.json')
+        const dadosReais = dadosRotaSilo.default || dadosRotaSilo
+
+        // Reorganizar os dados para usar a sequência de pêndulos
+        const sequenciaPendulos = dadosReais.configuracao.sequencia_pendulos
+        const pendulosOriginais = dadosReais.pendulos
+
+        // Reorganizar leitura baseada na sequência
+        const leituraOrganizada = {}
+        sequenciaPendulos.forEach(numeroPendulo => {
+          const chavePendulo = `P${numeroPendulo}`
+          if (pendulosOriginais[chavePendulo]) {
+            leituraOrganizada[chavePendulo] = pendulosOriginais[chavePendulo]
+          }
+        })
+
+        // Montar estrutura de dados compatível
+        this.dados = {
+          dados_layout: dadosReais.configuracao,
+          leitura: leituraOrganizada,
+          motor: { statusMotor: Array(dadosReais.configuracao.aeradores?.na || 0).fill(0).map(() => Math.floor(Math.random() * 4)) },
+          dados: { nivel: 66.6 }
+        }
+
+      } catch (error) {
+        console.error('Erro ao carregar dados do rotaSilo.json:', error)
+        // Fallback para dados básicos se houver erro
+        this.dados = {
+          dados_layout: {
+            tamanho_svg: [525, 188],
+            desenho_corte_silo: { lb: 463, hs: 163, hb: 25, eb: 3 },
+            desenho_sensores: {
+              escala_sensores: 16,
+              dist_y_sensores: 12,
+              pos_y_cabo: [152],
+              pos_x_cabo: [9, 30],
+              pos_x_cabos_uniforme: 1,
+              nome_sensores_direita: 0,
+              nome_cabo_acima: 0,
+              dist_y_nome_cabo: [0]
+            },
+            aeradores: { na: 4, ds: -4, dy: 0, da: 0 }
+          },
+          leitura: {},
+          motor: { statusMotor: [] },
+          dados: { nivel: 66.6 }
+        }
+      }
+    },
+
     initThreeJS() {
       if (!this.dados) return;
 
       const container = this.$refs.canvasContainer;
       if (!container) return;
 
-      // Calcular dimensões baseadas nos dados
+      // Calcular dimensões baseadas nos dados reais
       const layout = this.dados.dados_layout;
       const leitura = this.dados.leitura;
       const numCabos = Object.keys(leitura).length;
+      
+      // Calcular o número máximo de sensores por cabo
       const maxSensores = Math.max(...Object.values(leitura).map(cabo => Object.keys(cabo).length));
-      const alturaSilo = maxSensores * 0.8 + 2;
-      const raioSilo = Math.max(3, numCabos * 0.8);
+      
+      // Usar dados do layout para dimensionamento
+      const distYSensores = layout.desenho_sensores?.dist_y_sensores || 12;
+      const escalaSensores = layout.desenho_sensores?.escala_sensores || 16;
+      
+      // Calcular altura baseada nos sensores reais (conversão SVG para 3D)
+      const alturaSilo = (maxSensores * (distYSensores / 10)) + 3; // Converter escala SVG para 3D
+      
+      // Calcular raio baseado no número de cabos e largura do silo
+      const larguraBase = layout.desenho_corte_silo?.lb || 463;
+      const raioSilo = Math.max(3, (larguraBase / 100) * 1.2); // Converter largura SVG para raio 3D
 
       this.cameraRadius = raioSilo * 3;
 
@@ -194,7 +251,14 @@ export default {
     getAlturaSilo() {
       if (!this.dados?.leitura) return 10;
       const maxSensores = Math.max(...Object.values(this.dados.leitura).map(cabo => Object.keys(cabo).length));
-      return maxSensores * 0.8 + 2;
+      const distYSensores = this.dados.dados_layout?.desenho_sensores?.dist_y_sensores || 12;
+      return (maxSensores * (distYSensores / 10)) + 3;
+    },
+
+    getRaioSilo() {
+      if (!this.dados?.dados_layout) return 3;
+      const larguraBase = this.dados.dados_layout.desenho_corte_silo?.lb || 463;
+      return Math.max(3, (larguraBase / 100) * 1.2);
     },
 
     setupLighting(raioSilo, alturaSilo) {
@@ -294,7 +358,7 @@ export default {
       const leitura = this.dados.leitura;
       const numCabos = Object.keys(leitura).length;
       
-      // Calcular posições dos cabos
+      // Calcular posições dos cabos baseado no layout real
       const cabosPositions = this.calculateCablePositions(numCabos, raioSilo);
 
       // Criar cabos e sensores
@@ -357,7 +421,7 @@ export default {
       context.fillStyle = 'white';
       context.font = '24px Arial';
       context.textAlign = 'center';
-      context.fillText(`P${pendulo}`, canvas.width / 2, canvas.height / 2 + 8);
+      context.fillText(pendulo, canvas.width / 2, canvas.height / 2 + 8);
       
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
@@ -370,12 +434,13 @@ export default {
 
     createSensors(position, sensores, alturaSilo, pendulo) {
       const sensoresArray = Object.entries(sensores);
-      const espacamentoSensores = (alturaSilo - 0.3) / (sensoresArray.length + 1);
+      const distYSensores = this.dados.dados_layout?.desenho_sensores?.dist_y_sensores || 12;
+      const espacamentoSensores = (distYSensores / 10); // Converter escala SVG para 3D
 
       sensoresArray.forEach(([sensorKey, valores], sensorIndex) => {
         const yPos = alturaSilo - ((sensorIndex + 1) * espacamentoSensores);
         
-        if (yPos <= alturaSilo) {
+        if (yPos > 0.3) { // Evitar sensores muito baixos
           const [temp, alarme, preAlarme, falha, ativo] = valores;
           
           // Corpo do sensor
@@ -683,12 +748,6 @@ export default {
       }
     },
 
-    getRaioSilo() {
-      if (!this.dados?.leitura) return 3;
-      const numCabos = Object.keys(this.dados.leitura).length;
-      return Math.max(3, numCabos * 0.8);
-    },
-
     animate() {
       this.animationId = requestAnimationFrame(this.animate);
       
@@ -733,8 +792,10 @@ export default {
         const leitura = this.dados.leitura;
         const numCabos = Object.keys(leitura).length;
         const maxSensores = Math.max(...Object.values(leitura).map(cabo => Object.keys(cabo).length));
-        const alturaSilo = maxSensores * 0.8 + 2;
-        const raioSilo = Math.max(3, numCabos * 0.8);
+        const distYSensores = layout.desenho_sensores?.dist_y_sensores || 12;
+        const alturaSilo = (maxSensores * (distYSensores / 10)) + 3;
+        const larguraBase = layout.desenho_corte_silo?.lb || 463;
+        const raioSilo = Math.max(3, (larguraBase / 100) * 1.2);
 
         this.cameraRadius = raioSilo * 3;
         this.updateCameraPosition(alturaSilo);

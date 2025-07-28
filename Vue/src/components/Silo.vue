@@ -121,7 +121,7 @@
                 <g v-for="id in layout.aeradores.na" :key="`aerador-${id}`" :id="`aerador_${id}`"
                   :transform="getTransformAerador(id)">
                   <circle :id="`fundo_aerador_${id}`" :cx="70 + 12.5 + 3.5" cy="24" r="10" :fill="getCorAerador(id)" />
-                  <rect x="86.5" y="2" width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
+                  <rect x="73" y="2" width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
                   <text :x="70 + 12.5 + 3.5" y="7" text-anchor="middle" dominant-baseline="central" font-weight="bold"
                     font-size="6.5" font-family="Arial" fill="white">
                     AE-{{ id }}
@@ -227,11 +227,11 @@ export default {
         // Carregar dados do arquivo rotaSilo.json usando import
         const dadosRotaSilo = await import('../rotaSilo.json')
         const dadosReais = dadosRotaSilo.default || dadosRotaSilo
-        
+
         // Reorganizar os dados para usar a sequência de pêndulos
         const sequenciaPendulos = dadosReais.configuracao.sequencia_pendulos
         const pendulosOriginais = dadosReais.pendulos
-        
+
         // Reorganizar leitura baseada na sequência
         const leituraOrganizada = {}
         sequenciaPendulos.forEach(numeroPendulo => {
@@ -240,14 +240,14 @@ export default {
             leituraOrganizada[chavePendulo] = pendulosOriginais[chavePendulo]
           }
         })
-        
+
         // Montar estrutura de dados compatível
         this.dados = {
           dados_layout: dadosReais.configuracao,
           leitura: leituraOrganizada,
           motor: { statusMotor: [] } // Adicionar dados de motor se necessário
         }
-        
+
       } catch (error) {
         console.error('Erro ao carregar dados do rotaSilo.json:', error)
         // Fallback para dados básicos se houver erro
@@ -308,7 +308,7 @@ export default {
       const posXUniforme = Number(ds.pos_x_cabos_uniforme)
       const nCabos = Object.keys(this.leitura).length
       const lb = this.layout.desenho_corte_silo.lb
-      
+
       if (posXUniforme === 0) {
         // Usar posições específicas do layout
         return posXCabo[idxCabo] || 0
@@ -316,10 +316,10 @@ export default {
         // Distribuição uniforme melhorada baseada no React
         const offsetInicial = posXCabo[0] || 9 // Offset inicial
         const distEntreCabos = posXCabo[1] || 30 // Distância entre cabos
-        
+
         // Calcular a largura total ocupada pelos cabos
         const larguraTotalCabos = (nCabos - 1) * distEntreCabos + escala
-        
+
         // Se a largura total for menor que a largura do silo, centralizar
         if (larguraTotalCabos < lb) {
           const margemCentralizacao = (lb - larguraTotalCabos) / 2
@@ -423,26 +423,82 @@ export default {
         })
       })
 
-      // Criar mapa de níveis por cabo para contorno ondulado
+      // Criar mapa de níveis por cabo para contorno ondulado com interpolação para cabos com erro
       const niveisPorCabo = {}
+      const cabosComErro = []
+      
+      // Primeiro passo: identificar cabos válidos e com erro
       Object.entries(this.leitura).forEach(([, objSensores], idxCabo) => {
         const xCabo = this.getBaseX(idxCabo) + ds.escala_sensores / 2
         let nivelMaisAltoNesteCabo = 0
+        let caboComErro = false
 
-        Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
-          const sensorIdx = parseInt(sensorKey, 10)
-          const t = parseFloat(dadosSensor[0])
-          const temGrao = dadosSensor[4] // Último item indica se tem grão
-          const ySensor = posYCabo[idxCabo] - distYSensores * sensorIdx
+        // Verificar se o cabo tem erro (temperatura 0 ou todos sensores com falha)
+        const sensoresComErro = Object.values(objSensores).filter(sensor => 
+          parseFloat(sensor[0]) === 0 || sensor[3] === true
+        )
+        
+        caboComErro = sensoresComErro.length === Object.keys(objSensores).length
 
-          if (temGrao && t !== -1000) {
-            if (ySensor < nivelMaisAltoNesteCabo || nivelMaisAltoNesteCabo === 0) {
-              nivelMaisAltoNesteCabo = ySensor
+        if (!caboComErro) {
+          Object.entries(objSensores).forEach(([sensorKey, dadosSensor]) => {
+            const sensorIdx = parseInt(sensorKey, 10)
+            const t = parseFloat(dadosSensor[0])
+            const temGrao = dadosSensor[4] // Último item indica se tem grão
+            const ySensor = posYCabo[idxCabo] - distYSensores * sensorIdx
+
+            if (temGrao && t !== -1000 && t !== 0) {
+              if (ySensor < nivelMaisAltoNesteCabo || nivelMaisAltoNesteCabo === 0) {
+                nivelMaisAltoNesteCabo = ySensor
+              }
+            }
+          })
+          
+          niveisPorCabo[xCabo] = nivelMaisAltoNesteCabo
+        } else {
+          cabosComErro.push({ xCabo, idxCabo })
+        }
+      })
+
+      // Segundo passo: interpolar cabos com erro
+      cabosComErro.forEach(({ xCabo, idxCabo }) => {
+        const cabosOrdenados = Object.keys(niveisPorCabo)
+          .map(x => ({ x: parseFloat(x), nivel: niveisPorCabo[x] }))
+          .sort((a, b) => a.x - b.x)
+
+        if (cabosOrdenados.length >= 2) {
+          // Encontrar cabos anterior e posterior válidos
+          let caboAnterior = null
+          let caboPosterior = null
+
+          for (let i = 0; i < cabosOrdenados.length; i++) {
+            if (cabosOrdenados[i].x < xCabo) {
+              caboAnterior = cabosOrdenados[i]
+            }
+            if (cabosOrdenados[i].x > xCabo && !caboPosterior) {
+              caboPosterior = cabosOrdenados[i]
+              break
             }
           }
-        })
 
-        niveisPorCabo[xCabo] = nivelMaisAltoNesteCabo
+          // Interpolar o nível
+          let nivelInterpolado = 0
+          if (caboAnterior && caboPosterior) {
+            // Interpolação linear entre anterior e posterior
+            const distTotal = caboPosterior.x - caboAnterior.x
+            const distAtual = xCabo - caboAnterior.x
+            const fator = distTotal === 0 ? 0 : distAtual / distTotal
+            nivelInterpolado = caboAnterior.nivel + (caboPosterior.nivel - caboAnterior.nivel) * fator
+          } else if (caboAnterior) {
+            // Usar só o anterior se não há posterior
+            nivelInterpolado = caboAnterior.nivel
+          } else if (caboPosterior) {
+            // Usar só o posterior se não há anterior
+            nivelInterpolado = caboPosterior.nivel
+          }
+
+          niveisPorCabo[xCabo] = nivelInterpolado
+        }
       })
 
       // Gerar grid de blocos
@@ -453,15 +509,57 @@ export default {
       const hCell = altura / resolucao
       const blocos = []
 
-      // Função IDW
+      // Criar sensores interpolados para cabos com erro
+      const sensoresInterpolados = [...sensores]
+      
+      cabosComErro.forEach(({ xCabo, idxCabo }) => {
+        const yCabo = posYCabo[idxCabo]
+        const sensoresOriginais = Object.entries(Object.values(this.leitura)[idxCabo] || {})
+
+        sensoresOriginais.forEach(([sensorKey, dadosSensor]) => {
+          const sensorIdx = parseInt(sensorKey, 10)
+          const ySensor = yCabo - distYSensores * sensorIdx
+          
+          // Encontrar sensores válidos na mesma altura em outros cabos
+          const sensoresNaMesmaAltura = sensores.filter(sensor => 
+            Math.abs(sensor.y - ySensor) <= distYSensores / 2 && 
+            sensor.ativo && 
+            sensor.t !== 0 && 
+            sensor.t !== -1000
+          )
+
+          if (sensoresNaMesmaAltura.length >= 2) {
+            // Calcular temperatura média dos sensores válidos na mesma altura
+            const tempMedia = sensoresNaMesmaAltura.reduce((acc, sensor) => acc + sensor.t, 0) / sensoresNaMesmaAltura.length
+            
+            // Adicionar sensor interpolado
+            sensoresInterpolados.push({
+              x: xCabo,
+              y: ySensor,
+              t: tempMedia,
+              ativo: true
+            })
+          } else if (sensoresNaMesmaAltura.length === 1) {
+            // Se só há um sensor válido, usar sua temperatura
+            sensoresInterpolados.push({
+              x: xCabo,
+              y: ySensor,
+              t: sensoresNaMesmaAltura[0].t,
+              ativo: true
+            })
+          }
+        })
+      })
+
+      // Função IDW usando sensores interpolados
       const idw = (cx, cy) => {
         let somaPesos = 0
         let somaTemp = 0
         const power = 2
         let temSensorAtivo = false
 
-        sensores.forEach(({ x, y, t, ativo }) => {
-          if (t === -1000 || !ativo) return
+        sensoresInterpolados.forEach(({ x, y, t, ativo }) => {
+          if (t === -1000 || !ativo || t === 0) return
           temSensorAtivo = true
           const dist = Math.max(Math.hypot(x - cx, y - cy), 0.0001)
           const peso = 1 / Math.pow(dist, power)
