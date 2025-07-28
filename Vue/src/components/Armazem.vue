@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-1 p-md-2" style="min-height: 100vh; overflow: auto;">
     <div class="row">
@@ -11,65 +10,49 @@
           </div>
         </div>
 
-        <TopoArmazem v-else-if="mostrarTopo" :arcoAtual="arcoAtual" :dados="dadosLocal"
-          @arcoSelecionado="handleArcoSelecionadoTopo" @fecharTopo="mostrarTopo = false" />
+        <TopoArmazem v-else-if="mostrarTopo" 
+          :onArcoSelecionado="handleArcoSelecionadoTopo"
+          :arcoAtual="arcoAtual"
+          :onFecharTopo="() => mostrarTopo = false" />
 
         <div v-else class="svg-container mb-1 mb-md-2"
           style="display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 220px); max-height: calc(100vh - 160px); overflow: auto;">
-          
-          <!-- Debug info quando não há dados -->
-          <div v-if="!dadosLocal || !layoutTopo" class="alert alert-info text-center">
-            <div class="spinner-border mb-3" role="status">
-              <span class="visually-hidden">Carregando...</span>
-            </div>
-            <h5>Carregando dados do armazém...</h5>
-            <div class="mt-3">
-              <p class="mb-1">
-                <strong>Status:</strong> 
-                <span :class="dadosLocal ? 'text-success' : 'text-warning'">
-                  {{ dadosLocal ? '✓ Dados carregados' : '⏳ Carregando dados' }}
-                </span>
-              </p>
-              <p class="mb-1">
-                <strong>Layout:</strong>
-                <span :class="layoutTopo ? 'text-success' : 'text-warning'">
-                  {{ layoutTopo ? '✓ Layout disponível' : '⏳ Processando layout' }}
-                </span>
-              </p>
-              <p class="mb-0">
-                <strong>Arcos:</strong> {{ totalArcos || 'Calculando...' }}
-              </p>
-            </div>
-          </div>
-          
-          <!-- Container SVG -->
-          <div v-else ref="containerRef" class="d-flex justify-content-center" style="height: 70vh; min-height: 350px;" />
+          <div ref="containerRef" class="d-flex justify-content-center" style="height: 70vh; min-height: 350px;" />
         </div>
 
         <!-- Controles de Navegação entre Arcos -->
-        <div v-if="layoutTopo" class="row mb-3">
+        <div v-if="analiseArcos" class="row mb-3">
           <div class="col-12">
             <div class="card">
               <div class="card-header bg-primary text-white">
-                <h6 class="mb-0">Controle de Arcos - {{ totalArcos }} arcos em {{ totalCelulas }} células</h6>
+                <h6 class="mb-0">Controle de Arcos - Configuração Automática</h6>
               </div>
               <div class="card-body">
                 <div class="row align-items-center">
                   <div class="col-md-6">
                     <label class="form-label">Arco Atual:</label>
                     <div class="d-flex gap-2 align-items-center">
-                      <button class="btn btn-outline-primary btn-sm" @click="mudarArco(Math.max(1, arcoAtual - 1))"
-                        :disabled="arcoAtual <= 1">
+                      <button 
+                        class="btn btn-outline-primary btn-sm"
+                        @click="mudarArco(Math.max(1, arcoAtual - 1))"
+                        :disabled="arcoAtual <= 1"
+                      >
                         ← Anterior
                       </button>
-                      <select class="form-select" v-model.number="arcoAtual" @change="mudarArco(arcoAtual)">
-                        <option v-for="numeroArco in totalArcos" :key="numeroArco" :value="numeroArco">
-                          Arco {{ numeroArco }} - Célula {{ obterCelulaDoArco(numeroArco) }} - {{
-                                                    obterTotalSensoresArco(numeroArco) }} sensores
+                      <select 
+                        class="form-select"
+                        v-model.number="arcoAtual"
+                        @change="mudarArco(arcoAtual)"
+                      >
+                        <option v-for="numeroArco in Object.keys(analiseArcos.arcos)" :key="numeroArco" :value="parseInt(numeroArco)">
+                          Arco {{ numeroArco }} - {{ analiseArcos.arcos[numeroArco].totalPendulos }} pêndulos, {{ analiseArcos.arcos[numeroArco].totalSensores }} sensores
                         </option>
                       </select>
-                      <button class="btn btn-outline-primary btn-sm"
-                        @click="mudarArco(Math.min(totalArcos, arcoAtual + 1))" :disabled="arcoAtual >= totalArcos">
+                      <button 
+                        class="btn btn-outline-primary btn-sm"
+                        @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1))"
+                        :disabled="arcoAtual >= analiseArcos.totalArcos"
+                      >
                         Próximo →
                       </button>
                     </div>
@@ -78,19 +61,18 @@
                     <div class="p-2 border rounded bg-light">
                       <small class="fw-bold">Estrutura do Arco {{ arcoAtual }}:</small>
                       <div class="mt-2">
-                        <span class="badge bg-success me-1 mb-1">
-                          Célula {{ obterCelulaDoArco(arcoAtual) }}
-                        </span>
-                        <span class="badge bg-info me-1 mb-1">
-                          {{ obterTotalSensoresArco(arcoAtual) }} sensores
+                        <span v-for="pendulo in analiseArcos.arcos[arcoAtual]?.pendulos || []" 
+                              :key="pendulo.numero" 
+                              class="badge bg-primary me-1 mb-1">
+                          P{{ pendulo.numero }}: {{ pendulo.totalSensores }} sensores
                         </span>
                       </div>
                       <hr class="my-2" />
                       <small class="text-muted">
-                        <strong>Total Geral:</strong><br />
-                        • {{ totalArcos }} arcos<br />
-                        • {{ totalCelulas }} células<br />
-                        • {{ totalSensores }} sensores
+                        <strong>Total Geral:</strong><br/>
+                        • {{ analiseArcos.totalArcos }} arcos<br/>
+                        • {{ analiseArcos.estatisticas.totalPendulos }} pêndulos<br/>
+                        • {{ analiseArcos.estatisticas.totalSensores }} sensores
                       </small>
                     </div>
                   </div>
@@ -104,8 +86,11 @@
           <button class="btn btn-primary" @click="trocarModo">
             {{ modo === 'temperatura' ? 'Ver Mapa de Calor' : 'Ver Temperatura' }}
           </button>
-          <button class="btn ms-2" :class="mostrarTopo ? 'btn-success' : 'btn-outline-info'"
-                      @click="mostrarTopo = !mostrarTopo">
+          <button 
+            class="btn ms-2" 
+            :class="mostrarTopo ? 'btn-success' : 'btn-outline-info'"
+            @click="mostrarTopo = !mostrarTopo"
+          >
             {{ mostrarTopo ? 'Fechar Topo' : 'Vista de Topo' }}
           </button>
         </div>
@@ -116,6 +101,8 @@
 
 <script>
 import TopoArmazem from "./TopoArmazem.vue";
+import LayoutManager from "../utils/layoutManager";
+import dadosArmazemPortal from "../dadosArmazem.json";
 
 export default {
   name: "ArmazemSVG",
@@ -133,36 +120,16 @@ export default {
       modo: "temperatura",
       carregandoModo: false,
       dadosLocal: null,
+      dadosPortal: null,
       arcoAtual: 1,
-      layoutTopo: null,
+      analiseArcos: null,
+      layoutsAutomaticos: null,
       mostrarTopo: false,
-      dimensoesSVG: { largura: 350, altura: 200 },
-      totalArcos: 0,
-      totalCelulas: 0,
-      totalSensores: 0
+      dimensoesSVG: { largura: 350, altura: 200 }
     };
   },
   async mounted() {
-    console.log('Componente Armazem montado');
     await this.inicializarDados();
-    
-    // Forçar renderização após carregamento dos dados
-    this.$nextTick(() => {
-      if (this.dadosLocal && this.layoutTopo) {
-        console.log('Forçando renderização após carregamento dos dados');
-        this.renderizarSVG();
-        // Forçar atualização da interface
-        this.$forceUpdate();
-      }
-    });
-
-    // Backup: tentar renderizar novamente após um delay
-    setTimeout(() => {
-      if (this.dadosLocal && this.layoutTopo && !document.getElementById("des_arco_armazem")) {
-        console.log('Renderização de backup executada');
-        this.renderizarSVG();
-      }
-    }, 1000);
   },
   watch: {
     dadosLocal: {
@@ -176,191 +143,99 @@ export default {
     },
     arcoAtual() {
       this.renderizarSVG();
+    },
+    layoutsAutomaticos() {
+      this.renderizarSVG();
     }
   },
   methods: {
     async inicializarDados() {
       try {
-        console.log('Iniciando carregamento de dados...');
-        
-        // Tentar carregar dados do modelo real primeiro
-        let dados = null;
-        
-        try {
-          const response = await fetch('/models/modeloRotaArmazemPortal_1751897945212.json');
-          if (response.ok) {
-            dados = await response.json();
-            console.log('Dados carregados do modelo real:', dados);
-          }
-        } catch (modelError) {
-          console.log('Erro ao carregar modelo real:', modelError);
-        }
+        // Usar dados importados diretamente
+        this.dadosPortal = dadosArmazemPortal;
 
-        // Fallback para dadosArmazem.json local
-        if (!dados) {
-          try {
-            const response = await fetch('/Vue/src/dadosArmazem.json');
-            if (response.ok) {
-              dados = await response.json();
-              console.log('Dados carregados do arquivo local:', dados);
-            }
-          } catch (localError) {
-            console.log('Erro ao carregar arquivo local:', localError);
-          }
-        }
+        // Analisar estrutura dos arcos
+        const analise = LayoutManager.analisarEstruturaArcos(dadosArmazemPortal);
+        this.analiseArcos = analise;
 
-        // Se ainda não temos dados, criar dados de exemplo
-        if (!dados) {
-          console.log('Criando dados de exemplo...');
-          dados = this.criarDadosExemplo();
-        }
+        // Gerar layouts automáticos
+        const layouts = LayoutManager.gerarLayoutAutomatico(analise);
+        this.layoutsAutomaticos = layouts;
 
-        this.dadosLocal = dados;
+        // Calcular dimensões ideais do SVG baseado em todos os arcos
+        const dimensoes = this.calcularDimensoesIdeais(analise);
+        this.dimensoesSVG = dimensoes;
 
-        // Extrair ou criar layout_topo
-        if (dados.configuracao?.layout_topo) {
-          this.layoutTopo = dados.configuracao.layout_topo;
-        } else if (dados.arcos) {
-          // Criar layout_topo baseado nos arcos existentes
-          this.layoutTopo = this.criarLayoutTopoDosArcos(dados.arcos);
-        } else {
-          this.layoutTopo = this.criarLayoutTopoExemplo();
-        }
+        // Converter dados para o formato do armazém (arco 1 inicialmente)
+        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosArmazemPortal, 1);
+        this.dadosLocal = dadosConvertidos;
 
-        this.calcularEstatisticas();
-        this.calcularDimensoesSVG();
-
-        console.log('Inicialização concluída:', {
-          dados: !!this.dadosLocal,
-          layoutTopo: !!this.layoutTopo,
-          totalArcos: this.totalArcos,
-          totalCelulas: this.totalCelulas,
-          totalSensores: this.totalSensores
+        console.log('Dados carregados:', {
+          dadosPortal: this.dadosPortal,
+          analiseArcos: this.analiseArcos,
+          dadosLocal: this.dadosLocal
         });
-
       } catch (error) {
-        console.error('Erro fatal ao inicializar dados:', error);
-        
-        // Último recurso: dados mínimos
-        this.dadosLocal = this.criarDadosExemplo();
-        this.layoutTopo = this.criarLayoutTopoExemplo();
-        this.calcularEstatisticas();
-        this.calcularDimensoesSVG();
+        console.error('Erro ao inicializar dados:', error);
       }
     },
 
-    criarDadosExemplo() {
-      return {
-        configuracao: {
-          layout_topo: this.criarLayoutTopoExemplo()
-        },
-        pendulos: {
-          "1": [false, false, true, 23.5],
-          "2": [false, false, true, 24.1],
-          "3": [false, false, true, 22.8],
-          "4": [false, false, true, 25.2],
-          "5": [false, false, true, 23.9]
-        }
-      };
-    },
+    // Calcular dimensões ideais do SVG baseado na análise de todos os arcos
+    calcularDimensoesIdeais(analiseArcos) {
+      if (!analiseArcos) return { largura: 350, altura: 200 };
 
-    criarLayoutTopoExemplo() {
-      return {
-        "1": { "celula": 1, "pos_x": 30, "sensores": { "1": 75, "2": 150, "3": 225 } },
-        "2": { "celula": 1, "pos_x": 60, "sensores": { "4": 125, "5": 200 } },
-        "3": { "celula": 2, "pos_x": 90, "sensores": { "6": 100, "7": 175, "8": 250 } },
-        "4": { "celula": 2, "pos_x": 120, "sensores": { "9": 125, "10": 200 } },
-        "5": { "celula": 3, "pos_x": 150, "sensores": { "11": 75, "12": 150, "13": 225 } }
-      };
-    },
+      let maxSensores = 0;
+      let maxPendulos = 0;
 
-    criarLayoutTopoDosArcos(arcos) {
-      const layout = {};
-      let arcoNumero = 1;
-      
-      Object.entries(arcos).forEach(([arcoKey, arcoData]) => {
-        const sensores = {};
-        let sensorIndex = 1;
-        
-        Object.entries(arcoData).forEach(([penduloId, penduloData]) => {
-          sensores[penduloId] = 75 + (sensorIndex * 50); // Distribuir sensores verticalmente
-          sensorIndex++;
+      // Encontrar o máximo de sensores e pêndulos em todos os arcos
+      Object.values(analiseArcos.arcos).forEach(arco => {
+        maxPendulos = Math.max(maxPendulos, arco.totalPendulos);
+        arco.pendulos.forEach(pendulo => {
+          maxSensores = Math.max(maxSensores, pendulo.totalSensores);
         });
-
-        layout[arcoNumero] = {
-          celula: Math.ceil(arcoNumero / 2), // 2 arcos por célula
-          pos_x: 30 + (arcoNumero * 30),
-          sensores: sensores
-        };
-        
-        arcoNumero++;
       });
 
-      return layout;
+      const escala_sensores = 16;
+      const dist_y_sensores = 12;
+      const margemSuperior = 30; // Margem para o telhado
+      const margemInferior = 50; // Margem para os pêndulos (P1, P2, etc.)
+      const margemPendulo = 20; // Espaço extra para o nome do pêndulo
+
+      // Calcular altura necessária
+      const alturaBaseTelhado = 185; // Altura base original
+      const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
+      const alturaTotal = Math.max(
+        alturaBaseTelhado, 
+        margemSuperior + alturaSensores + margemInferior + margemPendulo
+      );
+
+      // Calcular largura necessária (baseada no número de pêndulos)
+      const larguraMinima = 350;
+      const espacamentoPendulo = 50;
+      const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100);
+
+      return {
+        largura: larguraCalculada,
+        altura: Math.max(alturaTotal, 250) // Altura mínima
+      };
     },
 
-    calcularEstatisticas() {
-      if (!this.layoutTopo) return;
-
-      const arcos = {};
-      const celulas = new Set();
-      let totalSensores = 0;
-
-      // Analisar cada entrada do layout_topo
-      Object.entries(this.layoutTopo).forEach(([key, value]) => {
-        if (key === 'aeradores' || key === 'celulas') return;
-
-        const numeroArco = parseInt(key);
-        const celula = value.celula;
-        const sensores = value.sensores || {};
-        const numSensores = Object.keys(sensores).length;
-
-        arcos[numeroArco] = {
-          celula: celula,
-          sensores: numSensores,
-          posX: value.pos_x
-        };
-
-        celulas.add(celula);
-        totalSensores += numSensores;
-      });
-
-      this.totalArcos = Object.keys(arcos).length;
-      this.totalCelulas = celulas.size;
-      this.totalSensores = totalSensores;
-    },
-
-    calcularDimensoesSVG() {
-      // Dimensões baseadas no arco atual
-      const larguraBase = 400;
-      const alturaBase = 250;
-
-      if (this.layoutTopo && this.layoutTopo[this.arcoAtual]) {
-        const sensoresArco = this.layoutTopo[this.arcoAtual].sensores || {};
-        const numSensores = Object.keys(sensoresArco).length;
-
-        // Ajustar altura baseado no número de sensores
-        const alturaCalculada = Math.max(alturaBase, 150 + (numSensores * 15));
-
-        this.dimensoesSVG = {
-          largura: larguraBase,
-          altura: alturaCalculada
-        };
-      }
-    },
-
-    obterCelulaDoArco(numeroArco) {
-      if (!this.layoutTopo || !this.layoutTopo[numeroArco]) return 1;
-      return this.layoutTopo[numeroArco].celula;
-    },
-
-    obterTotalSensoresArco(numeroArco) {
-      if (!this.layoutTopo || !this.layoutTopo[numeroArco]) return 0;
-      return Object.keys(this.layoutTopo[numeroArco].sensores || {}).length;
+    corFaixaExata(t) {
+      if (t === -1000) return "#ff0000";
+      if (t < 12) return "#0384fc";
+      else if (t < 15) return "#03e8fc";
+      else if (t < 17) return "#03fcbe";
+      else if (t < 21) return "#07fc03";
+      else if (t < 25) return "#c3ff00";
+      else if (t < 27) return "#fcf803";
+      else if (t < 30) return "#ffb300";
+      else if (t < 35) return "#ff2200";
+      else if (t < 50) return "#ff0090";
+      else return "#f700ff";
     },
 
     renderizarSVG() {
-      if (!this.dadosLocal || !this.layoutTopo) return;
+      if (!this.dadosLocal) return;
 
       const container = this.$refs.containerRef;
       if (!container) return;
@@ -386,32 +261,19 @@ export default {
       this.desenhaFundo();
       if (this.modo === "temperatura") {
         this.desenhaSensores();
-        this.atualizarSensores();
+        this.atualizarSensores(this.dadosLocal);
       } else {
         this.desenhaMapaCalor();
       }
     },
 
-    corFaixaExata(t) {
-      if (t === -1000) return "#ff0000";
-      if (t < 12) return "#0384fc";
-      else if (t < 15) return "#03e8fc";
-      else if (t < 17) return "#03fcbe";
-      else if (t < 21) return "#07fc03";
-      else if (t < 25) return "#c3ff00";
-      else if (t < 27) return "#fcf803";
-      else if (t < 30) return "#ffb300";
-      else if (t < 35) return "#ff2200";
-      else if (t < 50) return "#ff0090";
-      else return "#f700ff";
-    },
-
     desenhaFundo() {
       const svgEl = document.getElementById("des_arco_armazem");
-      const pb = this.dimensoesSVG.altura - 50;
+      // Usar dimensões dinâmicas mas manter proporções do armazém
+      const pb = this.dimensoesSVG.altura - 50; // Posição base ajustada
       const lb = this.dimensoesSVG.largura;
       const hb = 30, hf = 5;
-      const lf = Math.min(250, lb * 0.7);
+      const lf = Math.min(250, lb * 0.7); // Largura frente proporcional
       const le = 15, ht = 50;
 
       // Base
@@ -455,163 +317,138 @@ export default {
     },
 
     desenhaSensores() {
-      if (!this.layoutTopo || !this.layoutTopo[this.arcoAtual]) return;
+      if (!this.layoutsAutomaticos || !this.analiseArcos) return;
 
       const svgEl = document.getElementById("des_arco_armazem");
-      const arcoData = this.layoutTopo[this.arcoAtual];
-      const sensoresArco = arcoData.sensores || {};
+      const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`];
+
+      if (!layoutArco) return;
+
+      const arcoInfo = this.analiseArcos.arcos[this.arcoAtual];
+      if (!arcoInfo) return;
 
       const escala_sensores = 16;
       const dist_y_sensores = 12;
-      const pb = this.dimensoesSVG.altura - 50;
-      const posXArco = arcoData.pos_x || 100; // Posição X do arco
+      const pb = this.dimensoesSVG.altura - 50; // Posição base ajustada
+      const yPendulo = pb + 15; // Posição dos pêndulos - FORA do armazém
 
-      // Desenhar cabo principal do arco
-      const xCabo = (this.dimensoesSVG.largura / 2); // Centralizar cabo
-      const yInicioCabo = pb + 10;
-      const yFinalCabo = 30;
+      arcoInfo.pendulos.forEach((pendulo, index) => {
+        const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
+        const numSensores = pendulo.totalSensores;
 
-      // Linha do cabo principal
-      const linhaCabo = document.createElementNS("http://www.w3.org/2000/svg", "line");
-      linhaCabo.setAttribute("x1", xCabo);
-      linhaCabo.setAttribute("y1", yInicioCabo);
-      linhaCabo.setAttribute("x2", xCabo);
-      linhaCabo.setAttribute("y2", yFinalCabo);
-      linhaCabo.setAttribute("stroke", "#2c2c2c");
-      linhaCabo.setAttribute("stroke-width", "3");
-      svgEl.appendChild(linhaCabo);
+        // Retângulo do nome do pêndulo
+        const rectPendulo = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+        rectPendulo.setAttribute("id", `C${index + 1}`);
+        rectPendulo.setAttribute("x", xCabo - escala_sensores/2);
+        rectPendulo.setAttribute("y", yPendulo);
+        rectPendulo.setAttribute("width", escala_sensores);
+        rectPendulo.setAttribute("height", escala_sensores/2);
+        rectPendulo.setAttribute("rx", "2");
+        rectPendulo.setAttribute("ry", "2");
+        rectPendulo.setAttribute("fill", "#3A78FD");
+        svgEl.appendChild(rectPendulo);
 
-      // Retângulo do arco
-      const rectArco = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      rectArco.setAttribute("id", `ARCO${this.arcoAtual}`);
-      rectArco.setAttribute("x", xCabo - escala_sensores / 2);
-      rectArco.setAttribute("y", pb + 10);
-      rectArco.setAttribute("width", escala_sensores);
-      rectArco.setAttribute("height", escala_sensores / 2);
-      rectArco.setAttribute("rx", "2");
-      rectArco.setAttribute("ry", "2");
-      rectArco.setAttribute("fill", "#1a5490");
-      svgEl.appendChild(rectArco);
+        // Texto do nome do pêndulo
+        const textPendulo = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        textPendulo.setAttribute("id", `TC${index + 1}`);
+        textPendulo.setAttribute("x", xCabo);
+        textPendulo.setAttribute("y", yPendulo + escala_sensores/4);
+        textPendulo.setAttribute("text-anchor", "middle");
+        textPendulo.setAttribute("dominant-baseline", "central");
+        textPendulo.setAttribute("font-weight", "bold");
+        textPendulo.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
+        textPendulo.setAttribute("font-family", "Arial");
+        textPendulo.setAttribute("fill", "white");
+        textPendulo.textContent = `P${pendulo.numero}`;
+        svgEl.appendChild(textPendulo);
 
-      // Texto do arco
-      const textArco = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      textArco.setAttribute("x", xCabo);
-      textArco.setAttribute("y", pb + 10 + escala_sensores / 4);
-      textArco.setAttribute("text-anchor", "middle");
-      textArco.setAttribute("dominant-baseline", "central");
-      textArco.setAttribute("font-weight", "bold");
-      textArco.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
-      textArco.setAttribute("font-family", "Arial");
-      textArco.setAttribute("fill", "white");
-      textArco.textContent = `A${this.arcoAtual}`;
-      svgEl.appendChild(textArco);
+        // Sensores - ajustar posicionamento para ficar dentro do SVG
+        for (let s = 1; s <= numSensores; s++) {
+          const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
 
-      // Desenhar sensores
-      Object.entries(sensoresArco).forEach(([sensorId, posY], index) => {
-        const ySensor = pb - 20 - (index * dist_y_sensores * 2); // Espaçamento vertical entre sensores
+          // Garantir que o sensor está dentro dos limites do SVG
+          if (ySensor > 10 && ySensor < (this.dimensoesSVG.altura - 60)) {
+            // Retângulo do sensor
+            const rectSensor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            rectSensor.setAttribute("id", `C${index + 1}S${s}`);
+            rectSensor.setAttribute("x", xCabo - escala_sensores/2);
+            rectSensor.setAttribute("y", ySensor);
+            rectSensor.setAttribute("width", escala_sensores);
+            rectSensor.setAttribute("height", escala_sensores/2);
+            rectSensor.setAttribute("rx", "2");
+            rectSensor.setAttribute("ry", "2");
+            rectSensor.setAttribute("fill", "#ccc");
+            rectSensor.setAttribute("stroke", "black");
+            rectSensor.setAttribute("stroke-width", "1");
+            svgEl.appendChild(rectSensor);
 
-        // Retângulo do sensor
-        const rectSensor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-        rectSensor.setAttribute("id", `S${sensorId}`);
-        rectSensor.setAttribute("x", xCabo - escala_sensores / 2);
-        rectSensor.setAttribute("y", ySensor);
-        rectSensor.setAttribute("width", escala_sensores);
-        rectSensor.setAttribute("height", escala_sensores / 2);
-        rectSensor.setAttribute("rx", "2");
-        rectSensor.setAttribute("ry", "2");
-        rectSensor.setAttribute("fill", "#ccc");
-        rectSensor.setAttribute("stroke", "black");
-        rectSensor.setAttribute("stroke-width", "1");
-        svgEl.appendChild(rectSensor);
+            // Texto do valor do sensor
+            const textSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textSensor.setAttribute("id", `TC${index + 1}S${s}`);
+            textSensor.setAttribute("x", xCabo);
+            textSensor.setAttribute("y", ySensor + escala_sensores/4);
+            textSensor.setAttribute("text-anchor", "middle");
+            textSensor.setAttribute("dominant-baseline", "central");
+            textSensor.setAttribute("font-size", escala_sensores * 0.4 - 0.5);
+            textSensor.setAttribute("font-family", "Arial");
+            textSensor.textContent = "0";
+            svgEl.appendChild(textSensor);
 
-        // Texto do valor do sensor
-        const textSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textSensor.setAttribute("id", `TS${sensorId}`);
-        textSensor.setAttribute("x", xCabo);
-        textSensor.setAttribute("y", ySensor + escala_sensores / 4);
-        textSensor.setAttribute("text-anchor", "middle");
-        textSensor.setAttribute("dominant-baseline", "central");
-        textSensor.setAttribute("font-size", escala_sensores * 0.3);
-        textSensor.setAttribute("font-family", "Arial");
-        textSensor.textContent = "0°C";
-        svgEl.appendChild(textSensor);
-
-        // Nome do sensor (ID do pêndulo)
-        const textNomeSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
-        textNomeSensor.setAttribute("id", `TIND${sensorId}`);
-        textNomeSensor.setAttribute("x", xCabo - escala_sensores / 2 - 5);
-        textNomeSensor.setAttribute("y", ySensor + escala_sensores / 4);
-        textNomeSensor.setAttribute("text-anchor", "end");
-        textNomeSensor.setAttribute("dominant-baseline", "central");
-        textNomeSensor.setAttribute("font-size", escala_sensores * 0.35);
-        textNomeSensor.setAttribute("font-family", "Arial");
-        textNomeSensor.setAttribute("fill", "black");
-        textNomeSensor.textContent = `P${sensorId}`;
-        svgEl.appendChild(textNomeSensor);
-
-        // Linha conectora do sensor ao cabo principal
-        const linhaConectora = document.createElementNS("http://www.w3.org/2000/svg", "line");
-        linhaConectora.setAttribute("x1", xCabo);
-        linhaConectora.setAttribute("y1", ySensor + escala_sensores / 2);
-        linhaConectora.setAttribute("x2", xCabo);
-        linhaConectora.setAttribute("y2", pb - 20);
-        linhaConectora.setAttribute("stroke", "#666");
-        linhaConectora.setAttribute("stroke-width", "1");
-        svgEl.appendChild(linhaConectora);
+            // Nome do sensor
+            const textNomeSensor = document.createElementNS("http://www.w3.org/2000/svg", "text");
+            textNomeSensor.setAttribute("id", `TIND${index + 1}S${s}`);
+            textNomeSensor.setAttribute("x", xCabo - escala_sensores/2 - 2);
+            textNomeSensor.setAttribute("y", ySensor + escala_sensores/4);
+            textNomeSensor.setAttribute("text-anchor", "end");
+            textNomeSensor.setAttribute("dominant-baseline", "central");
+            textNomeSensor.setAttribute("font-size", escala_sensores * 0.4 - 1.5);
+            textNomeSensor.setAttribute("font-family", "Arial");
+            textNomeSensor.setAttribute("fill", "black");
+            textNomeSensor.textContent = `S${s}`;
+            svgEl.appendChild(textNomeSensor);
+          }
+        }
       });
     },
 
     desenhaMapaCalor() {
-      if (!this.layoutTopo || !this.layoutTopo[this.arcoAtual] || !this.dadosLocal) return;
+      if (!this.layoutsAutomaticos || !this.analiseArcos || !this.dadosLocal) return;
 
       const svgEl = document.getElementById("des_arco_armazem");
-      const arcoData = this.layoutTopo[this.arcoAtual];
-      const sensoresArco = arcoData.sensores || {};
+      const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`];
+      const arcoInfo = this.analiseArcos.arcos[this.arcoAtual];
 
-      const largura = this.dimensoesSVG.largura;
-      const altura = this.dimensoesSVG.altura;
-      const resolucao = 80;
+      if (!layoutArco || !arcoInfo) return;
+
+      const largura = this.dimensoesSVG.largura, altura = this.dimensoesSVG.altura;
+      const resolucao = 160;
       const wCell = largura / resolucao;
       const hCell = altura / resolucao;
 
-      // Coletar sensores e suas posições com dados reais
+      // Coletar sensores e suas posições
       const sensores = [];
-      const xCabo = largura / 2;
-      const pb = altura - 50;
+      if (this.dadosLocal?.leitura) {
+        Object.entries(this.dadosLocal.leitura).forEach(([pendulo, sensoresData], penduloIndex) => {
+          const xCabo = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
+          const yCabo = this.dimensoesSVG.altura - 50 + 15; // Posição base dos pêndulos ajustada
 
-      Object.entries(sensoresArco).forEach(([sensorId, posY], index) => {
-        const ySensor = pb - 20 - (index * 24);
+          Object.entries(sensoresData).forEach(([sensorKey, dadosSensor]) => {
+            // Verificar se dadosSensor é array
+            if (!Array.isArray(dadosSensor) || dadosSensor.length < 5) return;
+            
+            const s = parseInt(sensorKey);
+            const [temp, , , falha, nivel] = dadosSensor;
+            const ySensor = yCabo - 12 * s - 12;
 
-        // Buscar dados reais do pêndulo nos arcos
-        let temperatura = 25; // valor padrão
-        let ativo = true;
-
-        if (this.dadosLocal.arcos) {
-          // Buscar nos arcos detalhados
-          Object.values(this.dadosLocal.arcos).forEach(arco => {
-            if (arco[sensorId]) {
-              Object.values(arco[sensorId]).forEach(sensorData => {
-                if (sensorData && sensorData[0] !== undefined) {
-                  temperatura = sensorData[0];
-                  ativo = sensorData[4] !== false;
-                }
-              });
-            }
+            sensores.push({
+              x: xCabo,
+              y: ySensor,
+              t: parseFloat(temp) || -1000,
+              ativo: nivel === true
+            });
           });
-        } else if (this.dadosLocal.pendulos?.[sensorId]) {
-          // Buscar nos pêndulos básicos
-          const [falha, pontoQuente, ativoValue, tempMaxima] = this.dadosLocal.pendulos[sensorId];
-          temperatura = tempMaxima || 25;
-          ativo = ativoValue;
-        }
-
-        sensores.push({
-          x: xCabo,
-          y: ySensor,
-          t: temperatura,
-          ativo: ativo
         });
-      });
+      }
 
       // Função IDW para interpolação
       const idw = (cx, cy) => {
@@ -621,7 +458,7 @@ export default {
         let temSensorAtivo = false;
 
         sensores.forEach(({ x, y, t, ativo }) => {
-          if (!ativo) return;
+          if (t === -1000 || !ativo) return;
           temSensorAtivo = true;
           const dist = Math.max(Math.hypot(x - cx, y - cy), 0.0001);
           const peso = 1 / Math.pow(dist, power);
@@ -633,6 +470,7 @@ export default {
       };
 
       // Gerar grid de blocos
+      const blocos = [];
       for (let i = 0; i < resolucao; i++) {
         for (let j = 0; j < resolucao; j++) {
           const cx = i * wCell + wCell / 2;
@@ -646,66 +484,74 @@ export default {
           rect.setAttribute("width", wCell);
           rect.setAttribute("height", hCell);
           rect.setAttribute("fill", cor);
-          rect.setAttribute("opacity", "0.7");
-          svgEl.appendChild(rect);
+          blocos.push(rect);
         }
       }
+
+      // Definir clip path para formato do armazém - usar dimensões dinâmicas
+      const lb = this.dimensoesSVG.largura;
+      const pb = this.dimensoesSVG.altura - 50;
+      const lf = Math.min(250, lb * 0.7);
+      const le = 15, hb = 30, hf = 5, ht = 50;
+      const p1 = [(lb - lf) / 2, pb - hf],
+        p2 = [le, pb - hb],
+        p3 = [le, pb - ht],
+        p4 = [lb / 2, 1],
+        p5 = [lb - le, pb - ht],
+        p6 = [lb - le, pb - hb],
+        p7 = [lb - (lb - lf) / 2, pb - hf];
+      const pathD = `M ${p1.join(",")} L ${p2.join(",")} L ${p3.join(",")} L ${p4.join(",")} L ${p5.join(",")} L ${p6.join(",")} L ${p7.join(",")} Z`;
+
+      // Criar elementos de filtro e clip
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+      const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+      filter.setAttribute("id", "blurFilter");
+      const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      blur.setAttribute("stdDeviation", "0.4");
+      filter.appendChild(blur);
+      defs.appendChild(filter);
+
+      const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+      clipPath.setAttribute("id", "clipArmazem");
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", pathD);
+      clipPath.appendChild(path);
+      defs.appendChild(clipPath);
+
+      svgEl.appendChild(defs);
+
+      // Adicionar blocos com filtros
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("filter", "url(#blurFilter)");
+      g.setAttribute("clip-path", "url(#clipArmazem)");
+      blocos.forEach((bloco) => g.appendChild(bloco));
+      svgEl.appendChild(g);
     },
 
-    atualizarSensores() {
-      if (!this.dadosLocal || !this.layoutTopo || !this.layoutTopo[this.arcoAtual]) {
-        console.log('Dados não disponíveis para atualizar sensores');
-        return;
-      }
+    atualizarSensores(dadosArco) {
+      if (!dadosArco?.leitura || !this.analiseArcos) return;
 
-      const sensoresArco = this.layoutTopo[this.arcoAtual].sensores || {};
-      console.log('Atualizando sensores do arco:', this.arcoAtual, sensoresArco);
+      Object.entries(dadosArco.leitura).forEach(([idCabo, sensores], penduloIndex) => {
+        Object.entries(sensores).forEach(([s, dadosSensor]) => {
+          // Verificar se dadosSensor é array (formato esperado: [temp, , , falha, nivel])
+          if (!Array.isArray(dadosSensor) || dadosSensor.length < 5) return;
+          
+          const [temp, , , falha, nivel] = dadosSensor;
+          const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
+          const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
+          if (!rec || !txt) return;
 
-      Object.entries(sensoresArco).forEach(([sensorId, posY]) => {
-        const rec = document.getElementById(`S${sensorId}`);
-        const txt = document.getElementById(`TS${sensorId}`);
-        if (!rec || !txt) {
-          console.log(`Elementos não encontrados para sensor ${sensorId}`);
-          return;
-        }
-
-        let temperatura = 25;
-        let falha = false;
-        let ativo = true;
-
-        // Buscar dados reais do pêndulo nos arcos detalhados
-        if (this.dadosLocal.arcos) {
-          Object.values(this.dadosLocal.arcos).forEach(arco => {
-            if (arco[sensorId]) {
-              Object.values(arco[sensorId]).forEach(sensorData => {
-                if (sensorData && Array.isArray(sensorData) && sensorData[0] !== undefined) {
-                  temperatura = sensorData[0];
-                  falha = sensorData[3] || false;
-                  ativo = sensorData[4] !== false;
-                }
-              });
-            }
-          });
-        } else if (this.dadosLocal.pendulos?.[sensorId]) {
-          // Buscar nos pêndulos básicos
-          const pendulo = this.dadosLocal.pendulos[sensorId];
-          if (Array.isArray(pendulo)) {
-            falha = pendulo[0] || false;
-            ativo = pendulo[2] !== false;
-            temperatura = pendulo[3] || 25;
+          txt.textContent = falha ? "ERRO" : (parseFloat(temp) || 0).toFixed(1);
+          if (!nivel) {
+            rec.setAttribute("fill", "#e6e6e6");
+            txt.setAttribute("fill", "black");
+          } else {
+            const cor = this.corFaixaExata(parseFloat(temp) || 0);
+            rec.setAttribute("fill", cor);
+            txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
           }
-        }
-
-        txt.textContent = falha ? "ERRO" : `${temperatura.toFixed(1)}°C`;
-
-        if (!ativo) {
-          rec.setAttribute("fill", "#e6e6e6");
-          txt.setAttribute("fill", "black");
-        } else {
-          const cor = this.corFaixaExata(temperatura);
-          rec.setAttribute("fill", cor);
-          txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black");
-        }
+        });
       });
     },
 
@@ -718,24 +564,25 @@ export default {
     },
 
     mudarArco(novoArco) {
-      if (novoArco >= 1 && novoArco <= this.totalArcos) {
-        this.arcoAtual = novoArco;
-        this.calcularDimensoesSVG();
+      this.arcoAtual = novoArco;
+      if (this.dadosPortal) {
+        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(this.dadosPortal, novoArco);
+        this.dadosLocal = dadosConvertidos;
       }
     },
 
     handleArcoSelecionadoTopo(numeroArco) {
       this.mudarArco(numeroArco);
-      this.mostrarTopo = false;
+      this.mostrarTopo = false; // Fechar topo após seleção
     }
   }
 };
 </script>
 
 <style scoped>
-.svg-container {
-  width: 100%;
-  height: 100%;
+.container-fluid {
+  min-height: 100vh;
+  overflow: auto;
 }
 
 .card-header {
