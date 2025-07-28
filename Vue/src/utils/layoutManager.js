@@ -1,80 +1,87 @@
 
 class LayoutManager {
-  static analisarEstruturaArcos(dadosPortal) {
-    if (!dadosPortal?.arcos) {
-      console.error('Dados do portal não encontrados ou sem arcos');
-      return null;
-    }
+  static analisarEstruturaArcos(dados) {
+    if (!dados?.arcos) return null;
 
-    const analise = {
-      totalArcos: Object.keys(dadosPortal.arcos).length,
-      arcos: {},
-      estatisticas: {
-        totalPendulos: 0,
-        totalSensores: 0,
-        pendulosPorArco: [],
-        sensoresPorPendulo: []
-      }
-    };
+    const arcos = {};
+    let totalPendulos = 0;
+    let totalSensores = 0;
 
-    Object.entries(dadosPortal.arcos).forEach(([numeroArco, pendulos]) => {
-      const pendulosDoArco = Object.keys(pendulos);
-      const infoArco = {
-        numeroArco: parseInt(numeroArco),
-        pendulos: [],
-        totalPendulos: pendulosDoArco.length,
-        totalSensores: 0
+    Object.entries(dados.arcos).forEach(([numeroArco, dadosArco]) => {
+      const pendulos = [];
+      let totalPendulosArco = 0;
+      let totalSensoresArco = 0;
+
+      Object.entries(dadosArco).forEach(([numeroPendulo, sensoresPendulo]) => {
+        const totalSensoresPendulo = Object.keys(sensoresPendulo).length;
+
+        pendulos.push({
+          numero: parseInt(numeroPendulo),
+          totalSensores: totalSensoresPendulo,
+          sensores: Object.keys(sensoresPendulo).map(s => parseInt(s))
+        });
+
+        totalPendulosArco++;
+        totalSensoresArco += totalSensoresPendulo;
+      });
+
+      arcos[numeroArco] = {
+        numero: parseInt(numeroArco),
+        totalPendulos: totalPendulosArco,
+        totalSensores: totalSensoresArco,
+        pendulos: pendulos.sort((a, b) => a.numero - b.numero)
       };
 
-      pendulosDoArco.forEach(numeroPendulo => {
-        const sensores = pendulos[numeroPendulo];
-        const numerosSensores = Object.keys(sensores);
-        const infoPendulo = {
-          numero: parseInt(numeroPendulo),
-          totalSensores: numerosSensores.length,
-          sensores: sensores
-        };
-
-        infoArco.pendulos.push(infoPendulo);
-        infoArco.totalSensores += infoPendulo.totalSensores;
-        analise.estatisticas.sensoresPorPendulo.push(infoPendulo.totalSensores);
-      });
-
-      analise.arcos[numeroArco] = infoArco;
-      analise.estatisticas.totalPendulos += infoArco.totalPendulos;
-      analise.estatisticas.totalSensores += infoArco.totalSensores;
-      analise.estatisticas.pendulosPorArco.push(infoArco.totalPendulos);
+      totalPendulos += totalPendulosArco;
+      totalSensores += totalSensoresArco;
     });
 
-    return analise;
+    return {
+      totalArcos: Object.keys(arcos).length,
+      arcos,
+      estatisticas: {
+        totalPendulos,
+        totalSensores,
+        mediaPendulosPorArco: totalPendulos / Object.keys(arcos).length,
+        mediaSensoresPorArco: totalSensores / Object.keys(arcos).length
+      }
+    };
   }
 
-  static gerarLayoutAutomatico(analise) {
-    if (!analise) {
-      console.error('Análise de estrutura não fornecida');
-      return null;
-    }
+  static gerarLayoutAutomatico(analiseArcos) {
+    if (!analiseArcos) return null;
 
     const layouts = {};
+    const margemLateral = 50;
+    const espacamentoMinimo = 40;
 
-    Object.entries(analise.arcos).forEach(([numeroArco, infoArco]) => {
-      // Calcular espaçamento baseado no número de pêndulos
-      const espacamentoBase = Math.max(50, 400 / (infoArco.totalPendulos + 1));
-      const margemLateral = espacamentoBase;
+    Object.entries(analiseArcos.arcos).forEach(([numeroArco, dadosArco]) => {
+      const numPendulos = dadosArco.totalPendulos;
+      const larguraTotal = Math.max(350, numPendulos * espacamentoMinimo + margemLateral * 2);
 
-      // Posições dos cabos distribuídas uniformemente
-      const posicoesCabos = infoArco.pendulos.map((pendulo, index) => {
-        return margemLateral + (index * espacamentoBase);
-      });
+      const posicoes = [];
+      if (numPendulos === 1) {
+        posicoes.push(larguraTotal / 2);
+      } else {
+        const larguraUtil = larguraTotal - margemLateral * 2;
+        const espacamento = larguraUtil / (numPendulos - 1);
+
+        for (let i = 0; i < numPendulos; i++) {
+          posicoes.push(margemLateral + i * espacamento);
+        }
+      }
 
       layouts[`arco_${numeroArco}`] = {
-        arco: parseInt(numeroArco),
-        totalPendulos: infoArco.totalPendulos,
-        totalSensores: infoArco.totalSensores,
+        tamanho_svg: [larguraTotal, 250],
         desenho_sensores: {
-          pos_x_cabo: posicoesCabos,
+          pos_x_cabo: posicoes,
+          pos_y_cabo: Array(numPendulos).fill(200),
+          dist_y_nome_cabo: Array(numPendulos).fill(15),
+          dist_y_sensores: 12,
           escala_sensores: 16,
-          dist_y_sensores: 12
+          pos_x_cabos_uniforme: 0,
+          nome_sensores_direita: 0,
+          nome_cabo_acima: 1
         }
       };
     });
@@ -83,27 +90,32 @@ class LayoutManager {
   }
 
   static converterDadosPortalParaArmazem(dadosPortal, numeroArco) {
-    const dadosConvertidos = {
-      leitura: {}
-    };
-
-    if (dadosPortal.arcos && dadosPortal.arcos[numeroArco]) {
-      Object.entries(dadosPortal.arcos[numeroArco]).forEach(([pendulo, sensores]) => {
-        dadosConvertidos.leitura[pendulo] = {};
-        Object.entries(sensores).forEach(([sensorKey, dadosSensor]) => {
-          const [temp, pontoQuente, preAlarme, falha, ativo] = dadosSensor;
-          dadosConvertidos.leitura[pendulo][sensorKey] = [
-            parseFloat(temp) || 0,
-            pontoQuente || false,
-            preAlarme || false,
-            falha || false,
-            ativo !== false
-          ];
-        });
-      });
+    if (!dadosPortal?.arcos?.[numeroArco]) {
+      return { leitura: {} };
     }
 
-    return dadosConvertidos;
+    const arcoData = dadosPortal.arcos[numeroArco];
+    const leitura = {};
+
+    Object.entries(arcoData).forEach(([numeroPendulo, sensoresPendulo]) => {
+      leitura[`P${numeroPendulo}`] = {};
+
+      Object.entries(sensoresPendulo).forEach(([numeroSensor, dadosSensor]) => {
+        // Formato: [temperatura, ponto_quente, pre_alarme, falha, ativo]
+        leitura[`P${numeroPendulo}`][numeroSensor] = [
+          dadosSensor[0] || 20 + Math.random() * 10, // temperatura
+          dadosSensor[1] || false, // ponto_quente
+          dadosSensor[2] || false, // pre_alarme
+          dadosSensor[3] || false, // falha
+          dadosSensor[4] !== undefined ? dadosSensor[4] : true // ativo
+        ];
+      });
+    });
+
+    return {
+      leitura,
+      configuracao: dadosPortal.configuracao || {}
+    };
   }
 }
 

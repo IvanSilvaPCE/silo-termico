@@ -1,133 +1,215 @@
+
 <template>
-  <div class="d-flex flex-column" style="min-height: 100vh">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-0 sticky-top">
-      <div class="container-fluid px-2 px-md-4">
-        <span class="navbar-brand fs-6 fs-md-5 me-2">Sistema de Monitoramento</span>
-        <button
-          class="navbar-toggler border-0 p-1"
-          type="button"
-          data-bs-toggle="collapse"
+  <div class="d-flex flex-column" style="min-height: 100vh;">
+    <!-- Navegação -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="#">Sistema de Monitoramento Térmico</a>
+        <button 
+          class="navbar-toggler" 
+          type="button" 
+          data-bs-toggle="collapse" 
           data-bs-target="#navbarNav"
-          aria-controls="navbarNav"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
         >
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-          <div class="navbar-nav ms-auto d-flex flex-column flex-lg-row gap-1 mt-2 mt-lg-0">
-            <button
-              class="btn btn-sm"
-              :class="telaAtiva === 'modelador' ? 'btn-light' : 'btn-outline-light'"
-              @click="navegarPara('modelador')"
-            >Modelador SVG</button>
-            <button
-              class="btn btn-sm"
-              :class="telaAtiva === 'silo' ? 'btn-light' : 'btn-outline-light'"
-              @click="navegarPara('silo')"
-            >Silo 2D</button>
-            <button
-              class="btn btn-sm"
-              :class="telaAtiva === 'silo3d' ? 'btn-light' : 'btn-outline-light'"
-              @click="navegarPara('silo3d')"
-            >Silo 3D</button>
-            <button
-              class="btn btn-sm"
-              :class="telaAtiva === 'armazem' ? 'btn-light' : 'btn-outline-light'"
-              @click="navegarPara('armazem')"
-            >Armazem 2D</button>
-            <button
-              class="btn btn-sm"
-              :class="telaAtiva === 'armazem3d' ? 'btn-light' : 'btn-outline-light'"
-              @click="navegarPara('armazem3d')"
-            >Armazem 3D</button>
-          </div>
+          <ul class="navbar-nav me-auto">
+            <li class="nav-item">
+              <a 
+                class="nav-link" 
+                :class="{ active: telaAtiva === 'modelador' }"
+                href="#" 
+                @click.prevent="mudarTela('modelador')"
+              >
+                Modelador SVG
+              </a>
+            </li>
+            <li class="nav-item">
+              <a 
+                class="nav-link" 
+                :class="{ active: telaAtiva === 'silo' }"
+                href="#" 
+                @click.prevent="mudarTela('silo')"
+              >
+                Silo 2D
+              </a>
+            </li>
+            <li class="nav-item">
+              <a 
+                class="nav-link" 
+                :class="{ active: telaAtiva === 'silo3d' }"
+                href="#" 
+                @click.prevent="mudarTela('silo3d')"
+              >
+                Silo 3D
+              </a>
+            </li>
+            <li class="nav-item">
+              <a 
+                class="nav-link" 
+                :class="{ active: telaAtiva === 'armazem' }"
+                href="#" 
+                @click.prevent="mudarTela('armazem')"
+              >
+                Armazém 2D
+              </a>
+            </li>
+            <li class="nav-item">
+              <a 
+                class="nav-link" 
+                :class="{ active: telaAtiva === 'armazem3d' }"
+                href="#" 
+                @click.prevent="mudarTela('armazem3d')"
+              >
+                Armazém 3D
+              </a>
+            </li>
+          </ul>
         </div>
       </div>
     </nav>
 
+    <!-- Conteúdo Principal -->
     <main class="flex-grow-1 overflow-hidden">
-      <component
-        :is="componenteAtivo"
-        :dados="componenteDados"
+      <div v-if="carregando" class="d-flex justify-content-center align-items-center" style="height: 100vh;">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Carregando...</span>
+        </div>
+      </div>
+      <component 
+        v-else
+        :is="componenteAtivo" 
+        :dados="dadosComponente"
       />
     </main>
   </div>
 </template>
 
 <script>
-import ModeladorSVG from "./components/ModeladorSVG.vue";
-import SiloSVG from "./components/Silo.vue";
-import ArmazemSVG from "./components/Armazem.vue";
-import dadosSimulados from "./dados";
-import dadosSimuladosSilo from "./dadosSilo";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
+import ModeladorSVG from './components/ModeladorSVG.vue';
+import Silo from './components/Silo.vue';
+import Silo3D from './components/Silo3D.vue';
+import Armazem from './components/Armazem.vue';
+import Armazem3D from './components/Armazem3D.vue';
 
 export default {
-  name: "App",
+  name: 'App',
   components: {
     ModeladorSVG,
-    SiloSVG,
-    ArmazemSVG,
+    Silo,
+    Silo3D,
+    Armazem,
+    Armazem3D
   },
   data() {
     return {
-      dados: null,
-      dadosArm: null,
+      telaAtiva: 'modelador',
+      carregando: false,
       dadosSilo: null,
-      telaAtiva: "modelador",
+      dadosArmazem: null
     };
   },
   computed: {
     componenteAtivo() {
-      switch (this.telaAtiva) {
-        case "modelador":
-          return "ModeladorSVG";
-        case "silo":
-          return "SiloSVG";
-        case "silo3d":
-          return "ModeladorSVG"; // Temporário até criar Silo3D
-        case "armazem":
-          return "ArmazemSVG";
-        case "armazem3d":
-          return "ModeladorSVG"; // Temporário até criar Armazem3D
-        default:
-          return "ModeladorSVG";
-      }
+      const componentes = {
+        'modelador': 'ModeladorSVG',
+        'silo': 'Silo',
+        'silo3d': 'Silo3D',
+        'armazem': 'Armazem',
+        'armazem3d': 'Armazem3D'
+      };
+      return componentes[this.telaAtiva] || 'ModeladorSVG';
     },
-    componenteDados() {
-      if (this.telaAtiva === "silo") {
+    dadosComponente() {
+      if (this.telaAtiva === 'silo' || this.telaAtiva === 'silo3d') {
         return this.dadosSilo;
+      } else if (this.telaAtiva === 'armazem' || this.telaAtiva === 'armazem3d') {
+        return this.dadosArmazem;
       }
-      if (this.telaAtiva === "armazem") {
-        return this.dadosArm;
-      }
-      return undefined;
-    },
+      return null;
+    }
   },
-  mounted() {
-    this.dadosArm = dadosSimulados;
-    this.dadosSilo = dadosSimuladosSilo;
+  async mounted() {
+    await this.carregarDados();
   },
   methods: {
-    fecharMenuMobile() {
-      const navbarCollapse = document.getElementById("navbarNav");
-      if (navbarCollapse && navbarCollapse.classList.contains("show")) {
-        const navbarToggler = document.querySelector(".navbar-toggler");
-        if (navbarToggler && window.bootstrap) {
-          const bsCollapse = new window.bootstrap.Collapse(navbarCollapse, {
-            toggle: false,
-          });
-          bsCollapse.hide();
-        } else {
-          navbarCollapse.classList.remove("show");
-        }
+    mudarTela(novaTela) {
+      this.telaAtiva = novaTela;
+    },
+    async carregarDados() {
+      this.carregando = true;
+      try {
+        // Simular dados do silo
+        this.dadosSilo = {
+          dados_layout: {
+            desenho_corte_silo: {
+              lb: 200,
+              hs: 300,
+              hb: 15,
+              eb: 10
+            },
+            desenho_sensores: {
+              escala_sensores: 16,
+              dist_y_sensores: 12,
+              pos_y_cabo: [250, 250],
+              pos_x_cabo: [50, 150],
+              pos_x_cabos_uniforme: 0,
+              nome_sensores_direita: 0,
+              nome_cabo_acima: 1,
+              dist_y_nome_cabo: [10, 10]
+            },
+            tamanho_svg: [200, 350],
+            aeradores: {
+              na: 2,
+              dy: 20,
+              ds: 30,
+              da: 40
+            }
+          },
+          leitura: {
+            'P1': {
+              '1': [25.5, false, false, false, true],
+              '2': [24.8, false, false, false, true],
+              '3': [26.2, false, false, false, true]
+            },
+            'P2': {
+              '1': [23.1, false, false, false, true],
+              '2': [22.9, false, false, false, true],
+              '3': [24.5, false, false, false, true]
+            }
+          },
+          motor: {
+            statusMotor: [3, 0]
+          }
+        };
+
+        // Dados do armazém serão carregados pelo próprio componente
+        this.dadosArmazem = {};
+        
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+      } finally {
+        this.carregando = false;
       }
-    },
-    navegarPara(tela) {
-      this.telaAtiva = tela;
-      this.fecharMenuMobile();
-    },
-  },
+    }
+  }
 };
 </script>
+
+<style>
+#app {
+  font-family: Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+.nav-link.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+}
+</style>
