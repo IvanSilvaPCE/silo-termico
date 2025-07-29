@@ -8,7 +8,7 @@
               <i class="fas fa-warehouse me-2"></i>
               Visualização Topo do Armazém
             </h5>
-            <button class="btn btn-outline-light btn-sm" @click="$emit('fecharTopo')" title="Fechar Topo">
+            <button class="btn btn-outline-light btn-sm" @click="fecharTopo()" title="Fechar Topo">
               <i class="fas fa-times"></i> Fechar Topo
             </button>
           </div>
@@ -47,7 +47,9 @@ export default {
       layoutTopo: null,
       dadosTopo: null,
       carregando: true,
-      maxAeradores: 30
+      maxAeradores: 30,
+      larguraSVG: 800, // Aumentado para comportar mais cabos
+      alturaSVG: 400,
     };
   },
   async mounted() {
@@ -79,66 +81,150 @@ export default {
         // Analisar estrutura dos arcos usando LayoutManager
         const analise = LayoutManager.analisarEstruturaArcos(dadosJSON);
 
+        // Determinar número total de arcos dinamicamente
+        const totalArcos = Object.keys(analise.arcos).length;
+
+        // Usar configuração de células dos dados se existir, senão calcular dinamicamente
+        let numeroCelulas = 3; // padrão
+        let celulasConfig = null;
+
+        if (dadosJSON.configuracao?.layout_topo?.celulas) {
+          celulasConfig = dadosJSON.configuracao.layout_topo.celulas;
+          // Contar células reais (excluindo tamanho_svg e fundo)
+          numeroCelulas = Object.keys(celulasConfig).filter(key => 
+            key !== 'tamanho_svg' && key !== 'fundo' && !isNaN(parseInt(key))
+          ).length;
+        } else {
+          // Calcular baseado no número de arcos
+          numeroCelulas = Math.min(3, Math.max(1, Math.ceil(totalArcos / 7)));
+        }
+
+        // Usar dimensões dos dados ou calcular dinamicamente
+        let larguraSVG, alturaSVG, larguraFundo;
+        
+        if (celulasConfig && celulasConfig.tamanho_svg && celulasConfig.fundo) {
+          larguraSVG = celulasConfig.tamanho_svg[0];
+          alturaSVG = celulasConfig.tamanho_svg[1];
+          larguraFundo = celulasConfig.fundo[2];
+        } else {
+          // Calcular dinamicamente
+          const larguraMinima = 600;
+          const larguraPorArco = 30;
+          larguraSVG = Math.max(larguraMinima, totalArcos * larguraPorArco + 100);
+          alturaSVG = 388;
+          larguraFundo = larguraSVG - 10;
+        }
+
+        // Configurar células
+        const celulas = {
+          tamanho_svg: [larguraSVG, alturaSVG],
+          fundo: celulasConfig?.fundo || [5, 49, larguraFundo, 256]
+        };
+
+        // Usar células dos dados ou gerar dinamicamente
+        if (celulasConfig) {
+          // Usar configuração existente das células
+          for (let i = 1; i <= numeroCelulas; i++) {
+            if (celulasConfig[i.toString()]) {
+              celulas[i] = celulasConfig[i.toString()];
+            }
+          }
+        } else {
+          // Gerar células dinamicamente
+          const larguraPorCelula = Math.floor(larguraFundo / numeroCelulas);
+          for (let i = 1; i <= numeroCelulas; i++) {
+            const xInicio = 5 + (i - 1) * larguraPorCelula;
+            const largura = i === numeroCelulas ? larguraFundo - xInicio : larguraPorCelula - 3;
+            celulas[i] = [xInicio, 50, largura, 254];
+          }
+        }
+
+        // Configurar aeradores
+        let aeradores;
+        if (dadosJSON.configuracao?.layout_topo?.aeradores) {
+          // Usar aeradores dos dados
+          aeradores = dadosJSON.configuracao.layout_topo.aeradores;
+        } else {
+          // Usar posicionamento dinâmico
+          aeradores = this.gerarPosicionamentoAeradoresDinamico(larguraSVG, numeroCelulas);
+        }
+
         const layout = {
-          celulas: {
-            tamanho_svg: [600, 388],
-            fundo: [5, 49, 590, 256],
-            1: [5, 50, 188, 254],
-            2: [197, 50, 206, 254],
-            3: [407, 50, 188, 254]
-          },
-          aeradores: this.gerarPosicionamentoAeradores(),
+          celulas: celulas,
+          aeradores: aeradores,
         };
 
         const sensores = {};
 
-        // Calcular distribuição dos arcos para manter dentro do fundo
-        const totalArcos = Object.keys(analise.arcos).length;
-        // Usar coordenadas exatas do fundo: x=5, largura=590
-        const inicioFundo = 5;
-        const larguraFundo = 590;
-        const margemInterna = 20; // Margem pequena dentro do fundo
-        const larguraUtilizavel = larguraFundo - (margemInterna * 2);
-        const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
+        // Usar distribuição de arcos dos dados se existir
+        let distribuicaoArcos = {};
+        if (dadosJSON.configuracao?.layout_topo) {
+          Object.entries(dadosJSON.configuracao.layout_topo).forEach(([key, value]) => {
+            if (!isNaN(parseInt(key)) && value.celula && value.pos_x) {
+              distribuicaoArcos[key] = value;
+            }
+          });
+        }
 
-        // Processar arcos baseado na análise IGUAL ao React
+        // Se não há distribuição nos dados, calcular dinamicamente
+        if (Object.keys(distribuicaoArcos).length === 0) {
+          const inicioFundo = celulas.fundo[0];
+          const margemInterna = 10;
+          const larguraUtilizavel = celulas.fundo[2] - (margemInterna * 2);
+          const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
+
+          // Distribuir arcos por células
+          const arcosPorCelula = Math.ceil(totalArcos / numeroCelulas);
+
+          for (let arcoNum = 1; arcoNum <= totalArcos; arcoNum++) {
+            let celula = Math.min(numeroCelulas, Math.ceil(arcoNum / arcosPorCelula));
+            const posX = inicioFundo + margemInterna + ((arcoNum - 1) * espacamentoArco);
+            
+            distribuicaoArcos[arcoNum] = {
+              celula: celula,
+              pos_x: posX,
+              sensores: {}
+            };
+          }
+        }
+
+        // Processar arcos baseado na análise dinâmica
         Object.entries(analise.arcos).forEach(([arcoId, arcoInfo]) => {
           const arcoNum = parseInt(arcoId);
+          const arcoConfig = distribuicaoArcos[arcoNum] || distribuicaoArcos[arcoId];
 
-          // Determinar célula baseado no número do arco IGUAL ao React
-          let celula;
-          if (arcoNum <= 6) celula = 1;
-          else if (arcoNum <= 13) celula = 2;
-          else celula = 3;
+          if (!arcoConfig) return;
 
           const sensoresDoArco = {};
 
-          // Processar pêndulos deste arco
+          // Processar pêndulos deste arco dinamicamente
           arcoInfo.pendulos.forEach((pendulo, index) => {
             const penduloId = pendulo.numero.toString();
 
             // Buscar dados do sensor/pêndulo nos dados originais
             const dadosSensor = this.buscarDadosSensor(dadosJSON, arcoNum, penduloId);
             if (dadosSensor) {
-              // Implementar padrão zigzag exatamente como no HTML de referência e na imagem
-              let posY;
-
-              if (arcoInfo.pendulos.length === 1) {
-                // Um pêndulo: posicionar no centro
-                posY = 177; // Centro aproximado da célula
-              } else {
-                // Padrão zigzag seguindo exatamente o HTML de referência
-                // Arcos ímpares (1, 3, 5, 7...): posições fixas de cima para baixo
-                // Arcos pares (2, 4, 6, 8...): posições fixas intercaladas
-                
-                if (arcoNum % 2 === 1) {
-                  // Arcos ímpares: usar posições sequenciais [75, 125, 175, 225, 275]
-                  const posicoesImpares = [75, 125, 175, 225, 275];
-                  posY = posicoesImpares[index % posicoesImpares.length];
+              // Usar posição dos dados se existir, senão calcular dinamicamente
+              let posY = arcoConfig.sensores?.[penduloId];
+              
+              if (!posY) {
+                const numPendulos = arcoInfo.pendulos.length;
+                if (numPendulos === 1) {
+                  posY = 177;
                 } else {
-                  // Arcos pares: usar posições intercaladas [100, 150, 200, 250]
-                  const posicoesPares = [100, 150, 200, 250];
-                  posY = posicoesPares[index % posicoesPares.length];
+                  // Distribuição dinâmica baseada no padrão zigzag
+                  const alturaInicial = 75;
+                  const alturaFinal = 275;
+                  const alturaDisponivel = alturaFinal - alturaInicial;
+
+                  if (arcoNum % 2 === 1) {
+                    const incremento = numPendulos > 1 ? alturaDisponivel / (numPendulos - 1) : 0;
+                    posY = alturaInicial + (index * incremento);
+                  } else {
+                    const incremento = numPendulos > 1 ? alturaDisponivel / numPendulos : 0;
+                    posY = alturaInicial + 25 + (index * incremento);
+                  }
+                  posY = Math.max(75, Math.min(275, posY));
                 }
               }
 
@@ -147,15 +233,16 @@ export default {
             }
           });
 
-          // Calcular posição X do arco para distribuição uniforme dentro do fundo
-          const posX = inicioFundo + margemInterna + ((arcoNum - 1) * espacamentoArco);
-
           layout[arcoNum] = {
-            celula: celula,
-            pos_x: posX,
+            celula: arcoConfig.celula,
+            pos_x: arcoConfig.pos_x,
             sensores: sensoresDoArco,
           };
         });
+
+        // Atualizar dimensões do componente dinamicamente
+        this.larguraSVG = larguraSVG;
+        this.alturaSVG = alturaSVG;
 
         this.dadosPendulos = sensores;
         this.dadosTopo = sensores;
@@ -290,6 +377,21 @@ export default {
       };
     },
 
+    gerarPosicionamentoAeradoresDinamico(larguraSVG, numeroCelulas) {
+      const aeradores = {};
+      const espacamentoHorizontal = larguraSVG / (this.maxAeradores + 1);
+
+      for (let i = 1; i <= this.maxAeradores; i++) {
+        const posX = i * espacamentoHorizontal;
+        const posY = 305;
+        const textoAcima = i % 2 === 0 ? 1 : 0; // Alternar posição do texto
+
+        aeradores[i] = [posX, posY, textoAcima];
+      }
+
+      return aeradores;
+    },
+
     criarSVGTopo() {
       if (!this.layoutTopo || !this.$refs.containerRef) return;
 
@@ -338,9 +440,16 @@ export default {
 
     desenharCelulas() {
       const svgEl = document.getElementById("des_topo_armazem");
+      
+      // Determinar número real de células baseado nos dados
+      const celulasNumericas = Object.keys(this.layoutTopo.celulas)
+        .filter(key => !isNaN(parseInt(key)))
+        .map(key => parseInt(key))
+        .sort((a, b) => a - b);
 
-      for (let celula = 1; celula <= 3; celula++) {
+      celulasNumericas.forEach(celula => {
         const celulaData = this.layoutTopo.celulas[celula.toString()];
+        if (!celulaData) return;
 
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rect.setAttribute("id", `rec_celula${celula}`);
@@ -357,7 +466,7 @@ export default {
         rect.style.cursor = "pointer";
 
         svgEl.appendChild(rect);
-      }
+      });
     },
 
     desenharArcos() {
@@ -631,7 +740,25 @@ export default {
     },
 
     atualizarSelecoes() {
-      // Primeiro: atualizar arcos baseado na célula selecionada (seguindo modelo React)
+      // Primeiro: atualizar células imediatamente
+      const celulasNumericas = Object.keys(this.layoutTopo.celulas)
+        .filter(key => !isNaN(parseInt(key)))
+        .map(key => parseInt(key));
+
+      celulasNumericas.forEach(celula => {
+        const elemento = document.getElementById(`rec_celula${celula}`);
+        if (elemento) {
+          if (celula === this.celulaSelecionada) {
+            elemento.setAttribute("fill", "#E6E6E6");
+            elemento.setAttribute("stroke", "#438AF6");
+          } else {
+            elemento.setAttribute("fill", "#B3B3B3");
+            elemento.setAttribute("stroke", "#B3B3B3");
+          }
+        }
+      });
+
+      // Segundo: atualizar arcos baseado na célula selecionada
       Object.keys(this.layoutTopo).forEach((key) => {
         if (key !== "celulas" && key !== "aeradores") {
           const arcoNum = parseInt(key);
@@ -648,13 +775,13 @@ export default {
         }
       });
 
-      // Segundo: destacar o arco selecionado especificamente
+      // Terceiro: destacar o arco selecionado especificamente
       const arcoSelecionadoRect = document.getElementById(`rec_arco_${this.arcoSelecionado}`);
       if (arcoSelecionadoRect) {
         arcoSelecionadoRect.setAttribute("fill", "#438AF6");
       }
 
-      // Terceiro: atualizar botões dos arcos
+      // Quarto: atualizar botões dos arcos
       Object.keys(this.layoutTopo).forEach((key) => {
         if (key !== "celulas" && key !== "aeradores") {
           const arcoNum = parseInt(key);
@@ -668,20 +795,6 @@ export default {
           }
         }
       });
-
-      // Quarto: atualizar células
-      for (let celula = 1; celula <= 3; celula++) {
-        const elemento = document.getElementById(`rec_celula${celula}`);
-        if (elemento) {
-          if (celula === this.celulaSelecionada) {
-            elemento.setAttribute("fill", "#E6E6E6");
-            elemento.setAttribute("stroke", "#438AF6");
-          } else {
-            elemento.setAttribute("fill", "#B3B3B3");
-            elemento.setAttribute("stroke", "#B3B3B3");
-          }
-        }
-      }
     },
 
     atualizarCabos() {
@@ -753,14 +866,27 @@ export default {
     },
 
     atualizarAeradores() {
-      const numAeradores = Object.keys(this.layoutTopo.aeradores).length;
-      // Estados dos aeradores (seguindo padrão do modelo React)
-      const estadosAeradores = [1, 1, 1, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-      for (let aeradorId = 1; aeradorId <= numAeradores; aeradorId++) {
-        const estado = estadosAeradores[aeradorId - 1] || 0;
-        this.setarEstadoAerador(aeradorId, estado);
+      const aeradorIds = Object.keys(this.layoutTopo.aeradores).map(id => parseInt(id)).sort((a, b) => a - b);
+      
+      // Estados dos aeradores baseados no AER do dadosArmazem ou padrão
+      let estadosAeradores = [];
+      
+      if (dadosArmazemPortal.AER) {
+        // Parse do campo AER: "30,30,30,30" -> [30, 30, 30, 30]
+        const valoresAER = dadosArmazemPortal.AER.split(',').map(v => parseInt(v.trim()));
+        estadosAeradores = valoresAER.map(valor => {
+          if (valor > 0) return 1; // ligado
+          else return 0; // desligado
+        });
+      } else {
+        // Estados padrão
+        estadosAeradores = [1, 1, 1, 1, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0];
       }
+
+      aeradorIds.forEach((aeradorId, index) => {
+        const estado = estadosAeradores[index] || 0;
+        this.setarEstadoAerador(aeradorId, estado);
+      });
     },
 
     setarEstadoAerador(aeradorId, estado) {
@@ -818,6 +944,7 @@ export default {
       const svgEl = document.getElementById("des_topo_armazem");
       if (!svgEl) return;
 
+      // Eventos de clique apenas
       svgEl.addEventListener("click", (evento) => {
         const elemento = evento.target;
         const grupo = elemento.parentElement;
@@ -830,6 +957,7 @@ export default {
             this.setArcoSelecionado(novoArco);
             if (this.layoutTopo && this.layoutTopo[novoArco]) {
               this.celulaSelecionada = this.layoutTopo[novoArco].celula;
+              this.atualizarVisualizacao(); // Atualizar imediatamente
             }
             this.$emit('arcoSelecionado', novoArco);
           } else if (tipo === "cabo") {
@@ -840,6 +968,7 @@ export default {
                   const novoArco = parseInt(arcoKey);
                   this.setArcoSelecionado(novoArco);
                   this.celulaSelecionada = arcoData.celula;
+                  this.atualizarVisualizacao(); // Atualizar imediatamente
                   this.$emit('arcoSelecionado', novoArco);
                 }
               }
@@ -847,20 +976,30 @@ export default {
           }
         }
 
-        // Clique em células
+        // Clique em células - atualização imediata
         if (elemento.id && elemento.id.startsWith("rec_celula")) {
           const numeroCelula = parseInt(elemento.id.replace("rec_celula", ""));
-          if (numeroCelula > 0) {
+          if (numeroCelula > 0 && numeroCelula !== this.celulaSelecionada) {
             this.celulaSelecionada = numeroCelula;
-            this.atualizarVisualizacao();
+            this.atualizarVisualizacao(); // Atualizar imediatamente
           }
         }
       });
     },
 
     setArcoSelecionado(novoArco) {
-      this.arcoSelecionado = novoArco;
-      this.atualizarVisualizacao();
+      if (novoArco !== this.arcoSelecionado) {
+        this.arcoSelecionado = novoArco;
+        // Atualizar célula selecionada baseada no arco
+        if (this.layoutTopo && this.layoutTopo[novoArco]) {
+          this.celulaSelecionada = this.layoutTopo[novoArco].celula;
+        }
+        this.atualizarVisualizacao();
+      }
+    },
+
+    fecharTopo() {
+      this.$emit('fecharTopo');
     }
   }
 };
@@ -878,5 +1017,12 @@ export default {
 .btn-outline-light:hover {
   background-color: rgba(255, 255, 255, 0.1);
   border-color: white;
+}
+
+#des_topo_armazem {
+  width: 100%;
+  height: auto;
+  max-height: 85vh;
+  min-height: 350px;
 }
 </style>
