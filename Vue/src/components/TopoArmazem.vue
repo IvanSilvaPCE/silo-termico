@@ -8,11 +8,7 @@
               <i class="fas fa-warehouse me-2"></i>
               Visualização Topo do Armazém
             </h5>
-            <button
-              class="btn btn-outline-light btn-sm"
-              @click="$emit('fecharTopo')"
-              title="Fechar Topo"
-            >
+            <button class="btn btn-outline-light btn-sm" @click="$emit('fecharTopo')" title="Fechar Topo">
               <i class="fas fa-times"></i> Fechar Topo
             </button>
           </div>
@@ -50,7 +46,8 @@ export default {
       celulaSelecionada: 1,
       layoutTopo: null,
       dadosTopo: null,
-      carregando: true
+      carregando: true,
+      maxAeradores: 30
     };
   },
   async mounted() {
@@ -90,27 +87,18 @@ export default {
             2: [197, 50, 206, 254],
             3: [407, 50, 188, 254]
           },
-          aeradores: {
-            1: [65, 0, 1],
-            2: [154, 0, 1],
-            3: [240, 0, 1],
-            4: [329, 0, 1],
-            5: [416, 0, 1],
-            6: [65, 305, 0],
-            7: [154, 305, 0],
-            8: [240, 305, 0],
-            9: [329, 305, 0],
-            10: [416, 305, 0],
-          }
+          aeradores: this.gerarPosicionamentoAeradores(),
         };
 
         const sensores = {};
 
-        // Calcular distribuição dos arcos IGUAL ao React
+        // Calcular distribuição dos arcos para manter dentro do fundo
         const totalArcos = Object.keys(analise.arcos).length;
-        const margemLateral = 30;
-        const margemDireita = 30;
-        const larguraUtilizavel = 600 - margemLateral - margemDireita;
+        // Usar coordenadas exatas do fundo: x=5, largura=590
+        const inicioFundo = 5;
+        const larguraFundo = 590;
+        const margemInterna = 20; // Margem pequena dentro do fundo
+        const larguraUtilizavel = larguraFundo - (margemInterna * 2);
         const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
 
         // Processar arcos baseado na análise IGUAL ao React
@@ -132,30 +120,29 @@ export default {
             // Buscar dados do sensor/pêndulo nos dados originais
             const dadosSensor = this.buscarDadosSensor(dadosJSON, arcoNum, penduloId);
             if (dadosSensor) {
-              // Mover todos os cabos para baixo para preencher melhor o espaço
-            const alturaDisponivel = 254; // Altura total da célula
-            const margemSuperior = 120; // Margem do topo aumentada para empurrar cabos para baixo
-            const margemInferior = 20; // Margem da base reduzida
-            const alturaUtil = alturaDisponivel - margemSuperior - margemInferior;
+              // Posicionamento zigzag seguindo o padrão do HTML de referência
+              // Baseado na célula onde o arco está localizado e o índice do pêndulo
+              let posY;
 
-            let posY;
-            if (arcoNum % 2 === 1) {
-              // Arcos ímpares: distribuir na parte inferior
-              const espacamentoImpar = alturaUtil / Math.max(1, arcoInfo.pendulos.length - 1);
-              posY = margemSuperior + (index * espacamentoImpar);
-            } else {
-              // Arcos pares: distribuir na parte inferior com offset
-              const espacamentoPar = alturaUtil / Math.max(1, arcoInfo.pendulos.length - 1);
-              posY = margemSuperior + (alturaUtil * 0.15) + (index * espacamentoPar);
-            }
+              // Para arcos ímpares (1, 3, 5, etc.), pêndulos ficam mais no topo
+              // Para arcos pares (2, 4, 6, etc.), pêndulos ficam mais embaixo
+              if (arcoNum % 2 === 1) {
+                // Arcos ímpares: posições mais altas (similar ao HTML: 75, 125, 175, 225, 275)
+                const posicoesImpares = [75, 125, 175, 225, 275];
+                posY = posicoesImpares[index % posicoesImpares.length];
+              } else {
+                // Arcos pares: posições mais baixas (similar ao HTML: 100, 150, 200, 250)
+                const posicoesPares = [100, 150, 200, 250];
+                posY = posicoesPares[index % posicoesPares.length];
+              }
 
-            sensoresDoArco[penduloId] = posY;
+              sensoresDoArco[penduloId] = posY;
               sensores[penduloId] = dadosSensor;
             }
           });
 
-          // Calcular posição X do arco para distribuição uniforme IGUAL ao React
-          const posX = margemLateral + ((arcoNum - 1) * espacamentoArco);
+          // Calcular posição X do arco para distribuição uniforme dentro do fundo
+          const posX = inicioFundo + margemInterna + ((arcoNum - 1) * espacamentoArco);
 
           layout[arcoNum] = {
             celula: celula,
@@ -217,25 +204,16 @@ export default {
           2: [207, 50, 186, 254],
           3: [402, 50, 188, 254],
         },
-        aeradores: {
-          1: [65, 0, 1],
-          2: [154, 0, 1],
-          3: [240, 0, 1],
-          4: [329, 0, 1],
-          5: [416, 0, 1],
-          6: [65, 305, 0],
-          7: [154, 305, 0],
-          8: [240, 305, 0],
-          9: [329, 305, 0],
-          10: [416, 305, 0],
-        },
+        aeradores: this.gerarPosicionamentoAeradores(),
       };
 
       const arcosParaCelula = Math.ceil(totalArcos / 3);
       const pendulosArray = Object.entries(pendulos);
-      const margemLateral = 30;
-      const margemDireita = 30;
-      const larguraUtilizavel = 600 - margemLateral - margemDireita;
+      // Usar coordenadas exatas do fundo para layout automático
+      const inicioFundo = 5;
+      const larguraFundo = 590;
+      const margemInterna = 20;
+      const larguraUtilizavel = larguraFundo - (margemInterna * 2);
       const espacamentoArco = totalArcos > 1 ? larguraUtilizavel / (totalArcos - 1) : 0;
 
       for (let arco = 1; arco <= totalArcos; arco++) {
@@ -251,26 +229,29 @@ export default {
 
         const sensores = {};
         pendulosDoArco.forEach(([id], index) => {
-          // Distribuição com espaçamento expandido para preencher o fundo - cabos mais abaixo
-          const alturaDisponivel = 254; // Altura da célula
-          const margemSuperior = 120; // Margem do topo aumentada para empurrar cabos para baixo
-          const margemInferior = 20; // Margem da base reduzida
-          const alturaUtil = alturaDisponivel - margemSuperior - margemInferior;
-
+          // Posicionamento zigzag seguindo o padrão do HTML de referência
           let posY;
+
           if (pendulosDoArco.length === 1) {
-            // Um pêndulo: posicionar na parte inferior
-            posY = margemSuperior + (alturaUtil / 2);
+            // Um pêndulo: posicionar no centro
+            posY = 175; // Centro aproximado
           } else {
-            // Múltiplos pêndulos: usar todo o espaço disponível na parte inferior
-            const espacamentoBase = alturaUtil / Math.max(1, pendulosDoArco.length - 1);
-            posY = margemSuperior + (index * espacamentoBase);
+            // Posicionamento zigzag baseado no número do arco
+            if (arco % 2 === 1) {
+              // Arcos ímpares: posições mais altas
+              const posicoesImpares = [75, 125, 175, 225, 275];
+              posY = posicoesImpares[index % posicoesImpares.length];
+            } else {
+              // Arcos pares: posições mais baixas
+              const posicoesPares = [100, 150, 200, 250];
+              posY = posicoesPares[index % posicoesPares.length];
+            }
           }
 
           sensores[id] = posY;
         });
 
-        const posX = margemLateral + ((arco - 1) * espacamentoArco);
+        const posX = inicioFundo + margemInterna + ((arco - 1) * espacamentoArco);
 
         layout[arco] = {
           celula: celula,
@@ -280,6 +261,27 @@ export default {
       }
 
       return layout;
+    },
+
+    gerarPosicionamentoAeradores() {
+      // Usar posições fixas do JSON
+      return {
+        "1": [28, 305, 0],
+        "2": [104, 305, 0],
+        "3": [165, 305, 0],
+        "4": [88, 340, 0],
+        "5": [88, 0, 1],
+        "6": [224, 305, 0],
+        "7": [284, 305, 0],
+        "8": [344, 305, 0],
+        "9": [284, 340, 0],
+        "10": [284, 0, 1],
+        "11": [404, 305, 0],
+        "12": [464, 305, 0],
+        "13": [538, 305, 0],
+        "14": [478, 340, 0],
+        "15": [478, 0, 1]
+      };
     },
 
     criarSVGTopo() {
@@ -554,7 +556,7 @@ export default {
       texto.setAttribute("fill", "white");
       texto.textContent = `AE-${idAerador}`;
 
-      // Posicionar texto acima ou abaixo
+      // Posicionar texto acima ou abaixo dos aeradores
       if (textoAcima === 1) {
         texto.setAttribute("x", 70 + 12.5 + 3.5);
         texto.setAttribute("y", 0 + 7);
@@ -571,8 +573,8 @@ export default {
       circulo.setAttribute("r", 10.5);
       circulo.setAttribute("fill", "#c5c5c5");
 
-      // Definir path da blade
-      const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z";
+      // Definir path da blade (ajustado para ser centrado no círculo)
+      const dBlade = "M86.35 14.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z";
 
       // Blade parada
       const bladeParada = document.createElementNS("http://www.w3.org/2000/svg", "path");
@@ -584,12 +586,12 @@ export default {
       bladeGirando.setAttribute("d", dBlade);
       bladeGirando.setAttribute("fill", "white");
 
-      // Animação da blade girando
+      // Animação da blade girando (centrada no círculo)
       const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animateTransform");
       animacao.setAttribute("attributeName", "transform");
       animacao.setAttribute("type", "rotate");
       animacao.setAttribute("dur", "2s");
-      animacao.setAttribute("values", "0 86.35 24.05; 360 86.35 24.05;");
+      animacao.setAttribute("values", "0 89.0 12; 360 89.0 12;");
       animacao.setAttribute("repeatCount", "indefinite");
 
       // Montar estrutura
