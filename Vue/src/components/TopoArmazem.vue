@@ -120,20 +120,26 @@ export default {
             // Buscar dados do sensor/pêndulo nos dados originais
             const dadosSensor = this.buscarDadosSensor(dadosJSON, arcoNum, penduloId);
             if (dadosSensor) {
-              // Posicionamento zigzag seguindo o padrão do HTML de referência
-              // Baseado na célula onde o arco está localizado e o índice do pêndulo
+              // Implementar padrão zigzag exatamente como no HTML de referência e na imagem
               let posY;
 
-              // Para arcos ímpares (1, 3, 5, etc.), pêndulos ficam mais no topo
-              // Para arcos pares (2, 4, 6, etc.), pêndulos ficam mais embaixo
-              if (arcoNum % 2 === 1) {
-                // Arcos ímpares: posições mais altas (similar ao HTML: 75, 125, 175, 225, 275)
-                const posicoesImpares = [75, 125, 175, 225, 275];
-                posY = posicoesImpares[index % posicoesImpares.length];
+              if (arcoInfo.pendulos.length === 1) {
+                // Um pêndulo: posicionar no centro
+                posY = 177; // Centro aproximado da célula
               } else {
-                // Arcos pares: posições mais baixas (similar ao HTML: 100, 150, 200, 250)
-                const posicoesPares = [100, 150, 200, 250];
-                posY = posicoesPares[index % posicoesPares.length];
+                // Padrão zigzag seguindo exatamente o HTML de referência
+                // Arcos ímpares (1, 3, 5, 7...): posições fixas de cima para baixo
+                // Arcos pares (2, 4, 6, 8...): posições fixas intercaladas
+                
+                if (arcoNum % 2 === 1) {
+                  // Arcos ímpares: usar posições sequenciais [75, 125, 175, 225, 275]
+                  const posicoesImpares = [75, 125, 175, 225, 275];
+                  posY = posicoesImpares[index % posicoesImpares.length];
+                } else {
+                  // Arcos pares: usar posições intercaladas [100, 150, 200, 250]
+                  const posicoesPares = [100, 150, 200, 250];
+                  posY = posicoesPares[index % posicoesPares.length];
+                }
               }
 
               sensoresDoArco[penduloId] = posY;
@@ -477,7 +483,7 @@ export default {
       circulo.setAttribute("r", 9);
       circulo.setAttribute("fill", "white");
 
-      // Texto do cabo
+      // Texto do cabo - usar "C" + número como no HTML de referência
       const texto = document.createElementNS("http://www.w3.org/2000/svg", "text");
       texto.setAttribute("id", `t_cabo_${idCabo}`);
       texto.setAttribute("x", posX);
@@ -487,7 +493,7 @@ export default {
       texto.setAttribute("font-weight", "bold");
       texto.setAttribute("font-size", "7.75");
       texto.setAttribute("font-family", "Arial");
-      texto.textContent = `P${idCabo}`;
+      texto.textContent = `C${idCabo}`;
 
       // Círculo de falha (oculto inicialmente)
       const circuloFalha = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -499,7 +505,7 @@ export default {
       circuloFalha.setAttribute("fill-opacity", "0.6");
       circuloFalha.setAttribute("visibility", "hidden");
 
-      // Ordem dos elementos: ponto quente, círculo, texto, falha
+      // Ordem dos elementos seguindo o HTML de referência: ponto quente, círculo, texto, falha
       grupo.appendChild(circuloPQ);
       grupo.appendChild(circulo);
       grupo.appendChild(texto);
@@ -573,25 +579,25 @@ export default {
       circulo.setAttribute("r", 10.5);
       circulo.setAttribute("fill", "#c5c5c5");
 
-      // Definir path da blade (ajustado para ser centrado no círculo)
-      const dBlade = "M86.35 14.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z";
+      // Usar exatamente o mesmo path do HTML de referência
+      const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 -0.0599,-0.1627 -0.0927,-0.3386 -0.0927,-0.5221 0,-0.1159 0.0131,-0.2287 0.0378,-0.3371 -2.7913,-0.5199 -5.9807,-0.6695 -6.4392,-2.7909 -0.0128,-1.1872 0.2692,-1.9342 1.3353,-3.2209 1.8235,3.4167 3.7637,4.2185 5.4165,5.3813 0.1852,-0.2222 0.433,-0.3903 0.7163,-0.4775 -0.9455,-2.6773 -2.4105,-5.5141 -0.8027,-6.9719 1.0218,-0.6046 1.8097,-0.734 3.4571,-0.454 -2.0471,3.2874 -1.7715,5.3685 -1.9521,7.3812 0.2952,0.0506 0.5612,0.1868 0.7714,0.3822 1.8461,-2.1575 3.5703,-4.845 5.6368,-4.1814 1.0345,0.5826 1.5405,1.2002 2.1218,2.7669 -3.8705,-0.1291 -5.535,1.15 -7.3682,2 0.0599,0.1627 0.0927,0.3386 0.0927,0.5221z";
 
-      // Blade parada
+      // Blade parada - usar coordenadas absolutas como no HTML
       const bladeParada = document.createElementNS("http://www.w3.org/2000/svg", "path");
       bladeParada.setAttribute("d", dBlade);
       bladeParada.setAttribute("fill", "white");
 
-      // Blade girando
+      // Blade girando - usar coordenadas absolutas como no HTML
       const bladeGirando = document.createElementNS("http://www.w3.org/2000/svg", "path");
       bladeGirando.setAttribute("d", dBlade);
       bladeGirando.setAttribute("fill", "white");
 
-      // Animação da blade girando (centrada no círculo)
+      // Animação da blade girando - usar coordenadas exatas do HTML
       const animacao = document.createElementNS("http://www.w3.org/2000/svg", "animateTransform");
       animacao.setAttribute("attributeName", "transform");
       animacao.setAttribute("type", "rotate");
       animacao.setAttribute("dur", "2s");
-      animacao.setAttribute("values", "0 89.0 12; 360 89.0 12;");
+      animacao.setAttribute("values", "0 86.35 24.05; 360 86.35 24.05;");
       animacao.setAttribute("repeatCount", "indefinite");
 
       // Montar estrutura
