@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-0">
     <div class="row g-0">
@@ -76,13 +75,13 @@ export default {
     async processarDados() {
       try {
         this.carregando = true;
-        
+
         // Usar dados importados diretamente
         const dadosJSON = dadosArmazemPortal;
 
         // Analisar estrutura dos arcos usando LayoutManager
         const analise = LayoutManager.analisarEstruturaArcos(dadosJSON);
-        
+
         const layout = {
           celulas: {
             tamanho_svg: [600, 388],
@@ -117,7 +116,7 @@ export default {
         // Processar arcos baseado na análise IGUAL ao React
         Object.entries(analise.arcos).forEach(([arcoId, arcoInfo]) => {
           const arcoNum = parseInt(arcoId);
-          
+
           // Determinar célula baseado no número do arco IGUAL ao React
           let celula;
           if (arcoNum <= 6) celula = 1;
@@ -125,25 +124,32 @@ export default {
           else celula = 3;
 
           const sensoresDoArco = {};
-          
+
           // Processar pêndulos deste arco
           arcoInfo.pendulos.forEach((pendulo, index) => {
             const penduloId = pendulo.numero.toString();
-            
+
             // Buscar dados do sensor/pêndulo nos dados originais
             const dadosSensor = this.buscarDadosSensor(dadosJSON, arcoNum, penduloId);
             if (dadosSensor) {
-              // Posição Y alternada IGUAL ao React
-              let posY;
-              if (arcoNum % 2 === 1) {
-                // Arcos ímpares: posições mais para cima
-                posY = 80 + index * 40;
-              } else {
-                // Arcos pares: posições mais para baixo
-                posY = 140 + index * 40;
-              }
-              
-              sensoresDoArco[penduloId] = posY;
+              // Mover todos os cabos para baixo para preencher melhor o espaço
+            const alturaDisponivel = 254; // Altura total da célula
+            const margemSuperior = 120; // Margem do topo aumentada para empurrar cabos para baixo
+            const margemInferior = 20; // Margem da base reduzida
+            const alturaUtil = alturaDisponivel - margemSuperior - margemInferior;
+
+            let posY;
+            if (arcoNum % 2 === 1) {
+              // Arcos ímpares: distribuir na parte inferior
+              const espacamentoImpar = alturaUtil / Math.max(1, arcoInfo.pendulos.length - 1);
+              posY = margemSuperior + (index * espacamentoImpar);
+            } else {
+              // Arcos pares: distribuir na parte inferior com offset
+              const espacamentoPar = alturaUtil / Math.max(1, arcoInfo.pendulos.length - 1);
+              posY = margemSuperior + (alturaUtil * 0.15) + (index * espacamentoPar);
+            }
+
+            sensoresDoArco[penduloId] = posY;
               sensores[penduloId] = dadosSensor;
             }
           });
@@ -245,12 +251,22 @@ export default {
 
         const sensores = {};
         pendulosDoArco.forEach(([id], index) => {
+          // Distribuição com espaçamento expandido para preencher o fundo - cabos mais abaixo
+          const alturaDisponivel = 254; // Altura da célula
+          const margemSuperior = 120; // Margem do topo aumentada para empurrar cabos para baixo
+          const margemInferior = 20; // Margem da base reduzida
+          const alturaUtil = alturaDisponivel - margemSuperior - margemInferior;
+
           let posY;
-          if (arco % 2 === 1) {
-            posY = 80 + index * 40;
+          if (pendulosDoArco.length === 1) {
+            // Um pêndulo: posicionar na parte inferior
+            posY = margemSuperior + (alturaUtil / 2);
           } else {
-            posY = 140 + index * 40;
+            // Múltiplos pêndulos: usar todo o espaço disponível na parte inferior
+            const espacamentoBase = alturaUtil / Math.max(1, pendulosDoArco.length - 1);
+            posY = margemSuperior + (index * espacamentoBase);
           }
+
           sensores[id] = posY;
         });
 
@@ -469,7 +485,7 @@ export default {
       texto.setAttribute("font-weight", "bold");
       texto.setAttribute("font-size", "7.75");
       texto.setAttribute("font-family", "Arial");
-      texto.textContent = `C${idCabo}`;
+      texto.textContent = `P${idCabo}`;
 
       // Círculo de falha (oculto inicialmente)
       const circuloFalha = document.createElementNS("http://www.w3.org/2000/svg", "circle");
@@ -664,7 +680,7 @@ export default {
       Object.entries(this.dadosTopo).forEach(([idCabo, dados]) => {
         // Verificar se dados está no formato correto IGUAL ao React
         let temperatura, falha, pontoQuente, nivel;
-        
+
         if (Array.isArray(dados)) {
           if (dados.length === 4) {
             // Formato antigo: [falha, pontoQuente, nivel, temperatura]
