@@ -12,7 +12,6 @@
         Mostrar Labels
       </label>
       <div style="margin-top: 10px;">
-        <small style="display: block;">Nível: {{ nivelAtual.toFixed(1)}}</small>
         <small style="display: block;">Sensores: {{ totalSensores }}</small>
         <small style="display: block;">Pêndulos: {{ totalPendulos }}</small>
       </div>
@@ -283,22 +282,22 @@ export default {
         opacity: 0.4
       });
 
-      // Paredes laterais (retas)
-      const paredeGeometry = new THREE.BoxGeometry(espessuraParede, this.alturaArmazem, this.profundidadeArmazem);
+      // Paredes laterais (retas) - agora nas laterais esquerda e direita
+      const paredeLateralGeometry = new THREE.BoxGeometry(this.larguraArmazem, this.alturaArmazem, espessuraParede);
 
-      // Parede esquerda
-      const paredeEsquerda = new THREE.Mesh(paredeGeometry, paredeMaterial);
-      paredeEsquerda.position.set(-this.larguraArmazem / 2, this.alturaArmazem / 2, 0);
+      // Parede esquerda (lateral)
+      const paredeEsquerda = new THREE.Mesh(paredeLateralGeometry, paredeMaterial);
+      paredeEsquerda.position.set(0, this.alturaArmazem / 2, -this.profundidadeArmazem / 2);
       paredeEsquerda.castShadow = true;
       this.scene.add(paredeEsquerda);
 
-      // Parede direita
-      const paredeDireita = new THREE.Mesh(paredeGeometry, paredeMaterial);
-      paredeDireita.position.set(this.larguraArmazem / 2, this.alturaArmazem / 2, 0);
+      // Parede direita (lateral)
+      const paredeDireita = new THREE.Mesh(paredeLateralGeometry, paredeMaterial);
+      paredeDireita.position.set(0, this.alturaArmazem / 2, this.profundidadeArmazem / 2);
       paredeDireita.castShadow = true;
       this.scene.add(paredeDireita);
 
-      // Paredes frontais triangulares (seguindo o formato do telhado)
+      // Paredes frontais triangulares (frente e fundo para alinhar com o telhado)
       this.buildParedesTriangulares(paredeMaterial, espessuraParede);
 
       // Telhado em duas águas
@@ -309,30 +308,43 @@ export default {
     },
 
     buildParedesTriangulares(paredeMaterial, espessuraParede) {
-      // Altura do pico do telhado
-      const alturaPico = this.alturaArmazem + 0.8;
+      const alturaTelhado = this.alturaArmazem + 0.6;
+      const inclinacaoTelhado = Math.PI / 12;
       
-      // Criar geometria triangular para as paredes frontais
-      const pontos = [
-        // Base da parede (retângulo)
-        new THREE.Vector3(-this.larguraArmazem / 2, 0, 0),
-        new THREE.Vector3(this.larguraArmazem / 2, 0, 0),
-        new THREE.Vector3(this.larguraArmazem / 2, this.alturaArmazem, 0),
-        new THREE.Vector3(-this.larguraArmazem / 2, this.alturaArmazem, 0),
-        // Pico triangular
-        new THREE.Vector3(0, alturaPico, 0)
-      ];
-
-      // Criar shape para a parede frontal
+      // Criar shape que segue exatamente o formato do telhado em V
       const shape = new THREE.Shape();
-      shape.moveTo(-this.larguraArmazem / 2, 0);
-      shape.lineTo(this.larguraArmazem / 2, 0);
-      shape.lineTo(this.larguraArmazem / 2, this.alturaArmazem);
-      shape.lineTo(0, alturaPico); // Pico do triângulo
-      shape.lineTo(-this.larguraArmazem / 2, this.alturaArmazem);
-      shape.lineTo(-this.larguraArmazem / 2, 0);
+      
+      // Começar da base esquerda
+      shape.moveTo(-this.profundidadeArmazem / 2, 0);
+      
+      // Ir para base direita
+      shape.lineTo(this.profundidadeArmazem / 2, 0);
+      
+      // Subir verticalmente até a altura da parede reta
+      shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
+      
+      // Calcular onde o telhado começa a inclinar (exatamente na borda do telhado)
+      const inicioProfundidadeTelhado = this.profundidadeArmazem / 4; // Onde começa a inclinação
+      
+      // Altura no ponto onde começa a inclinação do telhado
+      const alturaInicioInclinacao = alturaTelhado - (inicioProfundidadeTelhado * Math.tan(inclinacaoTelhado));
+      
+      // Seguir a inclinação do telhado do lado direito
+      shape.lineTo(inicioProfundidadeTelhado, alturaInicioInclinacao);
+      
+      // Ir até o pico central (cumeeira)
+      shape.lineTo(0, alturaTelhado);
+      
+      // Descer seguindo a inclinação do telhado do lado esquerdo
+      shape.lineTo(-inicioProfundidadeTelhado, alturaInicioInclinacao);
+      
+      // Descer verticalmente até a altura da parede reta
+      shape.lineTo(-this.profundidadeArmazem / 2, this.alturaArmazem);
+      
+      // Fechar voltando à base
+      shape.lineTo(-this.profundidadeArmazem / 2, 0);
 
-      // Geometria extrudada para dar espessura à parede
+      // Geometria extrudada
       const extrudeSettings = {
         depth: espessuraParede,
         bevelEnabled: false
@@ -342,20 +354,23 @@ export default {
 
       // Parede frontal
       const paredeFrente = new THREE.Mesh(paredeTriangularGeometry, paredeMaterial);
-      paredeFrente.position.set(0, 0, -this.profundidadeArmazem / 2 - espessuraParede / 2);
+      paredeFrente.position.set(-this.larguraArmazem / 2, 0, 0);
+      paredeFrente.rotation.y = Math.PI / 2;
       paredeFrente.castShadow = true;
       this.scene.add(paredeFrente);
 
-      // Parede traseira (rotacionada 180 graus)
+      // Parede traseira
       const paredeTras = new THREE.Mesh(paredeTriangularGeometry, paredeMaterial);
-      paredeTras.position.set(0, 0, this.profundidadeArmazem / 2 + espessuraParede / 2);
-      paredeTras.rotation.y = Math.PI;
+      paredeTras.position.set(this.larguraArmazem / 2, 0, 0);
+      paredeTras.rotation.y = -Math.PI / 2;
       paredeTras.castShadow = true;
       this.scene.add(paredeTras);
     },
 
     buildTelhado(cor) {
-      const telhadoGeometry = new THREE.BoxGeometry(this.larguraArmazem + 1.5, 0.1, this.profundidadeArmazem / 2 + 0.3);
+      // Ajustar as dimensões para ter melhor alinhamento
+      const extensaoTelhado = 0.8; // Reduzir a extensão para não ultrapassar tanto
+      const telhadoGeometry = new THREE.BoxGeometry(this.larguraArmazem + extensaoTelhado, 0.1, this.profundidadeArmazem / 2 + 0.2);
       const telhadoMaterial = new THREE.MeshStandardMaterial({
         color: cor,
         metalness: 0.1,
@@ -363,23 +378,24 @@ export default {
       });
 
       const alturaTelhado = this.alturaArmazem + 0.6;
+      const inclinacao = Math.PI / 12;
 
       // Primeira parte do telhado (inclinada)
       const telhado1 = new THREE.Mesh(telhadoGeometry, telhadoMaterial);
       telhado1.position.set(0, alturaTelhado, -this.profundidadeArmazem / 4);
-      telhado1.rotation.x = -Math.PI / 12;
+      telhado1.rotation.x = -inclinacao;
       telhado1.castShadow = true;
       this.scene.add(telhado1);
 
       // Segunda parte do telhado (inclinada)
       const telhado2 = new THREE.Mesh(telhadoGeometry, telhadoMaterial);
       telhado2.position.set(0, alturaTelhado, this.profundidadeArmazem / 4);
-      telhado2.rotation.x = Math.PI / 12;
+      telhado2.rotation.x = inclinacao;
       telhado2.castShadow = true;
       this.scene.add(telhado2);
 
-      // Cumeeira (linha central do telhado)
-      const cumeeiraGeometry = new THREE.BoxGeometry(this.larguraArmazem + 1.6, 0.1, 0.2);
+      // Cumeeira (linha central do telhado) - ajustar largura
+      const cumeeiraGeometry = new THREE.BoxGeometry(this.larguraArmazem + extensaoTelhado + 0.1, 0.12, 0.15);
       const cumeeira = new THREE.Mesh(cumeeiraGeometry, telhadoMaterial);
       cumeeira.position.set(0, alturaTelhado + 0.2, 0);
       cumeeira.castShadow = true;
@@ -540,35 +556,116 @@ export default {
     },
 
     buildNivelVisual() {
-      if (!this.nivelAtual) return;
+      if (!this.nivelAtual || this.nivelAtual <= 0) return;
+
+      // Verificar se existe pelo menos um sensor com nível true
+      let temNivel = false;
+      if (this.dados?.arcos) {
+        Object.values(this.dados.arcos).forEach(arco => {
+          Object.values(arco).forEach(pendulo => {
+            Object.values(pendulo).forEach(sensor => {
+              // sensor = [temperatura, pontoQuente, preAlarme, falha, nivel]
+              if (sensor[4] === true) { // Índice 4 é o nível
+                temNivel = true;
+              }
+            });
+          });
+        });
+      }
+
+      // Se não há nível em nenhum sensor, não renderizar
+      if (!temNivel) {
+        console.log('Nenhum sensor com nível detectado. Não renderizando visualização de grãos.');
+        return;
+      }
 
       // Calcular altura do nível em relação ao armazém
       const percentualNivel = this.nivelAtual / 100;
-      const alturaNivel = percentualNivel * this.alturaArmazem * 0.8; // 80% da altura máxima
+      const alturaNivel = percentualNivel * this.alturaArmazem * 0.85; // 85% da altura máxima
 
-      // Criar plano representando o nível do material - SEMPRE VISÍVEL
-      const nivelGeometry = new THREE.PlaneGeometry(this.larguraArmazem * 0.9, this.profundidadeArmazem * 0.9);
+      // Criar geometria sólida 3D do nível de grãos (similar ao Silo3D)
+      const segmentos = 32;
+      const nivelGeometry = new THREE.BoxGeometry(
+        this.larguraArmazem * 0.95, 
+        alturaNivel, 
+        this.profundidadeArmazem * 0.95
+      );
+
+      // Material profissional transparente para visualizar cabos por dentro
       const nivelMaterial = new THREE.MeshStandardMaterial({
-        color: 0xD2B48C, // Cor de grão
+        color: 0xD4B886, // Cor realista de grão
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.4, // Bem transparente para ver cabos
+        roughness: 0.9,
+        metalness: 0.1,
         side: THREE.DoubleSide,
-        depthWrite: false, // Evita conflitos de profundidade
+        depthWrite: false, // Importante para transparência correta
         depthTest: true
       });
-      const nivelPlane = new THREE.Mesh(nivelGeometry, nivelMaterial);
-      nivelPlane.rotation.x = -Math.PI / 2;
-      nivelPlane.position.set(0, alturaNivel + 0.1, 0);
-      nivelPlane.renderOrder = 1; // Garantir que seja renderizado
-      this.scene.add(nivelPlane);
 
-      // Label do nível
+      const nivelMesh = new THREE.Mesh(nivelGeometry, nivelMaterial);
+      nivelMesh.position.set(0, alturaNivel / 2 + 0.1, 0);
+      nivelMesh.receiveShadow = true;
+      nivelMesh.castShadow = false; // Não projetar sombra para não interferir
+      nivelMesh.renderOrder = -1; // Renderizar antes para melhor transparência
+      this.scene.add(nivelMesh);
+
+      // Criar superfície superior com textura mais realista
+      const superficieGeometry = new THREE.PlaneGeometry(
+        this.larguraArmazem * 0.95, 
+        this.profundidadeArmazem * 0.95
+      );
+      
+      const superficieMaterial = new THREE.MeshStandardMaterial({
+        color: 0xE6D7B8, // Cor mais clara para a superfície
+        transparent: true,
+        opacity: 0.6,
+        roughness: 0.95,
+        metalness: 0.05,
+        side: THREE.DoubleSide
+      });
+
+      const superficiePlane = new THREE.Mesh(superficieGeometry, superficieMaterial);
+      superficiePlane.rotation.x = -Math.PI / 2;
+      superficiePlane.position.set(0, alturaNivel + 0.12, 0);
+      superficiePlane.receiveShadow = true;
+      this.scene.add(superficiePlane);
+
+      // Adicionar pequenas variações na superfície para realismo
+      this.addGrainSurfaceDetails(alturaNivel);
+
+      // Label discreto do nível (opcional)
       if (this.mostrarLabels) {
-        this.createTextSprite(`Nível: ${this.nivelAtual.toFixed(1)}%`, {
-          x: this.larguraArmazem / 2 - 2,
-          y: alturaNivel + 0.5,
-          z: this.profundidadeArmazem / 2 - 1
+        this.createTextSprite(`${this.nivelAtual.toFixed(1)}%`, {
+          x: -this.larguraArmazem / 2 + 1,
+          y: alturaNivel + 0.8,
+          z: -this.profundidadeArmazem / 2 + 1
+        }, 0.3);
+      }
+    },
+
+    addGrainSurfaceDetails(alturaNivel) {
+      // Adicionar pequenos detalhes na superfície para maior realismo
+      const numDetalhes = 15;
+      
+      for (let i = 0; i < numDetalhes; i++) {
+        // Posições aleatórias dentro do armazém
+        const x = (Math.random() - 0.5) * this.larguraArmazem * 0.8;
+        const z = (Math.random() - 0.5) * this.profundidadeArmazem * 0.8;
+        
+        // Pequenas elevações na superfície
+        const detalheGeometry = new THREE.SphereGeometry(0.1 + Math.random() * 0.1, 8, 6);
+        const detalheMaterial = new THREE.MeshStandardMaterial({
+          color: 0xC8B99C,
+          transparent: true,
+          opacity: 0.3,
+          roughness: 0.9
         });
+        
+        const detalhe = new THREE.Mesh(detalheGeometry, detalheMaterial);
+        detalhe.position.set(x, alturaNivel + 0.15, z);
+        detalhe.scale.y = 0.3; // Achatar um pouco
+        this.scene.add(detalhe);
       }
     },
 
@@ -578,9 +675,16 @@ export default {
         return;
       }
 
-      // Usar TODOS os aeradores dos dados
       const aeradores = this.dados.configuracao.layout_topo.aeradores;
-      console.log('Construindo aeradores:', aeradores);
+      const totalAeradores = Object.keys(aeradores).length;
+      
+      console.log(`Construindo ${totalAeradores} aeradores:`, aeradores);
+
+      // Se não há aeradores, sair
+      if (totalAeradores === 0) {
+        console.log('Nenhum aerador para construir');
+        return;
+      }
 
       // Obter estados dos aeradores do campo AER
       let estadosAeradores = [];
@@ -589,36 +693,74 @@ export default {
         estadosAeradores = valoresAER;
       }
 
+      // Calcular distâncias para distribuição externa
+      const margemExterna = 2.5;
+      const perimetroTotal = 2 * (this.larguraArmazem + this.profundidadeArmazem);
+      const espacamentoPerimetro = perimetroTotal / totalAeradores;
+
       Object.entries(aeradores).forEach(([aeradorId, posicao], index) => {
         const [posX2D, posY2D, textoAcima] = posicao;
         
-        // Converter coordenadas 2D para 3D
-        const tamanhoSVG = this.dados.configuracao?.layout_topo?.celulas?.tamanho_svg || [600, 388];
-        let posX3D = -this.larguraArmazem / 2 + (posX2D / tamanhoSVG[0]) * this.larguraArmazem;
-        let posZ3D = -this.profundidadeArmazem / 2 + (posY2D / tamanhoSVG[1]) * this.profundidadeArmazem;
+        // Estratégia de posicionamento baseada na quantidade
+        let posX3D, posZ3D;
         
-        // GARANTIR que motores fiquem FORA das paredes
-        const margemExterna = 2.0;
-        
-        // Empurrar para fora se estiver muito próximo das paredes
-        if (Math.abs(posX3D) < this.larguraArmazem / 2 + 1) {
-          if (posX3D >= 0) {
+        if (totalAeradores <= 4) {
+          // Poucos aeradores: distribuir nos cantos
+          const cantos = [
+            [-this.larguraArmazem / 2 - margemExterna, -this.profundidadeArmazem / 2 - margemExterna], // Canto superior esquerdo
+            [this.larguraArmazem / 2 + margemExterna, -this.profundidadeArmazem / 2 - margemExterna],  // Canto superior direito
+            [this.larguraArmazem / 2 + margemExterna, this.profundidadeArmazem / 2 + margemExterna],   // Canto inferior direito
+            [-this.larguraArmazem / 2 - margemExterna, this.profundidadeArmazem / 2 + margemExterna]   // Canto inferior esquerdo
+          ];
+          [posX3D, posZ3D] = cantos[index % 4];
+          
+        } else if (totalAeradores <= 8) {
+          // Quantidade média: distribuir nos cantos e meio das bordas
+          const posicoes = [
+            // Cantos
+            [-this.larguraArmazem / 2 - margemExterna, -this.profundidadeArmazem / 2 - margemExterna],
+            [this.larguraArmazem / 2 + margemExterna, -this.profundidadeArmazem / 2 - margemExterna],
+            [this.larguraArmazem / 2 + margemExterna, this.profundidadeArmazem / 2 + margemExterna],
+            [-this.larguraArmazem / 2 - margemExterna, this.profundidadeArmazem / 2 + margemExterna],
+            // Meio das bordas
+            [0, -this.profundidadeArmazem / 2 - margemExterna], // Meio topo
+            [this.larguraArmazem / 2 + margemExterna, 0],       // Meio direita
+            [0, this.profundidadeArmazem / 2 + margemExterna],  // Meio fundo
+            [-this.larguraArmazem / 2 - margemExterna, 0]       // Meio esquerda
+          ];
+          [posX3D, posZ3D] = posicoes[index % 8];
+          
+        } else {
+          // Muitos aeradores: distribuir uniformemente ao redor do perímetro
+          const distanciaPerimetro = index * espacamentoPerimetro;
+          
+          // Determinar em qual lado do armazém o aerador ficará
+          const ladoTopo = this.larguraArmazem;
+          const ladoDireita = this.profundidadeArmazem;
+          const ladoFundo = this.larguraArmazem;
+          const ladoEsquerda = this.profundidadeArmazem;
+          
+          if (distanciaPerimetro <= ladoTopo) {
+            // Lado superior
+            posX3D = -this.larguraArmazem / 2 + distanciaPerimetro;
+            posZ3D = -this.profundidadeArmazem / 2 - margemExterna;
+          } else if (distanciaPerimetro <= ladoTopo + ladoDireita) {
+            // Lado direito
             posX3D = this.larguraArmazem / 2 + margemExterna;
-          } else {
-            posX3D = -this.larguraArmazem / 2 - margemExterna;
-          }
-        }
-        
-        if (Math.abs(posZ3D) < this.profundidadeArmazem / 2 + 1) {
-          if (posZ3D >= 0) {
+            posZ3D = -this.profundidadeArmazem / 2 + (distanciaPerimetro - ladoTopo);
+          } else if (distanciaPerimetro <= ladoTopo + ladoDireita + ladoFundo) {
+            // Lado inferior
+            posX3D = this.larguraArmazem / 2 - (distanciaPerimetro - ladoTopo - ladoDireita);
             posZ3D = this.profundidadeArmazem / 2 + margemExterna;
           } else {
-            posZ3D = -this.profundidadeArmazem / 2 - margemExterna;
+            // Lado esquerdo
+            posX3D = -this.larguraArmazem / 2 - margemExterna;
+            posZ3D = this.profundidadeArmazem / 2 - (distanciaPerimetro - ladoTopo - ladoDireita - ladoFundo);
           }
         }
 
         // Usar estado do AER ou padrão
-        const estado = estadosAeradores[index] || 0;
+        const estado = estadosAeradores[index] !== undefined ? estadosAeradores[index] : 0;
         const statusAerador = estado > 0 ? 3 : 0; // 3 = ligado, 0 = desligado
         
         this.createAerador([posX3D, 0.3, posZ3D], parseInt(aeradorId), statusAerador);
