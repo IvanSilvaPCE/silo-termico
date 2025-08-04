@@ -567,29 +567,6 @@
                     </button>
                   </div>
                 </div>
-
-                <div v-if="configArmazem.tipo_telhado === 1" class="mb-2">
-                  <label class="small fw-bold">Curvatura das Laterais:</label>
-                  <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.curvatura_laterais"
-                      type="range"
-                      min="0"
-                      max="50"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
-                    <span class="input-group-text">{{ configArmazem.curvatura_laterais }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('curvatura_laterais', 0)"
-                      title="Reset"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
               </div>
             </div>
 
@@ -874,7 +851,7 @@
                         <button
                           type="button"
                           class="btn btn-outline-secondary"
-@click="resetArmazemField('largura_plataforma_duplo_v', 10)"
+                          @click="resetArmazemField('largura_plataforma_duplo_v', 10)"
                           title="Reset"
                         >
                           ×
@@ -1097,6 +1074,14 @@
             >
               🗑️ Limpar Todos os Modelos
             </button>
+            <button 
+              v-if="dadosVindosDoPreview" 
+              type="button" 
+              class="btn btn-info" 
+              @click="voltarParaPreview"
+            >
+              ⬅️ Voltar ao Preview
+            </button>
           </div>
 
           <!-- Gerenciador de Configurações -->
@@ -1200,11 +1185,14 @@
               <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
                 <h6 class="mb-1 mb-md-0">
                   Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
+                  <span v-if="dadosVindosDoPreview" class="badge bg-success ms-2" title="Dados carregados do preview do Armazém">
+                    📊 PREVIEW
+                  </span>
                 </h6>
                 <small v-if="tipoAtivo === 'armazem'" class="text-white-50">
                   {{ modeloArcoAtual ? 
                     `${quantidadeModelosArcos === 1 ? 'Modelo Único' : modelosArcos[modeloArcoAtual]?.posicao || ''} | ${modeloArcoAtual}/${quantidadeModelosArcos}` :
-                    `Padrão | ${quantidadeModelosArcos} modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
+                    `${determinarModeloParaArco(arcoAtual)?.nome || 'Padrão'} | ${quantidadeModelosArcos} modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
                   }}
                 </small>
               </div>
@@ -1240,6 +1228,81 @@
               >
               </svg>
             </div>
+
+            <!-- Navegação de Arcos para Armazém -->
+            <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-2">
+              <div class="row g-2 align-items-center">
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                  <div class="d-flex gap-1 justify-content-center justify-content-lg-start">
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      @click="mudarArco(Math.max(1, arcoAtual - 1), false)"
+                      :disabled="arcoAtual <= 1"
+                      title="Arco anterior"
+                    >
+                      ← Anterior
+                    </button>
+                    <select 
+                      class="form-select form-select-sm mx-2"
+                      style="width: auto; min-width: 120px;"
+                      v-model.number="arcoAtual"
+                      @change="mudarArco(arcoAtual, false)"
+                    >
+                      <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
+                        Arco {{ numeroArco }}
+                      </option>
+                    </select>
+                    <button
+                      type="button"
+                      class="btn btn-outline-primary btn-sm"
+                      @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
+                      :disabled="arcoAtual >= analiseArcos.totalArcos"
+                      title="Próximo arco"
+                    >
+                      Próximo →
+                    </button>
+                  </div>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+                  <div>
+                    <strong class="text-nowrap">
+                      Arco {{ arcoAtual }}/{{ analiseArcos.totalArcos }}
+                    </strong>
+                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1">
+                      EDITANDO
+                    </span>
+                  </div>
+                  <small class="text-muted d-block">
+                    {{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}
+                  </small>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12 text-center">
+                  <div>
+                    <span class="badge bg-info">
+                      {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
+                    </span>
+                    <span class="badge bg-secondary ms-1">
+                      {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }} Sensores
+                    </span>
+                  </div>
+                  <div class="mt-1">
+                    <span :class="getBadgeClass()">
+                      {{ getBadgeText() }}
+                    </span>
+                  </div>
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12 text-center text-lg-end">
+                  <button 
+                    class="btn btn-outline-success btn-sm"
+                    @click="irParaArmazem"
+                    title="Ir para o Preview do Armazém com os dados deste arco"
+                  >
+                    📊 Ver no Armazém
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1248,6 +1311,8 @@
 </template>
 
 <script>
+import LayoutManager from './utils/layoutManager'
+
 export default {
   name: 'ModeladorSVG',
   data() {
@@ -1280,8 +1345,7 @@ export default {
         le: 15,
         ht: 50,
         tipo_telhado: 1,
-        curvatura_topo: 50,
-        curvatura_laterais: 1,
+        curvatura_topo: 30,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1316,12 +1380,20 @@ export default {
       },
       modelosSalvos: {},
 
+      // Estados para dados do JSON
+      dados: null,
+      dadosPortal: null,
+      arcoAtual: 1,
+      analiseArcos: null,
+      layoutsAutomaticos: null,
+
       tipoAtivo: 'silo',
       nomeConfiguracao: '',
       larguraSVG: 400,
       alturaSVG: 300,
       svgContent: '',
-      forceUpdateLista: 0
+      forceUpdateLista: 0,
+      dadosVindosDoPreview: false
     }
   },
   computed: {
@@ -1367,7 +1439,9 @@ export default {
       }
     }
   },
-  mounted() {
+  async mounted() {
+    await this.verificarDadosArcoRecebidos()
+    await this.carregarDadosAPI()
     this.resetarModelosParaPadrao()
     this.updateSVG()
   },
@@ -1376,9 +1450,305 @@ export default {
       handler(novoTipo) {
         this.configArmazem.deslocamento_vertical_fundo = this.obterDeslocamentoVerticalPadrao(novoTipo)
       }
+    },
+    dados: {
+      handler() {
+        if (this.tipoAtivo === 'armazem' && this.dados) {
+          this.$nextTick(() => {
+            this.atualizarSensores()
+          })
+        }
+      },
+      deep: true
+    },
+    arcoAtual() {
+      if (this.tipoAtivo === 'armazem') {
+        this.updateSVG()
+      }
     }
   },
   methods: {
+    async verificarDadosArcoRecebidos() {
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const dadosArcoString = localStorage.getItem('dadosArcoParaModelador')
+          const timestamp = localStorage.getItem('timestampArcoModelador')
+
+          // Verificar se os dados são recentes (menos de 5 minutos)
+          if (dadosArcoString && timestamp) {
+            const agora = new Date().getTime()
+            const timestampDados = parseInt(timestamp)
+            const cincoMinutos = 5 * 60 * 1000
+
+            if ((agora - timestampDados) < cincoMinutos) {
+              const dadosArco = JSON.parse(dadosArcoString)
+
+              console.log('Dados do arco recebidos do preview:', dadosArco)
+
+              // Usar os dados recebidos
+              this.dadosPortal = dadosArco.dadosPortal
+              this.analiseArcos = dadosArco.analiseArcos
+              this.layoutsAutomaticos = dadosArco.layoutsAutomaticos
+              this.dados = dadosArco.dadosConvertidos
+              this.arcoAtual = dadosArco.numeroArco
+
+              // Forçar tipo armazém
+              this.tipoAtivo = 'armazem'
+
+              // Marcar que os dados vieram do preview
+              this.dadosVindosDoPreview = true
+
+              // Limpar dados do localStorage após usar
+              localStorage.removeItem('dadosArcoParaModelador')
+              localStorage.removeItem('timestampArcoModelador')
+
+              console.log(`Modelador configurado para arco ${this.arcoAtual} com dados do preview`)
+              return true
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Erro ao verificar dados do arco recebidos:', error)
+      }
+      return false
+    },
+
+    async carregarDadosAPI() {
+      try {
+        // Se já recebeu dados do preview, não precisar recarregar
+        const dadosRecebidos = await this.verificarDadosArcoRecebidos()
+        if (dadosRecebidos) {
+          console.log('Usando dados recebidos do preview, pulando inicialização padrão')
+          return
+        }
+
+        console.log('=== INICIANDO CARREGAMENTO DA API ===')
+
+        const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=4&data=2025-08-04%2007:02:22', {
+          headers: {
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM',
+            'Content-Type': 'application/json'
+          },
+          timeout: 15000
+        })
+
+        if (!response.ok) {
+          throw new Error(`Erro ao buscar dados da API: ${response.status} - ${response.statusText}`)
+        }
+
+        const data = await response.json()
+
+        if (!data) {
+          throw new Error('Resposta da API vazia')
+        }
+
+        console.log('=== DADOS RECEBIDOS DA API ===')
+        console.log('DADOS COMPLETOS EM JSON:', JSON.stringify(data, null, 2))
+
+        // Armazenar dados originais da API
+        this.dadosPortal = data
+
+        // Analisar estrutura dos arcos baseada na nova estrutura da API
+        const analise = this.analisarEstruturaArcos(data)
+        this.analiseArcos = analise
+
+        console.log('=== ESTRUTURA ANALISADA ===')
+        console.log('Análise dos arcos:', JSON.stringify(analise, null, 2))
+
+        // Gerar layouts automáticos
+        const layouts = LayoutManager.gerarLayoutAutomatico(analise)
+        this.layoutsAutomaticos = layouts
+
+        console.log('=== LAYOUTS GERADOS ===')
+        console.log('Layouts automáticos:', JSON.stringify(layouts, null, 2))
+
+        // Calcular dimensões ideais
+        const dimensoes = this.calcularDimensoesIdeais(analise)
+        this.dimensoesSVG = dimensoes
+
+        // Converter dados para formato de renderização
+        const dadosConvertidos = this.converterDadosParaRenderizacao(data, 1)
+        this.dados = dadosConvertidos
+
+        console.log('=== CONVERSÃO FINALIZADA ===')
+        console.log('Dados convertidos:', JSON.stringify(dadosConvertidos, null, 2))
+
+      } catch (error) {
+        console.error('Erro ao carregar dados da API:', error)
+        this.error = this.tratarErroAPI(error)
+      }
+    },
+
+    // Analisar estrutura dos arcos baseada na nova estrutura da API
+    analisarEstruturaArcos(dados) {
+      console.log('=== ANALISANDO ESTRUTURA DOS ARCOS ===')
+
+      if (!dados.arcos) {
+        console.log('Nenhuma estrutura de arcos encontrada')
+        return this.criarEstruturaMinima()
+      }
+
+      const estrutura = {
+        totalArcos: 0,
+        arcos: {},
+        estatisticas: {
+          totalPendulos: 0,
+          totalSensores: 0
+        }
+      }
+
+      // Processar cada arco
+      Object.keys(dados.arcos).forEach(numeroArco => {
+        const dadosArco = dados.arcos[numeroArco]
+        const arcoNum = parseInt(numeroArco)
+
+        estrutura.totalArcos = Math.max(estrutura.totalArcos, arcoNum)
+
+        const infoArco = {
+          numero: arcoNum,
+          totalPendulos: 0,
+          totalSensores: 0,
+          pendulos: []
+        }
+
+        // Processar cada pêndulo no arco
+        Object.keys(dadosArco).forEach(numeroPendulo => {
+          const dadosPendulo = dadosArco[numeroPendulo]
+          const penduloNum = parseInt(numeroPendulo)
+
+          const infoPendulo = {
+            numero: penduloNum,
+            totalSensores: Object.keys(dadosPendulo).length
+          }
+
+          infoArco.pendulos.push(infoPendulo)
+          infoArco.totalPendulos++
+          infoArco.totalSensores += infoPendulo.totalSensores
+        })
+
+        // Ordenar pêndulos por número
+        infoArco.pendulos.sort((a, b) => a.numero - b.numero)
+
+        estrutura.arcos[arcoNum] = infoArco
+        estrutura.estatisticas.totalPendulos += infoArco.totalPendulos
+        estrutura.estatisticas.totalSensores += infoArco.totalSensores
+      })
+
+      console.log('Estrutura final analisada:', estrutura)
+      return estrutura
+    },
+
+    // Converter dados da API para formato de renderização
+    converterDadosParaRenderizacao(dadosAPI, numeroArco) {
+      console.log(`=== CONVERTENDO DADOS PARA ARCO ${numeroArco} ===`)
+
+      if (!dadosAPI.arcos || !dadosAPI.arcos[numeroArco]) {
+        console.log(`Arco ${numeroArco} não encontrado nos dados`)
+        return { leitura: {} }
+      }
+
+      const dadosArco = dadosAPI.arcos[numeroArco]
+      const leituraConvertida = {}
+
+      // Converter estrutura: arcos[numeroArco][pendulo][sensor] -> leitura[pendulo][sensor]
+      Object.keys(dadosArco).forEach(numeroPendulo => {
+        const sensoresPendulo = dadosArco[numeroPendulo]
+        leituraConvertida[numeroPendulo] = {}
+
+        Object.keys(sensoresPendulo).forEach(numeroSensor => {
+          const dadosSensor = sensoresPendulo[numeroSensor]
+          // Manter o formato original do sensor: [temp, pontoQuente, preAlarme, falha, nivel]
+          leituraConvertida[numeroPendulo][numeroSensor] = dadosSensor
+        })
+      })
+
+      const resultado = {
+        leitura: leituraConvertida,
+        arcoAtual: numeroArco,
+        timestamp: new Date().toISOString()
+      }
+
+      console.log(`Dados convertidos para arco ${numeroArco}:`, resultado)
+      return resultado
+    },
+
+    criarEstruturaMinima() {
+      return {
+        totalArcos: 1,
+        arcos: {
+          1: {
+            numero: 1,
+            totalPendulos: 1,
+            totalSensores: 1,
+            pendulos: [{ numero: 1, totalSensores: 1 }]
+          }
+        },
+        estatisticas: {
+          totalPendulos: 1,
+          totalSensores: 1
+        }
+      }
+    },
+
+    tratarErroAPI(error) {
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            return 'Token de autenticação inválido ou expirado. Verifique as credenciais.'
+          case 403:
+            return 'Acesso negado. Verifique as permissões do token.'
+          case 404:
+            return 'Endpoint da API não encontrado. Verifique a URL.'
+          case 500:
+            return 'Erro interno do servidor. Tente novamente mais tarde.'
+          default:
+            return `Erro HTTP ${error.response.status}: ${error.response.statusText}`
+        }
+      } else if (error.request) {
+        return 'Erro de conectividade. Verifique sua conexão com a internet.'
+      } else {
+        return error.message || 'Erro desconhecido ao carregar dados.'
+      }
+    },
+
+    // Calcular dimensões ideais do SVG baseado na análise de todos os arcos
+    calcularDimensoesIdeais(analiseArcos) {
+      if (!analiseArcos) return { largura: 350, altura: 200 }
+
+      let maxSensores = 0
+      let maxPendulos = 0
+
+      // Encontrar o máximo de sensores e pêndulos em todos os arcos
+      Object.values(analiseArcos.arcos).forEach(arco => {
+        maxPendulos = Math.max(maxPendulos, arco.totalPendulos)
+        arco.pendulos.forEach(pendulo => {
+          maxSensores = Math.max(maxSensores, pendulo.totalSensores)
+        })
+      })
+
+      const escala_sensores = 16
+      const dist_y_sensores = 12
+      const margemSuperior = 30
+      const margemInferior = 50
+      const margemPendulo = 20
+
+      const alturaBaseTelhado = 185
+      const alturaSensores = maxSensores * dist_y_sensores + escala_sensores
+      const alturaTotal = Math.max(
+        alturaBaseTelhado, 
+        margemSuperior + alturaSensores + margemInferior + margemPendulo
+      )
+
+      const larguraMinima = 350
+      const espacamentoPendulo = 50
+      const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100)
+
+      return {
+        largura: larguraCalculada,
+        altura: Math.max(alturaTotal, 250)
+      }
+    },
+
     onTipoChange() {
       this.updateSVG()
     },
@@ -1463,6 +1833,47 @@ export default {
       if (this.modeloArcoAtual) {
         this.configArmazem = { ...this.modelosArcos[this.modeloArcoAtual].config }
         this.salvarModelosAutomatico()
+
+        // Automação: navegar para arco representativo do modelo selecionado
+        if (this.analiseArcos && this.modelosArcos[this.modeloArcoAtual]) {
+          const posicaoModelo = this.modelosArcos[this.modeloArcoAtual].posicao
+          const totalArcos = this.analiseArcos.totalArcos
+          let arcoRepresentativo = 1
+
+          if (this.quantidadeModelosArcos === 1) {
+            arcoRepresentativo = this.arcoAtual
+          } else if (this.quantidadeModelosArcos === 2) {
+            if (posicaoModelo === 'impar') {
+              arcoRepresentativo = 1
+            } else if (posicaoModelo === 'par') {
+              arcoRepresentativo = 2
+            }
+          } else if (this.quantidadeModelosArcos === 3) {
+            if (posicaoModelo === 'frente_fundo') {
+              arcoRepresentativo = 1
+            } else if (posicaoModelo === 'par') {
+              arcoRepresentativo = 2
+            } else if (posicaoModelo === 'impar') {
+              arcoRepresentativo = 3
+            }
+          } else if (this.quantidadeModelosArcos === 4) {
+            if (posicaoModelo === 'frente') {
+              arcoRepresentativo = 1
+            } else if (posicaoModelo === 'par') {
+              arcoRepresentativo = 2
+            } else if (posicaoModelo === 'impar') {
+              arcoRepresentativo = 3
+            } else if (posicaoModelo === 'fundo') {
+              arcoRepresentativo = totalArcos
+            }
+          }
+
+          arcoRepresentativo = Math.max(1, Math.min(totalArcos, arcoRepresentativo))
+
+          if (arcoRepresentativo !== this.arcoAtual) {
+            this.mudarArco(arcoRepresentativo)
+          }
+        }
       }
     },
 
@@ -1490,6 +1901,122 @@ export default {
         else return 'fundo'
       }
       return ''
+    },
+
+    determinarModeloParaArco(numeroArco) {
+      const totalArcos = this.analiseArcos?.totalArcos || 1
+      const quantidadeModelos = Object.keys(this.modelosArcos || {}).length
+
+      if (!this.modelosArcos || quantidadeModelos === 0) {
+        return null
+      }
+
+      if (quantidadeModelos === 1) {
+        return this.modelosArcos[1] || null
+      }
+
+      if (quantidadeModelos === 2) {
+        const isImpar = numeroArco % 2 === 1
+        const posicaoProcurada = isImpar ? 'impar' : 'par'
+        return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
+      }
+
+      if (quantidadeModelos === 3) {
+        if (numeroArco === 1 || numeroArco === totalArcos) {
+          return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || this.modelosArcos[1] || null
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+        return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
+      }
+
+      if (quantidadeModelos === 4) {
+        if (numeroArco === 1) {
+          return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || this.modelosArcos[1] || null
+        }
+        if (numeroArco === totalArcos) {
+          return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || this.modelosArcos[1] || null
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+        return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
+      }
+
+      return this.modelosArcos[1] || null
+    },
+
+    getBadgeClass() {
+      if (!this.analiseArcos) return 'badge bg-info'
+
+      const classes = ['badge']
+
+      if (this.quantidadeModelosArcos === 1) {
+        classes.push('bg-info')
+      } else if (this.quantidadeModelosArcos === 2) {
+        classes.push(this.arcoAtual % 2 === 1 ? 'bg-warning' : 'bg-primary')
+      } else if (this.quantidadeModelosArcos === 3) {
+        if (this.arcoAtual === 1 || this.arcoAtual === this.analiseArcos.totalArcos) {
+          classes.push('bg-success')
+        } else {
+          classes.push(this.arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning')
+        }
+      } else if (this.quantidadeModelosArcos === 4) {
+        if (this.arcoAtual === 1) {
+          classes.push('bg-success')
+        } else if (this.arcoAtual === this.analiseArcos.totalArcos) {
+          classes.push('bg-danger')
+        } else {
+          classes.push(this.arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning')
+        }
+      }
+
+      return classes.join(' ')
+    },
+
+    getBadgeText() {
+      if (!this.analiseArcos) return 'TODOS'
+
+      if (this.quantidadeModelosArcos === 1) {
+        return 'TODOS'
+      } else if (this.quantidadeModelosArcos === 2) {
+        return this.arcoAtual % 2 === 1 ? 'ÍMPAR' : 'PAR'
+      } else if (this.quantidadeModelosArcos === 3) {
+        if (this.arcoAtual === 1 || this.arcoAtual === this.analiseArcos.totalArcos) {
+          return 'F/F'
+        } else {
+          return this.arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'
+        }
+      } else if (this.quantidadeModelosArcos === 4) {
+        if (this.arcoAtual === 1) {
+          return 'FRENTE'
+        } else if (this.arcoAtual === this.analiseArcos.totalArcos) {
+          return 'FUNDO'
+        } else {
+          return this.arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'
+        }
+      }
+
+      return 'TODOS'
+    },
+
+    mudarArco(novoArco, forcarAplicarConfiguracao = true) {
+      this.arcoAtual = novoArco
+
+      // Se estiver editando um modelo específico, não aplicar configuração automática
+      if (forcarAplicarConfiguracao && !this.modeloArcoAtual) {
+        const modeloParaArco = this.determinarModeloParaArco(novoArco)
+        if (modeloParaArco && modeloParaArco.config) {
+          this.configArmazem = { ...modeloParaArco.config }
+        }
+      }
+
+      if (this.dadosPortal) {
+        const dadosConvertidos = this.converterDadosParaRenderizacao(this.dadosPortal, novoArco)
+        this.dados = dadosConvertidos
+      }
+
+      // Atualizar o SVG com o novo arco
+      this.updateSVG()
     },
 
     obterDeslocamentoVerticalPadrao(tipoFundo) {
@@ -1580,8 +2107,7 @@ export default {
         le: 15,
         ht: 50,
         tipo_telhado: 1,
-        curvatura_topo: 50,
-        curvatura_laterais: 1,
+        curvatura_topo: 30,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1682,10 +2208,17 @@ export default {
               this.modelosSalvos = dadosCarregados.modelosArcos
               this.modeloArcoAtual = null
 
-              const primeiroModelo = dadosCarregados.modelosArcos[1]
-              if (primeiroModelo && primeiroModelo.config) {
-                this.configArmazem = { ...primeiroModelo.config }
-              }
+              setTimeout(() => {
+                const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
+                if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
+                  this.configArmazem = { ...modeloParaArcoAtual.config }
+                } else {
+                  const primeiroModelo = dadosCarregados.modelosArcos[1]
+                  if (primeiroModelo && primeiroModelo.config) {
+                    this.configArmazem = { ...primeiroModelo.config }
+                  }
+                }
+              }, 100)
 
               alert(`Configuração completa do armazém "${nomeConfig}" carregada!`)
             } else {
@@ -1725,6 +2258,218 @@ export default {
       }
     },
 
+    corFaixaExata(t) {
+      if (t === -1000) return '#ff0000'
+      if (t < 12) return '#0384fc'
+      else if (t < 15) return '#03e8fc'
+      else if (t < 17) return '#03fcbe'
+      else if (t < 21) return '#07fc03'
+      else if (t < 25) return '#c3ff00'
+      else if (t < 27) return '#fcf803'
+      else if (t < 30) return '#ffb300'
+      else if (t < 35) return '#ff2200'
+      else if (t < 50) return '#ff0090'
+      else return '#f700ff'
+    },
+
+    renderSensoresArmazem() {
+      if (!this.layoutsAutomaticos || !this.analiseArcos) return ''
+
+      let elementos = ''
+      const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`]
+      const arcoInfo = this.analiseArcos.arcos[this.arcoAtual]
+
+      if (!layoutArco || !arcoInfo) return ''
+
+      const escala_sensores = this.configArmazem.escala_sensores
+      const dist_y_sensores = this.configArmazem.dist_y_sensores
+      const dist_x_sensores = this.configArmazem.dist_x_sensores || 0
+      const posicao_horizontal = this.configArmazem.posicao_horizontal || 0
+      const posicao_vertical = this.configArmazem.posicao_vertical || 0
+      const afastamento_vertical_pendulo = this.configArmazem.afastamento_vertical_pendulo || 0
+      const pb = this.configArmazem.pb
+      const yPendulo = pb + 15 + posicao_vertical
+
+      const totalCabos = arcoInfo.pendulos.length
+      const indiceCentral = Math.floor((totalCabos - 1) / 2)
+
+      arcoInfo.pendulos.forEach((pendulo, index) => {
+        const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index]
+        const distanciaDoMeio = index - indiceCentral
+        const deslocamentoX = distanciaDoMeio * dist_x_sensores
+        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX
+        const numSensores = pendulo.totalSensores
+
+        // Retângulo do pêndulo
+        elementos += `
+          <rect
+            id="C${index + 1}"
+            class="pendulo-element"
+            x="${xCabo - escala_sensores / 2}"
+            y="${yPendulo}"
+            width="${escala_sensores}"
+            height="${escala_sensores / 2}"
+            rx="2"
+            ry="2"
+            fill="#3A78FD"
+          />
+        `
+
+        // Texto do pêndulo
+        elementos += `
+          <text
+            id="TC${index + 1}"
+            class="pendulo-element"
+            x="${xCabo}"
+            y="${yPendulo + escala_sensores / 4}"
+            text-anchor="middle"
+            dominant-baseline="central"
+            font-weight="bold"
+            font-size="${escala_sensores * 0.4 - 0.5}"
+            font-family="Arial"
+            fill="white"
+          >
+            P${pendulo.numero}
+          </text>
+        `
+
+        // Sensores
+        for (let s = 1; s <= numSensores; s++) {
+          const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+
+          if (ySensor > 10 && ySensor < this.alturaSVG - 60) {
+            // Retângulo do sensor
+            elementos += `
+              <rect
+                id="C${index + 1}S${s}"
+                class="sensor-element"
+                x="${xCabo - escala_sensores / 2}"
+                y="${ySensor}"
+                width="${escala_sensores}"
+                height="${escala_sensores / 2}"
+                rx="2"
+                ry="2"
+                fill="#ccc"
+                stroke="black"
+                stroke-width="1"
+              />
+            `
+
+            // Texto do sensor
+            elementos += `
+              <text
+                id="TC${index + 1}S${s}"
+                class="sensor-element"
+                x="${xCabo}"
+                y="${ySensor + escala_sensores / 4}"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-size="${escala_sensores * 0.4 - 0.5}"
+                font-family="Arial"
+                fill="black"
+              >
+                0
+              </text>
+            `
+
+            // Nome do sensor
+            elementos += `
+              <text
+                id="TIND${index + 1}S${s}"
+                class="sensor-element"
+                x="${xCabo - escala_sensores / 2 - 2}"
+                y="${ySensor + escala_sensores / 4}"
+                text-anchor="end"
+                dominant-baseline="central"
+                font-size="${escala_sensores * 0.4 - 1.5}"
+                font-family="Arial"
+                fill="black"
+              >
+                S${s}
+              </text>
+            `
+          }
+        }
+      })
+
+      return elementos
+    },
+
+    atualizarSensores() {
+      if (!this.dados?.leitura || !this.analiseArcos || !this.layoutsAutomaticos) return
+
+      const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`]
+      if (!layoutArco) return
+
+      const escala_sensores = this.configArmazem.escala_sensores
+      const dist_y_sensores = this.configArmazem.dist_y_sensores
+      const dist_x_sensores = this.configArmazem.dist_x_sensores || 0
+      const posicao_horizontal = this.configArmazem.posicao_horizontal || 0
+      const posicao_vertical = this.configArmazem.posicao_vertical || 0
+      const afastamento_vertical_pendulo = this.configArmazem.afastamento_vertical_pendulo || 0
+      const pb = this.configArmazem.pb
+      const yPendulo = pb + 15 + posicao_vertical
+
+      const totalCabos = Object.keys(this.dados.leitura).length
+      const indiceCentral = Math.floor((totalCabos - 1) / 2)
+
+      setTimeout(() => {
+        Object.entries(this.dados.leitura).forEach(([idCabo, sensores], penduloIndex) => {
+          const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex]
+          const distanciaDoMeio = penduloIndex - indiceCentral
+          const deslocamentoX = distanciaDoMeio * dist_x_sensores
+          const xCabo = xCaboBase + posicao_horizontal + deslocamentoX
+
+          // Atualizar posição do pêndulo
+          const pendulo = document.getElementById(`C${penduloIndex + 1}`)
+          const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`)
+          if (pendulo && textoPendulo) {
+            pendulo.setAttribute('x', xCabo - escala_sensores / 2)
+            pendulo.setAttribute('y', yPendulo)
+            textoPendulo.setAttribute('x', xCabo)
+            textoPendulo.setAttribute('y', yPendulo + escala_sensores / 4)
+            textoPendulo.setAttribute('font-size', escala_sensores * 0.4 - 0.5)
+          }
+
+          Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
+            const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25 - afastamento_vertical_pendulo
+
+            const rec = document.getElementById(`C${penduloIndex + 1}S${s}`)
+            const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`)
+            const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`)
+
+            if (!rec || !txt || !nomeTexto) return
+
+            // Atualizar posicionamento
+            rec.setAttribute('x', xCabo - escala_sensores / 2)
+            rec.setAttribute('y', ySensor)
+            rec.setAttribute('width', escala_sensores)
+            rec.setAttribute('height', escala_sensores / 2)
+
+            txt.setAttribute('x', xCabo)
+            txt.setAttribute('y', ySensor + escala_sensores / 4)
+            txt.setAttribute('font-size', escala_sensores * 0.4 - 0.5)
+
+            nomeTexto.setAttribute('x', xCabo - escala_sensores / 2 - 2)
+            nomeTexto.setAttribute('y', ySensor + escala_sensores / 4)
+            nomeTexto.setAttribute('font-size', escala_sensores * 0.4 - 1.5)
+
+            // Atualizar dados
+            txt.textContent = falha ? 'ERRO' : temp.toFixed(1)
+
+            if (!nivel) {
+              rec.setAttribute('fill', '#e6e6e6')
+              txt.setAttribute('fill', 'black')
+            } else {
+              const cor = this.corFaixaExata(temp)
+              rec.setAttribute('fill', cor)
+              txt.setAttribute('fill', cor === '#ff2200' ? 'white' : 'black')
+            }
+          })
+        })
+      }, 50)
+    },
+
     updateSVG() {
       this.calcularDimensoesSVG()
       this.generateSVG()
@@ -1744,7 +2489,7 @@ export default {
       if (this.tipoAtivo === 'silo') {
         this.svgContent = this.renderSilo()
       } else {
-        this.svgContent = this.renderArmazem()
+        this.svgContent = this.renderArmazem() + this.renderSensoresArmazem()
       }
     },
 
@@ -1760,6 +2505,11 @@ export default {
       const transformSilo = this.configSilo.aeradores_ativo ? `translate(${this.configSilo.ds + 34}, 0)` : ""
 
       let svg = `
+        <style>
+          .sensor-element, .pendulo-element, text, rect {
+            transition: all 0.15s ease-out;
+          }
+        </style>
         <g transform="${transformSilo}">
           <polygon fill="#E7E7E7" points="${points}" />
           <path
@@ -1815,11 +2565,17 @@ export default {
     },
 
     renderArmazem() {
-      return this.renderTelhado() + this.renderFundoArmazem()
+      return `
+        <style>
+          .sensor-element, .pendulo-element, text, rect {
+            transition: all 0.15s ease-out;
+          }
+        </style>
+      ` + this.renderTelhado() + this.renderFundoArmazem()
     },
 
     renderTelhado() {
-      const { tipo_telhado, curvatura_topo, curvatura_laterais, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = this.configArmazem
+      const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = this.configArmazem
 
       if (tipo_telhado === 1) {
         // Pontudo
@@ -1831,34 +2587,14 @@ export default {
         const p1 = [(lb - lf) / 2, pb - hf + extensao]
         const p2 = [le, pb - hb + extensao]
         const p3 = [le, pb - ht]
-        
-        // Aplicar curvatura do topo no ponto mais alto
-        const alturaTopo = 1 + (100 - curvatura_topo) * 0.5  // Quanto maior curvatura_topo, menor a altura
-        const p4 = [lb / 2, alturaTopo]
-        
+        const p4 = [lb / 2, 1]
         const p5 = [lb - le, pb - ht]
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
 
-        // Se não há curvatura nas laterais, usar polígono simples
-        if (!curvatura_laterais || curvatura_laterais === 0) {
-          const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
-          return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
-        } else {
-          // Com curvatura nas laterais, usar path com curvas quadráticas
-          const curvatura = curvatura_laterais
-          const pathTelhado = `
-            M ${p1[0]} ${p1[1]}
-            L ${p2[0]} ${p2[1]}
-            L ${p3[0]} ${p3[1]}
-            Q ${p3[0] + curvatura} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}
-            Q ${p5[0] - curvatura} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}
-            L ${p6[0]} ${p6[1]}
-            L ${p7[0]} ${p7[1]}
-            Z
-          `
-          return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
-        }
+        const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
+
+        return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
       } else if (tipo_telhado === 2) {
         // Arredondado
         let extensao = 0
@@ -1866,14 +2602,11 @@ export default {
           extensao = 5
         }
 
-        // Aplicar curvatura do topo corretamente na curva quadrática
-        const controlY = 1 + (100 - curvatura_topo) * 0.8  // Controla o arredondamento
-
         const pathTelhado = `
           M ${(lb - lf) / 2} ${pb - hf + extensao}
           L ${le} ${pb - hb + extensao}
           L ${le} ${pb - ht}
-          Q ${lb / 2} ${controlY} ${lb - le} ${pb - ht}
+          Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
           L ${lb - le} ${pb - hb + extensao}
           L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
           Z
@@ -1886,15 +2619,11 @@ export default {
           extensao = 5
         }
 
-        // Aplicar curvatura do topo no raio do arco
-        const raioArco = Math.max(10, curvatura_topo * 2)  // Converte curvatura em raio
-        const larguraArco = (lb - le * 2) / 2
-
         const pathTelhado = `
           M ${(lb - lf) / 2} ${pb - hf + extensao}
           L ${le} ${pb - hb + extensao}
           L ${le} ${pb - ht}
-          A ${larguraArco} ${raioArco} 0 0 1 ${lb - le} ${pb - ht}
+          A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
           L ${lb - le} ${pb - hb + extensao}
           L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
           Z
@@ -1980,6 +2709,66 @@ export default {
       const pathBase = pontos.map(p => p.join(',')).join(' ')
 
       return `<polygon fill="#999999" points="${pathBase}" />`
+    },
+
+    voltarParaPreview() {
+      if (this.$router) {
+        this.$router.push({ 
+          name: 'Armazem',
+          query: { 
+            arco: this.arcoAtual
+          }
+        });
+      } else {
+        // Fallback se não há roteamento
+        this.dadosVindosDoPreview = false;
+        alert('Navegação de volta ao preview não disponível. Dados do preview foram limpos.');
+      }
+    },
+
+    irParaArmazem() {
+      if (!this.dadosPortal || !this.analiseArcos || !this.layoutsAutomaticos) {
+        alert('Dados não carregados completamente. Aguarde a inicialização.');
+        return;
+      }
+
+      try {
+        // Preparar dados para o preview do armazém
+        const dadosParaArmazem = {
+          dadosPortal: this.dadosPortal,
+          analiseArcos: this.analiseArcos,
+          layoutsAutomaticos: this.layoutsAutomaticos,
+          dadosConvertidos: this.dados,
+          numeroArco: this.arcoAtual,
+          timestamp: new Date().getTime()
+        };
+
+        // Salvar dados no localStorage para o Armazem pegar
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem('dadosArcoParaArmazem', JSON.stringify(dadosParaArmazem));
+          localStorage.setItem('timestampArcoArmazem', dadosParaArmazem.timestamp.toString());
+        }
+
+        console.log(`Enviando dados do arco ${this.arcoAtual} para o preview do armazém:`, dadosParaArmazem);
+
+        // Navegar para o Armazem
+        if (this.$router) {
+          this.$router.push({ 
+            name: 'Armazem',
+            query: { 
+              arco: this.arcoAtual,
+              origem: 'modelador'
+            }
+          });
+        } else {
+          // Fallback se não há roteamento Vue
+          alert(`Dados do arco ${this.arcoAtual} preparados para o preview do armazém. Navegue manualmente para a página do Armazém.`);
+        }
+
+      } catch (error) {
+        console.error('Erro ao preparar dados para o preview do armazém:', error);
+        alert('Erro ao preparar dados para o preview. Verifique o console.');
+      }
     },
 
     renderBaseDuploV() {
