@@ -170,8 +170,6 @@ export default {
         this.error = null;
 
         console.log('=== INICIANDO CARREGAMENTO DA API ===');
-        console.log('URL:', this.apiConfig.url);
-        console.log('Token:', this.apiConfig.token ? 'Configurado' : 'Não configurado');
 
         const response = await axios.get(this.apiConfig.url, {
           headers: {
@@ -185,65 +183,41 @@ export default {
           throw new Error('Resposta da API vazia');
         }
 
-        // CONSOLE LOG DETALHADO DOS DADOS DA API
         console.log('=== DADOS RECEBIDOS DA API ===');
-        console.log('Status HTTP:', response.status);
         console.log('DADOS COMPLETOS EM JSON:', JSON.stringify(response.data, null, 2));
         
         // Armazenar dados originais da API
         this.dadosPortal = response.data;
 
-        // Análise detalhada da estrutura recebida
-        console.log('=== ANÁLISE DETALHADA DA ESTRUTURA ===');
-        console.log('Tipo:', typeof response.data);
-        console.log('É array?', Array.isArray(response.data));
-        console.log('Chaves principais:', Object.keys(response.data || {}));
+        // Analisar estrutura dos arcos baseada na nova estrutura da API
+        const analise = this.analisarEstruturaArcos(response.data);
+        this.analiseArcos = analise;
         
-        // Analisar cada propriedade importante
-        ['configuracao', 'pendulos', 'leitura', 'arcos', 'sensores'].forEach(prop => {
-          if (response.data[prop]) {
-            console.log(`${prop.toUpperCase()} encontrado:`, JSON.stringify(response.data[prop], null, 2));
-          }
-        });
-
-        // Analisar estrutura dinamicamente - TOTALMENTE ADAPTATIVO
-        const analise = LayoutManager.analisarEstruturaArcos(response.data);
-        
-        if (!analise || Object.keys(analise.arcos).length === 0) {
-          console.log('=== ESTRUTURA NÃO RECONHECIDA - CRIANDO ESTRUTURA ADAPTATIVA ===');
-          
-          // Criar estrutura adaptativa baseada nos dados disponíveis
-          const estruturaAdaptativa = this.criarEstruturaAdaptativa(response.data);
-          this.analiseArcos = estruturaAdaptativa;
-          
-          console.log('Estrutura adaptativa criada:', JSON.stringify(estruturaAdaptativa, null, 2));
-        } else {
-          this.analiseArcos = analise;
-          console.log('Estrutura analisada com sucesso:', JSON.stringify(analise, null, 2));
-        }
+        console.log('=== ESTRUTURA ANALISADA ===');
+        console.log('Análise dos arcos:', JSON.stringify(analise, null, 2));
 
         // Gerar layouts automáticos
-        const layouts = LayoutManager.gerarLayoutAutomatico(this.analiseArcos);
+        const layouts = LayoutManager.gerarLayoutAutomatico(analise);
         this.layoutsAutomaticos = layouts;
         
         console.log('=== LAYOUTS GERADOS ===');
         console.log('Layouts automáticos:', JSON.stringify(layouts, null, 2));
 
         // Calcular dimensões ideais
-        const dimensoes = this.calcularDimensoesIdeais(this.analiseArcos);
+        const dimensoes = this.calcularDimensoesIdeais(analise);
         this.dimensoesSVG = dimensoes;
-        
-        console.log('=== DIMENSÕES CALCULADAS ===');
-        console.log('Dimensões do SVG:', JSON.stringify(dimensoes, null, 2));
 
         // Converter dados para formato de renderização
-        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(response.data, 1);
+        const dadosConvertidos = this.converterDadosParaRenderizacao(response.data, 1);
         this.dadosLocal = dadosConvertidos;
         
         console.log('=== CONVERSÃO FINALIZADA ===');
         console.log('Dados convertidos:', JSON.stringify(dadosConvertidos, null, 2));
-        
-        console.log('=== SISTEMA COMPLETAMENTE ADAPTATIVO CONFIGURADO ===');
+
+        // Forçar renderização inicial
+        this.$nextTick(() => {
+          this.renderizarSVG();
+        });
 
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error);
@@ -253,73 +227,119 @@ export default {
       }
     },
 
-    // Método para criar estrutura adaptativa quando dados não seguem padrão esperado
-    criarEstruturaAdaptativa(dados) {
-      console.log('=== CRIANDO ESTRUTURA ADAPTATIVA ===');
+    // Analisar estrutura dos arcos baseada na nova estrutura da API
+    analisarEstruturaArcos(dados) {
+      console.log('=== ANALISANDO ESTRUTURA DOS ARCOS ===');
       
+      if (!dados.arcos) {
+        console.log('Nenhuma estrutura de arcos encontrada');
+        return this.criarEstruturaMinima();
+      }
+
       const estrutura = {
-        totalArcos: 1,
-        arcos: {
-          1: {
-            totalPendulos: 0,
-            totalSensores: 0,
-            pendulos: []
-          }
-        },
+        totalArcos: 0,
+        arcos: {},
         estatisticas: {
           totalPendulos: 0,
           totalSensores: 0
         }
       };
 
-      // Tentar detectar pêndulos de qualquer propriedade
-      const propriedadesPendulos = ['pendulos', 'sensores', 'leitura', 'data', 'sensors'];
-      
-      for (const prop of propriedadesPendulos) {
-        if (dados[prop] && typeof dados[prop] === 'object') {
-          console.log(`Detectando estrutura a partir de: ${prop}`);
-          
-          const items = dados[prop];
-          let penduloCount = 0;
-          
-          Object.keys(items).forEach((key, index) => {
-            penduloCount++;
-            const penduloInfo = {
-              numero: parseInt(key.replace(/\D/g, '')) || (index + 1),
-              totalSensores: Array.isArray(items[key]) ? 1 : 
-                           (typeof items[key] === 'object' ? Object.keys(items[key]).length : 1)
-            };
-            
-            estrutura.arcos[1].pendulos.push(penduloInfo);
-            estrutura.arcos[1].totalSensores += penduloInfo.totalSensores;
-          });
-          
-          estrutura.arcos[1].totalPendulos = penduloCount;
-          estrutura.estatisticas.totalPendulos = penduloCount;
-          estrutura.estatisticas.totalSensores = estrutura.arcos[1].totalSensores;
-          
-          break; // Usar primeira propriedade encontrada
-        }
-      }
-
-      // Se ainda não encontrou nada, criar estrutura mínima
-      if (estrutura.arcos[1].totalPendulos === 0) {
-        console.log('Criando estrutura mínima padrão');
-        estrutura.arcos[1] = {
-          totalPendulos: 1,
-          totalSensores: 1,
-          pendulos: [{ numero: 1, totalSensores: 1 }]
+      // Processar cada arco
+      Object.keys(dados.arcos).forEach(numeroArco => {
+        const dadosArco = dados.arcos[numeroArco];
+        const arcoNum = parseInt(numeroArco);
+        
+        estrutura.totalArcos = Math.max(estrutura.totalArcos, arcoNum);
+        
+        const infoArco = {
+          numero: arcoNum,
+          totalPendulos: 0,
+          totalSensores: 0,
+          pendulos: []
         };
-        estrutura.estatisticas = { totalPendulos: 1, totalSensores: 1 };
+
+        // Processar cada pêndulo no arco
+        Object.keys(dadosArco).forEach(numeroPendulo => {
+          const dadosPendulo = dadosArco[numeroPendulo];
+          const penduloNum = parseInt(numeroPendulo);
+          
+          const infoPendulo = {
+            numero: penduloNum,
+            totalSensores: Object.keys(dadosPendulo).length
+          };
+
+          infoArco.pendulos.push(infoPendulo);
+          infoArco.totalPendulos++;
+          infoArco.totalSensores += infoPendulo.totalSensores;
+        });
+
+        // Ordenar pêndulos por número
+        infoArco.pendulos.sort((a, b) => a.numero - b.numero);
+        
+        estrutura.arcos[arcoNum] = infoArco;
+        estrutura.estatisticas.totalPendulos += infoArco.totalPendulos;
+        estrutura.estatisticas.totalSensores += infoArco.totalSensores;
+      });
+
+      console.log('Estrutura final analisada:', estrutura);
+      return estrutura;
+    },
+
+    // Converter dados da API para formato de renderização
+    converterDadosParaRenderizacao(dadosAPI, numeroArco) {
+      console.log(`=== CONVERTENDO DADOS PARA ARCO ${numeroArco} ===`);
+      
+      if (!dadosAPI.arcos || !dadosAPI.arcos[numeroArco]) {
+        console.log(`Arco ${numeroArco} não encontrado nos dados`);
+        return { leitura: {} };
       }
 
-      console.log('Estrutura adaptativa final:', JSON.stringify(estrutura, null, 2));
-      return estrutura;
+      const dadosArco = dadosAPI.arcos[numeroArco];
+      const leituraConvertida = {};
+
+      // Converter estrutura: arcos[numeroArco][pendulo][sensor] -> leitura[pendulo][sensor]
+      Object.keys(dadosArco).forEach(numeroPendulo => {
+        const sensoresPendulo = dadosArco[numeroPendulo];
+        leituraConvertida[numeroPendulo] = {};
+
+        Object.keys(sensoresPendulo).forEach(numeroSensor => {
+          const dadosSensor = sensoresPendulo[numeroSensor];
+          // Manter o formato original do sensor: [temp, pontoQuente, preAlarme, falha, nivel]
+          leituraConvertida[numeroPendulo][numeroSensor] = dadosSensor;
+        });
+      });
+
+      const resultado = {
+        leitura: leituraConvertida,
+        arcoAtual: numeroArco,
+        timestamp: new Date().toISOString()
+      };
+
+      console.log(`Dados convertidos para arco ${numeroArco}:`, resultado);
+      return resultado;
+    },
+
+    criarEstruturaMinima() {
+      return {
+        totalArcos: 1,
+        arcos: {
+          1: {
+            numero: 1,
+            totalPendulos: 1,
+            totalSensores: 1,
+            pendulos: [{ numero: 1, totalSensores: 1 }]
+          }
+        },
+        estatisticas: {
+          totalPendulos: 1,
+          totalSensores: 1
+        }
+      };
     },
 
     tratarErroAPI(error) {
       if (error.response) {
-        // Erro de resposta HTTP
         switch (error.response.status) {
           case 401:
             return 'Token de autenticação inválido ou expirado. Verifique as credenciais.';
@@ -333,10 +353,8 @@ export default {
             return `Erro HTTP ${error.response.status}: ${error.response.statusText}`;
         }
       } else if (error.request) {
-        // Erro de rede/timeout
         return 'Erro de conectividade. Verifique sua conexão com a internet.';
       } else {
-        // Outros erros
         return error.message || 'Erro desconhecido ao carregar dados.';
       }
     },
@@ -358,26 +376,24 @@ export default {
 
       const escala_sensores = 16;
       const dist_y_sensores = 12;
-      const margemSuperior = 30; // Margem para o telhado
-      const margemInferior = 50; // Margem para os pêndulos (P1, P2, etc.)
-      const margemPendulo = 20; // Espaço extra para o nome do pêndulo
+      const margemSuperior = 30;
+      const margemInferior = 50;
+      const margemPendulo = 20;
 
-      // Calcular altura necessária
-      const alturaBaseTelhado = 185; // Altura base original
+      const alturaBaseTelhado = 185;
       const alturaSensores = maxSensores * dist_y_sensores + escala_sensores;
       const alturaTotal = Math.max(
         alturaBaseTelhado, 
         margemSuperior + alturaSensores + margemInferior + margemPendulo
       );
 
-      // Calcular largura necessária (baseada no número de pêndulos)
       const larguraMinima = 350;
       const espacamentoPendulo = 50;
       const larguraCalculada = Math.max(larguraMinima, (maxPendulos * espacamentoPendulo) + 100);
 
       return {
         largura: larguraCalculada,
-        altura: Math.max(alturaTotal, 250) // Altura mínima
+        altura: Math.max(alturaTotal, 250)
       };
     },
 
@@ -430,11 +446,10 @@ export default {
 
     desenhaFundo() {
       const svgEl = document.getElementById("des_arco_armazem");
-      // Usar dimensões dinâmicas mas manter proporções do armazém
-      const pb = this.dimensoesSVG.altura - 50; // Posição base ajustada
+      const pb = this.dimensoesSVG.altura - 50;
       const lb = this.dimensoesSVG.largura;
       const hb = 30, hf = 5;
-      const lf = Math.min(250, lb * 0.7); // Largura frente proporcional
+      const lf = Math.min(250, lb * 0.7);
       const le = 15, ht = 50;
 
       // Base
@@ -490,8 +505,8 @@ export default {
 
       const escala_sensores = 16;
       const dist_y_sensores = 12;
-      const pb = this.dimensoesSVG.altura - 50; // Posição base ajustada
-      const yPendulo = pb + 15; // Posição dos pêndulos - FORA do armazém
+      const pb = this.dimensoesSVG.altura - 50;
+      const yPendulo = pb + 15;
 
       arcoInfo.pendulos.forEach((pendulo, index) => {
         const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
@@ -523,11 +538,10 @@ export default {
         textPendulo.textContent = `P${pendulo.numero}`;
         svgEl.appendChild(textPendulo);
 
-        // Sensores - ajustar posicionamento para ficar dentro do SVG
+        // Sensores
         for (let s = 1; s <= numSensores; s++) {
-          const ySensor = yPendulo - dist_y_sensores * s - 25; // Mais espaço do pêndulo
+          const ySensor = yPendulo - dist_y_sensores * s - 25;
 
-          // Garantir que o sensor está dentro dos limites do SVG
           if (ySensor > 10 && ySensor < (this.dimensoesSVG.altura - 60)) {
             // Retângulo do sensor
             const rectSensor = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -591,10 +605,9 @@ export default {
       if (this.dadosLocal?.leitura) {
         Object.entries(this.dadosLocal.leitura).forEach(([pendulo, sensoresData], penduloIndex) => {
           const xCabo = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
-          const yCabo = this.dimensoesSVG.altura - 50 + 15; // Posição base dos pêndulos ajustada
+          const yCabo = this.dimensoesSVG.altura - 50 + 15;
 
           Object.entries(sensoresData).forEach(([sensorKey, dadosSensor]) => {
-            // Verificar se dadosSensor é array
             if (!Array.isArray(dadosSensor) || dadosSensor.length < 5) return;
             
             const s = parseInt(sensorKey);
@@ -649,7 +662,7 @@ export default {
         }
       }
 
-      // Definir clip path para formato do armazém - usar dimensões dinâmicas
+      // Definir clip path para formato do armazém
       const lb = this.dimensoesSVG.largura;
       const pb = this.dimensoesSVG.altura - 50;
       const lf = Math.min(250, lb * 0.7);
@@ -693,14 +706,13 @@ export default {
     atualizarSensores(dadosArco) {
       if (!dadosArco?.leitura || !this.analiseArcos) return;
 
-      Object.entries(dadosArco.leitura).forEach(([idCabo, sensores], penduloIndex) => {
-        Object.entries(sensores).forEach(([s, dadosSensor]) => {
-          // Verificar se dadosSensor é array (formato esperado: [temp, , , falha, nivel])
+      Object.entries(dadosArco.leitura).forEach(([numeroPendulo, sensores], penduloIndex) => {
+        Object.entries(sensores).forEach(([numeroSensor, dadosSensor]) => {
           if (!Array.isArray(dadosSensor) || dadosSensor.length < 5) return;
           
           const [temp, , , falha, nivel] = dadosSensor;
-          const rec = document.getElementById(`C${penduloIndex + 1}S${s}`);
-          const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`);
+          const rec = document.getElementById(`C${penduloIndex + 1}S${numeroSensor}`);
+          const txt = document.getElementById(`TC${penduloIndex + 1}S${numeroSensor}`);
           if (!rec || !txt) return;
 
           txt.textContent = falha ? "ERRO" : (parseFloat(temp) || 0).toFixed(1);
@@ -727,14 +739,19 @@ export default {
     mudarArco(novoArco) {
       this.arcoAtual = novoArco;
       if (this.dadosPortal) {
-        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(this.dadosPortal, novoArco);
+        const dadosConvertidos = this.converterDadosParaRenderizacao(this.dadosPortal, novoArco);
         this.dadosLocal = dadosConvertidos;
       }
     },
 
     handleArcoSelecionadoTopo(numeroArco) {
       this.mudarArco(numeroArco);
-      this.mostrarTopo = false; // Fechar topo após seleção
+      this.mostrarTopo = false;
+      
+      // Forçar renderização imediata após fechar o topo
+      this.$nextTick(() => {
+        this.renderizarSVG();
+      });
     }
   }
 };

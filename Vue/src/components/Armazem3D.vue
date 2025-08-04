@@ -4,7 +4,7 @@
     <!-- Indicador de carregamento -->
     <div v-if="carregandoDados" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; text-align: center;">
       <div class="spinner-border" role="status">
-        <span class="visually-hidden">Carregando dados da API...</span>
+        <span class="visually-hidden"></span>
       </div>
       <div style="margin-top: 10px;">Carregando dados da API...</div>
     </div>

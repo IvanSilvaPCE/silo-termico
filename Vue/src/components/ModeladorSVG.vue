@@ -551,8 +551,8 @@
                     <input
                       v-model.number="configArmazem.curvatura_topo"
                       type="range"
-                      min="10"
-                      max="80"
+                      min="1"
+                      max="100"
                       class="form-range"
                       @input="onArmazemChange"
                     />
@@ -560,7 +560,30 @@
                     <button
                       type="button"
                       class="btn btn-outline-secondary"
-                      @click="resetArmazemField('curvatura_topo', 30)"
+                      @click="resetArmazemField('curvatura_topo', 50)"
+                      title="Reset"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="configArmazem.tipo_telhado === 1" class="mb-2">
+                  <label class="small fw-bold">Curvatura das Laterais:</label>
+                  <div class="input-group input-group-sm">
+                    <input
+                      v-model.number="configArmazem.curvatura_laterais"
+                      type="range"
+                      min="0"
+                      max="50"
+                      class="form-range"
+                      @input="onArmazemChange"
+                    />
+                    <span class="input-group-text">{{ configArmazem.curvatura_laterais }}</span>
+                    <button
+                      type="button"
+                      class="btn btn-outline-secondary"
+                      @click="resetArmazemField('curvatura_laterais', 0)"
                       title="Reset"
                     >
                       ×
@@ -851,7 +874,7 @@
                         <button
                           type="button"
                           class="btn btn-outline-secondary"
-                          @click="resetArmazemField('largura_plataforma_duplo_v', 10)"
+@click="resetArmazemField('largura_plataforma_duplo_v', 10)"
                           title="Reset"
                         >
                           ×
@@ -1257,7 +1280,8 @@ export default {
         le: 15,
         ht: 50,
         tipo_telhado: 1,
-        curvatura_topo: 30,
+        curvatura_topo: 50,
+        curvatura_laterais: 1,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1556,7 +1580,8 @@ export default {
         le: 15,
         ht: 50,
         tipo_telhado: 1,
-        curvatura_topo: 30,
+        curvatura_topo: 50,
+        curvatura_laterais: 1,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1794,7 +1819,7 @@ export default {
     },
 
     renderTelhado() {
-      const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = this.configArmazem
+      const { tipo_telhado, curvatura_topo, curvatura_laterais, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = this.configArmazem
 
       if (tipo_telhado === 1) {
         // Pontudo
@@ -1806,14 +1831,34 @@ export default {
         const p1 = [(lb - lf) / 2, pb - hf + extensao]
         const p2 = [le, pb - hb + extensao]
         const p3 = [le, pb - ht]
-        const p4 = [lb / 2, 1]
+        
+        // Aplicar curvatura do topo no ponto mais alto
+        const alturaTopo = 1 + (100 - curvatura_topo) * 0.5  // Quanto maior curvatura_topo, menor a altura
+        const p4 = [lb / 2, alturaTopo]
+        
         const p5 = [lb - le, pb - ht]
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
 
-        const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
-
-        return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
+        // Se não há curvatura nas laterais, usar polígono simples
+        if (!curvatura_laterais || curvatura_laterais === 0) {
+          const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
+          return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
+        } else {
+          // Com curvatura nas laterais, usar path com curvas quadráticas
+          const curvatura = curvatura_laterais
+          const pathTelhado = `
+            M ${p1[0]} ${p1[1]}
+            L ${p2[0]} ${p2[1]}
+            L ${p3[0]} ${p3[1]}
+            Q ${p3[0] + curvatura} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}
+            Q ${p5[0] - curvatura} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}
+            L ${p6[0]} ${p6[1]}
+            L ${p7[0]} ${p7[1]}
+            Z
+          `
+          return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
+        }
       } else if (tipo_telhado === 2) {
         // Arredondado
         let extensao = 0
@@ -1821,11 +1866,14 @@ export default {
           extensao = 5
         }
 
+        // Aplicar curvatura do topo corretamente na curva quadrática
+        const controlY = 1 + (100 - curvatura_topo) * 0.8  // Controla o arredondamento
+
         const pathTelhado = `
           M ${(lb - lf) / 2} ${pb - hf + extensao}
           L ${le} ${pb - hb + extensao}
           L ${le} ${pb - ht}
-          Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
+          Q ${lb / 2} ${controlY} ${lb - le} ${pb - ht}
           L ${lb - le} ${pb - hb + extensao}
           L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
           Z
@@ -1838,11 +1886,15 @@ export default {
           extensao = 5
         }
 
+        // Aplicar curvatura do topo no raio do arco
+        const raioArco = Math.max(10, curvatura_topo * 2)  // Converte curvatura em raio
+        const larguraArco = (lb - le * 2) / 2
+
         const pathTelhado = `
           M ${(lb - lf) / 2} ${pb - hf + extensao}
           L ${le} ${pb - hb + extensao}
           L ${le} ${pb - ht}
-          A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
+          A ${larguraArco} ${raioArco} 0 0 1 ${lb - le} ${pb - ht}
           L ${lb - le} ${pb - hb + extensao}
           L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
           Z
