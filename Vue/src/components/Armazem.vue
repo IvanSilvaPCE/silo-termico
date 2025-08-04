@@ -1,3 +1,4 @@
+
 <template>
   <div class="container-fluid p-1 p-md-2" style="min-height: 100vh; overflow: auto;">
     <div class="row">
@@ -6,7 +7,7 @@
 
         <div v-if="carregandoModo" class="d-flex justify-content-center m-2">
           <div class="spinner-border" role="status">
-            <span class="visually-hidden">Carregando...</span>
+            <span class="visually-hidden"></span>
           </div>
         </div>
 
@@ -94,6 +95,15 @@
             {{ mostrarTopo ? 'Fechar Topo' : 'Vista de Topo' }}
           </button>
         </div>
+
+        <!-- Error Display -->
+        <div v-if="error" class="alert alert-danger mt-3">
+          <h6>Erro ao carregar dados:</h6>
+          <p>{{ error }}</p>
+          <button class="btn btn-outline-danger btn-sm" @click="carregarDadosAPI">
+            Tentar Novamente
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -102,7 +112,7 @@
 <script>
 import TopoArmazem from "./TopoArmazem.vue";
 import LayoutManager from "./utils/layoutManager";
-import dadosArmazemPortal from "./dadosArmazem.json";
+import axios from 'axios';
 
 export default {
   name: "ArmazemSVG",
@@ -125,11 +135,16 @@ export default {
       analiseArcos: null,
       layoutsAutomaticos: null,
       mostrarTopo: false,
-      dimensoesSVG: { largura: 350, altura: 200 }
+      dimensoesSVG: { largura: 350, altura: 200 },
+      error: null,
+      apiConfig: {
+        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=4&data=2025-08-04%2007:02:22',
+        token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM'
+      }
     };
   },
   async mounted() {
-    await this.inicializarDados();
+    await this.carregarDadosAPI();
   },
   watch: {
     dadosLocal: {
@@ -149,34 +164,180 @@ export default {
     }
   },
   methods: {
-    async inicializarDados() {
+    async carregarDadosAPI() {
       try {
-        // Usar dados importados diretamente
-        this.dadosPortal = dadosArmazemPortal;
+        this.carregandoModo = true;
+        this.error = null;
 
-        // Analisar estrutura dos arcos
-        const analise = LayoutManager.analisarEstruturaArcos(dadosArmazemPortal);
-        this.analiseArcos = analise;
+        console.log('=== INICIANDO CARREGAMENTO DA API ===');
+        console.log('URL:', this.apiConfig.url);
+        console.log('Token:', this.apiConfig.token ? 'Configurado' : 'Não configurado');
+
+        const response = await axios.get(this.apiConfig.url, {
+          headers: {
+            'Authorization': this.apiConfig.token,
+            'Content-Type': 'application/json'
+          },
+          timeout: 15000
+        });
+
+        if (!response.data) {
+          throw new Error('Resposta da API vazia');
+        }
+
+        // CONSOLE LOG DETALHADO DOS DADOS DA API
+        console.log('=== DADOS RECEBIDOS DA API ===');
+        console.log('Status HTTP:', response.status);
+        console.log('DADOS COMPLETOS EM JSON:', JSON.stringify(response.data, null, 2));
+        
+        // Armazenar dados originais da API
+        this.dadosPortal = response.data;
+
+        // Análise detalhada da estrutura recebida
+        console.log('=== ANÁLISE DETALHADA DA ESTRUTURA ===');
+        console.log('Tipo:', typeof response.data);
+        console.log('É array?', Array.isArray(response.data));
+        console.log('Chaves principais:', Object.keys(response.data || {}));
+        
+        // Analisar cada propriedade importante
+        ['configuracao', 'pendulos', 'leitura', 'arcos', 'sensores'].forEach(prop => {
+          if (response.data[prop]) {
+            console.log(`${prop.toUpperCase()} encontrado:`, JSON.stringify(response.data[prop], null, 2));
+          }
+        });
+
+        // Analisar estrutura dinamicamente - TOTALMENTE ADAPTATIVO
+        const analise = LayoutManager.analisarEstruturaArcos(response.data);
+        
+        if (!analise || Object.keys(analise.arcos).length === 0) {
+          console.log('=== ESTRUTURA NÃO RECONHECIDA - CRIANDO ESTRUTURA ADAPTATIVA ===');
+          
+          // Criar estrutura adaptativa baseada nos dados disponíveis
+          const estruturaAdaptativa = this.criarEstruturaAdaptativa(response.data);
+          this.analiseArcos = estruturaAdaptativa;
+          
+          console.log('Estrutura adaptativa criada:', JSON.stringify(estruturaAdaptativa, null, 2));
+        } else {
+          this.analiseArcos = analise;
+          console.log('Estrutura analisada com sucesso:', JSON.stringify(analise, null, 2));
+        }
 
         // Gerar layouts automáticos
-        const layouts = LayoutManager.gerarLayoutAutomatico(analise);
+        const layouts = LayoutManager.gerarLayoutAutomatico(this.analiseArcos);
         this.layoutsAutomaticos = layouts;
+        
+        console.log('=== LAYOUTS GERADOS ===');
+        console.log('Layouts automáticos:', JSON.stringify(layouts, null, 2));
 
-        // Calcular dimensões ideais do SVG baseado em todos os arcos
-        const dimensoes = this.calcularDimensoesIdeais(analise);
+        // Calcular dimensões ideais
+        const dimensoes = this.calcularDimensoesIdeais(this.analiseArcos);
         this.dimensoesSVG = dimensoes;
+        
+        console.log('=== DIMENSÕES CALCULADAS ===');
+        console.log('Dimensões do SVG:', JSON.stringify(dimensoes, null, 2));
 
-        // Converter dados para o formato do armazém (arco 1 inicialmente)
-        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(dadosArmazemPortal, 1);
+        // Converter dados para formato de renderização
+        const dadosConvertidos = LayoutManager.converterDadosPortalParaArmazem(response.data, 1);
         this.dadosLocal = dadosConvertidos;
+        
+        console.log('=== CONVERSÃO FINALIZADA ===');
+        console.log('Dados convertidos:', JSON.stringify(dadosConvertidos, null, 2));
+        
+        console.log('=== SISTEMA COMPLETAMENTE ADAPTATIVO CONFIGURADO ===');
 
-        console.log('Dados carregados:', {
-          dadosPortal: this.dadosPortal,
-          analiseArcos: this.analiseArcos,
-          dadosLocal: this.dadosLocal
-        });
       } catch (error) {
-        console.error('Erro ao inicializar dados:', error);
+        console.error('Erro ao carregar dados da API:', error);
+        this.error = this.tratarErroAPI(error);
+      } finally {
+        this.carregandoModo = false;
+      }
+    },
+
+    // Método para criar estrutura adaptativa quando dados não seguem padrão esperado
+    criarEstruturaAdaptativa(dados) {
+      console.log('=== CRIANDO ESTRUTURA ADAPTATIVA ===');
+      
+      const estrutura = {
+        totalArcos: 1,
+        arcos: {
+          1: {
+            totalPendulos: 0,
+            totalSensores: 0,
+            pendulos: []
+          }
+        },
+        estatisticas: {
+          totalPendulos: 0,
+          totalSensores: 0
+        }
+      };
+
+      // Tentar detectar pêndulos de qualquer propriedade
+      const propriedadesPendulos = ['pendulos', 'sensores', 'leitura', 'data', 'sensors'];
+      
+      for (const prop of propriedadesPendulos) {
+        if (dados[prop] && typeof dados[prop] === 'object') {
+          console.log(`Detectando estrutura a partir de: ${prop}`);
+          
+          const items = dados[prop];
+          let penduloCount = 0;
+          
+          Object.keys(items).forEach((key, index) => {
+            penduloCount++;
+            const penduloInfo = {
+              numero: parseInt(key.replace(/\D/g, '')) || (index + 1),
+              totalSensores: Array.isArray(items[key]) ? 1 : 
+                           (typeof items[key] === 'object' ? Object.keys(items[key]).length : 1)
+            };
+            
+            estrutura.arcos[1].pendulos.push(penduloInfo);
+            estrutura.arcos[1].totalSensores += penduloInfo.totalSensores;
+          });
+          
+          estrutura.arcos[1].totalPendulos = penduloCount;
+          estrutura.estatisticas.totalPendulos = penduloCount;
+          estrutura.estatisticas.totalSensores = estrutura.arcos[1].totalSensores;
+          
+          break; // Usar primeira propriedade encontrada
+        }
+      }
+
+      // Se ainda não encontrou nada, criar estrutura mínima
+      if (estrutura.arcos[1].totalPendulos === 0) {
+        console.log('Criando estrutura mínima padrão');
+        estrutura.arcos[1] = {
+          totalPendulos: 1,
+          totalSensores: 1,
+          pendulos: [{ numero: 1, totalSensores: 1 }]
+        };
+        estrutura.estatisticas = { totalPendulos: 1, totalSensores: 1 };
+      }
+
+      console.log('Estrutura adaptativa final:', JSON.stringify(estrutura, null, 2));
+      return estrutura;
+    },
+
+    tratarErroAPI(error) {
+      if (error.response) {
+        // Erro de resposta HTTP
+        switch (error.response.status) {
+          case 401:
+            return 'Token de autenticação inválido ou expirado. Verifique as credenciais.';
+          case 403:
+            return 'Acesso negado. Verifique as permissões do token.';
+          case 404:
+            return 'Endpoint da API não encontrado. Verifique a URL.';
+          case 500:
+            return 'Erro interno do servidor. Tente novamente mais tarde.';
+          default:
+            return `Erro HTTP ${error.response.status}: ${error.response.statusText}`;
+        }
+      } else if (error.request) {
+        // Erro de rede/timeout
+        return 'Erro de conectividade. Verifique sua conexão com a internet.';
+      } else {
+        // Outros erros
+        return error.message || 'Erro desconhecido ao carregar dados.';
       }
     },
 

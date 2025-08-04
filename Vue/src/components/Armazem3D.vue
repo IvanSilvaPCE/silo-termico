@@ -1,6 +1,20 @@
 
 <template>
   <div style="width: 100%; height: 100vh;">
+    <!-- Indicador de carregamento -->
+    <div v-if="carregandoDados" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; text-align: center;">
+      <div class="spinner-border" role="status">
+        <span class="visually-hidden">Carregando dados da API...</span>
+      </div>
+      <div style="margin-top: 10px;">Carregando dados da API...</div>
+    </div>
+
+    <!-- Indicador de erro -->
+    <div v-if="erroAPI" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; background: rgba(220, 53, 69, 0.9); color: white; padding: 10px; border-radius: 5px; max-width: 80%;">
+      <strong>Erro:</strong> {{ erroAPI }}
+      <br><small>Usando dados de demonstração</small>
+    </div>
+
     <!-- Controles simples -->
     <div style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
       <label style="display: block; margin-bottom: 5px;">
@@ -14,6 +28,7 @@
       <div style="margin-top: 10px;">
         <small style="display: block;">Sensores: {{ totalSensores }}</small>
         <small style="display: block;">Pêndulos: {{ totalPendulos }}</small>
+        <small v-if="erroAPI" style="display: block; color: red;">Modo offline</small>
       </div>
     </div>
 
@@ -24,6 +39,7 @@
 
 <script>
 import * as THREE from 'three';
+import axios from 'axios';
 
 export default {
   name: 'Armazem3D',
@@ -48,11 +64,24 @@ export default {
       nivelAtual: 0,
       totalSensores: 0,
       totalPendulos: 0,
+      carregandoDados: true,
+      erroAPI: null,
 
       // Configurações do armazém
       alturaArmazem: 6,
       larguraArmazem: 25,
-      profundidadeArmazem: 12
+      profundidadeArmazem: 12,
+
+      // Configuração da API
+      apiConfig: {
+        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130',
+        params: {
+          celula: 1,
+          leitura: 4,
+          data: '2025-08-04 07:02:22'
+        },
+        token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM'
+      }
     };
   },
   mounted() {
@@ -82,31 +111,102 @@ export default {
   methods: {
     async carregarDados() {
       try {
-        // Carregar dados do arquivo dadosArmazem.json
-        const dadosArmazem = await import('./dadosArmazem.json');
-        this.dados = dadosArmazem.default || dadosArmazem;
-        console.log('Dados carregados:', this.dados);
-      } catch (error) {
-        console.error('Erro ao carregar dados:', error);
-        // Dados de fallback
-        this.dados = {
-          configuracao: {
-            layout_topo: {
-              celulas: { tamanho_svg: [600, 388] },
-              aeradores: {
-                1: [50, 340, 0],
-                2: [200, 340, 0],
-                3: [350, 340, 0],
-                4: [500, 340, 0]
-              }
-            }
+        this.carregandoDados = true;
+        this.erroAPI = null;
+
+        // Fazer chamada à API
+        const response = await axios.get(this.apiConfig.url, {
+          params: this.apiConfig.params,
+          headers: {
+            'Authorization': this.apiConfig.token,
+            'Content-Type': 'application/json'
           },
-          arcos: {},
-          pendulos: {},
-          AER: "1,0,1,0",
-          NIV: 50.0
-        };
+          timeout: 30000
+        });
+
+        if (!response.data) {
+          throw new Error('Dados não recebidos da API');
+        }
+
+        this.dados = response.data;
+        console.log('Dados da API carregados:', this.dados);
+
+        // Validar estrutura essencial
+        this.validarEstruturaDados(this.dados);
+
+      } catch (error) {
+        console.error('Erro ao carregar dados da API:', error);
+        this.erroAPI = this.tratarErroAPI(error);
+        
+        // Usar dados de fallback
+        this.dados = await this.gerarDadosFallback();
+      } finally {
+        this.carregandoDados = false;
       }
+    },
+
+    validarEstruturaDados(dados) {
+      if (!dados || typeof dados !== 'object') {
+        throw new Error('Dados inválidos recebidos da API');
+      }
+      
+      // Validar estruturas essenciais
+      if (!dados.configuracao && !dados.arcos && !dados.pendulos) {
+        console.warn('Estrutura de dados não reconhecida, adaptando automaticamente');
+      }
+    },
+
+    tratarErroAPI(error) {
+      if (error.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message || error.response.statusText;
+        
+        if (status === 401) {
+          return 'Token de autenticação inválido';
+        } else if (status === 500) {
+          return 'Erro interno do servidor';
+        } else if (status === 404) {
+          return 'Endpoint não encontrado';
+        } else {
+          return `Erro ${status}: ${message}`;
+        }
+      } else if (error.request) {
+        return 'Erro de conexão com a API. Verifique sua conexão de internet.';
+      } else {
+        return `Erro ao fazer requisição: ${error.message}`;
+      }
+    },
+
+    async gerarDadosFallback() {
+      console.warn('Usando dados de fallback devido a erro na API');
+      
+      return {
+        configuracao: {
+          layout_topo: {
+            celulas: { tamanho_svg: [600, 388] },
+            aeradores: {
+              1: [50, 340, 0],
+              2: [200, 340, 0],
+              3: [350, 340, 0],
+              4: [500, 340, 0]
+            }
+          }
+        },
+        arcos: {
+          1: {
+            1: {
+              1: [25.0, false, false, false, true],
+              2: [24.5, false, false, false, true],
+              3: [26.0, false, false, false, true]
+            }
+          }
+        },
+        pendulos: {
+          1: [false, false, true, 25.0]
+        },
+        AER: "1,0,1,0",
+        NIV: 50.0
+      };
     },
 
     calcularEstatisticas() {
@@ -424,18 +524,23 @@ export default {
     },
 
     buildPendulos() {
-      if (!this.dados?.arcos) return;
+      if (!this.dados) return;
 
-      console.log('Construindo pêndulos:', this.dados.arcos);
+      console.log('Construindo pêndulos:', this.dados);
 
-      // Usar o mesmo padrão do TopoArmazem.vue baseado no layout_topo
+      // Verificar se existe configuração de layout_topo
       const layoutTopo = this.dados?.configuracao?.layout_topo;
-      if (!layoutTopo) {
-        console.warn('Layout topo não encontrado, usando posicionamento básico');
-        return;
+      
+      if (layoutTopo) {
+        // Usar layout_topo se disponível
+        this.buildPendulosComLayoutTopo(layoutTopo);
+      } else {
+        // Gerar posicionamento automático baseado nos dados disponíveis
+        this.buildPendulosAutomatico();
       }
+    },
 
-      // Processar arcos baseado no layout_topo (igual ao TopoArmazem.vue)
+    buildPendulosComLayoutTopo(layoutTopo) {
       Object.entries(layoutTopo).forEach(([arcoKey, arcoData]) => {
         if (arcoKey === 'celulas' || arcoKey === 'aeradores') return;
 
@@ -443,22 +548,50 @@ export default {
         const posXTopo = arcoData.pos_x;
         const sensoresArco = arcoData.sensores || {};
 
-        // Converter posição X do topo para 3D (igual ao React)
+        // Converter posição X do topo para 3D
         const tamanhoSVG = layoutTopo.celulas?.tamanho_svg || [600, 388];
         const posX = -this.larguraArmazem / 2 + (posXTopo / tamanhoSVG[0]) * this.larguraArmazem;
 
         // Processar cada sensor do arco baseado na posição Y do topo
         Object.entries(sensoresArco).forEach(([penduloId, posYTopo]) => {
-          // Converter posição Y do topo para posição Z no 3D (igual ao React)
-          // Posições Y no topo (50-300) representam profundidade no 3D
           const posZ = -this.profundidadeArmazem / 2 + ((posYTopo - 50) / 250) * (this.profundidadeArmazem - 2) + 1;
-
-          // Buscar dados dos sensores nos arcos detalhados
           const sensores = this.dados?.arcos?.[arcoNum]?.[penduloId] || {};
-
           this.buildPendulo(posX, posZ, arcoNum, penduloId, sensores);
         });
       });
+    },
+
+    buildPendulosAutomatico() {
+      // Gerar posicionamento automático baseado nos dados dos arcos
+      if (this.dados.arcos) {
+        const arcosIds = Object.keys(this.dados.arcos).map(id => parseInt(id)).sort((a, b) => a - b);
+        const totalArcos = arcosIds.length;
+        
+        arcosIds.forEach((arcoId, arcoIndex) => {
+          const arcoData = this.dados.arcos[arcoId];
+          const posX = -this.larguraArmazem / 2 + (arcoIndex / Math.max(totalArcos - 1, 1)) * this.larguraArmazem;
+          
+          const pendulosIds = Object.keys(arcoData).map(id => parseInt(id)).sort((a, b) => a - b);
+          const totalPendulos = pendulosIds.length;
+          
+          pendulosIds.forEach((penduloId, penduloIndex) => {
+            const posZ = -this.profundidadeArmazem / 2 + (penduloIndex / Math.max(totalPendulos - 1, 1)) * this.profundidadeArmazem;
+            const sensores = arcoData[penduloId] || {};
+            this.buildPendulo(posX, posZ, arcoId, penduloId, sensores);
+          });
+        });
+      } else if (this.dados.pendulos) {
+        // Fallback para dados de pêndulos simples
+        const pendulosIds = Object.keys(this.dados.pendulos).map(id => parseInt(id)).sort((a, b) => a - b);
+        const totalPendulos = pendulosIds.length;
+        
+        pendulosIds.forEach((penduloId, index) => {
+          const posX = -this.larguraArmazem / 2 + (index / Math.max(totalPendulos - 1, 1)) * this.larguraArmazem;
+          const posZ = 0; // Centralizado
+          const sensores = { 1: this.dados.pendulos[penduloId] };
+          this.buildPendulo(posX, posZ, 1, penduloId, sensores);
+        });
+      }
     },
 
     buildPendulo(posX, posZ, arcoNum, penduloNum, sensores) {
@@ -633,6 +766,21 @@ export default {
 
       // Adicionar pequenas variações na superfície para realismo
       this.addGrainSurfaceDetails(alturaNivel);
+    },
+
+    gerarAeradoresAutomatico() {
+      // Gerar aeradores em posições padrão se não existirem na API
+      const aeradores = {};
+      const numAeradores = 4; // Número padrão de aeradores
+      
+      for (let i = 1; i <= numAeradores; i++) {
+        const posX = (i - 1) * (this.larguraArmazem / (numAeradores - 1));
+        const posY = 305;
+        const textoAcima = i % 2;
+        aeradores[i] = [posX, posY, textoAcima];
+      }
+      
+      return aeradores;
 
       // Label discreto do nível (opcional)
       if (this.mostrarLabels) {
@@ -670,12 +818,21 @@ export default {
     },
 
     buildAeradores() {
-      if (!this.dados?.configuracao?.layout_topo?.aeradores) {
-        console.warn('Dados de aeradores não encontrados');
-        return;
+      let aeradores = {};
+      
+      // Verificar se existe configuração de aeradores na API
+      if (this.dados?.configuracao?.layout_topo?.aeradores) {
+        aeradores = this.dados.configuracao.layout_topo.aeradores;
+      } else {
+        // Gerar posicionamento automático de aeradores
+        aeradores = this.gerarAeradoresAutomatico();
+        console.warn('Aeradores não encontrados na API, usando posicionamento automático');
       }
 
-      const aeradores = this.dados.configuracao.layout_topo.aeradores;
+      if (Object.keys(aeradores).length === 0) {
+        console.log('Nenhum aerador para construir');
+        return;
+      }
       const totalAeradores = Object.keys(aeradores).length;
       
       console.log(`Construindo ${totalAeradores} aeradores:`, aeradores);

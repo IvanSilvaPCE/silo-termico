@@ -101,7 +101,7 @@ export default {
 
         // Usar dimensões dos dados ou calcular dinamicamente
         let larguraSVG, alturaSVG, larguraFundo;
-        
+
         if (celulasConfig && celulasConfig.tamanho_svg && celulasConfig.fundo) {
           larguraSVG = celulasConfig.tamanho_svg[0];
           alturaSVG = celulasConfig.tamanho_svg[1];
@@ -179,7 +179,7 @@ export default {
           for (let arcoNum = 1; arcoNum <= totalArcos; arcoNum++) {
             let celula = Math.min(numeroCelulas, Math.ceil(arcoNum / arcosPorCelula));
             const posX = inicioFundo + margemInterna + ((arcoNum - 1) * espacamentoArco);
-            
+
             distribuicaoArcos[arcoNum] = {
               celula: celula,
               pos_x: posX,
@@ -206,7 +206,7 @@ export default {
             if (dadosSensor) {
               // Usar posição dos dados se existir, senão calcular dinamicamente
               let posY = arcoConfig.sensores?.[penduloId];
-              
+
               if (!posY) {
                 const numPendulos = arcoInfo.pendulos.length;
                 if (numPendulos === 1) {
@@ -249,6 +249,7 @@ export default {
         this.layoutTopo = layout;
       } catch (error) {
         console.error("Erro ao processar dados:", error);
+        alert(`Erro ao processar dados: ${error.message}`);
 
         // Usar layout automático como fallback
         const layoutFallback = this.gerarLayoutAutomatico({
@@ -440,7 +441,7 @@ export default {
 
     desenharCelulas() {
       const svgEl = document.getElementById("des_topo_armazem");
-      
+
       // Determinar número real de células baseado nos dados
       const celulasNumericas = Object.keys(this.layoutTopo.celulas)
         .filter(key => !isNaN(parseInt(key)))
@@ -867,10 +868,10 @@ export default {
 
     atualizarAeradores() {
       const aeradorIds = Object.keys(this.layoutTopo.aeradores).map(id => parseInt(id)).sort((a, b) => a - b);
-      
+
       // Estados dos aeradores baseados no AER do dadosArmazem ou padrão
       let estadosAeradores = [];
-      
+
       if (dadosArmazemPortal.AER) {
         // Parse do campo AER: "30,30,30,30" -> [30, 30, 30, 30]
         const valoresAER = dadosArmazemPortal.AER.split(',').map(v => parseInt(v.trim()));
