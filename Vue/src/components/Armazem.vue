@@ -101,8 +101,8 @@
 
 <script>
 import TopoArmazem from "./TopoArmazem.vue";
-import LayoutManager from "../utils/layoutManager";
-import dadosArmazemPortal from "../dadosArmazem.json";
+import LayoutManager from "./utils/layoutManager";
+import dadosArmazemPortal from "./dadosArmazem.json";
 
 export default {
   name: "ArmazemSVG",

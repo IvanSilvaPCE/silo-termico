@@ -83,7 +83,7 @@ export default {
     async carregarDados() {
       try {
         // Carregar dados do arquivo dadosArmazem.json
-        const dadosArmazem = await import('../dadosArmazem.json');
+        const dadosArmazem = await import('./dadosArmazem.json');
         this.dados = dadosArmazem.default || dadosArmazem;
         console.log('Dados carregados:', this.dados);
       } catch (error) {

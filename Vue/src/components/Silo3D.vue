@@ -68,7 +68,7 @@ export default {
     async carregarDados() {
       try {
         // Carregar dados do arquivo rotaSilo.json usando import
-        const dadosRotaSilo = await import('../rotaSilo.json')
+        const dadosRotaSilo = await import('./rotaSilo.json')
         const dadosReais = dadosRotaSilo.default || dadosRotaSilo
 
         // Reorganizar os dados para usar a sequência de pêndulos

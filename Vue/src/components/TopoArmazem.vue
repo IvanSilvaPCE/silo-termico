@@ -27,8 +27,8 @@
 </template>
 
 <script>
-import dadosArmazemPortal from "../dadosArmazem.json";
-import LayoutManager from "../utils/layoutManager";
+import dadosArmazemPortal from "./dadosArmazem.json";
+import LayoutManager from "./utils/layoutManager";
 
 export default {
   name: "TopoArmazem",
