@@ -144,6 +144,45 @@
           </div>
         </div>
 
+        <!-- Seletor de Configurações do Silo -->
+        <div class="row mb-3">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header bg-success text-white">
+                <h6 class="mb-0">⚙️ Configurações Salvas do Silo</h6>
+              </div>
+              <div class="card-body">
+                <div class="row align-items-end">
+                  <div class="col-md-8 mb-2">
+                    <label class="form-label">Selecionar Configuração:</label>
+                    <select class="form-select" v-model="configuracaoSelecionada" @change="aplicarConfiguracao">
+                      <option value="">Configuração Padrão</option>
+                      <option v-for="config in configuracoesDisponiveis" :key="config" :value="config">
+                        {{ config }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <button 
+                      class="btn btn-outline-primary w-100" 
+                      @click="abrirModelador"
+                      title="Abrir modelador para criar/editar configurações"
+                    >
+                      🛠️ Modelador
+                    </button>
+                  </div>
+                </div>
+                <div v-if="configuracoesDisponiveis.length === 0" class="alert alert-info mb-0">
+                  <small>Nenhuma configuração de silo salva. Use o Modelador para criar configurações personalizadas.</small>
+                </div>
+                <div v-else class="mt-2">
+                  <small class="text-muted">{{ configuracoesDisponiveis.length }} configuração(ões) de silo disponível(is)</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="d-flex justify-content-center py-2">
           <button class="btn btn-primary" @click="trocarModo">
             {{ modo === 'temperatura' ? 'Ver Mapa de Calor' : 'Ver Temperatura' }}
@@ -163,7 +202,9 @@ export default {
       carregandoModo: false,
       dados: null,
       blocosMapaCalor: [],
-      dBlade: "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z"
+      dBlade: "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z",
+      configuracaoSelecionada: '',
+      configuracoesDisponiveis: []
     }
   },
   computed: {
@@ -211,6 +252,7 @@ export default {
   },
   mounted() {
     this.carregarDados()
+    this.carregarConfiguracoesDisponiveis()
   },
   watch: {
     modo() {
@@ -668,6 +710,90 @@ export default {
         this.modo = this.modo === 'temperatura' ? 'mapa' : 'temperatura'
         this.carregandoModo = false
       }, 600)
+    },
+
+    carregarConfiguracoesDisponiveis() {
+      const prefixo = 'configSilo_'
+      const configs = []
+
+      if (typeof localStorage !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const chave = localStorage.key(i)
+          if (chave && chave.startsWith(prefixo)) {
+            const nome = chave.replace(prefixo, '')
+            configs.push(nome)
+          }
+        }
+      }
+
+      this.configuracoesDisponiveis = configs.sort()
+    },
+
+    aplicarConfiguracao() {
+      if (!this.configuracaoSelecionada) {
+        // Voltar para configuração padrão
+        this.carregarDados()
+        return
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        const chave = `configSilo_${this.configuracaoSelecionada}`
+        const configSalva = localStorage.getItem(chave)
+
+        if (configSalva) {
+          try {
+            const configData = JSON.parse(configSalva)
+            
+            // Aplicar configuração carregada aos dados atuais
+            if (this.dados && this.dados.dados_layout) {
+              // Mesclar configuração salva com dados existentes
+              this.dados.dados_layout = {
+                ...this.dados.dados_layout,
+                ...configData,
+                // Manter estrutura de SVG se existir
+                tamanho_svg: this.dados.dados_layout.tamanho_svg || [525, 188]
+              }
+            }
+
+            console.log(`Configuração "${this.configuracaoSelecionada}" aplicada ao silo`)
+          } catch (error) {
+            console.error('Erro ao aplicar configuração:', error)
+            alert('Erro ao carregar configuração. Verifique se o arquivo está correto.')
+          }
+        } else {
+          alert('Configuração não encontrada!')
+          this.configuracaoSelecionada = ''
+        }
+      }
+    },
+
+    abrirModelador() {
+      // Preparar dados para o modelador
+      if (typeof localStorage !== 'undefined') {
+        const dadosParaModelador = {
+          tipoAtivo: 'silo',
+          configuracaoAtual: this.dados?.dados_layout || null,
+          origem: 'silo_preview',
+          timestamp: new Date().getTime()
+        }
+
+        localStorage.setItem('dadosModeladorSilo', JSON.stringify(dadosParaModelador))
+        localStorage.setItem('timestampModeladorSilo', dadosParaModelador.timestamp.toString())
+      }
+
+      // Navegar para o modelador ou abrir em nova aba
+      if (this.$router) {
+        this.$router.push({ 
+          name: 'ModeladorSVG',
+          query: { 
+            tipo: 'silo',
+            origem: 'preview'
+          }
+        })
+      } else {
+        // Fallback - abrir em nova aba se não há roteamento
+        window.open('/modelador?tipo=silo&origem=preview', '_blank')
+      }
     }
   }
 }

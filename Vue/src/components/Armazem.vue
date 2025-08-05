@@ -64,7 +64,7 @@
                       <div class="mt-2">
                         <span v-for="pendulo in analiseArcos.arcos[arcoAtual]?.pendulos || []" 
                               :key="pendulo.numero" 
-                              class="badge bg-primary me-1 mb-1">
+                              class="badge text-white bg-primary me-1 mb-1">
                           P{{ pendulo.numero }}: {{ pendulo.totalSensores }} sensores
                         </span>
                       </div>
@@ -77,6 +77,45 @@
                       </small>
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seletor de Configurações do Armazém -->
+        <div class="row mb-3">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header bg-info text-white">
+                <h6 class="mb-0">⚙️ Configurações Salvas do Armazém</h6>
+              </div>
+              <div class="card-body">
+                <div class="row align-items-end">
+                  <div class="col-md-8 mb-2">
+                    <label class="form-label">Selecionar Configuração:</label>
+                    <select class="form-select" v-model="configuracaoSelecionada" @change="aplicarConfiguracao">
+                      <option value="">Configuração Padrão</option>
+                      <option v-for="config in configuracoesDisponiveis" :key="config" :value="config">
+                        {{ config }}
+                      </option>
+                    </select>
+                  </div>
+                  <div class="col-md-4 mb-2">
+                    <button 
+                      class="btn btn-outline-primary w-100" 
+                      @click="abrirModelador"
+                      title="Abrir modelador para criar/editar configurações"
+                    >
+                      🛠️ Modelador
+                    </button>
+                  </div>
+                </div>
+                <div v-if="configuracoesDisponiveis.length === 0" class="alert alert-info mb-0">
+                  <small>Nenhuma configuração de armazém salva. Use o Modelador para criar configurações personalizadas.</small>
+                </div>
+                <div v-else class="mt-2">
+                  <small class="text-muted">{{ configuracoesDisponiveis.length }} configuração(ões) de armazém disponível(is)</small>
                 </div>
               </div>
             </div>
@@ -111,7 +150,7 @@
 
 <script>
 import TopoArmazem from "./TopoArmazem.vue";
-import LayoutManager from "./utils/layoutManager";
+import LayoutManager from "./utils/layoutManager"
 import axios from 'axios';
 
 export default {
@@ -140,27 +179,43 @@ export default {
       apiConfig: {
         url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=4&data=2025-08-04%2007:02:22',
         token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM'
-      }
+      },
+      configuracaoSelecionada: '',
+      configuracoesDisponiveis: [],
+      configuracaoAplicada: null
     };
   },
   async mounted() {
     await this.carregarDadosAPI();
+    this.carregarConfiguracoesDisponiveis();
   },
   watch: {
     dadosLocal: {
       handler() {
-        this.renderizarSVG();
+        this.$nextTick(() => {
+          this.renderizarSVG();
+        });
       },
       deep: true
     },
-    modo() {
-      this.renderizarSVG();
+    modo: {
+      handler(novoModo) {
+        console.log('Modo alterado para:', novoModo);
+        this.$nextTick(() => {
+          this.renderizarSVG();
+        });
+      },
+      immediate: false
     },
     arcoAtual() {
-      this.renderizarSVG();
+      this.$nextTick(() => {
+        this.renderizarSVG();
+      });
     },
     layoutsAutomaticos() {
-      this.renderizarSVG();
+      this.$nextTick(() => {
+        this.renderizarSVG();
+      });
     }
   },
   methods: {
@@ -412,13 +467,23 @@ export default {
     },
 
     renderizarSVG() {
-      if (!this.dadosLocal) return;
+      console.log('=== RENDERIZANDO SVG ===');
+      console.log('Modo atual:', this.modo);
+      console.log('Dados locais:', this.dadosLocal);
+      
+      if (!this.dadosLocal) {
+        console.log('Sem dados locais, abortando renderização');
+        return;
+      }
 
       const container = this.$refs.containerRef;
-      if (!container) return;
+      if (!container) {
+        console.log('Container não encontrado, abortando renderização');
+        return;
+      }
 
-      const svgExistente = container.querySelector("#des_arco_armazem");
-      if (svgExistente) svgExistente.remove();
+      // Limpar completamente o container
+      container.innerHTML = '';
 
       const svgEl = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       svgEl.setAttribute("id", "des_arco_armazem");
@@ -434,23 +499,35 @@ export default {
       svgEl.setAttribute("viewBox", `0 0 ${this.dimensoesSVG.largura} ${this.dimensoesSVG.altura}`);
       container.appendChild(svgEl);
 
-      // Desenhar fundo e conteúdo
+      // Desenhar fundo sempre
       this.desenhaFundo();
+      
+      // Desenhar conteúdo baseado no modo
       if (this.modo === "temperatura") {
+        console.log('Renderizando modo temperatura');
         this.desenhaSensores();
         this.atualizarSensores(this.dadosLocal);
-      } else {
+      } else if (this.modo === "mapa") {
+        console.log('Renderizando modo mapa de calor');
         this.desenhaMapaCalor();
       }
+      
+      console.log('=== RENDERIZAÇÃO CONCLUÍDA ===');
     },
 
     desenhaFundo() {
       const svgEl = document.getElementById("des_arco_armazem");
-      const pb = this.dimensoesSVG.altura - 50;
-      const lb = this.dimensoesSVG.largura;
-      const hb = 30, hf = 5;
-      const lf = Math.min(250, lb * 0.7);
-      const le = 15, ht = 50;
+      
+      // Usar configuração aplicada se disponível, senão usar valores padrão
+      const config = this.configuracaoAplicada || {}
+      
+      const pb = (config.pb || this.dimensoesSVG.altura - 50) + (this.dimensoesSVG.altura < 300 ? 0 : 50);
+      const lb = config.lb || this.dimensoesSVG.largura;
+      const hb = config.hb || 30;
+      const hf = config.hf || 5;
+      const lf = config.lf || Math.min(250, lb * 0.7);
+      const le = config.le || 15;
+      const ht = config.ht || 50;
 
       // Base
       const p1 = [lb, pb - hb],
@@ -468,28 +545,73 @@ export default {
       polBase.setAttribute("id", "des_fundo");
       polBase.setAttribute("points", pathBase);
 
-      // Telhado
-      const p1_ = [(lb - lf) / 2, pb - hf],
-        p2_ = [le, pb - hb],
-        p3_ = [le, pb - ht],
-        p4_ = [lb / 2, 1],
-        p5_ = [lb - le, pb - ht],
-        p6_ = [lb - le, pb - hb],
-        p7_ = [lb - ((lb - lf) / 2), pb - hf];
-      const pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
-
-      const polTelhado = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-      polTelhado.setAttribute("fill", "#E6E6E6");
-      polTelhado.setAttribute("stroke", "#999999");
-      polTelhado.setAttribute("stroke-width", "1.7");
-      polTelhado.setAttribute("stroke-linecap", "round");
-      polTelhado.setAttribute("stroke-linejoin", "round");
-      polTelhado.setAttribute("stroke-miterlimit", "23");
-      polTelhado.setAttribute("id", "des_telhado");
-      polTelhado.setAttribute("points", pathTelhado);
-
-      svgEl.appendChild(polTelhado);
+      // Renderizar telhado baseado na configuração
+      this.renderTelhadoComConfiguracao(svgEl, pb, lb, hb, hf, lf, le, ht, config);
+      
       svgEl.appendChild(polBase);
+    },
+
+    renderTelhadoComConfiguracao(svgEl, pb, lb, hb, hf, lf, le, ht, config) {
+      const tipo_telhado = config.tipo_telhado || 1;
+      const curvatura_topo = config.curvatura_topo || 30;
+      
+      let pathTelhado = '';
+      let elementTelhado;
+      
+      if (tipo_telhado === 1) {
+        // Telhado pontudo
+        const p1_ = [(lb - lf) / 2, pb - hf];
+        const p2_ = [le, pb - hb];
+        const p3_ = [le, pb - ht];
+        const p4_ = [lb / 2, 1];
+        const p5_ = [lb - le, pb - ht];
+        const p6_ = [lb - le, pb - hb];
+        const p7_ = [lb - ((lb - lf) / 2), pb - hf];
+        pathTelhado = `${p1_.join(",")} ${p2_.join(",")} ${p3_.join(",")} ${p4_.join(",")} ${p5_.join(",")} ${p6_.join(",")} ${p7_.join(",")}`;
+        
+        elementTelhado = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+        elementTelhado.setAttribute("points", pathTelhado);
+      } else if (tipo_telhado === 2) {
+        // Telhado arredondado
+        pathTelhado = `
+          M ${(lb - lf) / 2} ${pb - hf}
+          L ${le} ${pb - hb}
+          L ${le} ${pb - ht}
+          Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
+          L ${lb - le} ${pb - hb}
+          L ${lb - (lb - lf) / 2} ${pb - hf}
+          Z
+        `;
+        
+        elementTelhado = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        elementTelhado.setAttribute("d", pathTelhado);
+      } else if (tipo_telhado === 3) {
+        // Telhado em arco
+        pathTelhado = `
+          M ${(lb - lf) / 2} ${pb - hf}
+          L ${le} ${pb - hb}
+          L ${le} ${pb - ht}
+          A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
+          L ${lb - le} ${pb - hb}
+          L ${lb - (lb - lf) / 2} ${pb - hf}
+          Z
+        `;
+        
+        elementTelhado = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        elementTelhado.setAttribute("d", pathTelhado);
+      }
+      
+      if (elementTelhado) {
+        elementTelhado.setAttribute("fill", "#E6E6E6");
+        elementTelhado.setAttribute("stroke", "#999999");
+        elementTelhado.setAttribute("stroke-width", "1.7");
+        elementTelhado.setAttribute("stroke-linecap", "round");
+        elementTelhado.setAttribute("stroke-linejoin", "round");
+        elementTelhado.setAttribute("stroke-miterlimit", "23");
+        elementTelhado.setAttribute("id", "des_telhado");
+        
+        svgEl.appendChild(elementTelhado);
+      }
     },
 
     desenhaSensores() {
@@ -503,13 +625,27 @@ export default {
       const arcoInfo = this.analiseArcos.arcos[this.arcoAtual];
       if (!arcoInfo) return;
 
-      const escala_sensores = 16;
-      const dist_y_sensores = 12;
-      const pb = this.dimensoesSVG.altura - 50;
-      const yPendulo = pb + 15;
+      // Usar configuração aplicada se disponível
+      const config = this.configuracaoAplicada || {}
+      
+      const escala_sensores = config.escala_sensores || 16;
+      const dist_y_sensores = config.dist_y_sensores || 12;
+      const dist_x_sensores = config.dist_x_sensores || 0;
+      const posicao_horizontal = config.posicao_horizontal || 0;
+      const posicao_vertical = config.posicao_vertical || 0;
+      const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0;
+      
+      const pb = (config.pb || this.dimensoesSVG.altura - 50) + (this.dimensoesSVG.altura < 300 ? 0 : 50);
+      const yPendulo = pb + 15 + posicao_vertical;
+
+      const totalCabos = arcoInfo.pendulos.length
+      const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
       arcoInfo.pendulos.forEach((pendulo, index) => {
-        const xCabo = layoutArco.desenho_sensores.pos_x_cabo[index];
+        const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index];
+        const distanciaDoMeio = index - indiceCentral
+        const deslocamentoX = distanciaDoMeio * dist_x_sensores
+        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX;
         const numSensores = pendulo.totalSensores;
 
         // Retângulo do nome do pêndulo
@@ -540,7 +676,7 @@ export default {
 
         // Sensores
         for (let s = 1; s <= numSensores; s++) {
-          const ySensor = yPendulo - dist_y_sensores * s - 25;
+          const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo;
 
           if (ySensor > 10 && ySensor < (this.dimensoesSVG.altura - 60)) {
             // Retângulo do sensor
@@ -590,12 +726,16 @@ export default {
       if (!this.layoutsAutomaticos || !this.analiseArcos || !this.dadosLocal) return;
 
       const svgEl = document.getElementById("des_arco_armazem");
+      if (!svgEl) return;
+
       const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`];
       const arcoInfo = this.analiseArcos.arcos[this.arcoAtual];
 
       if (!layoutArco || !arcoInfo) return;
 
-      const largura = this.dimensoesSVG.largura, altura = this.dimensoesSVG.altura;
+      // Definir dimensões
+      const largura = this.dimensoesSVG.largura;
+      const altura = this.dimensoesSVG.altura;
       const resolucao = 160;
       const wCell = largura / resolucao;
       const hCell = altura / resolucao;
@@ -604,7 +744,7 @@ export default {
       const sensores = [];
       if (this.dadosLocal?.leitura) {
         Object.entries(this.dadosLocal.leitura).forEach(([pendulo, sensoresData], penduloIndex) => {
-          const xCabo = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
+          const xCabo = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex] + 8; // +8 para centralizar no sensor
           const yCabo = this.dimensoesSVG.altura - 50 + 15;
 
           Object.entries(sensoresData).forEach(([sensorKey, dadosSensor]) => {
@@ -612,17 +752,19 @@ export default {
             
             const s = parseInt(sensorKey);
             const [temp, , , falha, nivel] = dadosSensor;
-            const ySensor = yCabo - 12 * s - 12;
+            const ySensor = yCabo - 12 * s - 25; // Ajustar posição Y
 
             sensores.push({
               x: xCabo,
               y: ySensor,
               t: parseFloat(temp) || -1000,
-              ativo: nivel === true
+              ativo: nivel === true && !falha && temp != 0
             });
           });
         });
       }
+
+      console.log('Sensores coletados para mapa de calor:', sensores);
 
       // Função IDW para interpolação
       const idw = (cx, cy) => {
@@ -632,7 +774,7 @@ export default {
         let temSensorAtivo = false;
 
         sensores.forEach(({ x, y, t, ativo }) => {
-          if (t === -1000 || !ativo) return;
+          if (t === -1000 || !ativo || t === 0) return;
           temSensorAtivo = true;
           const dist = Math.max(Math.hypot(x - cx, y - cy), 0.0001);
           const peso = 1 / Math.pow(dist, power);
@@ -643,13 +785,53 @@ export default {
         return temSensorAtivo && somaPesos !== 0 ? somaTemp / somaPesos : null;
       };
 
+      // Definir clip path para formato do armazém ANTES de gerar os blocos
+      const lb = this.dimensoesSVG.largura;
+      const pb = this.dimensoesSVG.altura - 50;
+      const lf = Math.min(250, lb * 0.7);
+      const le = 15, hb = 30, hf = 5, ht = 50;
+      
+      const p1 = [(lb - lf) / 2, pb - hf];
+      const p2 = [le, pb - hb];  
+      const p3 = [le, pb - ht];
+      const p4 = [lb / 2, 1];
+      const p5 = [lb - le, pb - ht];
+      const p6 = [lb - le, pb - hb];
+      const p7 = [lb - (lb - lf) / 2, pb - hf];
+      
+      const pathD = `M ${p1.join(",")} L ${p2.join(",")} L ${p3.join(",")} L ${p4.join(",")} L ${p5.join(",")} L ${p6.join(",")} L ${p7.join(",")} Z`;
+
+      // Criar elementos de filtro e clip
+      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+
+      const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+      filter.setAttribute("id", "blurFilterArmazem");
+      const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      blur.setAttribute("stdDeviation", "0.6");
+      filter.appendChild(blur);
+      defs.appendChild(filter);
+
+      const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+      clipPath.setAttribute("id", "clipArmazem");
+      const pathClip = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      pathClip.setAttribute("d", pathD);
+      clipPath.appendChild(pathClip);
+      defs.appendChild(clipPath);
+
+      svgEl.appendChild(defs);
+
       // Gerar grid de blocos
-      const blocos = [];
+      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      g.setAttribute("filter", "url(#blurFilterArmazem)");
+      g.setAttribute("clip-path", "url(#clipArmazem)");
+
       for (let i = 0; i < resolucao; i++) {
         for (let j = 0; j < resolucao; j++) {
           const cx = i * wCell + wCell / 2;
           const cy = j * hCell + hCell / 2;
           const tempInterpolada = idw(cx, cy);
+          
+          // Se não há interpolação, usar cor de fundo
           const cor = tempInterpolada === null ? "#ffffff" : this.corFaixaExata(tempInterpolada);
 
           const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
@@ -658,63 +840,82 @@ export default {
           rect.setAttribute("width", wCell);
           rect.setAttribute("height", hCell);
           rect.setAttribute("fill", cor);
-          blocos.push(rect);
+          
+          g.appendChild(rect);
         }
       }
 
-      // Definir clip path para formato do armazém
-      const lb = this.dimensoesSVG.largura;
-      const pb = this.dimensoesSVG.altura - 50;
-      const lf = Math.min(250, lb * 0.7);
-      const le = 15, hb = 30, hf = 5, ht = 50;
-      const p1 = [(lb - lf) / 2, pb - hf],
-        p2 = [le, pb - hb],
-        p3 = [le, pb - ht],
-        p4 = [lb / 2, 1],
-        p5 = [lb - le, pb - ht],
-        p6 = [lb - le, pb - hb],
-        p7 = [lb - (lb - lf) / 2, pb - hf];
-      const pathD = `M ${p1.join(",")} L ${p2.join(",")} L ${p3.join(",")} L ${p4.join(",")} L ${p5.join(",")} L ${p6.join(",")} L ${p7.join(",")} Z`;
-
-      // Criar elementos de filtro e clip
-      const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-
-      const filter = document.createElementNS("http://www.w3.org/2000/svg", "filter");
-      filter.setAttribute("id", "blurFilter");
-      const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
-      blur.setAttribute("stdDeviation", "0.4");
-      filter.appendChild(blur);
-      defs.appendChild(filter);
-
-      const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
-      clipPath.setAttribute("id", "clipArmazem");
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", pathD);
-      clipPath.appendChild(path);
-      defs.appendChild(clipPath);
-
-      svgEl.appendChild(defs);
-
-      // Adicionar blocos com filtros
-      const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-      g.setAttribute("filter", "url(#blurFilter)");
-      g.setAttribute("clip-path", "url(#clipArmazem)");
-      blocos.forEach((bloco) => g.appendChild(bloco));
       svgEl.appendChild(g);
+      console.log('Mapa de calor renderizado com sucesso');
     },
 
     atualizarSensores(dadosArco) {
-      if (!dadosArco?.leitura || !this.analiseArcos) return;
+      if (!dadosArco?.leitura || !this.analiseArcos || !this.layoutsAutomaticos) return;
+
+      const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`];
+      if (!layoutArco) return;
+
+      // Usar configuração aplicada se disponível
+      const config = this.configuracaoAplicada || {}
+      
+      const escala_sensores = config.escala_sensores || 16;
+      const dist_y_sensores = config.dist_y_sensores || 12;
+      const dist_x_sensores = config.dist_x_sensores || 0;
+      const posicao_horizontal = config.posicao_horizontal || 0;
+      const posicao_vertical = config.posicao_vertical || 0;
+      const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0;
+      
+      const pb = (config.pb || this.dimensoesSVG.altura - 50) + (this.dimensoesSVG.altura < 300 ? 0 : 50);
+      const yPendulo = pb + 15 + posicao_vertical;
+
+      const totalCabos = Object.keys(dadosArco.leitura).length
+      const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
       Object.entries(dadosArco.leitura).forEach(([numeroPendulo, sensores], penduloIndex) => {
+        const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex];
+        const distanciaDoMeio = penduloIndex - indiceCentral
+        const deslocamentoX = distanciaDoMeio * dist_x_sensores
+        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX;
+
+        // Atualizar posição do pêndulo
+        const pendulo = document.getElementById(`C${penduloIndex + 1}`);
+        const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`);
+        if (pendulo && textoPendulo) {
+          pendulo.setAttribute('x', xCabo - escala_sensores / 2);
+          pendulo.setAttribute('y', yPendulo);
+          textoPendulo.setAttribute('x', xCabo);
+          textoPendulo.setAttribute('y', yPendulo + escala_sensores / 4);
+          textoPendulo.setAttribute('font-size', escala_sensores * 0.4 - 0.5);
+        }
+
         Object.entries(sensores).forEach(([numeroSensor, dadosSensor]) => {
           if (!Array.isArray(dadosSensor) || dadosSensor.length < 5) return;
           
+          const s = parseInt(numeroSensor);
           const [temp, , , falha, nivel] = dadosSensor;
+          const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo;
+
           const rec = document.getElementById(`C${penduloIndex + 1}S${numeroSensor}`);
           const txt = document.getElementById(`TC${penduloIndex + 1}S${numeroSensor}`);
-          if (!rec || !txt) return;
+          const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${numeroSensor}`);
+          
+          if (!rec || !txt || !nomeTexto) return;
 
+          // Atualizar posicionamento
+          rec.setAttribute('x', xCabo - escala_sensores / 2);
+          rec.setAttribute('y', ySensor);
+          rec.setAttribute('width', escala_sensores);
+          rec.setAttribute('height', escala_sensores / 2);
+
+          txt.setAttribute('x', xCabo);
+          txt.setAttribute('y', ySensor + escala_sensores / 4);
+          txt.setAttribute('font-size', escala_sensores * 0.4 - 0.5);
+
+          nomeTexto.setAttribute('x', xCabo - escala_sensores / 2 - 2);
+          nomeTexto.setAttribute('y', ySensor + escala_sensores / 4);
+          nomeTexto.setAttribute('font-size', escala_sensores * 0.4 - 1.5);
+
+          // Atualizar dados
           txt.textContent = falha ? "ERRO" : (parseFloat(temp) || 0).toFixed(1);
           if (!nivel) {
             rec.setAttribute("fill", "#e6e6e6");
@@ -733,7 +934,11 @@ export default {
       setTimeout(() => {
         this.modo = this.modo === "temperatura" ? "mapa" : "temperatura";
         this.carregandoModo = false;
-      }, 600);
+        // Forçar renderização imediata após mudança de modo
+        this.$nextTick(() => {
+          this.renderizarSVG();
+        });
+      }, 100); // Reduzido tempo para resposta mais rápida
     },
 
     mudarArco(novoArco) {
@@ -752,6 +957,259 @@ export default {
       this.$nextTick(() => {
         this.renderizarSVG();
       });
+    },
+
+    carregarConfiguracoesDisponiveis() {
+      const prefixo = 'configArmazem_'
+      const configs = []
+
+      if (typeof localStorage !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const chave = localStorage.key(i)
+          if (chave && chave.startsWith(prefixo)) {
+            const nome = chave.replace(prefixo, '')
+            configs.push(nome)
+          }
+        }
+      }
+
+      this.configuracoesDisponiveis = configs.sort()
+    },
+
+    aplicarConfiguracao() {
+      if (!this.configuracaoSelecionada) {
+        // Voltar para configuração padrão - recarregar dados da API
+        this.carregarDadosAPI()
+        return
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        const chave = `configArmazem_${this.configuracaoSelecionada}`
+        const configSalva = localStorage.getItem(chave)
+
+        if (configSalva) {
+          try {
+            const configData = JSON.parse(configSalva)
+            
+            if (configData.tipo === 'configuracao_armazem_completa' && configData.modelosArcos) {
+              // Configuração completa com modelos de arcos
+              console.log(`Aplicando configuração completa "${this.configuracaoSelecionada}" com ${configData.quantidadeModelos} modelos`)
+              
+              // Determinar qual modelo aplicar baseado no arco atual
+              const modeloParaArco = this.determinarModeloParaArcoComConfig(this.arcoAtual, configData.modelosArcos, configData.quantidadeModelos)
+              
+              if (modeloParaArco && modeloParaArco.config) {
+                // Aplicar configuração do modelo específico na renderização
+                this.aplicarConfiguracaoNaRenderizacao(modeloParaArco.config)
+                console.log(`Modelo "${modeloParaArco.nome}" aplicado ao arco ${this.arcoAtual}`)
+              }
+            } else {
+              // Configuração simples (formato antigo)
+              this.aplicarConfiguracaoNaRenderizacao(configData)
+              console.log(`Configuração simples "${this.configuracaoSelecionada}" aplicada`)
+            }
+
+          } catch (error) {
+            console.error('Erro ao aplicar configuração:', error)
+            alert('Erro ao carregar configuração. Verifique se o arquivo está correto.')
+          }
+        } else {
+          alert('Configuração não encontrada!')
+          this.configuracaoSelecionada = ''
+        }
+      }
+    },
+
+    determinarModeloParaArcoComConfig(numeroArco, modelosArcos, quantidadeModelos) {
+      const totalArcos = this.analiseArcos?.totalArcos || 1
+
+      if (quantidadeModelos === 1) {
+        return Object.values(modelosArcos)[0] || null
+      }
+
+      if (quantidadeModelos === 2) {
+        const isImpar = numeroArco % 2 === 1
+        const posicaoProcurada = isImpar ? 'impar' : 'par'
+        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+      }
+
+      if (quantidadeModelos === 3) {
+        if (numeroArco === 1 || numeroArco === totalArcos) {
+          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || Object.values(modelosArcos)[0] || null
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+      }
+
+      if (quantidadeModelos === 4) {
+        if (numeroArco === 1) {
+          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || Object.values(modelosArcos)[0] || null
+        }
+        if (numeroArco === totalArcos) {
+          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || Object.values(modelosArcos)[0] || null
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+      }
+
+      return Object.values(modelosArcos)[0] || null
+    },
+
+    aplicarConfiguracaoNaRenderizacao(config) {
+      // Armazenar a configuração para usar na renderização
+      this.configuracaoAplicada = config
+      
+      // Aplicar configurações específicas do modelo ao arco atual
+      this.aplicarConfiguracoesDoModelo(config)
+      
+      // Re-renderizar o SVG com a nova configuração
+      this.$nextTick(() => {
+        this.renderizarSVG()
+      })
+    },
+
+    aplicarConfiguracoesDoModelo(config) {
+      if (!config || !this.analiseArcos) return
+
+      // Criar estrutura padrão adaptativa baseada no modelo
+      const estruturaPadrao = this.criarEstruturaAdaptativa(config)
+      
+      // Atualizar dimensões do SVG baseado na configuração
+      this.atualizarDimensoesSVG(config)
+      
+      // Atualizar layouts automáticos baseado na nova configuração
+      this.atualizarLayoutsComConfiguracao(config, estruturaPadrao)
+    },
+
+    criarEstruturaAdaptativa(config) {
+      const estrutura = {
+        armazem: {
+          // Dimensões básicas do modelo
+          pb: config.pb || 185,
+          lb: config.lb || 350,
+          hb: config.hb || 30,
+          hf: config.hf || 5,
+          lf: config.lf || 250,
+          le: config.le || 15,
+          ht: config.ht || 50,
+          
+          // Configurações do telhado
+          tipo_telhado: config.tipo_telhado || 1,
+          curvatura_topo: config.curvatura_topo || 30,
+          
+          // Configurações do fundo
+          tipo_fundo: config.tipo_fundo || 0,
+          altura_fundo_reto: config.altura_fundo_reto || 10,
+          altura_funil_v: config.altura_funil_v || 18,
+          posicao_ponta_v: config.posicao_ponta_v || 0,
+          largura_abertura_v: config.largura_abertura_v || 20,
+          altura_duplo_v: config.altura_duplo_v || 22,
+          posicao_v_esquerdo: config.posicao_v_esquerdo || -1,
+          posicao_v_direito: config.posicao_v_direito || 1,
+          largura_abertura_duplo_v: config.largura_abertura_duplo_v || 2,
+          altura_plataforma_duplo_v: config.altura_plataforma_duplo_v || 0.3,
+          largura_plataforma_duplo_v: config.largura_plataforma_duplo_v || 10,
+          deslocamento_horizontal_fundo: config.deslocamento_horizontal_fundo || 0,
+          deslocamento_vertical_fundo: config.deslocamento_vertical_fundo || -1,
+          
+          // Configurações dos sensores
+          escala_sensores: config.escala_sensores || 16,
+          dist_y_sensores: config.dist_y_sensores || 12,
+          dist_x_sensores: config.dist_x_sensores || 0,
+          posicao_horizontal: config.posicao_horizontal || 0,
+          posicao_vertical: config.posicao_vertical || 0,
+          afastamento_vertical_pendulo: config.afastamento_vertical_pendulo || 0
+        }
+      }
+      
+      console.log('Estrutura adaptativa criada:', estrutura)
+      return estrutura
+    },
+
+    atualizarDimensoesSVG(config) {
+      // Calcular novas dimensões baseado na configuração
+      const larguraBase = Math.max(config.lb || 350, 300)
+      const alturaBase = Math.max((config.pb || 185) + (config.ht || 50) + 50, 200)
+      
+      this.dimensoesSVG = {
+        largura: larguraBase,
+        altura: alturaBase
+      }
+      
+      console.log('Dimensões SVG atualizadas:', this.dimensoesSVG)
+    },
+
+    atualizarLayoutsComConfiguracao(config, estrutura) {
+      if (!this.analiseArcos) return
+
+      // Gerar novos layouts baseados na configuração
+      const novosLayouts = {}
+      
+      Object.keys(this.analiseArcos.arcos).forEach(numeroArco => {
+        const arcoInfo = this.analiseArcos.arcos[numeroArco]
+        const layout = {
+          desenho_sensores: {
+            pos_x_cabo: []
+          },
+          configuracao: estrutura.armazem
+        }
+
+        // Calcular posições X dos cabos baseado na nova configuração
+        const larguraTotal = config.lb || 350
+        const margemLateral = (config.le || 15) + 35
+        const larguraDisponivel = larguraTotal - (2 * margemLateral)
+        const espacamento = arcoInfo.totalPendulos > 1 ? larguraDisponivel / (arcoInfo.totalPendulos - 1) : 0
+
+        for (let i = 0; i < arcoInfo.totalPendulos; i++) {
+          const posX = arcoInfo.totalPendulos === 1 
+            ? larguraTotal / 2 
+            : margemLateral + (i * espacamento)
+          layout.desenho_sensores.pos_x_cabo.push(posX)
+        }
+
+        novosLayouts[`arco_${numeroArco}`] = layout
+      })
+
+      this.layoutsAutomaticos = novosLayouts
+      console.log('Layouts atualizados com configuração:', novosLayouts)
+    },
+
+    abrirModelador() {
+      // Preparar dados para o modelador
+      if (typeof localStorage !== 'undefined') {
+        const dadosParaModelador = {
+          dadosPortal: this.dadosPortal,
+          analiseArcos: this.analiseArcos,
+          layoutsAutomaticos: this.layoutsAutomaticos,
+          dadosConvertidos: this.dadosLocal,
+          numeroArco: this.arcoAtual,
+          tipoAtivo: 'armazem',
+          origem: 'armazem_preview',
+          timestamp: new Date().getTime()
+        }
+
+        localStorage.setItem('dadosArcoParaModelador', JSON.stringify(dadosParaModelador))
+        localStorage.setItem('timestampArcoModelador', dadosParaModelador.timestamp.toString())
+      }
+
+      console.log(`Enviando dados do arco ${this.arcoAtual} para o modelador`)
+
+      // Navegar para o modelador
+      if (this.$router) {
+        this.$router.push({ 
+          name: 'ModeladorSVG',
+          query: { 
+            tipo: 'armazem',
+            arco: this.arcoAtual,
+            origem: 'preview'
+          }
+        })
+      } else {
+        // Fallback - abrir em nova aba se não há roteamento
+        window.open(`/modelador?tipo=armazem&arco=${this.arcoAtual}&origem=preview`, '_blank')
+      }
     }
   }
 };

@@ -3,15 +3,6 @@
     <div class="row g-0">
       <div class="col-12">
         <div class="card">
-          <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">
-              <i class="fas fa-warehouse me-2"></i>
-              Visualização Topo do Armazém
-            </h5>
-            <button class="btn btn-outline-light btn-sm" @click="fecharTopo()" title="Fechar Topo">
-              <i class="fas fa-times"></i> Fechar Topo
-            </button>
-          </div>
           <div class="card-body">
             <div v-if="carregando" class="d-flex justify-content-center align-items-center" style="height: 750px">
               <div class="spinner-border" role="status">
@@ -678,7 +669,7 @@ export default {
       bladeParada.setAttribute("fill", "white");
 
       // Blade girando
-      const bladeGirando = document.createElementNS("http://www.w3.org/2000/svg", "path");bladeGirando.setAttribute("d", dBlade);
+      const bladeGirando = document.createElementNS("http://www.w3.org/2000/svg", "path"); bladeGirando.setAttribute("d", dBlade);
       bladeGirando.setAttribute("fill", "white");
 
       // Animação da blade girando
@@ -788,7 +779,7 @@ export default {
           // Fallback para formato antigo
           temperatura = 0;
           falha = false;
-          pontoQuente = false; 
+          pontoQuente = false;
           ativo = true;
         }
 

@@ -1199,107 +1199,157 @@
             </div>
 
             <div
-              class="card-body text-center d-flex align-items-center justify-content-center p-2"
+              class="card-body text-center d-flex align-items-center justify-content-center p-1 p-md-2"
               :style="{
-                height: 'calc(100vh - 250px)',
-                overflow: 'auto',
-                minHeight: '300px',
-                maxHeight: 'calc(100vh - 250px)'
+                height: isMobile ? 'auto' : 'calc(100vh - 250px)',
+                overflow: isMobile ? 'visible' : 'auto',
+                minHeight: isMobile ? '250px' : '300px',
+                maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
               }"
             >
-              <svg
-                :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`"
-                :style="{
-                  width: '100%',
-                  height: 'auto',
-                  maxWidth: '100%',
-                  maxHeight: 'calc(100vh - 320px)',
-                  minHeight: '250px',
-                  border: '1px solid #ddd',
-                  backgroundColor: '#f8f9fa',
-                  borderRadius: '4px',
-                  shapeRendering: 'geometricPrecision',
-                  textRendering: 'geometricPrecision',
-                  imageRendering: 'optimizeQuality'
-                }"
-                preserveAspectRatio="xMidYMid meet"
-                xmlns="http://www.w3.org/2000/svg"
-                v-html="svgContent"
-              >
-              </svg>
+              <div class="svg-container-responsive w-100">
+                <svg
+                  :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`"
+                  :style="{
+                    width: '100%',
+                    height: 'auto',
+                    maxWidth: '100%',
+                    maxHeight: isMobile ? '60vh' : 'calc(100vh - 320px)',
+                    minHeight: isMobile ? '200px' : '250px',
+                    border: '1px solid #ddd',
+                    backgroundColor: '#f8f9fa',
+                    borderRadius: '4px',
+                    shapeRendering: 'geometricPrecision',
+                    textRendering: 'geometricPrecision',
+                    imageRendering: 'optimizeQuality'
+                  }"
+                  preserveAspectRatio="xMidYMid meet"
+                  xmlns="http://www.w3.org/2000/svg"
+                  v-html="svgContent"
+                >
+                </svg>
+              </div>
             </div>
 
             <!-- Navegação de Arcos para Armazém -->
-            <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-2">
-              <div class="row g-2 align-items-center">
-                <div class="col-lg-3 col-md-6 col-sm-12">
-                  <div class="d-flex gap-1 justify-content-center justify-content-lg-start">
-                    <button
-                      type="button"
-                      class="btn btn-outline-primary btn-sm"
-                      @click="mudarArco(Math.max(1, arcoAtual - 1), false)"
-                      :disabled="arcoAtual <= 1"
-                      title="Arco anterior"
-                    >
-                      ← Anterior
-                    </button>
-                    <select 
-                      class="form-select form-select-sm mx-2"
-                      style="width: auto; min-width: 120px;"
-                      v-model.number="arcoAtual"
-                      @change="mudarArco(arcoAtual, false)"
-                    >
-                      <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
-                        Arco {{ numeroArco }}
-                      </option>
-                    </select>
-                    <button
-                      type="button"
-                      class="btn btn-outline-primary btn-sm"
-                      @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
-                      :disabled="arcoAtual >= analiseArcos.totalArcos"
-                      title="Próximo arco"
-                    >
-                      Próximo →
-                    </button>
-                  </div>
+            <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-1">
+              <!-- Mobile First: Layout para pequenas telas -->
+              <div class="d-block d-md-none">
+                <!-- Linha 1: Navegação compacta -->
+                <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1">
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)"
+                    :disabled="arcoAtual <= 1"
+                    title="Arco anterior"
+                    style="min-width: 35px;"
+                  >
+                    ←
+                  </button>
+                  <select 
+                    class="form-select form-select-sm text-center mx-1"
+                    style="max-width: 100px; min-width: 80px;"
+                    v-model.number="arcoAtual"
+                    @change="mudarArco(arcoAtual, false)"
+                  >
+                    <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
+                      {{ numeroArco }}
+                    </option>
+                  </select>
+                  <button
+                    type="button"
+                    class="btn btn-outline-primary btn-sm"
+                    @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
+                    :disabled="arcoAtual >= analiseArcos.totalArcos"
+                    title="Próximo arco"
+                    style="min-width: 35px;"
+                  >
+                    →
+                  </button>
                 </div>
-                <div class="col-lg-3 col-md-6 col-sm-12 text-center">
-                  <div>
-                    <strong class="text-nowrap">
-                      Arco {{ arcoAtual }}/{{ analiseArcos.totalArcos }}
-                    </strong>
-                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1">
-                      EDITANDO
-                    </span>
+                
+                <!-- Linha 2: Informações compactas -->
+                <div class="text-center">
+                  <div class="mb-1">
+                    <small><strong>{{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong></small>
+                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">EDIT</span>
                   </div>
-                  <small class="text-muted d-block">
-                    {{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}
-                  </small>
-                </div>
-                <div class="col-lg-3 col-md-6 col-sm-12 text-center">
-                  <div>
-                    <span class="badge bg-info">
-                      {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
+                  <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1">
+                    <span class="badge bg-info text-white" style="font-size: 0.65rem;">
+                      {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }}P
                     </span>
-                    <span class="badge bg-secondary ms-1">
-                      {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }} Sensores
+                    <span class="badge bg-secondary text-white" style="font-size: 0.65rem;">
+                      {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }}S
                     </span>
-                  </div>
-                  <div class="mt-1">
-                    <span :class="getBadgeClass()">
+                    <span :class="getBadgeClass()" style="color: white; font-size: 0.65rem;">
                       {{ getBadgeText() }}
                     </span>
                   </div>
+                  <small class="text-muted d-block" style="font-size: 0.75rem;">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}</small>
                 </div>
-                <div class="col-lg-3 col-md-6 col-sm-12 text-center text-lg-end">
-                  <button 
-                    class="btn btn-outline-success btn-sm"
-                    @click="irParaArmazem"
-                    title="Ir para o Preview do Armazém com os dados deste arco"
-                  >
-                    📊 Ver no Armazém
-                  </button>
+              </div>
+
+              <!-- Desktop: Layout para telas médias e grandes -->
+              <div class="d-none d-md-block">
+                <div class="row g-1 align-items-center">
+                  <!-- Navegação -->
+                  <div class="col-md-4 col-lg-3">
+                    <div class="d-flex align-items-center justify-content-center justify-content-lg-start">
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm me-1"
+                        @click="mudarArco(Math.max(1, arcoAtual - 1), false)"
+                        :disabled="arcoAtual <= 1"
+                        title="Arco anterior"
+                      >
+                        ← Anterior
+                      </button>
+                      <select 
+                        class="form-select form-select-sm mx-1"
+                        style="min-width: 100px; max-width: 120px;"
+                        v-model.number="arcoAtual"
+                        @change="mudarArco(arcoAtual, false)"
+                      >
+                        <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
+                          Arco {{ numeroArco }}
+                        </option>
+                      </select>
+                      <button
+                        type="button"
+                        class="btn btn-outline-primary btn-sm ms-1"
+                        @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
+                        :disabled="arcoAtual >= analiseArcos.totalArcos"
+                        title="Próximo arco"
+                      >
+                        Próximo →
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <!-- Informações do Arco -->
+                  <div class="col-md-4 col-lg-3 text-center">
+                    <div>
+                      <strong class="text-nowrap">Arco {{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong>
+                      <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1">EDITANDO</span>
+                    </div>
+                    <small class="text-muted d-block">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}</small>
+                  </div>
+                  
+                  <!-- Badges de Contadores -->
+                  <div class="col-md-4 col-lg-6 text-center text-md-end">
+                    <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
+                      <span class="badge bg-info text-white">
+                        {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
+                      </span>
+                      <span class="badge bg-secondary text-white">
+                        {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }} Sensores
+                      </span>
+                      <span :class="getBadgeClass()" style="color: white;">
+                        {{ getBadgeText() }}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2281,7 +2331,9 @@ export default {
 
       if (!layoutArco || !arcoInfo) return ''
 
-      const escala_sensores = this.configArmazem.escala_sensores
+      // Ajustar escala baseada no tamanho da tela
+      const escalaBase = this.configArmazem.escala_sensores
+      const escala_sensores = this.isMobile ? Math.max(escalaBase * 0.8, 12) : escalaBase
       const dist_y_sensores = this.configArmazem.dist_y_sensores
       const dist_x_sensores = this.configArmazem.dist_x_sensores || 0
       const posicao_horizontal = this.configArmazem.posicao_horizontal || 0
@@ -2480,8 +2532,26 @@ export default {
         this.larguraSVG = this.configSilo.lb + (this.configSilo.aeradores_ativo ? this.configSilo.ds * 2 + 68 : 0)
         this.alturaSVG = this.configSilo.hs + this.configSilo.hb * 1.75
       } else {
-        this.larguraSVG = Math.max(this.configArmazem.lb, 300)
-        this.alturaSVG = Math.max(this.configArmazem.pb + this.configArmazem.ht + 50, 200)
+        // Para armazém, calcular dimensões baseadas no conteúdo e responsividade
+        const larguraBase = Math.max(this.configArmazem.lb, 300)
+        const alturaBase = Math.max(this.configArmazem.pb + this.configArmazem.ht + 50, 200)
+        
+        // Ajustar para mobile se necessário
+        if (this.isMobile) {
+          // Em mobile, garantir proporções adequadas
+          const aspectRatio = larguraBase / alturaBase
+          if (aspectRatio > 2) {
+            // Se muito largo, ajustar altura
+            this.larguraSVG = larguraBase
+            this.alturaSVG = Math.max(alturaBase, larguraBase / 1.8)
+          } else {
+            this.larguraSVG = larguraBase
+            this.alturaSVG = alturaBase
+          }
+        } else {
+          this.larguraSVG = larguraBase
+          this.alturaSVG = alturaBase
+        }
       }
     },
 
@@ -2854,6 +2924,32 @@ export default {
   .btn-sm {
     font-size: 12px;
     padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Responsividade para SVG */
+.svg-container-responsive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+@media (max-width: 767.98px) {
+  .svg-container-responsive {
+    min-height: 180px;
+    padding: 0.5rem;
+  }
+  
+  .card-body {
+    padding: 0.5rem !important;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .svg-container-responsive {
+    min-height: 150px;
+    padding: 0.25rem;
   }
 }
 </style>
