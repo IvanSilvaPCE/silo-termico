@@ -76,14 +76,9 @@ export default {
 
       // Configuração da API
       apiConfig: {
-        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130',
-        params: {
-          celula: 1,
-          leitura: 4,
-          data: '2025-08-04 07:02:22'
-        },
+        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-07%2008:03:36',
         token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM'
-      }
+      },
     };
   },
   mounted() {
@@ -654,10 +649,13 @@ export default {
       this.scene.add(weight);
     },
 
-    buildSensor(posX, posY, posZ, temp, pontoQuente, preAlarme, falha, ativo, arcoNum, penduloNum, sensorNum) {
-      const cor = this.corPorTemperatura(temp, falha, ativo);
+    buildSensor(position, posY, posZ, temp, pontoQuente, preAlarme, falha, ativo, arcoNum, penduloNum, sensorNum) {
+      // Usar a função corFaixaExata para cores precisas (igual ao Silo3D)
+      const tempNum = parseFloat(temp);
+      const cor = ativo ? this.corFaixaExata(tempNum) : 0xcccccc;
 
-      const sensorGeometry = new THREE.BoxGeometry(0.08, 0.04, 0.04);
+      // Sensor redondo e maior
+      const sensorGeometry = new THREE.SphereGeometry(0.08, 12, 8);
       const sensorMaterial = new THREE.MeshStandardMaterial({
         color: cor,
         emissive: falha ? 0xff0000 : pontoQuente ? 0xffaa00 : 0x000000,
@@ -666,9 +664,9 @@ export default {
         roughness: 0.7
       });
       const sensor = new THREE.Mesh(sensorGeometry, sensorMaterial);
-      sensor.position.set(posX, posY, posZ);
+      sensor.position.set(position, posY, posZ);
       sensor.castShadow = true;
-      sensor.userData = { temp, arcoNum, penduloNum, sensorNum };
+      sensor.userData = { temp: tempNum, arcoNum, penduloNum, sensorNum, ativo, falha };
       this.scene.add(sensor);
 
       // Armazenar para futuras atualizações
@@ -676,8 +674,9 @@ export default {
 
       // Label do sensor se mostrar labels estiver ativo
       if (this.mostrarLabels && temp !== undefined) {
-        this.createTextSprite(`${temp}°C`, {
-          x: posX + 0.1,
+        const textoLabel = falha ? "ERR" : ativo ? `${tempNum.toFixed(1)}°C` : "OFF";
+        this.createTextSprite(textoLabel, {
+          x: position + 0.1,
           y: posY,
           z: posZ
         }, 0.2);
@@ -685,83 +684,227 @@ export default {
     },
 
     buildNivelVisual() {
-      if (!this.nivelAtual || this.nivelAtual <= 0) return;
+      if (!this.dados?.arcos) return;
 
-      // Verificar se existe pelo menos um sensor com nível true
-      let temNivel = false;
-      if (this.dados?.arcos) {
-        Object.values(this.dados.arcos).forEach(arco => {
-          Object.values(arco).forEach(pendulo => {
-            Object.values(pendulo).forEach(sensor => {
-              // sensor = [temperatura, pontoQuente, preAlarme, falha, nivel]
-              if (sensor[4] === true) { // Índice 4 é o nível
-                temNivel = true;
+      // Coletar dados de nível de todos os pêndulos usando sistema modular igual ao Silo3D
+      const niveisPorPendulo = {};
+      const pendulosPositions = this.calculatePenduloPositions();
+
+      let temNivelDetectado = false;
+      let penduloIndex = 0;
+
+      Object.entries(this.dados.arcos).forEach(([arcoId, arcoData]) => {
+        Object.entries(arcoData).forEach(([penduloId, sensores]) => {
+          let nivelMaisAlto = 0;
+          let temGraoNestePendulo = false;
+
+          // Encontrar o sensor mais alto com grão (valor true no último índice do array)
+          Object.entries(sensores).forEach(([sensorKey, valores]) => {
+            const numeroSensor = parseInt(sensorKey);
+            const [temp, pontoQuente, preAlarme, falha, temGrao] = valores;
+
+            // Verificar se tem grão (último valor true) e temperatura válida
+            if (temGrao && temp !== -1000 && temp !== 0 && temp !== null) {
+              // Altura baseada no número do sensor * espaçamento fixo
+              const alturaDoSensor = 0.5 + (numeroSensor * 0.4); // Mesmo espaçamento dos sensores
+              if (alturaDoSensor > nivelMaisAlto) {
+                nivelMaisAlto = alturaDoSensor;
+                temGraoNestePendulo = true;
+                temNivelDetectado = true;
               }
-            });
+            }
           });
-        });
-      }
 
-      // Se não há nível em nenhum sensor, não renderizar
-      if (!temNivel) {
+          if (temGraoNestePendulo && pendulosPositions[penduloIndex]) {
+            const position = pendulosPositions[penduloIndex];
+            niveisPorPendulo[penduloIndex] = {
+              x: position[0],
+              z: position[2],
+              altura: nivelMaisAlto,
+              pendulo: penduloId,
+              arco: arcoId
+            };
+          }
+
+          penduloIndex++;
+        });
+      });
+
+      // Se não há nível detectado, não renderizar
+      if (!temNivelDetectado || Object.keys(niveisPorPendulo).length === 0) {
         console.log('Nenhum sensor com nível detectado. Não renderizando visualização de grãos.');
         return;
       }
 
-      // Calcular altura do nível em relação ao armazém
-      const percentualNivel = this.nivelAtual / 100;
-      const alturaNivel = percentualNivel * this.alturaArmazem * 0.85; // 85% da altura máxima
+      // Criar visualização modular de grão (cada pêndulo independente)
+      this.createModularGrainVisualization(niveisPorPendulo);
+    },
 
-      // Criar geometria sólida 3D do nível de grãos (similar ao Silo3D)
-      const segmentos = 32;
-      const nivelGeometry = new THREE.BoxGeometry(
-        this.larguraArmazem * 0.95,
-        alturaNivel,
-        this.profundidadeArmazem * 0.95
-      );
+    calculatePenduloPositions() {
+      // Calcular posições dos pêndulos baseado no layout atual
+      const positions = [];
 
-      // Material profissional transparente para visualizar cabos por dentro
-      const nivelMaterial = new THREE.MeshStandardMaterial({
-        color: 0xD4B886, // Cor realista de grão
-        transparent: true,
-        opacity: 0.4, // Bem transparente para ver cabos
-        roughness: 0.9,
-        metalness: 0.1,
-        side: THREE.DoubleSide,
-        depthWrite: false, // Importante para transparência correta
-        depthTest: true
+      if (this.dados?.configuracao?.layout_topo) {
+        const layoutTopo = this.dados.configuracao.layout_topo;
+        Object.entries(layoutTopo).forEach(([arcoKey, arcoData]) => {
+          if (arcoKey === 'celulas' || arcoKey === 'aeradores') return;
+
+          const sensoresArco = arcoData.sensores || {};
+          const posXTopo = arcoData.pos_x;
+          const tamanhoSVG = layoutTopo.celulas?.tamanho_svg || [600, 388];
+          const posX = -this.larguraArmazem / 2 + (posXTopo / tamanhoSVG[0]) * this.larguraArmazem;
+
+          Object.entries(sensoresArco).forEach(([penduloId, posYTopo]) => {
+            const posZ = -this.profundidadeArmazem / 2 + ((posYTopo - 50) / 250) * (this.profundidadeArmazem - 2) + 1;
+            positions.push([posX, 0, posZ]);
+          });
+        });
+      } else {
+        // Fallback para distribuição automática
+        const numPendulos = Object.keys(this.dados?.arcos || {}).length;
+        for (let i = 0; i < numPendulos; i++) {
+          const posX = -this.larguraArmazem / 2 + (i / Math.max(numPendulos - 1, 1)) * this.larguraArmazem;
+          positions.push([posX, 0, 0]);
+        }
+      }
+
+      return positions;
+    },
+
+    createModularGrainVisualization(niveisPorPendulo) {
+      // Criar cilindros individuais para cada pêndulo (sistema modular como Silo3D)
+      Object.values(niveisPorPendulo).forEach(pendulo => {
+        this.createIndividualGrainColumn(pendulo);
       });
 
-      const nivelMesh = new THREE.Mesh(nivelGeometry, nivelMaterial);
-      nivelMesh.position.set(0, alturaNivel / 2 + 0.1, 0);
-      nivelMesh.receiveShadow = true;
-      nivelMesh.castShadow = false; // Não projetar sombra para não interferir
-      nivelMesh.renderOrder = -1; // Renderizar antes para melhor transparência
-      this.scene.add(nivelMesh);
+      // Criar superfície conectiva suave entre os pêndulos
+      this.createConnectiveGrainSurface(niveisPorPendulo);
+    },
 
-      // Criar superfície superior com textura mais realista
-      const superficieGeometry = new THREE.PlaneGeometry(
-        this.larguraArmazem * 0.95,
-        this.profundidadeArmazem * 0.95
-      );
+    createIndividualGrainColumn(pendulo) {
+      const raioColuna = 0.8; // Raio de cada coluna de grão
+      const alturaColuna = pendulo.altura - 0.2; // Altura da coluna
 
-      const superficieMaterial = new THREE.MeshStandardMaterial({
-        color: 0xE6D7B8, // Cor mais clara para a superfície
+      // Geometria cilíndrica para cada pêndulo
+      const colunaGeometry = new THREE.CylinderGeometry(raioColuna, raioColuna * 0.9, alturaColuna, 16, 4);
+      const colunaMaterial = new THREE.MeshStandardMaterial({
+        color: 0xD4B886,
         transparent: true,
-        opacity: 0.6,
-        roughness: 0.95,
-        metalness: 0.05,
+        opacity: 0.8,
+        roughness: 0.9,
+        metalness: 0.1
+      });
+
+      const colunaGrao = new THREE.Mesh(colunaGeometry, colunaMaterial);
+      colunaGrao.position.set(pendulo.x, alturaColuna / 2 + 0.2, pendulo.z);
+      colunaGrao.receiveShadow = true;
+      colunaGrao.castShadow = true;
+      this.scene.add(colunaGrao);
+
+      // Topo da coluna com formato mais natural
+      const topoGeometry = new THREE.SphereGeometry(raioColuna * 0.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
+      const topo = new THREE.Mesh(topoGeometry, colunaMaterial);
+      topo.position.set(pendulo.x, pendulo.altura, pendulo.z);
+      topo.receiveShadow = true;
+      topo.castShadow = true;
+      this.scene.add(topo);
+    },
+
+    createConnectiveGrainSurface(niveisPorPendulo) {
+      const pendulos = Object.values(niveisPorPendulo);
+      if (pendulos.length < 2) return;
+
+      // Criar superfície conectiva baixa entre pêndulos
+      const segmentos = 24;
+      const segmentosAltura = 8;
+      const vertices = [];
+      const indices = [];
+      const normals = [];
+
+      const alturaBase = 0.2;
+      const alturaConectiva = Math.min(...pendulos.map(p => p.altura)) * 0.3; // 30% da menor altura
+
+      // Criar malha interpolada para conexão suave
+      for (let i = 0; i <= segmentos; i++) {
+        for (let j = 0; j <= segmentosAltura; j++) {
+          const u = i / segmentos;
+          const v = j / segmentosAltura;
+
+          const x = (-this.larguraArmazem / 2) + (u * this.larguraArmazem);
+          const z = (-this.profundidadeArmazem / 2) + (v * this.profundidadeArmazem);
+
+          // Altura interpolada suave entre pêndulos
+          let alturaInterpolada = this.interpolateHeightAtPosition(x, z, niveisPorPendulo, alturaConectiva);
+          
+          // Limitar altura conectiva para não sobrepor as colunas
+          alturaInterpolada = Math.min(alturaInterpolada, alturaConectiva);
+          alturaInterpolada = Math.max(alturaBase, alturaInterpolada);
+
+          vertices.push(x, alturaInterpolada, z);
+          normals.push(0, 1, 0);
+        }
+      }
+
+      // Criar faces da superfície conectiva
+      for (let i = 0; i < segmentos; i++) {
+        for (let j = 0; j < segmentosAltura; j++) {
+          const a = i * (segmentosAltura + 1) + j;
+          const b = i * (segmentosAltura + 1) + j + 1;
+          const c = ((i + 1) % (segmentos + 1)) * (segmentosAltura + 1) + j;
+          const d = ((i + 1) % (segmentos + 1)) * (segmentosAltura + 1) + j + 1;
+
+          indices.push(a, b, c);
+          indices.push(b, d, c);
+        }
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setIndex(indices);
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+      geometry.computeVertexNormals();
+
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xC8B99C,
+        transparent: true,
+        opacity: 0.4,
+        roughness: 0.9,
+        metalness: 0.1,
         side: THREE.DoubleSide
       });
 
-      const superficiePlane = new THREE.Mesh(superficieGeometry, superficieMaterial);
-      superficiePlane.rotation.x = -Math.PI / 2;
-      superficiePlane.position.set(0, alturaNivel + 0.12, 0);
-      superficiePlane.receiveShadow = true;
-      this.scene.add(superficiePlane);
+      const superficieConectiva = new THREE.Mesh(geometry, material);
+      superficieConectiva.receiveShadow = true;
+      this.scene.add(superficieConectiva);
+    },
 
-      // Adicionar pequenas variações na superfície para realismo
-      this.addGrainSurfaceDetails(alturaNivel);
+    interpolateHeightAtPosition(x, z, niveisPorPendulo, alturaMedia) {
+      const pendulos = Object.values(niveisPorPendulo);
+
+      if (pendulos.length === 0) return alturaMedia * 0.5;
+      if (pendulos.length === 1) return pendulos[0].altura;
+
+      // Usar interpolação IDW (Inverse Distance Weighting)
+      let somaAlturas = 0;
+      let somaPesos = 0;
+
+      pendulos.forEach(pendulo => {
+        const distancia = Math.sqrt(
+          Math.pow(x - pendulo.x, 2) + Math.pow(z - pendulo.z, 2)
+        );
+
+        // Evitar divisão por zero
+        const distanciaSegura = Math.max(distancia, 0.1);
+        const peso = 1 / Math.pow(distanciaSegura, 2);
+
+        somaAlturas += pendulo.altura * peso;
+        somaPesos += peso;
+      });
+
+      const alturaInterpolada = somaPesos > 0 ? somaAlturas / somaPesos : alturaMedia;
+
+      // Garantir altura razoável
+      return Math.max(0.2, Math.min(alturaInterpolada, alturaMedia * 1.5));
     },
 
     gerarAeradoresAutomatico() {
@@ -788,30 +931,7 @@ export default {
       }
     },
 
-    addGrainSurfaceDetails(alturaNivel) {
-      // Adicionar pequenos detalhes na superfície para maior realismo
-      const numDetalhes = 15;
-
-      for (let i = 0; i < numDetalhes; i++) {
-        // Posições aleatórias dentro do armazém
-        const x = (Math.random() - 0.5) * this.larguraArmazem * 0.8;
-        const z = (Math.random() - 0.5) * this.profundidadeArmazem * 0.8;
-
-        // Pequenas elevações na superfície
-        const detalheGeometry = new THREE.SphereGeometry(0.1 + Math.random() * 0.1, 8, 6);
-        const detalheMaterial = new THREE.MeshStandardMaterial({
-          color: 0xC8B99C,
-          transparent: true,
-          opacity: 0.3,
-          roughness: 0.9
-        });
-
-        const detalhe = new THREE.Mesh(detalheGeometry, detalheMaterial);
-        detalhe.position.set(x, alturaNivel + 0.15, z);
-        detalhe.scale.y = 0.3; // Achatar um pouco
-        this.scene.add(detalhe);
-      }
-    },
+    
 
     buildAeradores() {
       let aeradores = {};
@@ -1003,9 +1123,11 @@ export default {
     },
 
     corPorTemperatura(temp, falha, ativo) {
+      // Usar exatamente a mesma lógica do Silo3D.vue
       if (falha || temp === -1000) return 0xff0000;
       if (!ativo) return 0xcccccc;
 
+      // Lógica de faixas exatas igual ao Silo3D
       if (temp < 12) return 0x0384fc;
       else if (temp < 15) return 0x03e8fc;
       else if (temp < 17) return 0x03fcbe;
@@ -1015,6 +1137,21 @@ export default {
       else if (temp < 30) return 0xffb300;
       else if (temp < 35) return 0xff2200;
       else if (temp < 50) return 0xff0090;
+      else return 0xf700ff;
+    },
+
+    // Adicionar função para criar cores exatas (igual ao Silo3D)
+    corFaixaExata(t) {
+      if (t === -1000) return 0xff0000;
+      if (t < 12) return 0x0384fc;
+      else if (t < 15) return 0x03e8fc;
+      else if (t < 17) return 0x03fcbe;
+      else if (t < 21) return 0x07fc03;
+      else if (t < 25) return 0xc3ff00;
+      else if (t < 27) return 0xfcf803;
+      else if (t < 30) return 0xffb300;
+      else if (t < 35) return 0xff2200;
+      else if (t < 50) return 0xff0090;
       else return 0xf700ff;
     },
 

@@ -2,11 +2,52 @@
 <template>
   <div style="width: 100%; height: 100vh;">
     <!-- Controles simples -->
-    <div style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
+    <div
+      style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
       <label>
         <input type="checkbox" v-model="autoRotate" />
         Rotação Automática
       </label>
+    </div>
+
+    <!-- Card de informações -->
+    <div
+      style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-width: 250px; font-family: Arial, sans-serif;">
+      <h3 style="margin: 0 0 10px 0; color: #2E86AB; font-size: 16px; border-bottom: 2px solid #2E86AB; padding-bottom: 5px;">
+        Informações do Silo
+      </h3>
+      
+      <!-- Nível -->
+      <div style="margin-bottom: 10px;">
+        <strong style="color: #333;">Nível:</strong>
+        <span style="color: #2E86AB; font-weight: bold;">{{ dados?.dados?.nivel || 0 }}%</span>
+      </div>
+
+      <!-- Pêndulos -->
+      <div style="margin-bottom: 10px;">
+        <strong style="color: #333;">Pêndulos Ativos:</strong>
+        <span style="color: #2E86AB; font-weight: bold;">{{ getNumPendulosAtivos() }}</span>
+      </div>
+
+      <!-- Aeradores -->
+      <div style="margin-bottom: 10px;">
+        <strong style="color: #333;">Aeradores:</strong>
+      </div>
+      <div style="margin-left: 10px;">
+        <div v-for="(status, index) in getStatusAeradores()" :key="index" 
+             style="display: flex; align-items: center; margin-bottom: 5px;">
+          <div 
+            :style="`width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; background-color: ${getCorAerador(status)};`">
+          </div>
+          <span style="font-size: 14px;">AE-{{ index + 1 }}: {{ getStatusTexto(status) }}</span>
+        </div>
+      </div>
+
+      <!-- Temperatura Média -->
+      <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+        <strong style="color: #333;">Temp. Média:</strong>
+        <span style="color: #2E86AB; font-weight: bold;">{{ getTemperaturaMedia() }}°C</span>
+      </div>
     </div>
 
     <!-- Canvas 3D -->
@@ -128,17 +169,10 @@ export default {
       const layout = this.dados.dados_layout;
       const leitura = this.dados.leitura;
       const numCabos = Object.keys(leitura).length;
-      
-      // Calcular o número máximo de sensores por cabo
-      const maxSensores = Math.max(...Object.values(leitura).map(cabo => Object.keys(cabo).length));
-      
-      // Usar dados do layout para dimensionamento
-      const distYSensores = layout.desenho_sensores?.dist_y_sensores || 12;
-      const escalaSensores = layout.desenho_sensores?.escala_sensores || 16;
-      
-      // Calcular altura baseada nos sensores reais (conversão SVG para 3D)
-      const alturaSilo = (maxSensores * (distYSensores / 10)) + 3; // Converter escala SVG para 3D
-      
+
+      // Calcular altura baseada no pêndulo central (método adaptativo)
+      const alturaSilo = this.getAlturaSilo();
+
       // Calcular raio baseado no número de cabos e largura do silo
       const larguraBase = layout.desenho_corte_silo?.lb || 463;
       const raioSilo = Math.max(3, (larguraBase / 100) * 1.2); // Converter largura SVG para raio 3D
@@ -239,7 +273,7 @@ export default {
         const scale = event.deltaY > 0 ? 1.1 : 0.9;
         this.cameraRadius *= scale;
         this.cameraRadius = Math.max(2, Math.min(50, this.cameraRadius));
-        
+
         const alturaSilo = this.getAlturaSilo();
         this.updateCameraPosition(alturaSilo);
         this.handleInteraction();
@@ -250,26 +284,40 @@ export default {
 
     getAlturaSilo() {
       if (!this.dados?.leitura) return 10;
-      
-      // Encontrar o maior número de sensor em todos os pêndulos
-      let maxNumeroSensor = 0;
-      Object.values(this.dados.leitura).forEach(sensores => {
-        Object.keys(sensores).forEach(sensorKey => {
-          const numeroSensor = parseInt(sensorKey);
-          if (numeroSensor > maxNumeroSensor) {
-            maxNumeroSensor = numeroSensor;
-          }
-        });
+
+      const leitura = this.dados.leitura;
+      const espacamentoSensores = 0.8; // Espaçamento fixo reduzido pela metade
+
+      // Encontrar o pêndulo central (aquele com mais sensores)
+      let penduloComMaisSensores = null;
+      let maxSensores = 0;
+
+      Object.entries(leitura).forEach(([pendulo, sensores]) => {
+        const numSensores = Object.keys(sensores).length;
+        if (numSensores > maxSensores) {
+          maxSensores = numSensores;
+          penduloComMaisSensores = pendulo;
+        }
       });
-      
-      const distYSensores = this.dados.dados_layout?.desenho_sensores?.dist_y_sensores || 12;
-      const espacamentoSensores = (distYSensores / 10);
-      
-      // Altura calculada baseada no maior sensor + margem de segurança
-      const alturaCalculada = 1.0 + (maxNumeroSensor * espacamentoSensores) + 2.0;
-      
+
+      if (!penduloComMaisSensores) return 10;
+
+      // Pegar o maior número de sensor do pêndulo central
+      const sensoresCentral = leitura[penduloComMaisSensores];
+      let maxNumeroSensorCentral = 0;
+
+      Object.keys(sensoresCentral).forEach(sensorKey => {
+        const numeroSensor = parseInt(sensorKey);
+        if (numeroSensor > maxNumeroSensorCentral) {
+          maxNumeroSensorCentral = numeroSensor;
+        }
+      });
+
+      // Altura calculada baseada no sensor mais alto do pêndulo central + margem mínima
+      const alturaCalculada = 1.0 + (maxNumeroSensorCentral * espacamentoSensores) + 0.2;
+
       // Garantir altura mínima razoável
-      return Math.max(8, alturaCalculada);
+      return Math.max(4, alturaCalculada);
     },
 
     getRaioSilo() {
@@ -356,8 +404,7 @@ export default {
       if (!this.dados?.leitura) return;
 
       const leitura = this.dados.leitura;
-      const distYSensores = this.dados.dados_layout?.desenho_sensores?.dist_y_sensores || 12;
-      const espacamentoSensores = (distYSensores / 10);
+      const espacamentoSensores = 0.8; // Espaçamento fixo reduzido pela metade
 
       // Calcular nível de grão por cabo baseado nos sensores com temGrao: true
       const niveisPorCabo = {};
@@ -417,17 +464,17 @@ export default {
         for (let j = 0; j <= segmentosAltura; j++) {
           const u = i / segmentos;
           const v = j / segmentosAltura;
-          
+
           // Posição no círculo
           const angulo = u * Math.PI * 2;
           const distanciaDocentro = raioSilo * 0.95;
-          
+
           const x = Math.cos(angulo) * distanciaDocentro;
           const z = Math.sin(angulo) * distanciaDocentro;
 
           // Interpolar altura baseada nos cabos próximos para o topo
           let alturaTopoInterpolada = this.interpolateHeightAtPosition(x, z, niveisPorCabo, alturaMedia);
-          
+
           // Adicionar variação natural para relevo no topo
           const ruido = (Math.sin(x * 5) * Math.cos(z * 5)) * 0.05;
           alturaTopoInterpolada += ruido;
@@ -458,7 +505,7 @@ export default {
           // Faces para fora
           indices.push(a, b, c);
           indices.push(b, d, c);
-          
+
           // Faces para dentro (para garantir visibilidade de baixo)
           indices.push(c, b, a);
           indices.push(c, d, b);
@@ -477,7 +524,7 @@ export default {
         const angulo = u * Math.PI * 2;
         const x = Math.cos(angulo) * raioSilo * 0.95;
         const z = Math.sin(angulo) * raioSilo * 0.95;
-        
+
         vertices.push(x, 0.3, z);
         normals.push(0, 1, 0);
         uvs.push(u, 0);
@@ -488,7 +535,7 @@ export default {
       for (let i = 0; i < segmentos; i++) {
         const curr = baseBordaStartIndex + i;
         const next = baseBordaStartIndex + ((i + 1) % (segmentos + 1));
-        
+
         // Face para cima
         indices.push(centroChaoIndex, curr, next);
         // Face para baixo
@@ -497,33 +544,33 @@ export default {
 
       // Adicionar vértices e faces para a superfície superior (relevo)
       const centroTopoIndex = vertices.length / 3;
-      
+
       // Centro do topo - suavizar usando múltiplos pontos
       const raioSuavizacao = raioSilo * 0.2; // Raio da área central suavizada
       const pontosRadiais = 8; // Pontos ao redor do centro
       const alturaCentroBase = this.interpolateHeightAtPosition(0, 0, niveisPorCabo, alturaMedia);
-      
+
       // Centro principal
       vertices.push(0, alturaCentroBase, 0);
       normals.push(0, 1, 0);
       uvs.push(0.5, 0.5);
-      
+
       // Pontos radiais para suavização
       const indicesPontosCentro = [centroTopoIndex];
       for (let i = 0; i < pontosRadiais; i++) {
         const angulo = (i / pontosRadiais) * Math.PI * 2;
         const x = Math.cos(angulo) * raioSuavizacao;
         const z = Math.sin(angulo) * raioSuavizacao;
-        
+
         // Suavizar altura gradualmente do centro para as bordas
         const alturaInterpolada = this.interpolateHeightAtPosition(x, z, niveisPorCabo, alturaMedia);
         const fatorSuavizacao = 0.7; // Reduz picos no centro
         const alturaFinal = alturaCentroBase + ((alturaInterpolada - alturaCentroBase) * fatorSuavizacao);
-        
+
         vertices.push(x, alturaFinal, z);
         normals.push(0, 1, 0);
         uvs.push(0.5 + (x / raioSilo), 0.5 + (z / raioSilo));
-        
+
         indicesPontosCentro.push(vertices.length / 3 - 1);
       }
 
@@ -534,11 +581,11 @@ export default {
         const angulo = u * Math.PI * 2;
         const x = Math.cos(angulo) * raioSilo * 0.95;
         const z = Math.sin(angulo) * raioSilo * 0.95;
-        
+
         let alturaInterpolada = this.interpolateHeightAtPosition(x, z, niveisPorCabo, alturaMedia);
         const ruido = (Math.sin(x * 5) * Math.cos(z * 5)) * 0.05;
         alturaInterpolada += ruido;
-        
+
         vertices.push(x, alturaInterpolada, z);
         normals.push(0, 1, 0);
         uvs.push(u, 1);
@@ -548,7 +595,7 @@ export default {
       for (let i = 0; i < pontosRadiais; i++) {
         const curr = indicesPontosCentro[i + 1];
         const next = indicesPontosCentro[((i + 1) % pontosRadiais) + 1];
-        
+
         // Face para cima
         indices.push(centroTopoIndex, curr, next);
         // Face para baixo
@@ -559,17 +606,17 @@ export default {
       for (let i = 0; i < segmentos; i++) {
         const bordaCurr = topoBordaStartIndex + i;
         const bordaNext = topoBordaStartIndex + ((i + 1) % (segmentos + 1));
-        
+
         // Encontrar ponto de suavização mais próximo
         const anguloSegmento = (i / segmentos) * Math.PI * 2;
         const pontoSuavizacao = Math.floor((anguloSegmento / (Math.PI * 2)) * pontosRadiais);
         const centroSuavizado = indicesPontosCentro[(pontoSuavizacao % pontosRadiais) + 1];
         const centroSuavizadoNext = indicesPontosCentro[((pontoSuavizacao + 1) % pontosRadiais) + 1];
-        
+
         // Faces suavizadas
         indices.push(centroSuavizado, bordaCurr, bordaNext);
         indices.push(centroSuavizado, bordaNext, centroSuavizadoNext);
-        
+
         // Faces invertidas para visibilidade
         indices.push(centroSuavizado, bordaNext, bordaCurr);
         indices.push(centroSuavizado, centroSuavizadoNext, bordaNext);
@@ -581,7 +628,7 @@ export default {
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
       geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
       geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
-      
+
       // Recalcular normais para iluminação correta
       geometry.computeVertexNormals();
 
@@ -604,9 +651,9 @@ export default {
 
       // Adicionar bordas do grão para melhor visualização (opcional)
       const edges = new THREE.EdgesGeometry(geometry);
-      const edgeMaterial = new THREE.LineBasicMaterial({ 
-        color: 0xB8A06B, 
-        transparent: true, 
+      const edgeMaterial = new THREE.LineBasicMaterial({
+        color: 0xB8A06B,
+        transparent: true,
         opacity: 0.15
       });
       const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
@@ -615,30 +662,30 @@ export default {
 
     interpolateHeightAtPosition(x, z, niveisPorCabo, alturaMedia) {
       const cabos = Object.values(niveisPorCabo);
-      
+
       if (cabos.length === 0) return alturaMedia * 0.5;
-      
+
       if (cabos.length === 1) return cabos[0].altura;
 
       // Usar interpolação IDW (Inverse Distance Weighting)
       let somaAlturas = 0;
       let somaPesos = 0;
-      
+
       cabos.forEach(cabo => {
         const distancia = Math.sqrt(
           Math.pow(x - cabo.x, 2) + Math.pow(z - cabo.z, 2)
         );
-        
+
         // Evitar divisão por zero e adicionar peso mínimo
         const distanciaSegura = Math.max(distancia, 0.1);
         const peso = 1 / Math.pow(distanciaSegura, 2);
-        
+
         somaAlturas += cabo.altura * peso;
         somaPesos += peso;
       });
 
       const alturaInterpolada = somaPesos > 0 ? somaAlturas / somaPesos : alturaMedia;
-      
+
       // Garantir que a altura seja razoável
       return Math.max(0.2, Math.min(alturaInterpolada, alturaMedia * 1.2));
     },
@@ -648,23 +695,23 @@ export default {
 
       const leitura = this.dados.leitura;
       const numCabos = Object.keys(leitura).length;
-      
+
       // Calcular posições dos cabos baseado na distribuição por níveis
       const cabosPositions = this.calculateCablePositionsByLevels(leitura, raioSilo);
 
       // Criar cabos e sensores
       Object.entries(leitura).forEach(([pendulo, sensores], index) => {
         const position = cabosPositions[index];
-        
+
         // Cabo principal
         this.createCable(position, alturaSilo);
-        
+
         // Nome do pêndulo
         this.createPendulumLabel(position, pendulo);
-        
+
         // Sensores (agora de baixo para cima)
         this.createSensors(position, sensores, alturaSilo, pendulo);
-        
+
         // Peso na extremidade
         this.createWeight(position);
       });
@@ -672,7 +719,7 @@ export default {
 
     calculateCablePositionsByLevels(leitura, raioSilo) {
       const positions = [];
-      
+
       // Agrupar pêndulos por número de sensores
       const pendulosPorTamanho = {};
       Object.entries(leitura).forEach(([pendulo, sensores]) => {
@@ -697,11 +744,11 @@ export default {
 
       // Distribuir posições por nível
       const positionsMap = {};
-      
+
       niveis.forEach(nivel => {
         const { pendulos, raio } = nivel;
         const numPendulos = pendulos.length;
-        
+
         if (numPendulos === 1) {
           // Se só tem um pêndulo neste nível, coloca no centro
           positionsMap[pendulos[0]] = [0, 0, 0];
@@ -745,15 +792,15 @@ export default {
       const context = canvas.getContext('2d');
       canvas.width = 128;
       canvas.height = 64;
-      
+
       context.fillStyle = '#2E86AB';
       context.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       context.fillStyle = 'white';
       context.font = '24px Arial';
       context.textAlign = 'center';
       context.fillText(pendulo, canvas.width / 2, canvas.height / 2 + 8);
-      
+
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
       const sprite = new THREE.Sprite(spriteMaterial);
@@ -765,8 +812,7 @@ export default {
 
     createSensors(position, sensores, alturaSilo, pendulo) {
       const sensoresArray = Object.entries(sensores);
-      const distYSensores = this.dados.dados_layout?.desenho_sensores?.dist_y_sensores || 12;
-      const espacamentoSensores = (distYSensores / 10); // Converter escala SVG para 3D
+      const espacamentoSensores = 0.8; // Espaçamento fixo reduzido pela metade
 
       // Ordenar sensores por número (de baixo para cima como no Silo.vue)
       const sensoresOrdenados = sensoresArray
@@ -780,16 +826,16 @@ export default {
         // Posição de baixo para cima: base + (número do sensor * espaçamento)
         // Usar exatamente a mesma lógica do Silo.vue
         const yPos = 0.5 + (numero * espacamentoSensores);
-        
+
         if (yPos < alturaSilo - 1.0) { // Dar mais margem para evitar sensores no teto
           const [temp, alarme, preAlarme, falha, ativo] = valores;
-          
+
           // Corpo do sensor
           this.createSensorBody(position, yPos, temp, alarme, falha, ativo);
-          
+
           // Antena do sensor
           this.createSensorAntenna(position, yPos);
-          
+
           // Texto da temperatura
           this.createTemperatureLabel(position, yPos, temp, falha, ativo, numero);
         }
@@ -798,7 +844,7 @@ export default {
 
     createSensorBody(position, yPos, temp, alarme, falha, ativo) {
       const cor = ativo ? this.corFaixaExata(temp) : 0xcccccc;
-      
+
       const sensorGeometry = new THREE.BoxGeometry(0.25, 0.12, 0.12);
       const sensorMaterial = new THREE.MeshStandardMaterial({
         color: cor,
@@ -825,23 +871,23 @@ export default {
       const context = canvas.getContext('2d');
       canvas.width = 128;
       canvas.height = 64;
-      
+
       context.fillStyle = 'rgba(0, 0, 0, 0.7)';
       context.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       context.fillStyle = falha ? '#ff0000' : '#00ff00';
       context.font = '20px Arial';
       context.textAlign = 'center';
       const texto = falha ? "ERR" : ativo ? `${temp.toFixed(1)}°C` : "OFF";
       context.fillText(texto, canvas.width / 2, canvas.height / 2 + 7);
-      
+
       // Adicionar número do sensor
       context.fillStyle = 'white';
       context.font = '12px Arial';
       context.fillText(`S${numeroSensor}`, canvas.width / 2, 15);
-      
+
       const texture = new THREE.CanvasTexture(canvas);
-      const spriteMaterial = new THREE.SpriteMaterial({ 
+      const spriteMaterial = new THREE.SpriteMaterial({
         map: texture,
         transparent: true,
         depthTest: false,
@@ -981,7 +1027,7 @@ export default {
       }
 
       this.scene.add(heliceGroup);
-      
+
       // Armazenar para animação se ligado
       if (status === 3) {
         this.aeradorHélices.push(heliceGroup);
@@ -992,15 +1038,15 @@ export default {
       const context = canvas.getContext('2d');
       canvas.width = 128;
       canvas.height = 64;
-      
+
       context.fillStyle = '#2E86AB';
       context.fillRect(0, 0, canvas.width, canvas.height);
-      
+
       context.fillStyle = 'white';
       context.font = '16px Arial';
       context.textAlign = 'center';
       context.fillText(`AE-${id}`, canvas.width / 2, canvas.height / 2 + 5);
-      
+
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
       const sprite = new THREE.Sprite(spriteMaterial);
@@ -1050,7 +1096,7 @@ export default {
       setInterval(() => {
         if (Date.now() - this.lastInteractionTime >= 15000 && !this.isZoomedIn) {
           this.zoomToCenter(alturaSilo, raioSilo);
-          
+
           // Volta ao normal após 5 segundos
           setTimeout(() => {
             this.resetZoom(alturaSilo, raioSilo);
@@ -1096,7 +1142,7 @@ export default {
 
     animate() {
       this.animationId = requestAnimationFrame(this.animate);
-      
+
       // Rotação automática
       if (this.autoRotate && !this.isMouseDown) {
         this.cameraTheta += 0.005;
@@ -1116,9 +1162,9 @@ export default {
 
     updateVisualization() {
       if (!this.scene) return;
-      
+
       // Limpar cena
-      while(this.scene.children.length > 0) {
+      while (this.scene.children.length > 0) {
         const child = this.scene.children[0];
         if (child.geometry) child.geometry.dispose();
         if (child.material) {
@@ -1127,19 +1173,17 @@ export default {
         }
         this.scene.remove(child);
       }
-      
+
       // Limpar arrays
       this.aeradorHélices = [];
       this.textSprites = [];
-      
+
       // Reconstruir
       if (this.dados) {
         const layout = this.dados.dados_layout;
         const leitura = this.dados.leitura;
         const numCabos = Object.keys(leitura).length;
-        const maxSensores = Math.max(...Object.values(leitura).map(cabo => Object.keys(cabo).length));
-        const distYSensores = layout.desenho_sensores?.dist_y_sensores || 12;
-        const alturaSilo = (maxSensores * (distYSensores / 10)) + 3;
+        const alturaSilo = this.getAlturaSilo();
         const larguraBase = layout.desenho_corte_silo?.lb || 463;
         const raioSilo = Math.max(3, (larguraBase / 100) * 1.2);
 
@@ -1157,7 +1201,7 @@ export default {
 
     onWindowResize() {
       if (!this.camera || !this.renderer) return;
-      
+
       const container = this.$refs.canvasContainer;
       if (!container) return;
 
@@ -1166,11 +1210,82 @@ export default {
       this.renderer.setSize(container.clientWidth, container.clientHeight);
     },
 
+    getNumPendulosAtivos() {
+      if (!this.dados?.leitura) return 0;
+      
+      let ativos = 0;
+      Object.values(this.dados.leitura).forEach(sensores => {
+        // Verificar se pelo menos um sensor está ativo
+        const temSensorAtivo = Object.values(sensores).some(valores => {
+          const temp = parseFloat(valores[0]);
+          const ativo = valores[4];
+          return ativo && temp !== -1000 && temp !== 0;
+        });
+        if (temSensorAtivo) ativos++;
+      });
+      
+      return ativos;
+    },
+
+    getStatusAeradores() {
+      const numAeradores = this.dados?.dados_layout?.aeradores?.na || 0;
+      const motorStatus = this.dados?.motor?.statusMotor || [];
+      
+      // Garantir que temos status para todos os aeradores
+      const status = [];
+      for (let i = 0; i < numAeradores; i++) {
+        status.push(motorStatus[i] || 0);
+      }
+      
+      return status;
+    },
+
+    getCorAerador(status) {
+      const cores = {
+        0: '#c5c5c5', // desligado - cinza
+        1: '#ffeb3b', // startando - amarelo
+        3: '#31dd0f', // ligado - verde
+        4: '#ff0000'  // erro - vermelho
+      };
+      return cores[status] || cores[0];
+    },
+
+    getStatusTexto(status) {
+      const textos = {
+        0: 'Desligado',
+        1: 'Ligando',
+        3: 'Ligado',
+        4: 'Erro'
+      };
+      return textos[status] || 'Desconhecido';
+    },
+
+    getTemperaturaMedia() {
+      if (!this.dados?.leitura) return '--';
+      
+      let somaTemp = 0;
+      let countTemp = 0;
+      
+      Object.values(this.dados.leitura).forEach(sensores => {
+        Object.values(sensores).forEach(valores => {
+          const temp = parseFloat(valores[0]);
+          const ativo = valores[4];
+          
+          if (ativo && temp !== -1000 && temp !== 0 && !isNaN(temp)) {
+            somaTemp += temp;
+            countTemp++;
+          }
+        });
+      });
+      
+      return countTemp > 0 ? (somaTemp / countTemp).toFixed(1) : '--';
+    },
+
     cleanup() {
       if (this.animationId) {
         cancelAnimationFrame(this.animationId);
       }
-      
+
       if (this.renderer) {
         const container = this.$refs.canvasContainer;
         if (container && this.renderer.domElement) {
@@ -1178,7 +1293,7 @@ export default {
         }
         this.renderer.dispose();
       }
-      
+
       // Limpar texturas
       this.textSprites.forEach(sprite => {
         if (sprite.material.map) {
@@ -1186,7 +1301,7 @@ export default {
         }
         sprite.material.dispose();
       });
-      
+
       window.removeEventListener('resize', this.onWindowResize);
     }
   }
