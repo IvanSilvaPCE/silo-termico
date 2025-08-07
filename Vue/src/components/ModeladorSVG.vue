@@ -380,6 +380,57 @@
                     </button>
                   </div>
                 </div>
+
+                <!-- Personalização das Pontas -->
+                <div class="mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="checkbox" v-model="configArmazem.pontas_redondas"
+                      @change="onArmazemChange" />
+                    <label class="form-check-label small fw-bold">Pontas Redondas</label>
+                  </div>
+                </div>
+
+                <div v-if="configArmazem.pontas_redondas" class="mb-2">
+                  <label class="small fw-bold">Raio das Pontas:</label>
+                  <div class="input-group input-group-sm">
+                    <input v-model.number="configArmazem.raio_pontas" type="range" min="5" max="50"
+                      class="form-range" @input="onArmazemChange" />
+                    <span class="input-group-text">{{ configArmazem.raio_pontas }}</span>
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('raio_pontas', 15)" title="Reset">
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Personalização das Laterais -->
+                <div class="mb-2">
+                  <label class="small fw-bold">Estilo das Laterais:</label>
+                  <div class="input-group input-group-sm">
+                    <select class="form-select" v-model="configArmazem.estilo_laterais" @change="onArmazemChange">
+                      <option value="reta">Laterais Retas</option>
+                      <option value="parede_para_fora">Paredes Para Fora</option>
+                      <option value="parede_para_dentro">Paredes Para Dentro</option>
+                    </select>
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('estilo_laterais', 'reta')" title="Reset">
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="configArmazem.estilo_laterais !== 'reta'" class="mb-2">
+                  <label class="small fw-bold">Intensidade da Curvatura:</label>
+                  <div class="input-group input-group-sm">
+                    <input v-model.number="configArmazem.curvatura_laterais" type="range" min="5" max="100"
+                      class="form-range" @input="onArmazemChange" />
+                    <span class="input-group-text">{{ configArmazem.curvatura_laterais }}</span>
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('curvatura_laterais', 30)" title="Reset">
+                      ×
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -975,6 +1026,10 @@ export default {
         ht: 50,
         tipo_telhado: 1,
         curvatura_topo: 30,
+        pontas_redondas: false,
+        raio_pontas: 15,
+        estilo_laterais: 'reta',
+        curvatura_laterais: 30,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1820,6 +1875,10 @@ export default {
         ht: 50,
         tipo_telhado: 1,
         curvatura_topo: 30,
+        pontas_redondas: false,
+        raio_pontas: 15,
+        estilo_laterais: 'reta',
+        curvatura_laterais: 30,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -2556,10 +2615,25 @@ export default {
 
     renderTelhado() {
       const config = this.configPreviewAplicada || this.configArmazem
-      const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = config
+      const { 
+        tipo_telhado, 
+        curvatura_topo, 
+        pb, 
+        lb, 
+        hb, 
+        hf, 
+        lf, 
+        le, 
+        ht, 
+        tipo_fundo,
+        pontas_redondas,
+        raio_pontas,
+        estilo_laterais,
+        curvatura_laterais
+      } = config
 
       if (tipo_telhado === 1) {
-        // Pontudo
+        // Pontudo com personalizações
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 7
@@ -2573,42 +2647,143 @@ export default {
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
 
-        const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
+        if (pontas_redondas || estilo_laterais !== 'reta') {
+          // Usar SVG path para permitir curvas
+          const raio = raio_pontas || 15
+          const curvaLateral = curvatura_laterais || 30
+          
+          let pathTelhado = `M ${p1[0]} ${p1[1]}`
+          
+          if (pontas_redondas) {
+            pathTelhado += ` L ${p2[0]} ${p2[1] + raio}`
+          } else {
+            pathTelhado += ` L ${p2[0]} ${p2[1]}`
+          }
+          
+          if (estilo_laterais === 'parede_para_fora') {
+            pathTelhado += ` Q ${p3[0] - curvaLateral} ${(p3[1] + p4[1]) / 2} ${p4[0] - 20} ${p4[1] + 10}`
+          } else if (estilo_laterais === 'parede_para_dentro') {
+            pathTelhado += ` Q ${p3[0] + curvaLateral} ${(p3[1] + p4[1]) / 2} ${p4[0] - 20} ${p4[1] + 10}`
+          } else {
+            pathTelhado += ` L ${p3[0]} ${p3[1]}`
+          }
+          
+          if (pontas_redondas) {
+            pathTelhado += ` Q ${p4[0]} ${p4[1] - raio} ${p4[0]} ${p4[1]} Q ${p4[0]} ${p4[1] - raio} ${p4[0] + 20} ${p4[1] + 10}`
+          } else {
+            pathTelhado += ` L ${p4[0]} ${p4[1]}`
+          }
+          
+          if (estilo_laterais === 'parede_para_fora') {
+            pathTelhado += ` Q ${p5[0] + curvaLateral} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}`
+          } else if (estilo_laterais === 'parede_para_dentro') {
+            pathTelhado += ` Q ${p5[0] - curvaLateral} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}`
+          } else {
+            pathTelhado += ` L ${p5[0]} ${p5[1]}`
+          }
+          
+          if (pontas_redondas) {
+            pathTelhado += ` L ${p6[0]} ${p6[1] + raio}`
+          } else {
+            pathTelhado += ` L ${p6[0]} ${p6[1]}`
+          }
+          
+          pathTelhado += ` L ${p7[0]} ${p7[1]} Z`
 
-        return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
+          return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
+        } else {
+          // Versão original com polígono
+          const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
+          return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
+        }
       } else if (tipo_telhado === 2) {
-        // Arredondado
+        // Arredondado com personalizações
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        const pathTelhado = `
-          M ${(lb - lf) / 2} ${pb - hf + extensao}
-          L ${le} ${pb - hb + extensao}
-          L ${le} ${pb - ht}
-          Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}
-          L ${lb - le} ${pb - hb + extensao}
-          L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
-          Z
-        `
+        const raio = raio_pontas || 15
+        const curvaLateral = curvatura_laterais || 30
+
+        let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
+        
+        if (pontas_redondas) {
+          pathTelhado += ` Q ${(lb - lf) / 2 - raio} ${pb - hf + extensao} ${le + raio} ${pb - hb + extensao}`
+        } else {
+          pathTelhado += ` L ${le} ${pb - hb + extensao}`
+        }
+        
+        if (estilo_laterais === 'parede_para_fora') {
+          pathTelhado += ` Q ${le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+        } else if (estilo_laterais === 'parede_para_dentro') {
+          pathTelhado += ` Q ${le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+        } else {
+          pathTelhado += ` L ${le} ${pb - ht}`
+        }
+        
+        pathTelhado += ` Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}`
+        
+        if (estilo_laterais === 'parede_para_fora') {
+          pathTelhado += ` Q ${lb - le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+        } else if (estilo_laterais === 'parede_para_dentro') {
+          pathTelhado += ` Q ${lb - le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+        } else {
+          pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
+        }
+        
+        if (pontas_redondas) {
+          pathTelhado += ` Q ${lb - le + raio} ${pb - hf + extensao} ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
+        } else {
+          pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
+        }
+        
+        pathTelhado += ` Z`
+
         return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
       } else if (tipo_telhado === 3) {
-        // Arco
+        // Arco com personalizações
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        const pathTelhado = `
-          M ${(lb - lf) / 2} ${pb - hf + extensao}
-          L ${le} ${pb - hb + extensao}
-          L ${le} ${pb - ht}
-          A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}
-          L ${lb - le} ${pb - hb + extensao}
-          L ${lb - (lb - lf) / 2} ${pb - hf + extensao}
-          Z
-        `
+        const raio = raio_pontas || 15
+        const curvaLateral = curvatura_laterais || 30
+
+        let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
+        
+        if (pontas_redondas) {
+          pathTelhado += ` Q ${(lb - lf) / 2 - raio} ${pb - hf + extensao} ${le + raio} ${pb - hb + extensao}`
+        } else {
+          pathTelhado += ` L ${le} ${pb - hb + extensao}`
+        }
+        
+        if (estilo_laterais === 'parede_para_fora') {
+          pathTelhado += ` Q ${le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+        } else if (estilo_laterais === 'parede_para_dentro') {
+          pathTelhado += ` Q ${le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+        } else {
+          pathTelhado += ` L ${le} ${pb - ht}`
+        }
+        
+        pathTelhado += ` A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}`
+        
+        if (estilo_laterais === 'parede_para_fora') {
+          pathTelhado += ` Q ${lb - le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+        } else if (estilo_laterais === 'parede_para_dentro') {
+          pathTelhado += ` Q ${lb - le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+        } else {
+          pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
+        }
+        
+        if (pontas_redondas) {
+          pathTelhado += ` Q ${lb - le + raio} ${pb - hf + extensao} ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
+        } else {
+          pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
+        }
+        
+        pathTelhado += ` Z`
 
         return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
       }
