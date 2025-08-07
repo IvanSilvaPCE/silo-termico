@@ -177,7 +177,7 @@ export default {
       dimensoesSVG: { largura: 350, altura: 200 },
       error: null,
       apiConfig: {
-        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=4&data=2025-08-04%2007:02:22',
+        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-07%2008:03:36',
         token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM'
       },
       configuracaoSelecionada: '',
@@ -200,7 +200,6 @@ export default {
     },
     modo: {
       handler(novoModo) {
-        console.log('Modo alterado para:', novoModo);
         this.$nextTick(() => {
           this.renderizarSVG();
         });
@@ -224,8 +223,6 @@ export default {
         this.carregandoModo = true;
         this.error = null;
 
-        console.log('=== INICIANDO CARREGAMENTO DA API ===');
-
         const response = await axios.get(this.apiConfig.url, {
           headers: {
             'Authorization': this.apiConfig.token,
@@ -237,10 +234,7 @@ export default {
         if (!response.data) {
           throw new Error('Resposta da API vazia');
         }
-
-        console.log('=== DADOS RECEBIDOS DA API ===');
-        console.log('DADOS COMPLETOS EM JSON:', JSON.stringify(response.data, null, 2));
-        
+       
         // Armazenar dados originais da API
         this.dadosPortal = response.data;
 
@@ -248,16 +242,10 @@ export default {
         const analise = this.analisarEstruturaArcos(response.data);
         this.analiseArcos = analise;
         
-        console.log('=== ESTRUTURA ANALISADA ===');
-        console.log('Análise dos arcos:', JSON.stringify(analise, null, 2));
-
         // Gerar layouts automáticos
         const layouts = LayoutManager.gerarLayoutAutomatico(analise);
         this.layoutsAutomaticos = layouts;
         
-        console.log('=== LAYOUTS GERADOS ===');
-        console.log('Layouts automáticos:', JSON.stringify(layouts, null, 2));
-
         // Calcular dimensões ideais
         const dimensoes = this.calcularDimensoesIdeais(analise);
         this.dimensoesSVG = dimensoes;
@@ -266,9 +254,6 @@ export default {
         const dadosConvertidos = this.converterDadosParaRenderizacao(response.data, 1);
         this.dadosLocal = dadosConvertidos;
         
-        console.log('=== CONVERSÃO FINALIZADA ===');
-        console.log('Dados convertidos:', JSON.stringify(dadosConvertidos, null, 2));
-
         // Forçar renderização inicial
         this.$nextTick(() => {
           this.renderizarSVG();
@@ -284,10 +269,8 @@ export default {
 
     // Analisar estrutura dos arcos baseada na nova estrutura da API
     analisarEstruturaArcos(dados) {
-      console.log('=== ANALISANDO ESTRUTURA DOS ARCOS ===');
       
       if (!dados.arcos) {
-        console.log('Nenhuma estrutura de arcos encontrada');
         return this.criarEstruturaMinima();
       }
 
@@ -337,16 +320,13 @@ export default {
         estrutura.estatisticas.totalSensores += infoArco.totalSensores;
       });
 
-      console.log('Estrutura final analisada:', estrutura);
       return estrutura;
     },
 
     // Converter dados da API para formato de renderização
     converterDadosParaRenderizacao(dadosAPI, numeroArco) {
-      console.log(`=== CONVERTENDO DADOS PARA ARCO ${numeroArco} ===`);
       
       if (!dadosAPI.arcos || !dadosAPI.arcos[numeroArco]) {
-        console.log(`Arco ${numeroArco} não encontrado nos dados`);
         return { leitura: {} };
       }
 
@@ -371,7 +351,6 @@ export default {
         timestamp: new Date().toISOString()
       };
 
-      console.log(`Dados convertidos para arco ${numeroArco}:`, resultado);
       return resultado;
     },
 
@@ -467,10 +446,7 @@ export default {
     },
 
     renderizarSVG() {
-      console.log('=== RENDERIZANDO SVG ===');
-      console.log('Modo atual:', this.modo);
-      console.log('Dados locais:', this.dadosLocal);
-      
+           
       if (!this.dadosLocal) {
         console.log('Sem dados locais, abortando renderização');
         return;
@@ -504,15 +480,12 @@ export default {
       
       // Desenhar conteúdo baseado no modo
       if (this.modo === "temperatura") {
-        console.log('Renderizando modo temperatura');
         this.desenhaSensores();
         this.atualizarSensores(this.dadosLocal);
       } else if (this.modo === "mapa") {
-        console.log('Renderizando modo mapa de calor');
         this.desenhaMapaCalor();
       }
       
-      console.log('=== RENDERIZAÇÃO CONCLUÍDA ===');
     },
 
     desenhaFundo() {
@@ -764,7 +737,6 @@ export default {
         });
       }
 
-      console.log('Sensores coletados para mapa de calor:', sensores);
 
       // Função IDW para interpolação
       const idw = (cx, cy) => {
@@ -846,7 +818,6 @@ export default {
       }
 
       svgEl.appendChild(g);
-      console.log('Mapa de calor renderizado com sucesso');
     },
 
     atualizarSensores(dadosArco) {
@@ -943,9 +914,15 @@ export default {
 
     mudarArco(novoArco) {
       this.arcoAtual = novoArco;
+      
       if (this.dadosPortal) {
         const dadosConvertidos = this.converterDadosParaRenderizacao(this.dadosPortal, novoArco);
         this.dadosLocal = dadosConvertidos;
+      }
+
+      // Se há uma configuração selecionada, aplicar o modelo correspondente ao novo arco
+      if (this.configuracaoSelecionada) {
+        this.aplicarConfiguracao();
       }
     },
 
@@ -978,8 +955,11 @@ export default {
 
     aplicarConfiguracao() {
       if (!this.configuracaoSelecionada) {
-        // Voltar para configuração padrão - recarregar dados da API
-        this.carregarDadosAPI()
+        // Voltar para configuração padrão - limpar configuração aplicada
+        this.configuracaoAplicada = null
+        this.$nextTick(() => {
+          this.renderizarSVG()
+        })
         return
       }
 
@@ -991,22 +971,25 @@ export default {
           try {
             const configData = JSON.parse(configSalva)
             
-            if (configData.tipo === 'configuracao_armazem_completa' && configData.modelosArcos) {
-              // Configuração completa com modelos de arcos
-              console.log(`Aplicando configuração completa "${this.configuracaoSelecionada}" com ${configData.quantidadeModelos} modelos`)
+            if (configData.tipo === 'configuracao_armazem_hierarquica' && configData.configModelos?.modelosDefinidos) {
+              // Configuração hierárquica nova (v3.0+)
+              const modeloParaArco = this.determinarModeloParaArcoComConfig(this.arcoAtual, configData.configModelos.modelosDefinidos, configData.configModelos.quantidadeModelos)
               
-              // Determinar qual modelo aplicar baseado no arco atual
+              if (modeloParaArco && modeloParaArco.configuracao) {
+                this.aplicarConfiguracaoNaRenderizacao(modeloParaArco.configuracao)
+                this.mostrarFeedbackModelo(modeloParaArco.nome, configData.configModelos.quantidadeModelos)
+              }
+            } else if (configData.tipo === 'configuracao_armazem_completa' && configData.modelosArcos) {
+              // Configuração completa antiga (v2.0)
               const modeloParaArco = this.determinarModeloParaArcoComConfig(this.arcoAtual, configData.modelosArcos, configData.quantidadeModelos)
               
               if (modeloParaArco && modeloParaArco.config) {
-                // Aplicar configuração do modelo específico na renderização
                 this.aplicarConfiguracaoNaRenderizacao(modeloParaArco.config)
-                console.log(`Modelo "${modeloParaArco.nome}" aplicado ao arco ${this.arcoAtual}`)
+                this.mostrarFeedbackModelo(modeloParaArco.nome, configData.quantidadeModelos)
               }
             } else {
               // Configuração simples (formato antigo)
               this.aplicarConfiguracaoNaRenderizacao(configData)
-              console.log(`Configuração simples "${this.configuracaoSelecionada}" aplicada`)
             }
 
           } catch (error) {
@@ -1022,39 +1005,52 @@ export default {
 
     determinarModeloParaArcoComConfig(numeroArco, modelosArcos, quantidadeModelos) {
       const totalArcos = this.analiseArcos?.totalArcos || 1
-
+      // 1 modelo: todos os arcos usam o mesmo modelo
       if (quantidadeModelos === 1) {
-        return Object.values(modelosArcos)[0] || null
+        const modelo = Object.values(modelosArcos)[0] || null
+        return modelo
       }
 
+      // 2 modelos: começa com ímpar (1º, 3º, 5º...), depois par (2º, 4º, 6º...)
       if (quantidadeModelos === 2) {
         const isImpar = numeroArco % 2 === 1
         const posicaoProcurada = isImpar ? 'impar' : 'par'
-        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+        const modelo = Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+        return modelo
       }
 
+      // 3 modelos: 1º e último = frente_fundo, depois par e ímpar intercalados
       if (quantidadeModelos === 3) {
         if (numeroArco === 1 || numeroArco === totalArcos) {
-          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || Object.values(modelosArcos)[0] || null
+          const modelo = Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || Object.values(modelosArcos)[0] || null
+          return modelo
         }
+        // Para arcos intermediários: a partir do 2º arco, par primeiro, depois ímpar
         const isParIntermediario = numeroArco % 2 === 0
         const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
-        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+        const modelo = Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+        return modelo
       }
 
+      // 4 modelos: 1º = frente, último = fundo, intermediários par e ímpar intercalados
       if (quantidadeModelos === 4) {
         if (numeroArco === 1) {
-          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || Object.values(modelosArcos)[0] || null
+          const modelo = Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || Object.values(modelosArcos)[0] || null
+          return modelo
         }
         if (numeroArco === totalArcos) {
-          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || Object.values(modelosArcos)[0] || null
+          const modelo = Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || Object.values(modelosArcos)[0] || null
+          return modelo
         }
+        // Para arcos intermediários: par primeiro, depois ímpar
         const isParIntermediario = numeroArco % 2 === 0
         const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
-        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+        const modelo = Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+        return modelo
       }
 
-      return Object.values(modelosArcos)[0] || null
+      const modeloPadrao = Object.values(modelosArcos)[0] || null
+      return modeloPadrao
     },
 
     aplicarConfiguracaoNaRenderizacao(config) {
@@ -1124,7 +1120,6 @@ export default {
         }
       }
       
-      console.log('Estrutura adaptativa criada:', estrutura)
       return estrutura
     },
 
@@ -1138,10 +1133,9 @@ export default {
         altura: alturaBase
       }
       
-      console.log('Dimensões SVG atualizadas:', this.dimensoesSVG)
     },
 
-    atualizarLayoutsComConfiguracao(config, estrutura) {
+   atualizarLayoutsComConfiguracao(config, estrutura) {
       if (!this.analiseArcos) return
 
       // Gerar novos layouts baseados na configuração
@@ -1173,7 +1167,33 @@ export default {
       })
 
       this.layoutsAutomaticos = novosLayouts
-      console.log('Layouts atualizados com configuração:', novosLayouts)
+    },
+
+    mostrarFeedbackModelo(nomeModelo, quantidadeModelos) {
+      const toast = document.createElement('div')
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: #28a745;
+        color: white;
+        padding: 12px 16px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 9999;
+        font-size: 14px;
+        max-width: 300px;
+      `
+      toast.innerHTML = `
+        <strong>Modelo Aplicado</strong><br>
+        ${nomeModelo}<br>
+        <small>${quantidadeModelos} modelo(s) configurado(s)</small>
+      `
+      document.body.appendChild(toast)
+      
+      setTimeout(() => {
+        toast.remove()
+      }, 3000)
     },
 
     abrirModelador() {
@@ -1193,8 +1213,6 @@ export default {
         localStorage.setItem('dadosArcoParaModelador', JSON.stringify(dadosParaModelador))
         localStorage.setItem('timestampArcoModelador', dadosParaModelador.timestamp.toString())
       }
-
-      console.log(`Enviando dados do arco ${this.arcoAtual} para o modelador`)
 
       // Navegar para o modelador
       if (this.$router) {

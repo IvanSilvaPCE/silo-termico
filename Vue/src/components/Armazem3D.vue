@@ -1,8 +1,8 @@
-
 <template>
   <div style="width: 100%; height: 100vh;">
     <!-- Indicador de carregamento -->
-    <div v-if="carregandoDados" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; text-align: center;">
+    <div v-if="carregandoDados"
+      style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; text-align: center;">
       <div class="spinner-border" role="status">
         <span class="visually-hidden"></span>
       </div>
@@ -10,13 +10,15 @@
     </div>
 
     <!-- Indicador de erro -->
-    <div v-if="erroAPI" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; background: rgba(220, 53, 69, 0.9); color: white; padding: 10px; border-radius: 5px; max-width: 80%;">
+    <div v-if="erroAPI"
+      style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 2000; background: rgba(220, 53, 69, 0.9); color: white; padding: 10px; border-radius: 5px; max-width: 80%;">
       <strong>Erro:</strong> {{ erroAPI }}
       <br><small>Usando dados de demonstração</small>
     </div>
 
     <!-- Controles simples -->
-    <div style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
+    <div
+      style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
       <label style="display: block; margin-bottom: 5px;">
         <input type="checkbox" v-model="autoRotate" />
         Rotação Automática
@@ -129,15 +131,13 @@ export default {
         }
 
         this.dados = response.data;
-        console.log('Dados da API carregados:', this.dados);
-
         // Validar estrutura essencial
         this.validarEstruturaDados(this.dados);
 
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error);
         this.erroAPI = this.tratarErroAPI(error);
-        
+
         // Usar dados de fallback
         this.dados = await this.gerarDadosFallback();
       } finally {
@@ -149,7 +149,7 @@ export default {
       if (!dados || typeof dados !== 'object') {
         throw new Error('Dados inválidos recebidos da API');
       }
-      
+
       // Validar estruturas essenciais
       if (!dados.configuracao && !dados.arcos && !dados.pendulos) {
         console.warn('Estrutura de dados não reconhecida, adaptando automaticamente');
@@ -160,7 +160,7 @@ export default {
       if (error.response) {
         const status = error.response.status;
         const message = error.response.data?.message || error.response.statusText;
-        
+
         if (status === 401) {
           return 'Token de autenticação inválido';
         } else if (status === 500) {
@@ -179,7 +179,7 @@ export default {
 
     async gerarDadosFallback() {
       console.warn('Usando dados de fallback devido a erro na API');
-      
+
       return {
         configuracao: {
           layout_topo: {
@@ -239,8 +239,6 @@ export default {
 
       const container = this.$refs.canvasContainer;
       if (!container) return;
-
-      console.log('Inicializando Three.js para Armazém');
 
       // Scene
       this.scene = new THREE.Scene();
@@ -361,8 +359,8 @@ export default {
 
       // Base do armazém
       const baseGeometry = new THREE.BoxGeometry(
-        this.larguraArmazem + espessuraParede, 
-        0.15, 
+        this.larguraArmazem + espessuraParede,
+        0.15,
         this.profundidadeArmazem + espessuraParede
       );
       const baseMaterial = new THREE.MeshStandardMaterial({
@@ -410,37 +408,37 @@ export default {
     buildParedesTriangulares(paredeMaterial, espessuraParede) {
       const alturaTelhado = this.alturaArmazem + 0.6;
       const inclinacaoTelhado = Math.PI / 12;
-      
+
       // Criar shape que segue exatamente o formato do telhado em V
       const shape = new THREE.Shape();
-      
+
       // Começar da base esquerda
       shape.moveTo(-this.profundidadeArmazem / 2, 0);
-      
+
       // Ir para base direita
       shape.lineTo(this.profundidadeArmazem / 2, 0);
-      
+
       // Subir verticalmente até a altura da parede reta
       shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
-      
+
       // Calcular onde o telhado começa a inclinar (exatamente na borda do telhado)
       const inicioProfundidadeTelhado = this.profundidadeArmazem / 4; // Onde começa a inclinação
-      
+
       // Altura no ponto onde começa a inclinação do telhado
       const alturaInicioInclinacao = alturaTelhado - (inicioProfundidadeTelhado * Math.tan(inclinacaoTelhado));
-      
+
       // Seguir a inclinação do telhado do lado direito
       shape.lineTo(inicioProfundidadeTelhado, alturaInicioInclinacao);
-      
+
       // Ir até o pico central (cumeeira)
       shape.lineTo(0, alturaTelhado);
-      
+
       // Descer seguindo a inclinação do telhado do lado esquerdo
       shape.lineTo(-inicioProfundidadeTelhado, alturaInicioInclinacao);
-      
+
       // Descer verticalmente até a altura da parede reta
       shape.lineTo(-this.profundidadeArmazem / 2, this.alturaArmazem);
-      
+
       // Fechar voltando à base
       shape.lineTo(-this.profundidadeArmazem / 2, 0);
 
@@ -526,11 +524,9 @@ export default {
     buildPendulos() {
       if (!this.dados) return;
 
-      console.log('Construindo pêndulos:', this.dados);
-
       // Verificar se existe configuração de layout_topo
       const layoutTopo = this.dados?.configuracao?.layout_topo;
-      
+
       if (layoutTopo) {
         // Usar layout_topo se disponível
         this.buildPendulosComLayoutTopo(layoutTopo);
@@ -566,14 +562,14 @@ export default {
       if (this.dados.arcos) {
         const arcosIds = Object.keys(this.dados.arcos).map(id => parseInt(id)).sort((a, b) => a - b);
         const totalArcos = arcosIds.length;
-        
+
         arcosIds.forEach((arcoId, arcoIndex) => {
           const arcoData = this.dados.arcos[arcoId];
           const posX = -this.larguraArmazem / 2 + (arcoIndex / Math.max(totalArcos - 1, 1)) * this.larguraArmazem;
-          
+
           const pendulosIds = Object.keys(arcoData).map(id => parseInt(id)).sort((a, b) => a - b);
           const totalPendulos = pendulosIds.length;
-          
+
           pendulosIds.forEach((penduloId, penduloIndex) => {
             const posZ = -this.profundidadeArmazem / 2 + (penduloIndex / Math.max(totalPendulos - 1, 1)) * this.profundidadeArmazem;
             const sensores = arcoData[penduloId] || {};
@@ -584,7 +580,7 @@ export default {
         // Fallback para dados de pêndulos simples
         const pendulosIds = Object.keys(this.dados.pendulos).map(id => parseInt(id)).sort((a, b) => a - b);
         const totalPendulos = pendulosIds.length;
-        
+
         pendulosIds.forEach((penduloId, index) => {
           const posX = -this.larguraArmazem / 2 + (index / Math.max(totalPendulos - 1, 1)) * this.larguraArmazem;
           const posZ = 0; // Centralizado
@@ -597,23 +593,23 @@ export default {
     buildPendulo(posX, posZ, arcoNum, penduloNum, sensores) {
       const sensoresArray = Object.entries(sensores);
       const numSensores = sensoresArray.length;
-      
+
       // Calcular comprimento do cabo baseado na quantidade de sensores
       // Mínimo 1.5m, máximo altura do armazém - 0.2m
       // Cada sensor adiciona ~0.4m ao comprimento
       const comprimentoBase = 1.5;
       const incrementoPorSensor = 0.4;
       const comprimentoMaximo = this.alturaArmazem - 0.2;
-      
+
       let alturaCabo = comprimentoBase + (numSensores * incrementoPorSensor);
       alturaCabo = Math.min(alturaCabo, comprimentoMaximo);
-      
+
       // Posição Y do cabo (sempre começa do topo)
       const posYCabo = this.alturaArmazem - (alturaCabo / 2) - 0.1;
-      
+
       // Criar cabo com comprimento ajustado
       const cableGeometry = new THREE.CylinderGeometry(0.02, 0.02, alturaCabo, 8);
-      const cableMaterial = new THREE.MeshStandardMaterial({ 
+      const cableMaterial = new THREE.MeshStandardMaterial({
         color: 0x2c2c2c,
         metalness: 0.7,
         roughness: 0.3
@@ -625,10 +621,10 @@ export default {
 
       // Construir sensores distribuídos ao longo do cabo
       const espacamentoSensores = numSensores > 1 ? alturaCabo / (numSensores + 1) : alturaCabo / 2;
-      
+
       sensoresArray.forEach(([sensorNum, dadosSensor], sensorIndex) => {
         const [temp, pontoQuente, preAlarme, falha, ativo] = dadosSensor;
-        
+
         // Posição Y do sensor (do topo para baixo)
         const posY = this.alturaArmazem - 0.1 - ((sensorIndex + 1) * espacamentoSensores);
 
@@ -719,8 +715,8 @@ export default {
       // Criar geometria sólida 3D do nível de grãos (similar ao Silo3D)
       const segmentos = 32;
       const nivelGeometry = new THREE.BoxGeometry(
-        this.larguraArmazem * 0.95, 
-        alturaNivel, 
+        this.larguraArmazem * 0.95,
+        alturaNivel,
         this.profundidadeArmazem * 0.95
       );
 
@@ -745,10 +741,10 @@ export default {
 
       // Criar superfície superior com textura mais realista
       const superficieGeometry = new THREE.PlaneGeometry(
-        this.larguraArmazem * 0.95, 
+        this.larguraArmazem * 0.95,
         this.profundidadeArmazem * 0.95
       );
-      
+
       const superficieMaterial = new THREE.MeshStandardMaterial({
         color: 0xE6D7B8, // Cor mais clara para a superfície
         transparent: true,
@@ -772,14 +768,14 @@ export default {
       // Gerar aeradores em posições padrão se não existirem na API
       const aeradores = {};
       const numAeradores = 4; // Número padrão de aeradores
-      
+
       for (let i = 1; i <= numAeradores; i++) {
         const posX = (i - 1) * (this.larguraArmazem / (numAeradores - 1));
         const posY = 305;
         const textoAcima = i % 2;
         aeradores[i] = [posX, posY, textoAcima];
       }
-      
+
       return aeradores;
 
       // Label discreto do nível (opcional)
@@ -795,12 +791,12 @@ export default {
     addGrainSurfaceDetails(alturaNivel) {
       // Adicionar pequenos detalhes na superfície para maior realismo
       const numDetalhes = 15;
-      
+
       for (let i = 0; i < numDetalhes; i++) {
         // Posições aleatórias dentro do armazém
         const x = (Math.random() - 0.5) * this.larguraArmazem * 0.8;
         const z = (Math.random() - 0.5) * this.profundidadeArmazem * 0.8;
-        
+
         // Pequenas elevações na superfície
         const detalheGeometry = new THREE.SphereGeometry(0.1 + Math.random() * 0.1, 8, 6);
         const detalheMaterial = new THREE.MeshStandardMaterial({
@@ -809,7 +805,7 @@ export default {
           opacity: 0.3,
           roughness: 0.9
         });
-        
+
         const detalhe = new THREE.Mesh(detalheGeometry, detalheMaterial);
         detalhe.position.set(x, alturaNivel + 0.15, z);
         detalhe.scale.y = 0.3; // Achatar um pouco
@@ -819,7 +815,7 @@ export default {
 
     buildAeradores() {
       let aeradores = {};
-      
+
       // Verificar se existe configuração de aeradores na API
       if (this.dados?.configuracao?.layout_topo?.aeradores) {
         aeradores = this.dados.configuracao.layout_topo.aeradores;
@@ -834,9 +830,6 @@ export default {
         return;
       }
       const totalAeradores = Object.keys(aeradores).length;
-      
-      console.log(`Construindo ${totalAeradores} aeradores:`, aeradores);
-
       // Se não há aeradores, sair
       if (totalAeradores === 0) {
         console.log('Nenhum aerador para construir');
@@ -857,10 +850,10 @@ export default {
 
       Object.entries(aeradores).forEach(([aeradorId, posicao], index) => {
         const [posX2D, posY2D, textoAcima] = posicao;
-        
+
         // Estratégia de posicionamento baseada na quantidade
         let posX3D, posZ3D;
-        
+
         if (totalAeradores <= 4) {
           // Poucos aeradores: distribuir nos cantos
           const cantos = [
@@ -870,7 +863,7 @@ export default {
             [-this.larguraArmazem / 2 - margemExterna, this.profundidadeArmazem / 2 + margemExterna]   // Canto inferior esquerdo
           ];
           [posX3D, posZ3D] = cantos[index % 4];
-          
+
         } else if (totalAeradores <= 8) {
           // Quantidade média: distribuir nos cantos e meio das bordas
           const posicoes = [
@@ -886,17 +879,17 @@ export default {
             [-this.larguraArmazem / 2 - margemExterna, 0]       // Meio esquerda
           ];
           [posX3D, posZ3D] = posicoes[index % 8];
-          
+
         } else {
           // Muitos aeradores: distribuir uniformemente ao redor do perímetro
           const distanciaPerimetro = index * espacamentoPerimetro;
-          
+
           // Determinar em qual lado do armazém o aerador ficará
           const ladoTopo = this.larguraArmazem;
           const ladoDireita = this.profundidadeArmazem;
           const ladoFundo = this.larguraArmazem;
           const ladoEsquerda = this.profundidadeArmazem;
-          
+
           if (distanciaPerimetro <= ladoTopo) {
             // Lado superior
             posX3D = -this.larguraArmazem / 2 + distanciaPerimetro;
@@ -919,7 +912,7 @@ export default {
         // Usar estado do AER ou padrão
         const estado = estadosAeradores[index] !== undefined ? estadosAeradores[index] : 0;
         const statusAerador = estado > 0 ? 3 : 0; // 3 = ligado, 0 = desligado
-        
+
         this.createAerador([posX3D, 0.3, posZ3D], parseInt(aeradorId), statusAerador);
       });
     },
@@ -952,7 +945,7 @@ export default {
       for (let i = 0; i < 3; i++) {
         const angle = (i * 120 * Math.PI) / 180;
         const paGeometry = new THREE.BoxGeometry(0.2, 0.02, 0.04);
-        const paMaterial = new THREE.MeshStandardMaterial({ 
+        const paMaterial = new THREE.MeshStandardMaterial({
           color: 0xf0f0f0,
           metalness: 0.1,
           roughness: 0.8
@@ -1040,7 +1033,7 @@ export default {
       context.fillText(text, canvas.width / 2, canvas.height / 2 + 5);
 
       const texture = new THREE.CanvasTexture(canvas);
-      const spriteMaterial = new THREE.SpriteMaterial({ 
+      const spriteMaterial = new THREE.SpriteMaterial({
         map: texture,
         transparent: true,
         depthTest: false,
@@ -1081,7 +1074,7 @@ export default {
 
     updateVisualization() {
       // Limpar cena
-      while(this.scene.children.length > 0) {
+      while (this.scene.children.length > 0) {
         const child = this.scene.children[0];
         if (child.geometry) child.geometry.dispose();
         if (child.material) {

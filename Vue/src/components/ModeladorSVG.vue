@@ -2,18 +2,15 @@
   <div class="container-fluid p-0">
     <div class="row g-0">
       <!-- Painel de Controles -->
-      <div
-        class="col-xl-3 col-lg-4 col-md-5 col-sm-12 modelador-painel-controles"
-        :style="{
-          height: isMobile ? 'auto' : '100vh',
-          overflowY: isMobile ? 'visible' : 'auto',
-          position: 'relative',
-          borderRight: '2px solid #dee2e6',
-          backgroundColor: '#f8f9fa',
-          zIndex: 1000,
-          maxHeight: isMobile ? 'none' : '100vh'
-        }"
-      >
+      <div class="col-xl-3 col-lg-4 col-md-5 col-sm-12 modelador-painel-controles" :style="{
+        height: isMobile ? 'auto' : '100vh',
+        overflowY: isMobile ? 'visible' : 'auto',
+        position: 'relative',
+        borderRight: '2px solid #dee2e6',
+        backgroundColor: '#f8f9fa',
+        zIndex: 1000,
+        maxHeight: isMobile ? 'none' : '100vh'
+      }">
         <div class="p-3">
           <h4 class="text-center mb-4">Modelador de Layouts</h4>
 
@@ -33,20 +30,10 @@
             <div class="mb-3">
               <label class="form-label">Largura Base: {{ configSilo.lb }}px</label>
               <div class="d-flex align-items-center">
-                <input
-                  v-model.number="configSilo.lb"
-                  type="range"
-                  min="100"
-                  max="400"
-                  class="form-range me-2"
-                  @input="onSiloChange"
-                />
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="resetSiloField('lb', 200)"
-                  title="Resetar para padrão (200)"
-                >
+                <input v-model.number="configSilo.lb" type="range" min="100" max="400" class="form-range me-2"
+                  @input="onSiloChange" />
+                <button type="button" class="btn btn-sm btn-outline-secondary" @click="resetSiloField('lb', 200)"
+                  title="Resetar para padrão (200)">
                   ×
                 </button>
               </div>
@@ -55,20 +42,10 @@
             <div class="mb-3">
               <label class="form-label">Altura Superior: {{ configSilo.hs }}px</label>
               <div class="d-flex align-items-center">
-                <input
-                  v-model.number="configSilo.hs"
-                  type="range"
-                  min="100"
-                  max="300"
-                  class="form-range me-2"
-                  @input="onSiloChange"
-                />
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="resetSiloField('hs', 180)"
-                  title="Resetar para padrão (180)"
-                >
+                <input v-model.number="configSilo.hs" type="range" min="100" max="300" class="form-range me-2"
+                  @input="onSiloChange" />
+                <button type="button" class="btn btn-sm btn-outline-secondary" @click="resetSiloField('hs', 180)"
+                  title="Resetar para padrão (180)">
                   ×
                 </button>
               </div>
@@ -77,20 +54,10 @@
             <div class="mb-3">
               <label class="form-label">Altura Base: {{ configSilo.hb }}px</label>
               <div class="d-flex align-items-center">
-                <input
-                  v-model.number="configSilo.hb"
-                  type="range"
-                  min="5"
-                  max="30"
-                  class="form-range me-2"
-                  @input="onSiloChange"
-                />
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="resetSiloField('hb', 15)"
-                  title="Resetar para padrão (15)"
-                >
+                <input v-model.number="configSilo.hb" type="range" min="5" max="30" class="form-range me-2"
+                  @input="onSiloChange" />
+                <button type="button" class="btn btn-sm btn-outline-secondary" @click="resetSiloField('hb', 15)"
+                  title="Resetar para padrão (15)">
                   ×
                 </button>
               </div>
@@ -100,20 +67,10 @@
             <div class="mb-3">
               <label class="form-label">Escala Sensores: {{ configSilo.escala_sensores }}px</label>
               <div class="d-flex align-items-center">
-                <input
-                  v-model.number="configSilo.escala_sensores"
-                  type="range"
-                  min="10"
-                  max="25"
-                  class="form-range me-2"
-                  @input="onSiloChange"
-                />
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="resetSiloField('escala_sensores', 16)"
-                  title="Resetar para padrão (16)"
-                >
+                <input v-model.number="configSilo.escala_sensores" type="range" min="10" max="25"
+                  class="form-range me-2" @input="onSiloChange" />
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                  @click="resetSiloField('escala_sensores', 16)" title="Resetar para padrão (16)">
                   ×
                 </button>
               </div>
@@ -122,20 +79,10 @@
             <div class="mb-3">
               <label class="form-label">Distância Y Sensores: {{ configSilo.dist_y_sensores }}px</label>
               <div class="d-flex align-items-center">
-                <input
-                  v-model.number="configSilo.dist_y_sensores"
-                  type="range"
-                  min="8"
-                  max="20"
-                  class="form-range me-2"
-                  @input="onSiloChange"
-                />
-                <button
-                  type="button"
-                  class="btn btn-sm btn-outline-secondary"
-                  @click="resetSiloField('dist_y_sensores', 12)"
-                  title="Resetar para padrão (12)"
-                >
+                <input v-model.number="configSilo.dist_y_sensores" type="range" min="8" max="20" class="form-range me-2"
+                  @input="onSiloChange" />
+                <button type="button" class="btn btn-sm btn-outline-secondary"
+                  @click="resetSiloField('dist_y_sensores', 12)" title="Resetar para padrão (12)">
                   ×
                 </button>
               </div>
@@ -144,12 +91,8 @@
             <h6 class="mt-3 text-primary">Aeradores</h6>
             <div class="mb-3">
               <div class="form-check">
-                <input
-                  class="form-check-input"
-                  type="checkbox"
-                  v-model="configSilo.aeradores_ativo"
-                  @change="onSiloChange"
-                />
+                <input class="form-check-input" type="checkbox" v-model="configSilo.aeradores_ativo"
+                  @change="onSiloChange" />
                 <label class="form-check-label">Ativar Aeradores</label>
               </div>
             </div>
@@ -158,20 +101,10 @@
               <div class="mb-3">
                 <label class="form-label">Número de Aeradores: {{ configSilo.na }}</label>
                 <div class="d-flex align-items-center">
-                  <input
-                    v-model.number="configSilo.na"
-                    type="range"
-                    min="2"
-                    max="6"
-                    class="form-range me-2"
-                    @input="onSiloChange"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary"
-                    @click="resetSiloField('na', 4)"
-                    title="Resetar para padrão (4)"
-                  >
+                  <input v-model.number="configSilo.na" type="range" min="2" max="6" class="form-range me-2"
+                    @input="onSiloChange" />
+                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="resetSiloField('na', 4)"
+                    title="Resetar para padrão (4)">
                     ×
                   </button>
                 </div>
@@ -180,20 +113,10 @@
               <div class="mb-3">
                 <label class="form-label">Deslocamento Lateral: {{ configSilo.ds }}px</label>
                 <div class="d-flex align-items-center">
-                  <input
-                    v-model.number="configSilo.ds"
-                    type="range"
-                    min="10"
-                    max="60"
-                    class="form-range me-2"
-                    @input="onSiloChange"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary"
-                    @click="resetSiloField('ds', 30)"
-                    title="Resetar para padrão (30)"
-                  >
+                  <input v-model.number="configSilo.ds" type="range" min="10" max="60" class="form-range me-2"
+                    @input="onSiloChange" />
+                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="resetSiloField('ds', 30)"
+                    title="Resetar para padrão (30)">
                     ×
                   </button>
                 </div>
@@ -202,20 +125,10 @@
               <div class="mb-3">
                 <label class="form-label">Distância entre Aeradores: {{ configSilo.da }}px</label>
                 <div class="d-flex align-items-center">
-                  <input
-                    v-model.number="configSilo.da"
-                    type="range"
-                    min="20"
-                    max="60"
-                    class="form-range me-2"
-                    @input="onSiloChange"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-sm btn-outline-secondary"
-                    @click="resetSiloField('da', 35)"
-                    title="Resetar para padrão (35)"
-                  >
+                  <input v-model.number="configSilo.da" type="range" min="20" max="60" class="form-range me-2"
+                    @input="onSiloChange" />
+                  <button type="button" class="btn btn-sm btn-outline-secondary" @click="resetSiloField('da', 35)"
+                    title="Resetar para padrão (35)">
                     ×
                   </button>
                 </div>
@@ -245,11 +158,7 @@
                     <label class="form-label">Modelo Atual:</label>
                     <select class="form-select" v-model="modeloArcoAtual" @change="onModeloArcoChange">
                       <option :value="null">Selecione Modelo</option>
-                      <option 
-                        v-for="i in quantidadeModelosArcos" 
-                        :key="i" 
-                        :value="i"
-                      >
+                      <option v-for="i in quantidadeModelosArcos" :key="i" :value="i">
                         Modelo {{ i }} - {{ getDescricaoModelo(i) }}
                       </option>
                     </select>
@@ -259,23 +168,13 @@
                 <div class="row mb-3">
                   <div class="col-lg-6 col-md-12 mb-3">
                     <label class="form-label">Nome do Modelo:</label>
-                    <input
-                      type="text"
-                      class="form-control"
-                      v-model="modeloNome"
-                      placeholder="Nome do modelo"
-                      :disabled="!modeloArcoAtual"
-                      @input="onNomeModeloChange"
-                    />
+                    <input type="text" class="form-control" v-model="modeloNome" placeholder="Nome do modelo"
+                      :disabled="!modeloArcoAtual" @input="onNomeModeloChange" />
                   </div>
                   <div class="col-lg-6 col-md-12 mb-3">
                     <label class="form-label">Posição no Armazém:</label>
-                    <select 
-                      class="form-select" 
-                      v-model="modeloPosicao" 
-                      @change="onPosicaoArcoChange"
-                      :disabled="!modeloArcoAtual"
-                    >
+                    <select class="form-select" v-model="modeloPosicao" @change="onPosicaoArcoChange"
+                      :disabled="!modeloArcoAtual">
                       <template v-if="quantidadeModelosArcos === 1">
                         <option value="todos">Todos os Arcos</option>
                       </template>
@@ -301,7 +200,8 @@
                 <div v-if="modeloArcoAtual" class="alert alert-info">
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <strong>EDITANDO:</strong> {{ modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` }}
+                      <strong>EDITANDO:</strong> {{ modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`
+                      }}
                       <span class="badge bg-primary ms-2">
                         {{ modelosArcos[modeloArcoAtual]?.posicao || '' }}
                       </span>
@@ -309,12 +209,8 @@
                         SALVO
                       </span>
                     </div>
-                    <button
-                      type="button"
-                      class="btn btn-sm btn-success"
-                      @click="salvarModeloAtual"
-                      title="Salvar este modelo"
-                    >
+                    <button type="button" class="btn btn-sm btn-success" @click="salvarModeloAtual"
+                      title="Salvar este modelo">
                       💾 Salvar Modelo
                     </button>
                   </div>
@@ -344,7 +240,8 @@
                   </div>
                   <div class="mt-2">
                     <small class="text-muted">
-                      <strong>Status:</strong> {{ Object.keys(modelosSalvos).length }} de {{ quantidadeModelosArcos }} modelos salvos
+                      <strong>Status:</strong> {{ Object.keys(modelosSalvos).length }} de {{ quantidadeModelosArcos }}
+                      modelos salvos
                     </small>
                   </div>
                 </div>
@@ -360,21 +257,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Profundidade Base (pb):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.pb"
-                      type="range"
-                      min="100"
-                      max="300"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.pb" type="range" min="100" max="300" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.pb }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('pb', 185)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('pb', 185)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -383,21 +270,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Largura Base (lb):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.lb"
-                      type="range"
-                      min="200"
-                      max="500"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.lb" type="range" min="200" max="500" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.lb }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('lb', 350)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('lb', 350)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -406,21 +283,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Altura Base (hb):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.hb"
-                      type="range"
-                      min="10"
-                      max="80"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.hb" type="range" min="10" max="80" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.hb }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('hb', 30)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('hb', 30)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -429,21 +296,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Altura Frente (hf):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.hf"
-                      type="range"
-                      min="2"
-                      max="20"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.hf" type="range" min="2" max="20" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.hf }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('hf', 5)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('hf', 5)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -452,21 +309,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Largura Frente (lf):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.lf"
-                      type="range"
-                      min="150"
-                      max="350"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.lf" type="range" min="150" max="350" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.lf }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('lf', 250)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('lf', 250)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -475,21 +322,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Largura Estrutura (le):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.le"
-                      type="range"
-                      min="5"
-                      max="50"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.le" type="range" min="5" max="50" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.le }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('le', 15)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('le', 15)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -498,21 +335,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Altura Teto (ht):</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.ht"
-                      type="range"
-                      min="20"
-                      max="100"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.ht" type="range" min="20" max="100" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.ht }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('ht', 50)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('ht', 50)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -534,12 +361,8 @@
                       <option :value="2">Arredondado</option>
                       <option :value="3">Arco</option>
                     </select>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('tipo_telhado', 1)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('tipo_telhado', 1)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -548,21 +371,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Curvatura do Topo:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.curvatura_topo"
-                      type="range"
-                      min="1"
-                      max="100"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.curvatura_topo" type="range" min="1" max="100"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.curvatura_topo }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('curvatura_topo', 50)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('curvatura_topo', 50)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -584,12 +397,8 @@
                       <option :value="1">Funil/V</option>
                       <option :value="2">Duplo V</option>
                     </select>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('tipo_fundo', 0)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('tipo_fundo', 0)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -601,21 +410,11 @@
                   <div class="mb-2">
                     <label class="form-label">Altura do Fundo Reto:</label>
                     <div class="input-group input-group-sm">
-                      <input
-                        v-model.number="configArmazem.altura_fundo_reto"
-                        type="range"
-                        min="0"
-                        max="50"
-                        class="form-range"
-                        @input="onArmazemChange"
-                      />
+                      <input v-model.number="configArmazem.altura_fundo_reto" type="range" min="0" max="50"
+                        class="form-range" @input="onArmazemChange" />
                       <span class="input-group-text">{{ configArmazem.altura_fundo_reto }}</span>
-                      <button
-                        type="button"
-                        class="btn btn-outline-secondary"
-                        @click="resetArmazemField('altura_fundo_reto', 10)"
-                        title="Reset"
-                      >
+                      <button type="button" class="btn btn-outline-secondary"
+                        @click="resetArmazemField('altura_fundo_reto', 10)" title="Reset">
                         ×
                       </button>
                     </div>
@@ -629,21 +428,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Altura do Funil:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.altura_funil_v"
-                          type="range"
-                          min="10"
-                          max="120"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.altura_funil_v" type="range" min="10" max="120"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.altura_funil_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('altura_funil_v', 18)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('altura_funil_v', 18)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -651,22 +440,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Posição da Ponta:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.posicao_ponta_v"
-                          type="range"
-                          min="-2"
-                          max="2"
-                          step="0.1"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.posicao_ponta_v" type="range" min="-2" max="2" step="0.1"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.posicao_ponta_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('posicao_ponta_v', 0)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('posicao_ponta_v', 0)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -674,21 +452,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Largura da Abertura:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.largura_abertura_v"
-                          type="range"
-                          min="2"
-                          max="80"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.largura_abertura_v" type="range" min="2" max="80"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.largura_abertura_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('largura_abertura_v', 20)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('largura_abertura_v', 20)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -696,22 +464,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Inclinação das Paredes:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.inclinacao_funil_v"
-                          type="range"
-                          min="0"
-                          max="10"
-                          step="0.1"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.inclinacao_funil_v" type="range" min="0" max="10"
+                          step="0.1" class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.inclinacao_funil_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('inclinacao_funil_v', 1)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('inclinacao_funil_v', 1)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -726,21 +483,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Altura dos Funis:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.altura_duplo_v"
-                          type="range"
-                          min="10"
-                          max="120"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.altura_duplo_v" type="range" min="10" max="120"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.altura_duplo_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('altura_duplo_v', 22)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('altura_duplo_v', 22)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -748,22 +495,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Posição V Esquerdo:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.posicao_v_esquerdo"
-                          type="range"
-                          min="-2"
-                          max="0.5"
-                          step="0.1"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.posicao_v_esquerdo" type="range" min="-2" max="0.5"
+                          step="0.1" class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.posicao_v_esquerdo }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('posicao_v_esquerdo', -1)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('posicao_v_esquerdo', -1)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -771,22 +507,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Posição V Direito:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.posicao_v_direito"
-                          type="range"
-                          min="-0.5"
-                          max="2"
-                          step="0.1"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.posicao_v_direito" type="range" min="-0.5" max="2"
+                          step="0.1" class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.posicao_v_direito }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('posicao_v_direito', 1)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('posicao_v_direito', 1)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -794,21 +519,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Largura das Aberturas:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.largura_abertura_duplo_v"
-                          type="range"
-                          min="2"
-                          max="80"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.largura_abertura_duplo_v" type="range" min="2" max="80"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.largura_abertura_duplo_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('largura_abertura_duplo_v', 2)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('largura_abertura_duplo_v', 2)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -816,22 +531,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Altura da Plataforma:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.altura_plataforma_duplo_v"
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.1"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.altura_plataforma_duplo_v" type="range" min="0" max="1"
+                          step="0.1" class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.altura_plataforma_duplo_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('altura_plataforma_duplo_v', 0.3)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('altura_plataforma_duplo_v', 0.3)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -839,21 +543,11 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Largura da Plataforma:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.largura_plataforma_duplo_v"
-                          type="range"
-                          min="10"
-                          max="120"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.largura_plataforma_duplo_v" type="range" min="10" max="120"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.largura_plataforma_duplo_v }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('largura_plataforma_duplo_v', 10)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('largura_plataforma_duplo_v', 10)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -868,21 +562,11 @@
                     <div class="col-6 mb-2">
                       <label class="small fw-bold">Deslocamento Horizontal:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.deslocamento_horizontal_fundo"
-                          type="range"
-                          min="-100"
-                          max="100"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.deslocamento_horizontal_fundo" type="range" min="-100"
+                          max="100" class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.deslocamento_horizontal_fundo }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
-                          @click="resetArmazemField('deslocamento_horizontal_fundo', 0)"
-                          title="Reset"
-                        >
+                        <button type="button" class="btn btn-outline-secondary"
+                          @click="resetArmazemField('deslocamento_horizontal_fundo', 0)" title="Reset">
                           ×
                         </button>
                       </div>
@@ -890,21 +574,12 @@
                     <div class="col-6 mb-2">
                       <label class="small fw-bold">Deslocamento Vertical:</label>
                       <div class="input-group input-group-sm">
-                        <input
-                          v-model.number="configArmazem.deslocamento_vertical_fundo"
-                          type="range"
-                          min="-100"
-                          max="100"
-                          class="form-range"
-                          @input="onArmazemChange"
-                        />
+                        <input v-model.number="configArmazem.deslocamento_vertical_fundo" type="range" min="-100"
+                          max="100" class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.deslocamento_vertical_fundo }}</span>
-                        <button
-                          type="button"
-                          class="btn btn-outline-secondary"
+                        <button type="button" class="btn btn-outline-secondary"
                           @click="resetArmazemField('deslocamento_vertical_fundo', obterDeslocamentoVerticalPadrao(configArmazem.tipo_fundo))"
-                          title="Reset"
-                        >
+                          title="Reset">
                           ×
                         </button>
                       </div>
@@ -923,21 +598,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Escala dos Sensores:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.escala_sensores"
-                      type="range"
-                      min="10"
-                      max="30"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.escala_sensores" type="range" min="10" max="30"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.escala_sensores }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('escala_sensores', 16)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('escala_sensores', 16)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -946,21 +611,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Distância Y Sensores:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.dist_y_sensores"
-                      type="range"
-                      min="8"
-                      max="20"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.dist_y_sensores" type="range" min="8" max="20"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.dist_y_sensores }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('dist_y_sensores', 12)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('dist_y_sensores', 12)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -969,21 +624,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Distância X Sensores:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.dist_x_sensores"
-                      type="range"
-                      min="-100"
-                      max="100"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.dist_x_sensores" type="range" min="-100" max="100"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.dist_x_sensores }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('dist_x_sensores', 0)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('dist_x_sensores', 0)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -992,21 +637,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Posição Horizontal:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.posicao_horizontal"
-                      type="range"
-                      min="-150"
-                      max="150"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.posicao_horizontal" type="range" min="-150" max="150"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.posicao_horizontal }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('posicao_horizontal', 0)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('posicao_horizontal', 0)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -1015,21 +650,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Posição Vertical:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.posicao_vertical"
-                      type="range"
-                      min="-100"
-                      max="100"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.posicao_vertical" type="range" min="-100" max="100"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.posicao_vertical }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('posicao_vertical', 0)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('posicao_vertical', 0)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -1038,21 +663,11 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Afastamento Vertical Pêndulo:</label>
                   <div class="input-group input-group-sm">
-                    <input
-                      v-model.number="configArmazem.afastamento_vertical_pendulo"
-                      type="range"
-                      min="-50"
-                      max="50"
-                      class="form-range"
-                      @input="onArmazemChange"
-                    />
+                    <input v-model.number="configArmazem.afastamento_vertical_pendulo" type="range" min="-50" max="50"
+                      class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.afastamento_vertical_pendulo }}</span>
-                    <button
-                      type="button"
-                      class="btn btn-outline-secondary"
-                      @click="resetArmazemField('afastamento_vertical_pendulo', 0)"
-                      title="Reset"
-                    >
+                    <button type="button" class="btn btn-outline-secondary"
+                      @click="resetArmazemField('afastamento_vertical_pendulo', 0)" title="Reset">
                       ×
                     </button>
                   </div>
@@ -1066,20 +681,11 @@
             <button type="button" class="btn btn-warning" @click="resetarPadrao">
               🔄 Resetar para Padrão
             </button>
-            <button 
-              v-if="tipoAtivo === 'armazem'" 
-              type="button" 
-              class="btn btn-outline-warning" 
-              @click="resetarModelosParaPadrao"
-            >
+            <button v-if="tipoAtivo === 'armazem'" type="button" class="btn btn-outline-warning"
+              @click="resetarModelosParaPadrao">
               🗑️ Limpar Todos os Modelos
             </button>
-            <button 
-              v-if="dadosVindosDoPreview" 
-              type="button" 
-              class="btn btn-info" 
-              @click="voltarParaPreview"
-            >
+            <button v-if="dadosVindosDoPreview" type="button" class="btn btn-info" @click="voltarParaPreview">
               ⬅️ Voltar ao Preview
             </button>
           </div>
@@ -1092,29 +698,17 @@
             <div class="card-body">
               <div class="mb-3">
                 <label class="form-label">Nome da Configuração:</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  v-model="nomeConfiguracao"
-                  placeholder="Digite o nome para salvar/carregar"
-                />
+                <input type="text" class="form-control" v-model="nomeConfiguracao"
+                  placeholder="Digite o nome para salvar/carregar" />
               </div>
 
               <div class="d-grid gap-2 mb-3">
-                <button
-                  type="button"
-                  class="btn btn-success"
-                  @click="salvarConfiguracao"
-                  :disabled="!nomeConfiguracao.trim()"
-                >
+                <button type="button" class="btn btn-success" @click="salvarConfiguracao"
+                  :disabled="!nomeConfiguracao.trim()">
                   💾 Salvar {{ tipoAtivo === 'silo' ? 'Silo' : 'Armazém' }} Completo
                 </button>
-                <button
-                  type="button"
-                  class="btn btn-primary"
-                  @click="carregarConfiguracao"
-                  :disabled="!nomeConfiguracao.trim()"
-                >
+                <button type="button" class="btn btn-primary" @click="carregarConfiguracao"
+                  :disabled="!nomeConfiguracao.trim()">
                   📂 Carregar Configuração
                 </button>
               </div>
@@ -1125,25 +719,15 @@
                 <div class="d-flex flex-wrap gap-1">
                   <span v-for="nome in configsDisponiveis" :key="nome" class="badge bg-secondary position-relative">
                     {{ nome }}
-                    <button
-                      type="button"
-                      class="btn-close btn-close-white"
-                      style="font-size: 8px; margin-left: 5px"
-                      @click="deletarConfiguracao(nome)"
-                      aria-label="Close"
-                    ></button>
+                    <button type="button" class="btn-close btn-close-white" style="font-size: 8px; margin-left: 5px"
+                      @click="deletarConfiguracao(nome)" aria-label="Close"></button>
                   </span>
                 </div>
                 <div class="mt-2">
                   <small class="text-muted">Clique em uma configuração para carregar rapidamente:</small>
                   <div class="d-flex flex-wrap gap-1 mt-1">
-                    <button
-                      v-for="nome in configsDisponiveis"
-                      :key="nome"
-                      type="button"
-                      class="btn btn-sm btn-outline-primary"
-                      @click="carregarConfiguracao(nome)"
-                    >
+                    <button v-for="nome in configsDisponiveis" :key="nome" type="button"
+                      class="btn btn-sm btn-outline-primary" @click="carregarConfiguracao(nome)">
                       {{ nome }}
                     </button>
                   </div>
@@ -1152,7 +736,9 @@
 
               <div v-if="tipoAtivo === 'armazem'" class="alert alert-info">
                 <small>
-                  <strong>📌 Dica:</strong> Quando salvar um armazém, todos os {{ quantidadeModelosArcos }} modelos de arcos configurados
+                  <strong>📌 Dica:</strong> Quando salvar um armazém, todos os {{ quantidadeModelosArcos }} modelos de
+                  arcos
+                  configurados
                   serão salvos junto. Ao carregar, a configuração completa será restaurada com todos os modelos.
                 </small>
               </div>
@@ -1162,118 +748,117 @@
       </div>
 
       <!-- Área de Visualização -->
-      <div
-        class="col-xl-9 col-lg-8 col-md-7 col-sm-12"
-        :style="{
-          padding: '10px',
-          height: isMobile ? 'auto' : '100vh',
-          overflow: isMobile ? 'visible' : 'hidden',
-          minHeight: isMobile ? '400px' : '100vh'
-        }"
-      >
+      <div class="col-xl-9 col-lg-8 col-md-7 col-sm-12" :style="{
+        padding: '10px',
+        height: isMobile ? 'auto' : '100vh',
+        overflow: isMobile ? 'visible' : 'hidden',
+        minHeight: isMobile ? '400px' : '100vh'
+      }">
         <div class="d-flex justify-content-center align-items-center h-100" style="minHeight: 400px">
-          <div
-            class="card w-100"
-            :style="{
-              maxWidth: '100%',
-              minHeight: '400px',
-              maxHeight: 'calc(100vh - 60px)',
-              height: 'calc(100vh - 60px)'
-            }"
-          >
+          <div class="card w-100" :style="{
+            maxWidth: '100%',
+            minHeight: '400px',
+            maxHeight: 'calc(100vh - 60px)',
+            height: 'calc(100vh - 60px)'
+          }">
             <div class="card-header bg-primary text-white">
-              <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+              <div
+                class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
                 <h6 class="mb-1 mb-md-0">
-                  Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO: ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
-                  <span v-if="dadosVindosDoPreview" class="badge bg-success ms-2" title="Dados carregados do preview do Armazém">
+                  Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO:
+                  ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
+                  <span v-if="dadosVindosDoPreview" class="badge bg-success ms-2"
+                    title="Dados carregados do preview do Armazém">
                     📊 PREVIEW
                   </span>
                 </h6>
                 <small v-if="tipoAtivo === 'armazem'" class="text-white-50">
-                  {{ modeloArcoAtual ? 
-                    `${quantidadeModelosArcos === 1 ? 'Modelo Único' : modelosArcos[modeloArcoAtual]?.posicao || ''} | ${modeloArcoAtual}/${quantidadeModelosArcos}` :
-                    `${determinarModeloParaArco(arcoAtual)?.nome || 'Padrão'} | ${quantidadeModelosArcos} modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
+                  {{ modeloArcoAtual ?
+                    `${quantidadeModelosArcos === 1 ? 'Modelo Único' : modelosArcos[modeloArcoAtual]?.posicao || ''} |
+                  ${modeloArcoAtual}/${quantidadeModelosArcos}` :
+                    `${determinarModeloParaArco(arcoAtual)?.nome || 'Padrão'} | ${quantidadeModelosArcos}
+                  modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
                   }}
                 </small>
               </div>
             </div>
 
-            <div
-              class="card-body text-center d-flex align-items-center justify-content-center p-1 p-md-2"
-              :style="{
-                height: isMobile ? 'auto' : 'calc(100vh - 250px)',
-                overflow: isMobile ? 'visible' : 'auto',
-                minHeight: isMobile ? '250px' : '300px',
-                maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
-              }"
-            >
+            <div class="card-body text-center d-flex align-items-center justify-content-center p-1 p-md-2" :style="{
+              height: isMobile ? 'auto' : 'calc(100vh - 250px)',
+              overflow: isMobile ? 'visible' : 'auto',
+              minHeight: isMobile ? '250px' : '300px',
+              maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
+            }">
               <div class="svg-container-responsive w-100">
-                <svg
-                  :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`"
-                  :style="{
-                    width: '100%',
-                    height: 'auto',
-                    maxWidth: '100%',
-                    maxHeight: isMobile ? '60vh' : 'calc(100vh - 320px)',
-                    minHeight: isMobile ? '200px' : '250px',
-                    border: '1px solid #ddd',
-                    backgroundColor: '#f8f9fa',
-                    borderRadius: '4px',
-                    shapeRendering: 'geometricPrecision',
-                    textRendering: 'geometricPrecision',
-                    imageRendering: 'optimizeQuality'
-                  }"
-                  preserveAspectRatio="xMidYMid meet"
-                  xmlns="http://www.w3.org/2000/svg"
-                  v-html="svgContent"
-                >
+                <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
+                  width: '100%',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  maxHeight: isMobile ? '60vh' : 'calc(100vh - 320px)',
+                  minHeight: isMobile ? '200px' : '250px',
+                  border: '1px solid #ddd',
+                  backgroundColor: '#f8f9fa',
+                  borderRadius: '4px',
+                  shapeRendering: 'geometricPrecision',
+                  textRendering: 'geometricPrecision',
+                  imageRendering: 'optimizeQuality'
+                }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContent">
                 </svg>
               </div>
             </div>
 
             <!-- Navegação de Arcos para Armazém -->
             <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-1">
+              <!-- Seletor de Configuração Salva no Preview -->
+              <div class="row mb-2">
+                <div class="col-12">
+                  <label class="form-label small">⚙️ Configuração do Preview:</label>
+                  <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select form-select-sm" v-model="configuracaoPreviewSelecionada"
+                      @change="aplicarConfiguracaoNoPreview">
+                      <option value="">Configuração Padrão</option>
+                      <option v-for="config in configsDisponiveis" :key="config" :value="config">
+                        {{ config }}
+                      </option>
+                    </select>
+                    <button v-if="configuracaoPreviewSelecionada" type="button" class="btn btn-outline-secondary btn-sm"
+                      @click="limparConfiguracaoPreview" title="Voltar ao padrão">
+                      ×
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <!-- Mobile First: Layout para pequenas telas -->
               <div class="d-block d-md-none">
                 <!-- Linha 1: Navegação compacta -->
                 <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1">
-                  <button
-                    type="button"
-                    class="btn btn-outline-primary btn-sm"
-                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)"
-                    :disabled="arcoAtual <= 1"
-                    title="Arco anterior"
-                    style="min-width: 35px;"
-                  >
+                  <button type="button" class="btn btn-outline-primary btn-sm"
+                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1"
+                    title="Arco anterior" style="min-width: 35px;">
                     ←
                   </button>
-                  <select 
-                    class="form-select form-select-sm text-center mx-1"
-                    style="max-width: 100px; min-width: 80px;"
-                    v-model.number="arcoAtual"
-                    @change="mudarArco(arcoAtual, false)"
-                  >
+                  <select class="form-select form-select-sm text-center mx-1" style="max-width: 100px; min-width: 80px;"
+                    v-model.number="arcoAtual" @change="mudarArco(arcoAtual, false)">
                     <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
                       {{ numeroArco }}
                     </option>
                   </select>
-                  <button
-                    type="button"
-                    class="btn btn-outline-primary btn-sm"
+                  <button type="button" class="btn btn-outline-primary btn-sm"
                     @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
-                    :disabled="arcoAtual >= analiseArcos.totalArcos"
-                    title="Próximo arco"
-                    style="min-width: 35px;"
-                  >
+                    :disabled="arcoAtual >= analiseArcos.totalArcos" title="Próximo arco" style="min-width: 35px;">
                     →
                   </button>
                 </div>
-                
+
                 <!-- Linha 2: Informações compactas -->
                 <div class="text-center">
                   <div class="mb-1">
                     <small><strong>{{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong></small>
-                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1" style="font-size: 0.6rem;">EDIT</span>
+                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1"
+                      style="font-size: 0.6rem;">EDIT</span>
+                    <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1"
+                      style="font-size: 0.6rem;">{{ configuracaoPreviewSelecionada }}</span>
                   </div>
                   <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1">
                     <span class="badge bg-info text-white" style="font-size: 0.65rem;">
@@ -1286,7 +871,9 @@
                       {{ getBadgeText() }}
                     </span>
                   </div>
-                  <small class="text-muted d-block" style="font-size: 0.75rem;">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}</small>
+                  <small class="text-muted d-block" style="font-size: 0.75rem;">{{
+                    determinarModeloParaArco(arcoAtual)?.nome
+                    || 'Modelo Padrão' }}</small>
                 </div>
               </div>
 
@@ -1296,49 +883,41 @@
                   <!-- Navegação -->
                   <div class="col-md-4 col-lg-3">
                     <div class="d-flex align-items-center justify-content-center justify-content-lg-start">
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm me-1"
-                        @click="mudarArco(Math.max(1, arcoAtual - 1), false)"
-                        :disabled="arcoAtual <= 1"
-                        title="Arco anterior"
-                      >
+                      <button type="button" class="btn btn-outline-primary btn-sm me-1"
+                        @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1"
+                        title="Arco anterior">
                         ← Anterior
                       </button>
-                      <select 
-                        class="form-select form-select-sm mx-1"
-                        style="min-width: 100px; max-width: 120px;"
-                        v-model.number="arcoAtual"
-                        @change="mudarArco(arcoAtual, false)"
-                      >
+                      <select class="form-select form-select-sm mx-1" style="min-width: 100px; max-width: 120px;"
+                        v-model.number="arcoAtual" @change="mudarArco(arcoAtual, false)">
                         <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
                           Arco {{ numeroArco }}
                         </option>
                       </select>
-                      <button
-                        type="button"
-                        class="btn btn-outline-primary btn-sm ms-1"
+                      <button type="button" class="btn btn-outline-primary btn-sm ms-1"
                         @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
-                        :disabled="arcoAtual >= analiseArcos.totalArcos"
-                        title="Próximo arco"
-                      >
+                        :disabled="arcoAtual >= analiseArcos.totalArcos" title="Próximo arco">
                         Próximo →
                       </button>
                     </div>
                   </div>
-                  
+
                   <!-- Informações do Arco -->
                   <div class="col-md-4 col-lg-3 text-center">
                     <div>
                       <strong class="text-nowrap">Arco {{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong>
                       <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1">EDITANDO</span>
+                      <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1">{{
+                        configuracaoPreviewSelecionada }}</span>
                     </div>
-                    <small class="text-muted d-block">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}</small>
+                    <small class="text-muted d-block">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'
+                    }}</small>
                   </div>
-                  
+
                   <!-- Badges de Contadores -->
                   <div class="col-md-4 col-lg-6 text-center text-md-end">
-                    <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
+                    <div
+                      class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
                       <span class="badge bg-info text-white">
                         {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
                       </span>
@@ -1443,7 +1022,10 @@ export default {
       alturaSVG: 300,
       svgContent: '',
       forceUpdateLista: 0,
-      dadosVindosDoPreview: false
+      dadosVindosDoPreview: false,
+      configuracaoPreviewSelecionada: '',
+      configPreviewAplicada: null,
+      configuracaoAplicada: null
     }
   },
   computed: {
@@ -1504,9 +1086,10 @@ export default {
     dados: {
       handler() {
         if (this.tipoAtivo === 'armazem' && this.dados) {
-          this.$nextTick(() => {
+          // Aguardar um pouco mais para garantir que o SVG foi renderizado
+          setTimeout(() => {
             this.atualizarSensores()
-          })
+          }, 100)
         }
       },
       deep: true
@@ -1533,8 +1116,6 @@ export default {
             if ((agora - timestampDados) < cincoMinutos) {
               const dadosArco = JSON.parse(dadosArcoString)
 
-              console.log('Dados do arco recebidos do preview:', dadosArco)
-
               // Usar os dados recebidos
               this.dadosPortal = dadosArco.dadosPortal
               this.analiseArcos = dadosArco.analiseArcos
@@ -1552,7 +1133,6 @@ export default {
               localStorage.removeItem('dadosArcoParaModelador')
               localStorage.removeItem('timestampArcoModelador')
 
-              console.log(`Modelador configurado para arco ${this.arcoAtual} com dados do preview`)
               return true
             }
           }
@@ -1572,8 +1152,6 @@ export default {
           return
         }
 
-        console.log('=== INICIANDO CARREGAMENTO DA API ===')
-
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=4&data=2025-08-04%2007:02:22', {
           headers: {
             'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM',
@@ -1592,9 +1170,6 @@ export default {
           throw new Error('Resposta da API vazia')
         }
 
-        console.log('=== DADOS RECEBIDOS DA API ===')
-        console.log('DADOS COMPLETOS EM JSON:', JSON.stringify(data, null, 2))
-
         // Armazenar dados originais da API
         this.dadosPortal = data
 
@@ -1602,27 +1177,15 @@ export default {
         const analise = this.analisarEstruturaArcos(data)
         this.analiseArcos = analise
 
-        console.log('=== ESTRUTURA ANALISADA ===')
-        console.log('Análise dos arcos:', JSON.stringify(analise, null, 2))
-
         // Gerar layouts automáticos
         const layouts = LayoutManager.gerarLayoutAutomatico(analise)
         this.layoutsAutomaticos = layouts
-
-        console.log('=== LAYOUTS GERADOS ===')
-        console.log('Layouts automáticos:', JSON.stringify(layouts, null, 2))
-
         // Calcular dimensões ideais
         const dimensoes = this.calcularDimensoesIdeais(analise)
         this.dimensoesSVG = dimensoes
-
         // Converter dados para formato de renderização
         const dadosConvertidos = this.converterDadosParaRenderizacao(data, 1)
         this.dados = dadosConvertidos
-
-        console.log('=== CONVERSÃO FINALIZADA ===')
-        console.log('Dados convertidos:', JSON.stringify(dadosConvertidos, null, 2))
-
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error)
         this.error = this.tratarErroAPI(error)
@@ -1631,10 +1194,8 @@ export default {
 
     // Analisar estrutura dos arcos baseada na nova estrutura da API
     analisarEstruturaArcos(dados) {
-      console.log('=== ANALISANDO ESTRUTURA DOS ARCOS ===')
 
       if (!dados.arcos) {
-        console.log('Nenhuma estrutura de arcos encontrada')
         return this.criarEstruturaMinima()
       }
 
@@ -1683,17 +1244,13 @@ export default {
         estrutura.estatisticas.totalPendulos += infoArco.totalPendulos
         estrutura.estatisticas.totalSensores += infoArco.totalSensores
       })
-
-      console.log('Estrutura final analisada:', estrutura)
       return estrutura
     },
 
     // Converter dados da API para formato de renderização
     converterDadosParaRenderizacao(dadosAPI, numeroArco) {
-      console.log(`=== CONVERTENDO DADOS PARA ARCO ${numeroArco} ===`)
 
       if (!dadosAPI.arcos || !dadosAPI.arcos[numeroArco]) {
-        console.log(`Arco ${numeroArco} não encontrado nos dados`)
         return { leitura: {} }
       }
 
@@ -1718,7 +1275,6 @@ export default {
         timestamp: new Date().toISOString()
       }
 
-      console.log(`Dados convertidos para arco ${numeroArco}:`, resultado)
       return resultado
     },
 
@@ -1785,7 +1341,7 @@ export default {
       const alturaBaseTelhado = 185
       const alturaSensores = maxSensores * dist_y_sensores + escala_sensores
       const alturaTotal = Math.max(
-        alturaBaseTelhado, 
+        alturaBaseTelhado,
         margemSuperior + alturaSensores + margemInferior + margemPendulo
       )
 
@@ -1953,6 +1509,24 @@ export default {
       return ''
     },
 
+    determinarPosicaoDoModelo(numeroModelo, quantidadeModelos) {
+      if (quantidadeModelos === 1) {
+        return 'todos'
+      } else if (quantidadeModelos === 2) {
+        return numeroModelo === 1 ? 'par' : 'impar'
+      } else if (quantidadeModelos === 3) {
+        if (numeroModelo === 1) return 'frente_fundo'
+        else if (numeroModelo === 2) return 'par'
+        else return 'impar'
+      } else if (quantidadeModelos === 4) {
+        if (numeroModelo === 1) return 'frente'
+        else if (numeroModelo === 2) return 'par'
+        else if (numeroModelo === 3) return 'impar'
+        else return 'fundo'
+      }
+      return 'todos'
+    },
+
     determinarModeloParaArco(numeroArco) {
       const totalArcos = this.analiseArcos?.totalArcos || 1
       const quantidadeModelos = Object.keys(this.modelosArcos || {}).length
@@ -1961,25 +1535,30 @@ export default {
         return null
       }
 
+      // 1 modelo: todos os arcos usam o mesmo modelo
       if (quantidadeModelos === 1) {
         return this.modelosArcos[1] || null
       }
 
+      // 2 modelos: começa com ímpar (1º, 3º, 5º...), depois par (2º, 4º, 6º...)
       if (quantidadeModelos === 2) {
         const isImpar = numeroArco % 2 === 1
         const posicaoProcurada = isImpar ? 'impar' : 'par'
         return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
       }
 
+      // 3 modelos: 1º e último = frente_fundo, depois par e ímpar intercalados
       if (quantidadeModelos === 3) {
         if (numeroArco === 1 || numeroArco === totalArcos) {
           return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || this.modelosArcos[1] || null
         }
+        // Para arcos intermediários: a partir do 2º arco, par primeiro, depois ímpar
         const isParIntermediario = numeroArco % 2 === 0
         const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
         return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
       }
 
+      // 4 modelos: 1º = frente, último = fundo, intermediários par e ímpar intercalados
       if (quantidadeModelos === 4) {
         if (numeroArco === 1) {
           return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || this.modelosArcos[1] || null
@@ -1987,6 +1566,7 @@ export default {
         if (numeroArco === totalArcos) {
           return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || this.modelosArcos[1] || null
         }
+        // Para arcos intermediários: par primeiro, depois ímpar
         const isParIntermediario = numeroArco % 2 === 0
         const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
         return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
@@ -2078,9 +1658,91 @@ export default {
       }
     },
 
+    obterLogicaDistribuicao() {
+      const logicas = {
+        1: {
+          nome: 'Modelo Único',
+          descricao: 'Todos os arcos utilizam o mesmo modelo',
+          aplicacao: 'todos_arcos'
+        },
+        2: {
+          nome: 'Par/Ímpar',
+          descricao: 'Arcos pares (2º, 4º, 6º...) e ímpares (1º, 3º, 5º...)',
+          aplicacao: 'par_impar'
+        },
+        3: {
+          nome: 'Frente/Fundo + Par/Ímpar',
+          descricao: 'Frente e fundo iguais, meio alternado par/ímpar',
+          aplicacao: 'frente_fundo_par_impar'
+        },
+        4: {
+          nome: 'Frente/Par/Ímpar/Fundo',
+          descricao: 'Primeiro único, último único, meio alternado',
+          aplicacao: 'frente_par_impar_fundo'
+        }
+      }
+      return logicas[this.quantidadeModelosArcos] || logicas[1]
+    },
+
+    prepararModelosParaSalvar() {
+      const modelosPreparados = {}
+
+      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+        const modelo = this.modelosArcos[i]
+        if (modelo) {
+          modelosPreparados[i] = {
+            numero: i,
+            nome: modelo.nome || `Modelo ${i}`,
+            posicao: modelo.posicao || this.determinarPosicaoDoModelo(i, this.quantidadeModelosArcos),
+            configuracao: {
+              ...modelo.config || this.configArmazem
+            },
+            status: this.modelosSalvos[i] ? 'salvo' : 'pendente',
+            timestampUltimaEdicao: new Date().toISOString()
+          }
+        }
+      }
+
+      return modelosPreparados
+    },
+
+    gerarMapeamentoArcos() {
+      const mapeamento = {}
+      const totalArcos = this.analiseArcos?.totalArcos || 1
+
+      for (let arco = 1; arco <= totalArcos; arco++) {
+        const modeloParaArco = this.determinarModeloParaArco(arco)
+        mapeamento[arco] = {
+          numeroArco: arco,
+          modeloUtilizado: modeloParaArco ? {
+            numero: Object.keys(this.modelosArcos).find(key =>
+              this.modelosArcos[key] === modeloParaArco
+            ),
+            nome: modeloParaArco.nome,
+            posicao: modeloParaArco.posicao
+          } : null,
+          pendulos: this.analiseArcos?.arcos[arco]?.totalPendulos || 0,
+          sensores: this.analiseArcos?.arcos[arco]?.totalSensores || 0
+        }
+      }
+
+      return mapeamento
+    },
+
+    gerarResumoConfiguracao(config) {
+      const totalArcos = config.estruturaArmazem.totalArcos
+      const totalModelos = config.configModelos.quantidadeModelos
+      const logica = config.configModelos.logicaDistribuicao.nome
+
+      return `Armazém "${config.nome}" salvo!\n\n` +
+        `📊 Estrutura: ${totalArcos} arcos, ${totalModelos} modelo(s)\n` +
+        `🎯 Lógica: ${logica}\n` +
+        `⚙️ Mapeamento completo gerado para todos os arcos`
+    },
+
     salvarModeloAtual() {
       if (!this.modeloArcoAtual) {
-        alert('Selecione um modelo para salvar!')
+        this.mostrarToast('Selecione um modelo para salvar!', 'warning')
         return
       }
 
@@ -2094,7 +1756,7 @@ export default {
 
       this.salvarModelosAutomatico()
 
-      alert(`Modelo ${this.modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`)
+      this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`, 'success')
     },
 
     salvarModelosAutomatico() {
@@ -2195,7 +1857,7 @@ export default {
 
     salvarConfiguracao() {
       if (!this.nomeConfiguracao.trim()) {
-        alert('Digite um nome para salvar a configuração!')
+        this.mostrarToast('Digite um nome para salvar a configuração!', 'warning')
         return
       }
 
@@ -2203,33 +1865,47 @@ export default {
         if (this.tipoAtivo === 'silo') {
           localStorage.setItem('configSilo', JSON.stringify(this.configSilo))
           localStorage.setItem(`configSilo_${this.nomeConfiguracao}`, JSON.stringify(this.configSilo))
-          alert(`Configuração Silo "${this.nomeConfiguracao}" salva com sucesso!`)
+          this.mostrarToast(`Configuração Silo "${this.nomeConfiguracao}" salva com sucesso!`, 'success')
         } else {
-          // Verificar se todos os modelos foram salvos
-          const modelosSalvosCount = Object.keys(this.modelosSalvos).length
-
-          if (modelosSalvosCount !== this.quantidadeModelosArcos) {
-            alert(`Atenção: Você tem ${this.quantidadeModelosArcos} modelos configurados, mas apenas ${modelosSalvosCount} foram salvos. Salve todos os modelos antes de salvar o armazém.`)
-            return
-          }
-
-          const configCompleta = {
+          // Para armazém, criar hierarquia completa
+          const hierarquiaCompleta = {
+            // Metadados da configuração
             nome: this.nomeConfiguracao,
-            quantidadeModelos: this.quantidadeModelosArcos,
-            modelosArcos: this.modelosArcos,
-            modeloAtual: null,
             timestamp: new Date().toISOString(),
-            versao: '2.0',
-            tipo: 'configuracao_armazem_completa'
+            versao: '3.0',
+            tipo: 'configuracao_armazem_hierarquica',
+
+            // Informações da estrutura do armazém
+            estruturaArmazem: {
+              totalArcos: this.analiseArcos?.totalArcos || 1,
+              arcosDetalhados: this.analiseArcos?.arcos || {},
+              estatisticas: this.analiseArcos?.estatisticas || { totalPendulos: 0, totalSensores: 0 }
+            },
+
+            // Configuração dos modelos
+            configModelos: {
+              quantidadeModelos: this.quantidadeModelosArcos,
+              logicaDistribuicao: this.obterLogicaDistribuicao(),
+              modelosDefinidos: this.prepararModelosParaSalvar()
+            },
+
+            // Layouts automáticos se disponível
+            layoutsAutomaticos: this.layoutsAutomaticos || {},
+
+            // Configuração padrão atual
+            configuracaoPadrao: { ...this.configArmazem },
+
+            // Informações de distribuição de modelos por arco
+            mapeamentoArcos: this.gerarMapeamentoArcos()
           }
 
-          localStorage.setItem('configArmazem', JSON.stringify(configCompleta))
-          localStorage.setItem(`configArmazem_${this.nomeConfiguracao}`, JSON.stringify(configCompleta))
+          localStorage.setItem('configArmazem', JSON.stringify(hierarquiaCompleta))
+          localStorage.setItem(`configArmazem_${this.nomeConfiguracao}`, JSON.stringify(hierarquiaCompleta))
 
-          alert(`Configuração completa do armazém "${this.nomeConfiguracao}" salva!`)
+          const resumo = this.gerarResumoConfiguracao(hierarquiaCompleta)
+          this.mostrarToast(resumo, 'success')
 
-          this.resetarModelosParaPadrao()
-          this.modelosSalvos = {}
+          // Não resetar após salvar - manter contexto atual
           this.nomeConfiguracao = ''
         }
 
@@ -2250,39 +1926,18 @@ export default {
 
           if (this.tipoAtivo === 'silo') {
             this.configSilo = dadosCarregados
-            alert('Configuração do silo carregada com sucesso!')
+            this.mostrarToast('Configuração do silo carregada com sucesso!', 'success')
           } else {
-            if (dadosCarregados.modelosArcos && dadosCarregados.tipo === 'configuracao_armazem_completa') {
-              this.quantidadeModelosArcos = dadosCarregados.quantidadeModelos
-              this.modelosArcos = dadosCarregados.modelosArcos
-              this.modelosSalvos = dadosCarregados.modelosArcos
-              this.modeloArcoAtual = null
-
-              setTimeout(() => {
-                const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
-                if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
-                  this.configArmazem = { ...modeloParaArcoAtual.config }
-                } else {
-                  const primeiroModelo = dadosCarregados.modelosArcos[1]
-                  if (primeiroModelo && primeiroModelo.config) {
-                    this.configArmazem = { ...primeiroModelo.config }
-                  }
-                }
-              }, 100)
-
-              alert(`Configuração completa do armazém "${nomeConfig}" carregada!`)
+            // Verificar tipo de configuração
+            if (dadosCarregados.tipo === 'configuracao_armazem_hierarquica') {
+              // Configuração hierárquica nova (v3.0+)
+              this.carregarConfiguracaoHierarquica(dadosCarregados, nomeConfig)
+            } else if (dadosCarregados.modelosArcos && dadosCarregados.tipo === 'configuracao_armazem_completa') {
+              // Configuração completa antiga (v2.0)
+              this.carregarConfiguracaoCompleta(dadosCarregados, nomeConfig)
             } else {
-              this.configArmazem = dadosCarregados
-              this.quantidadeModelosArcos = 1
-              const modeloUnico = {
-                posicao: 'todos',
-                config: dadosCarregados,
-                nome: 'Modelo Único'
-              }
-              this.modelosArcos = { 1: modeloUnico }
-              this.modelosSalvos = { 1: modeloUnico }
-              this.modeloArcoAtual = null
-              alert('Configuração antiga convertida para o novo formato!')
+              // Configuração simples (formato antigo v1.0) - converter
+              this.carregarConfiguracaoSimples(dadosCarregados, nomeConfig)
             }
           }
 
@@ -2291,21 +1946,264 @@ export default {
           }
           this.updateSVG()
         } else {
-          alert('Configuração não encontrada!')
+          this.mostrarToast('Configuração não encontrada!', 'error')
         }
       }
+    },
+
+    carregarConfiguracaoHierarquica(dados, nomeConfig) {
+
+      // Restaurar configuração dos modelos
+      const configModelos = dados.configModelos
+      this.quantidadeModelosArcos = configModelos.quantidadeModelos || 1
+
+      // Converter modelos do formato hierárquico para o formato de trabalho
+      const modelosConvertidos = {}
+      const modelosSalvosConvertidos = {}
+
+      Object.keys(configModelos.modelosDefinidos || {}).forEach(key => {
+        const modeloHierarquico = configModelos.modelosDefinidos[key]
+        const modeloConvertido = {
+          nome: modeloHierarquico.nome,
+          posicao: modeloHierarquico.posicao,
+          config: modeloHierarquico.configuracao
+        }
+        modelosConvertidos[key] = modeloConvertido
+
+        if (modeloHierarquico.status === 'salvo') {
+          modelosSalvosConvertidos[key] = modeloConvertido
+        }
+      })
+
+      this.modelosArcos = modelosConvertidos
+      this.modelosSalvos = modelosSalvosConvertidos
+      this.modeloArcoAtual = null
+
+      // Restaurar layouts se disponível
+      if (dados.layoutsAutomaticos) {
+        this.layoutsAutomaticos = dados.layoutsAutomaticos
+      }
+
+      // Aplicar configuração para o arco atual
+      setTimeout(() => {
+        const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
+        if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
+          this.configArmazem = { ...modeloParaArcoAtual.config }
+        } else if (dados.configuracaoPadrao) {
+          this.configArmazem = { ...dados.configuracaoPadrao }
+        }
+      }, 100)
+
+      const totalArcos = dados.estruturaArmazem?.totalArcos || 'N/A'
+      const logica = configModelos.logicaDistribuicao?.nome || 'Padrão'
+
+      this.mostrarToast(
+        `Configuração hierárquica "${nomeConfig}" carregada!\n` +
+        `📊 ${totalArcos} arcos, ${this.quantidadeModelosArcos} modelo(s)\n` +
+        `🎯 Lógica: ${logica}`,
+        'success'
+      )
+    },
+
+    carregarConfiguracaoCompleta(dadosCarregados, nomeConfig) {
+      // Carregamento de configuração completa com modelos (v2.0)
+      this.quantidadeModelosArcos = dadosCarregados.quantidadeModelos || 1
+      this.modelosArcos = dadosCarregados.modelosArcos || {}
+      this.modelosSalvos = dadosCarregados.modelosArcos || {}
+      this.modeloArcoAtual = null
+
+      // Validar e corrigir posições dos modelos se necessário
+      Object.keys(this.modelosArcos).forEach(key => {
+        const numeroModelo = parseInt(key)
+        const posicaoCorreta = this.determinarPosicaoDoModelo(numeroModelo, this.quantidadeModelosArcos)
+        if (this.modelosArcos[key].posicao !== posicaoCorreta) {
+          this.modelosArcos[key].posicao = posicaoCorreta
+        }
+      })
+
+      setTimeout(() => {
+        const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
+        if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
+          this.configArmazem = { ...modeloParaArcoAtual.config }
+        } else {
+          const primeiroModelo = dadosCarregados.modelosArcos[1]
+          if (primeiroModelo && primeiroModelo.config) {
+            this.configArmazem = { ...primeiroModelo.config }
+          }
+        }
+      }, 100)
+
+      this.mostrarToast(`Configuração completa "${nomeConfig}" carregada com ${this.quantidadeModelosArcos} modelo(s)!`, 'success')
+    },
+
+    carregarConfiguracaoSimples(dadosCarregados, nomeConfig) {
+      // Configuração simples (formato antigo) - converter para novo formato
+      this.configArmazem = dadosCarregados
+      this.quantidadeModelosArcos = 1
+      const modeloUnico = {
+        posicao: 'todos',
+        config: dadosCarregados,
+        nome: 'Modelo Único'
+      }
+      this.modelosArcos = { 1: modeloUnico }
+      this.modelosSalvos = { 1: modeloUnico }
+      this.modeloArcoAtual = null
+      this.mostrarToast(`Configuração "${nomeConfig}" convertida para o novo formato hierárquico!`, 'info')
     },
 
     deletarConfiguracao(nome) {
       if (typeof localStorage !== 'undefined') {
         const chave = `config${this.tipoAtivo === 'silo' ? 'Silo' : 'Armazem'}_${nome}`
         localStorage.removeItem(chave)
-        alert(`Configuração "${nome}" removida com sucesso!`)
+        this.mostrarToast(`Configuração "${nome}" removida com sucesso!`, 'success')
         this.forceUpdateLista++
         if (this.nomeConfiguracao === nome) {
           this.nomeConfiguracao = ''
         }
       }
+    },
+
+    // Sistema de Toast Notifications
+    mostrarToast(mensagem, tipo = 'info') {
+      const toast = document.createElement('div')
+      const icones = {
+        success: '✅',
+        error: '❌',
+        warning: '⚠️',
+        info: 'ℹ️'
+      }
+      const cores = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+      }
+
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: ${cores[tipo] || cores.info};
+        color: ${tipo === 'warning' ? '#000' : '#fff'};
+        padding: 12px 16px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        z-index: 99999;
+        font-size: 14px;
+        max-width: 350px;
+        word-wrap: break-word;
+        animation: slideIn 0.3s ease-out;
+      `
+
+      toast.innerHTML = `
+        ${icones[tipo] || icones.info} ${mensagem}
+      `
+
+      // Adicionar animação CSS
+      const style = document.createElement('style')
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+      `
+      document.head.appendChild(style)
+
+      document.body.appendChild(toast)
+
+      setTimeout(() => {
+        toast.style.animation = 'slideIn 0.3s ease-out reverse'
+        setTimeout(() => {
+          if (toast.parentNode) {
+            toast.remove()
+          }
+          if (style.parentNode) {
+            style.remove()
+          }
+        }, 300)
+      }, 4000)
+    },
+
+    // Métodos para configuração do preview
+    aplicarConfiguracaoNoPreview() {
+      if (!this.configuracaoPreviewSelecionada) {
+        this.limparConfiguracaoPreview()
+        return
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        const chave = `configArmazem_${this.configuracaoPreviewSelecionada}`
+        const configSalva = localStorage.getItem(chave)
+
+        if (configSalva) {
+          try {
+            const configData = JSON.parse(configSalva)
+
+            if (configData.tipo === 'configuracao_armazem_completa' && configData.modelosArcos) {
+              // Determinar qual modelo aplicar baseado no arco atual
+              const modeloParaArco = this.determinarModeloParaArcoComConfig(this.arcoAtual, configData.modelosArcos, configData.quantidadeModelos)
+
+              if (modeloParaArco && modeloParaArco.config) {
+                this.configPreviewAplicada = modeloParaArco.config
+                this.mostrarToast(`Preview: ${modeloParaArco.nome} aplicado`, 'info')
+              }
+            } else {
+              // Configuração simples
+              this.configPreviewAplicada = configData
+              this.mostrarToast(`Preview: ${this.configuracaoPreviewSelecionada} aplicado`, 'info')
+            }
+
+            this.updateSVG()
+          } catch (error) {
+            console.error('Erro ao aplicar configuração no preview:', error)
+            this.mostrarToast('Erro ao carregar configuração no preview', 'error')
+          }
+        }
+      }
+    },
+
+    limparConfiguracaoPreview() {
+      this.configuracaoPreviewSelecionada = ''
+      this.configPreviewAplicada = null
+      this.updateSVG()
+      this.mostrarToast('Preview voltou ao padrão', 'info')
+    },
+
+    determinarModeloParaArcoComConfig(numeroArco, modelosArcos, quantidadeModelos) {
+      const totalArcos = this.analiseArcos?.totalArcos || 1
+
+      if (quantidadeModelos === 1) {
+        return Object.values(modelosArcos)[0] || null
+      }
+
+      if (quantidadeModelos === 2) {
+        const isImpar = numeroArco % 2 === 1
+        const posicaoProcurada = isImpar ? 'impar' : 'par'
+        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+      }
+
+      if (quantidadeModelos === 3) {
+        if (numeroArco === 1 || numeroArco === totalArcos) {
+          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || Object.values(modelosArcos)[0] || null
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+      }
+
+      if (quantidadeModelos === 4) {
+        if (numeroArco === 1) {
+          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || Object.values(modelosArcos)[0] || null
+        }
+        if (numeroArco === totalArcos) {
+          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || Object.values(modelosArcos)[0] || null
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
+      }
+
+      return Object.values(modelosArcos)[0] || null
     },
 
     corFaixaExata(t) {
@@ -2331,15 +2229,16 @@ export default {
 
       if (!layoutArco || !arcoInfo) return ''
 
-      // Ajustar escala baseada no tamanho da tela
-      const escalaBase = this.configArmazem.escala_sensores
-      const escala_sensores = this.isMobile ? Math.max(escalaBase * 0.8, 12) : escalaBase
-      const dist_y_sensores = this.configArmazem.dist_y_sensores
-      const dist_x_sensores = this.configArmazem.dist_x_sensores || 0
-      const posicao_horizontal = this.configArmazem.posicao_horizontal || 0
-      const posicao_vertical = this.configArmazem.posicao_vertical || 0
-      const afastamento_vertical_pendulo = this.configArmazem.afastamento_vertical_pendulo || 0
-      const pb = this.configArmazem.pb
+      // Usar configuração aplicada se disponível, senão usar valores padrão
+      const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
+      const escala_sensores = config.escala_sensores || 16
+      const dist_y_sensores = config.dist_y_sensores || 12
+      const dist_x_sensores = config.dist_x_sensores || 0
+      const posicao_horizontal = config.posicao_horizontal || 0
+      const posicao_vertical = config.posicao_vertical || 0
+      const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
+
+      const pb = (config.pb || this.alturaSVG - 50) + (this.alturaSVG < 300 ? 0 : 50)
       const yPendulo = pb + 15 + posicao_vertical
 
       const totalCabos = arcoInfo.pendulos.length
@@ -2352,11 +2251,10 @@ export default {
         const xCabo = xCaboBase + posicao_horizontal + deslocamentoX
         const numSensores = pendulo.totalSensores
 
-        // Retângulo do pêndulo
+        // Retângulo do nome do pêndulo
         elementos += `
           <rect
             id="C${index + 1}"
-            class="pendulo-element"
             x="${xCabo - escala_sensores / 2}"
             y="${yPendulo}"
             width="${escala_sensores}"
@@ -2367,11 +2265,10 @@ export default {
           />
         `
 
-        // Texto do pêndulo
+        // Texto do nome do pêndulo
         elementos += `
           <text
             id="TC${index + 1}"
-            class="pendulo-element"
             x="${xCabo}"
             y="${yPendulo + escala_sensores / 4}"
             text-anchor="middle"
@@ -2389,12 +2286,11 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
-          if (ySensor > 10 && ySensor < this.alturaSVG - 60) {
+          if (ySensor > 10 && ySensor < (this.alturaSVG - 60)) {
             // Retângulo do sensor
             elementos += `
               <rect
                 id="C${index + 1}S${s}"
-                class="sensor-element"
                 x="${xCabo - escala_sensores / 2}"
                 y="${ySensor}"
                 width="${escala_sensores}"
@@ -2407,11 +2303,10 @@ export default {
               />
             `
 
-            // Texto do sensor
+            // Texto do valor do sensor
             elementos += `
               <text
                 id="TC${index + 1}S${s}"
-                class="sensor-element"
                 x="${xCabo}"
                 y="${ySensor + escala_sensores / 4}"
                 text-anchor="middle"
@@ -2428,7 +2323,6 @@ export default {
             elementos += `
               <text
                 id="TIND${index + 1}S${s}"
-                class="sensor-element"
                 x="${xCabo - escala_sensores / 2 - 2}"
                 y="${ySensor + escala_sensores / 4}"
                 text-anchor="end"
@@ -2453,20 +2347,24 @@ export default {
       const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`]
       if (!layoutArco) return
 
-      const escala_sensores = this.configArmazem.escala_sensores
-      const dist_y_sensores = this.configArmazem.dist_y_sensores
-      const dist_x_sensores = this.configArmazem.dist_x_sensores || 0
-      const posicao_horizontal = this.configArmazem.posicao_horizontal || 0
-      const posicao_vertical = this.configArmazem.posicao_vertical || 0
-      const afastamento_vertical_pendulo = this.configArmazem.afastamento_vertical_pendulo || 0
-      const pb = this.configArmazem.pb
+      // Usar configuração aplicada se disponível
+      const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
+      const escala_sensores = config.escala_sensores || 16
+      const dist_y_sensores = config.dist_y_sensores || 12
+      const dist_x_sensores = config.dist_x_sensores || 0
+      const posicao_horizontal = config.posicao_horizontal || 0
+      const posicao_vertical = config.posicao_vertical || 0
+      const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
+
+      const pb = (config.pb || this.alturaSVG - 50) + (this.alturaSVG < 300 ? 0 : 50)
       const yPendulo = pb + 15 + posicao_vertical
 
       const totalCabos = Object.keys(this.dados.leitura).length
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
-      setTimeout(() => {
-        Object.entries(this.dados.leitura).forEach(([idCabo, sensores], penduloIndex) => {
+      // Aguardar um pouco para garantir que o DOM foi renderizado
+      this.$nextTick(() => {
+        Object.entries(this.dados.leitura).forEach(([numeroPendulo, sensores], penduloIndex) => {
           const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex]
           const distanciaDoMeio = penduloIndex - indiceCentral
           const deslocamentoX = distanciaDoMeio * dist_x_sensores
@@ -2483,12 +2381,16 @@ export default {
             textoPendulo.setAttribute('font-size', escala_sensores * 0.4 - 0.5)
           }
 
-          Object.entries(sensores).forEach(([s, [temp, , , falha, nivel]]) => {
-            const ySensor = yPendulo - dist_y_sensores * parseInt(s) - 25 - afastamento_vertical_pendulo
+          Object.entries(sensores).forEach(([numeroSensor, dadosSensor]) => {
+            if (!Array.isArray(dadosSensor) || dadosSensor.length < 5) return
 
-            const rec = document.getElementById(`C${penduloIndex + 1}S${s}`)
-            const txt = document.getElementById(`TC${penduloIndex + 1}S${s}`)
-            const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${s}`)
+            const s = parseInt(numeroSensor)
+            const [temp, , , falha, nivel] = dadosSensor
+            const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+
+            const rec = document.getElementById(`C${penduloIndex + 1}S${numeroSensor}`)
+            const txt = document.getElementById(`TC${penduloIndex + 1}S${numeroSensor}`)
+            const nomeTexto = document.getElementById(`TIND${penduloIndex + 1}S${numeroSensor}`)
 
             if (!rec || !txt || !nomeTexto) return
 
@@ -2506,25 +2408,33 @@ export default {
             nomeTexto.setAttribute('y', ySensor + escala_sensores / 4)
             nomeTexto.setAttribute('font-size', escala_sensores * 0.4 - 1.5)
 
-            // Atualizar dados
-            txt.textContent = falha ? 'ERRO' : temp.toFixed(1)
-
-            if (!nivel) {
-              rec.setAttribute('fill', '#e6e6e6')
-              txt.setAttribute('fill', 'black')
+            // Atualizar dados com verificação de nível
+            txt.textContent = falha ? "ERRO" : (parseFloat(temp) || 0).toFixed(1)
+            if (!nivel || temp == 0) {
+              rec.setAttribute("fill", "#e6e6e6")
+              txt.setAttribute("fill", "black")
             } else {
-              const cor = this.corFaixaExata(temp)
-              rec.setAttribute('fill', cor)
-              txt.setAttribute('fill', cor === '#ff2200' ? 'white' : 'black')
+              const cor = this.corFaixaExata(parseFloat(temp) || 0)
+              rec.setAttribute("fill", cor)
+              txt.setAttribute("fill", cor === "#ff2200" ? "white" : "black")
             }
           })
         })
-      }, 50)
+      })
     },
 
     updateSVG() {
       this.calcularDimensoesSVG()
       this.generateSVG()
+
+      // Se há dados de sensores, atualizar após renderização
+      if (this.tipoAtivo === 'armazem' && this.dados) {
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.atualizarSensores()
+          }, 100)
+        })
+      }
     },
 
     calcularDimensoesSVG() {
@@ -2535,7 +2445,7 @@ export default {
         // Para armazém, calcular dimensões baseadas no conteúdo e responsividade
         const larguraBase = Math.max(this.configArmazem.lb, 300)
         const alturaBase = Math.max(this.configArmazem.pb + this.configArmazem.ht + 50, 200)
-        
+
         // Ajustar para mobile se necessário
         if (this.isMobile) {
           // Em mobile, garantir proporções adequadas
@@ -2623,9 +2533,9 @@ export default {
             <rect x="${70 + 3.5}" y="2" width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
             <text x="${70 + 12.5 + 3.5}" y="7" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="6.5" font-family="Arial" fill="white">AE-${id}</text>
             <g>
-              ${angles.map(angle => 
-                `<path d="${dBlade}" fill="white" ${angle === 0 ? '' : `transform="rotate(${angle},86.35,24.05)"`} />`
-              ).join('')}
+              ${angles.map(angle =>
+          `<path d="${dBlade}" fill="white" ${angle === 0 ? '' : `transform="rotate(${angle},86.35,24.05)"`} />`
+        ).join('')}
             </g>
           </g>
         `
@@ -2645,7 +2555,8 @@ export default {
     },
 
     renderTelhado() {
-      const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = this.configArmazem
+      const config = this.configPreviewAplicada || this.configArmazem
+      const { tipo_telhado, curvatura_topo, pb, lb, hb, hf, lf, le, ht, tipo_fundo } = config
 
       if (tipo_telhado === 1) {
         // Pontudo
@@ -2706,7 +2617,8 @@ export default {
     },
 
     renderFundoArmazem() {
-      const { tipo_fundo } = this.configArmazem
+      const config = this.configPreviewAplicada || this.configArmazem
+      const { tipo_fundo } = config
 
       if (tipo_fundo === 0) {
         return this.renderBaseNormal()
@@ -2720,12 +2632,13 @@ export default {
     },
 
     renderBaseNormal() {
-      const { 
+      const config = this.configPreviewAplicada || this.configArmazem
+      const {
         pb, lb, hb, le, lf,
-        altura_fundo_reto = 10, 
-        deslocamento_horizontal_fundo = 0, 
-        deslocamento_vertical_fundo = 0 
-      } = this.configArmazem
+        altura_fundo_reto = 10,
+        deslocamento_horizontal_fundo = 0,
+        deslocamento_vertical_fundo = 0
+      } = config
 
       const ajuste_base = -4 + deslocamento_vertical_fundo
       const ajuste_horizontal = deslocamento_horizontal_fundo
@@ -2746,7 +2659,8 @@ export default {
     },
 
     renderBaseFunilV() {
-      const { 
+      const config = this.configPreviewAplicada || this.configArmazem
+      const {
         pb, lb, hb, le,
         altura_funil_v = 40,
         posicao_ponta_v = 0,
@@ -2754,7 +2668,7 @@ export default {
         inclinacao_funil_v = 1,
         deslocamento_horizontal_fundo = 0,
         deslocamento_vertical_fundo = 0
-      } = this.configArmazem
+      } = config
 
       const centroBase = lb / 2
       const deslocamentoPonta = lb * 0.1 * posicao_ponta_v
@@ -2783,9 +2697,9 @@ export default {
 
     voltarParaPreview() {
       if (this.$router) {
-        this.$router.push({ 
+        this.$router.push({
           name: 'Armazem',
-          query: { 
+          query: {
             arco: this.arcoAtual
           }
         });
@@ -2823,9 +2737,9 @@ export default {
 
         // Navegar para o Armazem
         if (this.$router) {
-          this.$router.push({ 
+          this.$router.push({
             name: 'Armazem',
-            query: { 
+            query: {
               arco: this.arcoAtual,
               origem: 'modelador'
             }
@@ -2842,7 +2756,8 @@ export default {
     },
 
     renderBaseDuploV() {
-      const { 
+      const config = this.configPreviewAplicada || this.configArmazem
+      const {
         pb, lb, hb, le,
         altura_duplo_v = 35,
         posicao_v_esquerdo = -0.5,
@@ -2852,7 +2767,7 @@ export default {
         largura_plataforma_duplo_v = 40,
         deslocamento_horizontal_fundo = 0,
         deslocamento_vertical_fundo = 0
-      } = this.configArmazem
+      } = config
 
       const centroBase = lb / 2
       const pontaEsquerdaX = centroBase + lb * 0.2 * posicao_v_esquerdo
@@ -2917,7 +2832,8 @@ export default {
     max-height: none !important;
   }
 
-  .form-control, .form-select {
+  .form-control,
+  .form-select {
     font-size: 14px;
   }
 
@@ -2940,7 +2856,7 @@ export default {
     min-height: 180px;
     padding: 0.5rem;
   }
-  
+
   .card-body {
     padding: 0.5rem !important;
   }

@@ -1,8 +1,5 @@
 class LayoutManager {
   static analisarEstruturaArcos(dados) {
-    console.log('=== ANALISANDO ESTRUTURA DOS ARCOS ===');
-    console.log('Dados recebidos para análise:', JSON.stringify(dados, null, 2));
-
     if (!dados) {
       console.error('Dados não fornecidos para análise');
       return null;
@@ -20,8 +17,6 @@ class LayoutManager {
 
       // Se há configuração, usar ela
       if (dados.configuracao) {
-        console.log('Usando configuração encontrada:', dados.configuracao);
-
         // Processar arcos da configuração
         if (dados.configuracao.arcos) {
           Object.keys(dados.configuracao.arcos).forEach(numeroArco => {
@@ -53,7 +48,6 @@ class LayoutManager {
 
       // Se há pêndulos diretamente, processar
       if (dados.pendulos) {
-        console.log('Processando pêndulos diretos:', dados.pendulos);
 
         if (!analise.arcos[1]) {
           analise.arcos[1] = {
@@ -82,7 +76,6 @@ class LayoutManager {
 
       // Se há leitura, usar ela para determinar estrutura
       if (dados.leitura && Object.keys(analise.arcos).length === 0) {
-        console.log('Processando estrutura a partir das leituras:', dados.leitura);
 
         analise.arcos[1] = {
           totalPendulos: 0,
@@ -108,7 +101,6 @@ class LayoutManager {
 
       // Se ainda não há dados, criar estrutura mínima baseada nos dados brutos
       if (Object.keys(analise.arcos).length === 0 && typeof dados === 'object') {
-        console.log('Criando estrutura mínima baseada nos dados disponíveis');
 
         analise.arcos[1] = {
           totalPendulos: 1,
@@ -122,7 +114,6 @@ class LayoutManager {
         analise.estatisticas.totalSensores = 1;
       }
 
-      console.log('Análise final gerada:', JSON.stringify(analise, null, 2));
       return analise;
 
     } catch (error) {
@@ -132,8 +123,6 @@ class LayoutManager {
   }
 
   static gerarLayoutAutomatico(analise) {
-    console.log('=== GERANDO LAYOUT AUTOMÁTICO ===');
-    console.log('Análise recebida:', JSON.stringify(analise, null, 2));
 
     if (!analise) return null;
 
@@ -163,15 +152,10 @@ class LayoutManager {
       layouts[`arco_${numeroArco}`] = layout;
     });
 
-    console.log('Layouts gerados:', JSON.stringify(layouts, null, 2));
     return layouts;
   }
 
   static converterDadosPortalParaArmazem(dadosPortal, numeroArco) {
-    console.log('=== CONVERTENDO DADOS PARA ARMAZÉM ===');
-    console.log('Dados do portal:', JSON.stringify(dadosPortal, null, 2));
-    console.log('Número do arco:', numeroArco);
-
     if (!dadosPortal) return null;
 
     const dadosConvertidos = {
@@ -220,7 +204,6 @@ class LayoutManager {
       });
     }
 
-    console.log('Dados convertidos:', JSON.stringify(dadosConvertidos, null, 2));
     return dadosConvertidos;
   }
 }
