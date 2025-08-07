@@ -2658,8 +2658,14 @@ export default {
           // Lateral esquerda - seguir exatamente o modelo padrão
           pathTelhado += ` L ${p2[0]} ${p2[1]}`
 
-          // Lateral esquerda sem curvatura (manter reta)
-          pathTelhado += ` L ${p3[0]} ${p3[1]}`
+          // Aplicar curvatura lateral esquerda baseada no modelo padrão
+          if (estilo_laterais === 'parede_para_fora') {
+            pathTelhado += ` Q ${p2[0] + curvaLateral} ${p2[1]} ${p3[0]} ${p3[1]}`
+          } else if (estilo_laterais === 'parede_para_dentro') {
+            pathTelhado += ` Q ${p2[0] - curvaLateral} ${p2[1]} ${p3[0]} ${p3[1]}`
+          } else {
+            pathTelhado += ` L ${p3[0]} ${p3[1]}`
+          }
 
           // Ponto do topo (sempre igual no modelo padrão)
           pathTelhado += ` L ${p4[0]} ${p4[1]}`
