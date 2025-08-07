@@ -2633,12 +2633,13 @@ export default {
       } = config
 
       if (tipo_telhado === 1) {
-        // Pontudo com personalizações
+        // Telhado Pontudo - modelo padrão como base
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 7
         }
 
+        // Pontos base do modelo padrão
         const p1 = [(lb - lf) / 2, pb - hf + extensao]
         const p2 = [le, pb - hb + extensao]
         const p3 = [le, pb - ht]
@@ -2647,92 +2648,99 @@ export default {
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
 
+        // Aplicar modificações baseadas no modelo padrão
         if (pontas_redondas || estilo_laterais !== 'reta') {
-          // Usar SVG path para permitir curvas
           const raio = raio_pontas || 15
           const curvaLateral = curvatura_laterais || 30
           
           let pathTelhado = `M ${p1[0]} ${p1[1]}`
           
-          if (pontas_redondas) {
-            pathTelhado += ` L ${p2[0]} ${p2[1] + raio}`
-          } else {
-            pathTelhado += ` L ${p2[0]} ${p2[1]}`
-          }
+          // Lateral esquerda - seguir exatamente o modelo padrão
+          pathTelhado += ` L ${p2[0]} ${p2[1]}`
           
+          // Aplicar curvatura lateral esquerda baseada no modelo padrão
           if (estilo_laterais === 'parede_para_fora') {
-            pathTelhado += ` Q ${p3[0] - curvaLateral} ${(p3[1] + p4[1]) / 2} ${p4[0] - 20} ${p4[1] + 10}`
+            pathTelhado += ` Q ${p3[0] - curvaLateral} ${p3[1]} ${p3[0]} ${p3[1]}`
           } else if (estilo_laterais === 'parede_para_dentro') {
-            pathTelhado += ` Q ${p3[0] + curvaLateral} ${(p3[1] + p4[1]) / 2} ${p4[0] - 20} ${p4[1] + 10}`
+            pathTelhado += ` Q ${p3[0] + curvaLateral} ${p3[1]} ${p3[0]} ${p3[1]}`
           } else {
             pathTelhado += ` L ${p3[0]} ${p3[1]}`
           }
           
-          if (pontas_redondas) {
-            pathTelhado += ` Q ${p4[0]} ${p4[1] - raio} ${p4[0]} ${p4[1]} Q ${p4[0]} ${p4[1] - raio} ${p4[0] + 20} ${p4[1] + 10}`
-          } else {
-            pathTelhado += ` L ${p4[0]} ${p4[1]}`
-          }
+          // Ponto do topo (sempre igual no modelo padrão)
+          pathTelhado += ` L ${p4[0]} ${p4[1]}`
           
+          // Aplicar curvatura lateral direita baseada no modelo padrão  
           if (estilo_laterais === 'parede_para_fora') {
-            pathTelhado += ` Q ${p5[0] + curvaLateral} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}`
+            pathTelhado += ` Q ${p5[0] + curvaLateral} ${p5[1]} ${p5[0]} ${p5[1]}`
           } else if (estilo_laterais === 'parede_para_dentro') {
-            pathTelhado += ` Q ${p5[0] - curvaLateral} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}`
+            pathTelhado += ` Q ${p5[0] - curvaLateral} ${p5[1]} ${p5[0]} ${p5[1]}`
           } else {
             pathTelhado += ` L ${p5[0]} ${p5[1]}`
           }
           
+          // Lateral direita - seguir exatamente o modelo padrão
+          pathTelhado += ` L ${p6[0]} ${p6[1]}`
+          
+          // Aplicar pontas redondas apenas nas pontas finais se habilitado
           if (pontas_redondas) {
-            pathTelhado += ` L ${p6[0]} ${p6[1] + raio}`
+            pathTelhado += ` Q ${p7[0]} ${p7[1] + raio} ${p7[0]} ${p7[1]}`
           } else {
-            pathTelhado += ` L ${p6[0]} ${p6[1]}`
+            pathTelhado += ` L ${p7[0]} ${p7[1]}`
           }
           
-          pathTelhado += ` L ${p7[0]} ${p7[1]} Z`
+          pathTelhado += ` Z`
 
           return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
         } else {
-          // Versão original com polígono
+          // Modelo padrão sem modificações
           const pathTelhado = `${p1.join(',')} ${p2.join(',')} ${p3.join(',')} ${p4.join(',')} ${p5.join(',')} ${p6.join(',')} ${p7.join(',')}`
           return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
         }
       } else if (tipo_telhado === 2) {
-        // Arredondado com personalizações
+        // Telhado Arredondado - modelo padrão como base
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        const raio = raio_pontas || 15
-        const curvaLateral = curvatura_laterais || 30
-
+        // Pontos base do modelo padrão arredondado
         let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
         
         if (pontas_redondas) {
+          const raio = raio_pontas || 15
           pathTelhado += ` Q ${(lb - lf) / 2 - raio} ${pb - hf + extensao} ${le + raio} ${pb - hb + extensao}`
         } else {
           pathTelhado += ` L ${le} ${pb - hb + extensao}`
         }
         
+        // Aplicar modificações laterais baseadas no modelo padrão
         if (estilo_laterais === 'parede_para_fora') {
-          pathTelhado += ` Q ${le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${le - curvaLateral} ${pb - ht} ${le} ${pb - ht}`
         } else if (estilo_laterais === 'parede_para_dentro') {
-          pathTelhado += ` Q ${le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${le + curvaLateral} ${pb - ht} ${le} ${pb - ht}`
         } else {
           pathTelhado += ` L ${le} ${pb - ht}`
         }
         
+        // Topo arredondado (sempre igual no modelo padrão)
         pathTelhado += ` Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}`
         
+        // Lateral direita com modificações baseadas no modelo padrão
         if (estilo_laterais === 'parede_para_fora') {
-          pathTelhado += ` Q ${lb - le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${lb - le + curvaLateral} ${pb - ht} ${lb - le} ${pb - hb + extensao}`
         } else if (estilo_laterais === 'parede_para_dentro') {
-          pathTelhado += ` Q ${lb - le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${lb - le - curvaLateral} ${pb - ht} ${lb - le} ${pb - hb + extensao}`
         } else {
           pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
         }
         
         if (pontas_redondas) {
+          const raio = raio_pontas || 15
           pathTelhado += ` Q ${lb - le + raio} ${pb - hf + extensao} ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
         } else {
           pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
@@ -2742,42 +2750,48 @@ export default {
 
         return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
       } else if (tipo_telhado === 3) {
-        // Arco com personalizações
+        // Telhado em Arco - modelo padrão como base
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        const raio = raio_pontas || 15
-        const curvaLateral = curvatura_laterais || 30
-
         let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
         
         if (pontas_redondas) {
+          const raio = raio_pontas || 15
           pathTelhado += ` Q ${(lb - lf) / 2 - raio} ${pb - hf + extensao} ${le + raio} ${pb - hb + extensao}`
         } else {
           pathTelhado += ` L ${le} ${pb - hb + extensao}`
         }
         
+        // Aplicar modificações laterais baseadas no modelo padrão
         if (estilo_laterais === 'parede_para_fora') {
-          pathTelhado += ` Q ${le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${le - curvaLateral} ${pb - ht} ${le} ${pb - ht}`
         } else if (estilo_laterais === 'parede_para_dentro') {
-          pathTelhado += ` Q ${le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${le} ${pb - ht}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${le + curvaLateral} ${pb - ht} ${le} ${pb - ht}`
         } else {
           pathTelhado += ` L ${le} ${pb - ht}`
         }
         
+        // Arco do topo (sempre igual no modelo padrão)
         pathTelhado += ` A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}`
         
+        // Lateral direita com modificações baseadas no modelo padrão
         if (estilo_laterais === 'parede_para_fora') {
-          pathTelhado += ` Q ${lb - le + curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${lb - le + curvaLateral} ${pb - ht} ${lb - le} ${pb - hb + extensao}`
         } else if (estilo_laterais === 'parede_para_dentro') {
-          pathTelhado += ` Q ${lb - le - curvaLateral} ${(pb - hb + pb - ht) / 2} ${lb - le} ${pb - hb + extensao}`
+          const curvaLateral = curvatura_laterais || 30
+          pathTelhado += ` Q ${lb - le - curvaLateral} ${pb - ht} ${lb - le} ${pb - hb + extensao}`
         } else {
           pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
         }
         
         if (pontas_redondas) {
+          const raio = raio_pontas || 15
           pathTelhado += ` Q ${lb - le + raio} ${pb - hf + extensao} ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
         } else {
           pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao}`

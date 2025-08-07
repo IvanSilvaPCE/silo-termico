@@ -617,11 +617,12 @@ export default {
       // Construir sensores distribuídos ao longo do cabo
       const espacamentoSensores = numSensores > 1 ? alturaCabo / (numSensores + 1) : alturaCabo / 2;
 
+      // Inverter ordem dos sensores - começar de baixo para cima
       sensoresArray.forEach(([sensorNum, dadosSensor], sensorIndex) => {
         const [temp, pontoQuente, preAlarme, falha, ativo] = dadosSensor;
 
-        // Posição Y do sensor (do topo para baixo)
-        const posY = this.alturaArmazem - 0.1 - ((sensorIndex + 1) * espacamentoSensores);
+        // Posição Y do sensor (de baixo para cima)
+        const posY = this.alturaArmazem - alturaCabo - 0.1 + ((sensorIndex + 1) * espacamentoSensores);
 
         this.buildSensor(posX, posY, posZ, temp, pontoQuente, preAlarme, falha, ativo, arcoNum, penduloNum, sensorNum);
       });
@@ -674,7 +675,7 @@ export default {
 
       // Label do sensor se mostrar labels estiver ativo
       if (this.mostrarLabels && temp !== undefined) {
-        const textoLabel = falha ? "ERR" : ativo ? `${tempNum.toFixed(1)}°C` : "OFF";
+        const textoLabel = falha ? "ERR" : `${tempNum.toFixed(1)}°C`;
         this.createTextSprite(textoLabel, {
           x: position + 0.1,
           y: posY,
@@ -772,110 +773,230 @@ export default {
     },
 
     createModularGrainVisualization(niveisPorPendulo) {
-      // Criar cilindros individuais para cada pêndulo (sistema modular como Silo3D)
-      Object.values(niveisPorPendulo).forEach(pendulo => {
-        this.createIndividualGrainColumn(pendulo);
-      });
-
-      // Criar superfície conectiva suave entre os pêndulos
-      this.createConnectiveGrainSurface(niveisPorPendulo);
+      // Criar superfície única e moldável como no Silo3D.vue
+      this.createGrainSurfaceWithRelief(niveisPorPendulo);
     },
 
-    createIndividualGrainColumn(pendulo) {
-      const raioColuna = 0.8; // Raio de cada coluna de grão
-      const alturaColuna = pendulo.altura - 0.2; // Altura da coluna
-
-      // Geometria cilíndrica para cada pêndulo
-      const colunaGeometry = new THREE.CylinderGeometry(raioColuna, raioColuna * 0.9, alturaColuna, 16, 4);
-      const colunaMaterial = new THREE.MeshStandardMaterial({
-        color: 0xD4B886,
-        transparent: true,
-        opacity: 0.8,
-        roughness: 0.9,
-        metalness: 0.1
-      });
-
-      const colunaGrao = new THREE.Mesh(colunaGeometry, colunaMaterial);
-      colunaGrao.position.set(pendulo.x, alturaColuna / 2 + 0.2, pendulo.z);
-      colunaGrao.receiveShadow = true;
-      colunaGrao.castShadow = true;
-      this.scene.add(colunaGrao);
-
-      // Topo da coluna com formato mais natural
-      const topoGeometry = new THREE.SphereGeometry(raioColuna * 0.8, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2);
-      const topo = new THREE.Mesh(topoGeometry, colunaMaterial);
-      topo.position.set(pendulo.x, pendulo.altura, pendulo.z);
-      topo.receiveShadow = true;
-      topo.castShadow = true;
-      this.scene.add(topo);
+    createGrainSurfaceWithRelief(niveisPorPendulo) {
+      // Criar um único elemento modular com volume baseado nos dados dos pêndulos
+      this.createModularGrainVolume(niveisPorPendulo, 0.2); // Altura mínima do chão
     },
 
-    createConnectiveGrainSurface(niveisPorPendulo) {
-      const pendulos = Object.values(niveisPorPendulo);
-      if (pendulos.length < 2) return;
-
-      // Criar superfície conectiva baixa entre pêndulos
-      const segmentos = 24;
-      const segmentosAltura = 8;
+    createModularGrainVolume(niveisPorPendulo, alturaMinima) {
+      const resolucaoX = 32;
+      const resolucaoZ = 24;
       const vertices = [];
       const indices = [];
       const normals = [];
+      const uvs = [];
 
-      const alturaBase = 0.2;
-      const alturaConectiva = Math.min(...pendulos.map(p => p.altura)) * 0.3; // 30% da menor altura
+      // Grid de altura baseado na presença de grão (true/false)
+      const gridAlturas = [];
 
-      // Criar malha interpolada para conexão suave
-      for (let i = 0; i <= segmentos; i++) {
-        for (let j = 0; j <= segmentosAltura; j++) {
-          const u = i / segmentos;
-          const v = j / segmentosAltura;
+      for (let i = 0; i <= resolucaoX; i++) {
+        gridAlturas[i] = [];
+        for (let j = 0; j <= resolucaoZ; j++) {
+          const u = i / resolucaoX;
+          const v = j / resolucaoZ;
 
+          // Posição no armazém
           const x = (-this.larguraArmazem / 2) + (u * this.larguraArmazem);
           const z = (-this.profundidadeArmazem / 2) + (v * this.profundidadeArmazem);
 
-          // Altura interpolada suave entre pêndulos
-          let alturaInterpolada = this.interpolateHeightAtPosition(x, z, niveisPorPendulo, alturaConectiva);
-          
-          // Limitar altura conectiva para não sobrepor as colunas
-          alturaInterpolada = Math.min(alturaInterpolada, alturaConectiva);
-          alturaInterpolada = Math.max(alturaBase, alturaInterpolada);
-
-          vertices.push(x, alturaInterpolada, z);
-          normals.push(0, 1, 0);
+          // Verificar se há grão nesta posição baseado nos pêndulos
+          const alturaGrao = this.calculateModularHeightAtPosition(x, z, niveisPorPendulo, alturaMinima);
+          gridAlturas[i][j] = alturaGrao;
         }
       }
 
-      // Criar faces da superfície conectiva
-      for (let i = 0; i < segmentos; i++) {
-        for (let j = 0; j < segmentosAltura; j++) {
-          const a = i * (segmentosAltura + 1) + j;
-          const b = i * (segmentosAltura + 1) + j + 1;
-          const c = ((i + 1) % (segmentos + 1)) * (segmentosAltura + 1) + j;
-          const d = ((i + 1) % (segmentos + 1)) * (segmentosAltura + 1) + j + 1;
+      // Criar vértices do chão (base sempre presente)
+      for (let i = 0; i <= resolucaoX; i++) {
+        for (let j = 0; j <= resolucaoZ; j++) {
+          const u = i / resolucaoX;
+          const v = j / resolucaoZ;
+          const x = (-this.larguraArmazem / 2) + (u * this.larguraArmazem);
+          const z = (-this.profundidadeArmazem / 2) + (v * this.profundidadeArmazem);
 
+          // Vértice do chão
+          vertices.push(x, alturaMinima, z);
+          normals.push(0, 1, 0);
+          uvs.push(u, v);
+        }
+      }
+
+      // Criar vértices do topo (modulares baseados em grão)
+      for (let i = 0; i <= resolucaoX; i++) {
+        for (let j = 0; j <= resolucaoZ; j++) {
+          const u = i / resolucaoX;
+          const v = j / resolucaoZ;
+          const x = (-this.larguraArmazem / 2) + (u * this.larguraArmazem);
+          const z = (-this.profundidadeArmazem / 2) + (v * this.profundidadeArmazem);
+
+          // Vértice do topo modular
+          const alturaModular = gridAlturas[i][j];
+          vertices.push(x, alturaModular, z);
+
+          // Normal suavizada baseada nos vizinhos
+          let normalX = 0;
+          let normalZ = 0;
+          if (i > 0 && i < resolucaoX) {
+            normalX = (gridAlturas[i + 1][j] - gridAlturas[i - 1][j]);
+          }
+          if (j > 0 && j < resolucaoZ) {
+            normalZ = (gridAlturas[i][j + 1] - gridAlturas[i][j - 1]);
+          }
+          const normalY = 1.0; // Normal para cima no topo
+
+          const length = Math.sqrt(normalX * normalX + normalY * normalY + normalZ * normalZ);
+          normals.push(normalX / length, normalY / length, normalZ / length);
+          uvs.push(u, v);
+        }
+      }
+
+      const totalPontos = (resolucaoX + 1) * (resolucaoZ + 1);
+
+      // Criar faces da base (chão)
+      for (let i = 0; i < resolucaoX; i++) {
+        for (let j = 0; j < resolucaoZ; j++) {
+          const a = i * (resolucaoZ + 1) + j;
+          const b = i * (resolucaoZ + 1) + j + 1;
+          const c = (i + 1) * (resolucaoZ + 1) + j;
+          const d = (i + 1) * (resolucaoZ + 1) + j + 1;
+
+          // Faces da base (voltadas para baixo)
+          indices.push(a, c, b);
+          indices.push(b, c, d);
+        }
+      }
+
+      // Criar faces do topo (modulares)
+      for (let i = 0; i < resolucaoX; i++) {
+        for (let j = 0; j < resolucaoZ; j++) {
+          const a = totalPontos + i * (resolucaoZ + 1) + j;
+          const b = totalPontos + i * (resolucaoZ + 1) + j + 1;
+          const c = totalPontos + (i + 1) * (resolucaoZ + 1) + j;
+          const d = totalPontos + (i + 1) * (resolucaoZ + 1) + j + 1;
+
+          // Faces do topo (voltadas para cima)
           indices.push(a, b, c);
           indices.push(b, d, c);
         }
       }
 
+      // Criar faces laterais conectando chão ao topo
+      for (let i = 0; i < resolucaoX; i++) {
+        for (let j = 0; j < resolucaoZ; j++) {
+          // Índices do chão
+          const chaoA = i * (resolucaoZ + 1) + j;
+          const chaoB = i * (resolucaoZ + 1) + j + 1;
+          const chaoC = (i + 1) * (resolucaoZ + 1) + j;
+          const chaoD = (i + 1) * (resolucaoZ + 1) + j + 1;
+
+          // Índices do topo
+          const topoA = totalPontos + chaoA;
+          const topoB = totalPontos + chaoB;
+          const topoC = totalPontos + chaoC;
+          const topoD = totalPontos + chaoD;
+
+          // Faces laterais (quads divididos em triangulos)
+          // Lateral direita
+          if (i === resolucaoX - 1) {
+            indices.push(chaoC, topoC, chaoD);
+            indices.push(topoC, topoD, chaoD);
+          }
+          // Lateral esquerda
+          if (i === 0) {
+            indices.push(chaoA, chaoB, topoA);
+            indices.push(chaoB, topoB, topoA);
+          }
+          // Lateral frente
+          if (j === 0) {
+            indices.push(chaoA, topoA, chaoC);
+            indices.push(topoA, topoC, chaoC);
+          }
+          // Lateral fundo
+          if (j === resolucaoZ - 1) {
+            indices.push(chaoB, chaoD, topoB);
+            indices.push(chaoD, topoD, topoB);
+          }
+        }
+      }
+
+      // Criar geometria
       const geometry = new THREE.BufferGeometry();
       geometry.setIndex(indices);
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
       geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+      geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+
+      // Recalcular normais para iluminação suave
       geometry.computeVertexNormals();
 
-      const material = new THREE.MeshStandardMaterial({
-        color: 0xC8B99C,
+      // Material do grão modular
+      const graoMaterial = new THREE.MeshStandardMaterial({
+        color: 0xD4B886,
         transparent: true,
-        opacity: 0.4,
+        opacity: 0.85,
         roughness: 0.9,
         metalness: 0.1,
         side: THREE.DoubleSide
       });
 
-      const superficieConectiva = new THREE.Mesh(geometry, material);
-      superficieConectiva.receiveShadow = true;
-      this.scene.add(superficieConectiva);
+      const graoMesh = new THREE.Mesh(geometry, graoMaterial);
+      graoMesh.receiveShadow = true;
+      graoMesh.castShadow = true;
+      this.scene.add(graoMesh);
+
+      // Bordas sutis para definir melhor a forma
+      const edges = new THREE.EdgesGeometry(geometry);
+      const edgeMaterial = new THREE.LineBasicMaterial({
+        color: 0xB8A06B,
+        transparent: true,
+        opacity: 0.1
+      });
+      const edgeLines = new THREE.LineSegments(edges, edgeMaterial);
+      this.scene.add(edgeLines);
+    },
+
+    calculateModularHeightAtPosition(x, z, niveisPorPendulo, alturaMinima) {
+      const pendulos = Object.values(niveisPorPendulo);
+
+      if (pendulos.length === 0) {
+        return alturaMinima; // Sem dados, mantém altura mínima (chão)
+      }
+
+      // Encontrar pêndulos próximos e calcular influência
+      let somaAlturas = 0;
+      let somaPesos = 0;
+      let temInfluencia = false;
+
+      pendulos.forEach(pendulo => {
+        const distancia = Math.sqrt(
+          Math.pow(x - pendulo.x, 2) + Math.pow(z - pendulo.z, 2)
+        );
+
+        // Raio de influência baseado na densidade de pêndulos
+        const raioInfluencia = Math.min(this.larguraArmazem, this.profundidadeArmazem) * 0.25;
+
+        if (distancia <= raioInfluencia) {
+          temInfluencia = true;
+          const distanciaSegura = Math.max(distancia, 0.1);
+          const peso = 1 / Math.pow(distanciaSegura, 1.5); // Suavizar transição
+
+          somaAlturas += pendulo.altura * peso;
+          somaPesos += peso;
+        }
+      });
+
+      if (!temInfluencia || somaPesos === 0) {
+        return alturaMinima; // Área sem influência = chão apenas
+      }
+
+      // Altura interpolada com transição suave
+      const alturaInterpolada = somaAlturas / somaPesos;
+
+      // Garantir altura mínima e máxima razoável
+      return Math.max(alturaMinima, Math.min(alturaInterpolada, this.alturaArmazem * 0.7));
     },
 
     interpolateHeightAtPosition(x, z, niveisPorPendulo, alturaMedia) {
@@ -920,18 +1041,7 @@ export default {
       }
 
       return aeradores;
-
-      // Label discreto do nível (opcional)
-      if (this.mostrarLabels) {
-        this.createTextSprite(`${this.nivelAtual.toFixed(1)}%`, {
-          x: -this.larguraArmazem / 2 + 1,
-          y: alturaNivel + 0.8,
-          z: -this.profundidadeArmazem / 2 + 1
-        }, 0.3);
-      }
     },
-
-    
 
     buildAeradores() {
       let aeradores = {};
