@@ -1,4 +1,3 @@
-
 <template>
   <div style="width: 100%; height: 100vh;">
     <!-- Controles simples -->
@@ -16,7 +15,7 @@
       <h3 style="margin: 0 0 10px 0; color: #2E86AB; font-size: 16px; border-bottom: 2px solid #2E86AB; padding-bottom: 5px;">
         Informações do Silo
       </h3>
-      
+
       <!-- Nível -->
       <div style="margin-bottom: 10px;">
         <strong style="color: #333;">Nível:</strong>
@@ -34,9 +33,9 @@
         <strong style="color: #333;">Aeradores:</strong>
       </div>
       <div style="margin-left: 10px;">
-        <div v-for="(status, index) in getStatusAeradores()" :key="index" 
+        <div v-for="(status, index) in getStatusAeradores()" :key="index"
              style="display: flex; align-items: center; margin-bottom: 5px;">
-          <div 
+          <div
             :style="`width: 12px; height: 12px; border-radius: 50%; margin-right: 8px; background-color: ${getCorAerador(status)};`">
           </div>
           <span style="font-size: 14px;">AE-{{ index + 1 }}: {{ getStatusTexto(status) }}</span>
@@ -47,6 +46,51 @@
       <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
         <strong style="color: #333;">Temp. Média:</strong>
         <span style="color: #2E86AB; font-weight: bold;">{{ getTemperaturaMedia() }}°C</span>
+      </div>
+    </div>
+
+    <!-- Card de informações do cabo -->
+    <div v-if="mostrarCardCabo && caboSelecionado"
+         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.98); padding: 20px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); max-width: 400px; font-family: Arial, sans-serif;">
+
+      <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+        <h4 style="margin: 0; color: #2E86AB; font-size: 18px;">
+          📊 {{ caboSelecionado.nome }}
+        </h4>
+        <button @click="fecharCardCabo"
+                style="background: #ff4444; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px; margin-left: auto;">
+          ×
+        </button>
+      </div>
+
+      <div style="max-height: 300px; overflow-y: auto;">
+        <div v-for="(sensor, index) in caboSelecionado.sensores" :key="index"
+             style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid;"
+             :style="`border-left-color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)}; background: rgba(0,0,0,0.05);`">
+
+          <div>
+            <strong style="color: #333;">Sensor {{ sensor.numero }}:</strong>
+            <div style="font-size: 12px; color: #666; margin-top: 2px;">
+              {{ sensor.ativo ? (sensor.falha ? 'ERRO' : 'Ativo') : 'Inativo' }}
+            </div>
+          </div>
+
+          <div style="text-align: right;">
+            <div style="font-size: 16px; font-weight: bold;"
+                 :style="`color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)};`">
+              {{ sensor.falha ? 'ERR' : sensor.ativo ? `${sensor.temperatura.toFixed(1)}°C` : 'OFF' }}
+            </div>
+            <div style="font-size: 10px; color: #888;">
+              {{ sensor.alarme ? '🚨 Alarme' : '' }}
+              {{ sensor.preAlarme ? '⚠️ Pré-Alarme' : '' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+        <span>Total: {{ caboSelecionado.sensores.length }} sensores</span>
+        <span>Média: {{ calcularMediaTemperatura(caboSelecionado.sensores) }}°C</span>
       </div>
     </div>
 
@@ -73,13 +117,20 @@ export default {
       animationId: null,
       aeradorHélices: [],
       textSprites: [],
+      cabos3D: [],
+      raycaster: null,
+      mouse: null,
       isMouseDown: false,
       mouseX: 0,
       mouseY: 0,
       cameraRadius: 10,
       cameraTheta: 0,
       cameraPhi: Math.PI / 3,
-      dados: null
+      dados: null,
+
+      // Card de informações do cabo
+      caboSelecionado: null,
+      mostrarCardCabo: false
     };
   },
   mounted() {
@@ -199,6 +250,10 @@ export default {
       this.renderer.setClearColor(0x87CEEB);
       container.appendChild(this.renderer.domElement);
 
+      // Raycaster para detecção de cliques
+      this.raycaster = new THREE.Raycaster();
+      this.mouse = new THREE.Vector2();
+
       // Controls
       this.setupControls(container);
 
@@ -279,7 +334,10 @@ export default {
         this.handleInteraction();
       });
 
-      container.addEventListener('click', this.handleInteraction);
+      container.addEventListener('click', (event) => {
+        this.handleInteraction();
+        this.detectarCliqueCabo(event, container);
+      });
     },
 
     getAlturaSilo() {
@@ -288,7 +346,7 @@ export default {
       const leitura = this.dados.leitura;
       const espacamentoSensores = 0.8; // Espaçamento fixo reduzido pela metade
 
-      // Encontrar o pêndulo central (aquele com mais sensores)
+      // Encontrar o pêndulo com mais sensores
       let penduloComMaisSensores = null;
       let maxSensores = 0;
 
@@ -457,7 +515,7 @@ export default {
 
       // Calcular altura média para casos onde não há dados
       const alturas = Object.values(niveisPorCabo).map(cabo => cabo.altura);
-      const alturaMedia = alturas.reduce((a, b) => a + b, 0) / alturas.length;
+      const alturaMedia = alturas.length > 0 ? alturas.reduce((a, b) => a + b, 0) / alturas.length : 0.5;
 
       // Criar vértices em cilindro (círculo + altura) para superfície completa
       for (let i = 0; i <= segmentos; i++) {
@@ -610,16 +668,16 @@ export default {
         // Encontrar ponto de suavização mais próximo
         const anguloSegmento = (i / segmentos) * Math.PI * 2;
         const pontoSuavizacao = Math.floor((anguloSegmento / (Math.PI * 2)) * pontosRadiais);
-        const centroSuavizado = indicesPontosCentro[(pontoSuavizacao % pontosRadiais) + 1];
-        const centroSuavizadoNext = indicesPontosCentro[((pontoSuavizacao + 1) % pontosRadiais) + 1];
+        const centroSuavizacao = indicesPontosCentro[(pontoSuavizacao % pontosRadiais) + 1];
+        const centroSuavizacaoNext = indicesPontosCentro[((pontoSuavizacao + 1) % pontosRadiais) + 1];
 
         // Faces suavizadas
-        indices.push(centroSuavizado, bordaCurr, bordaNext);
-        indices.push(centroSuavizado, bordaNext, centroSuavizadoNext);
+        indices.push(centroSuavizacao, bordaCurr, bordaNext);
+        indices.push(centroSuavizacao, bordaNext, centroSuavizacaoNext);
 
         // Faces invertidas para visibilidade
-        indices.push(centroSuavizado, bordaNext, bordaCurr);
-        indices.push(centroSuavizado, centroSuavizadoNext, bordaNext);
+        indices.push(centroSuavizacao, bordaNext, bordaCurr);
+        indices.push(centroSuavizacao, centroSuavizacaoNext, bordaNext);
       }
 
       // Criar geometria personalizada
@@ -704,7 +762,7 @@ export default {
         const position = cabosPositions[index];
 
         // Cabo principal
-        this.createCable(position, alturaSilo);
+        this.createCable(position, alturaSilo, pendulo, sensores);
 
         // Nome do pêndulo
         this.createPendulumLabel(position, pendulo);
@@ -771,7 +829,7 @@ export default {
       return positions;
     },
 
-    createCable(position, alturaSilo) {
+    createCable(position, alturaSilo, penduloNome, sensores) {
       const cableGeometry = new THREE.CylinderGeometry(0.05, 0.05, alturaSilo - 0.3, 16);
       const cableMaterial = new THREE.MeshStandardMaterial({
         color: 0x2c2c2c,
@@ -784,6 +842,25 @@ export default {
       cable.position.set(position[0], (alturaSilo + 0.3) / 2, position[2]);
       cable.castShadow = true;
       cable.receiveShadow = true;
+
+      // Armazenar dados do cabo para clique
+      cable.userData = {
+        tipo: 'cabo',
+        nome: penduloNome,
+        sensores: Object.entries(sensores).map(([sensorNum, dadosSensor]) => {
+          const [temp, alarme, preAlarme, falha, ativo] = dadosSensor;
+          return {
+            numero: parseInt(sensorNum),
+            temperatura: parseFloat(temp),
+            alarme,
+            preAlarme,
+            falha,
+            ativo
+          };
+        })
+      };
+
+      this.cabos3D.push(cable);
       this.scene.add(cable);
     },
 
@@ -884,6 +961,7 @@ export default {
       // Adicionar número do sensor
       context.fillStyle = 'white';
       context.font = '12px Arial';
+      context.textAlign = 'center';
       context.fillText(`S${numeroSensor}`, canvas.width / 2, 15);
 
       const texture = new THREE.CanvasTexture(canvas);
@@ -1177,6 +1255,7 @@ export default {
       // Limpar arrays
       this.aeradorHélices = [];
       this.textSprites = [];
+      this.cabos3D = [];
 
       // Reconstruir
       if (this.dados) {
@@ -1212,7 +1291,7 @@ export default {
 
     getNumPendulosAtivos() {
       if (!this.dados?.leitura) return 0;
-      
+
       let ativos = 0;
       Object.values(this.dados.leitura).forEach(sensores => {
         // Verificar se pelo menos um sensor está ativo
@@ -1223,20 +1302,20 @@ export default {
         });
         if (temSensorAtivo) ativos++;
       });
-      
+
       return ativos;
     },
 
     getStatusAeradores() {
       const numAeradores = this.dados?.dados_layout?.aeradores?.na || 0;
       const motorStatus = this.dados?.motor?.statusMotor || [];
-      
+
       // Garantir que temos status para todos os aeradores
       const status = [];
       for (let i = 0; i < numAeradores; i++) {
         status.push(motorStatus[i] || 0);
       }
-      
+
       return status;
     },
 
@@ -1262,23 +1341,69 @@ export default {
 
     getTemperaturaMedia() {
       if (!this.dados?.leitura) return '--';
-      
+
       let somaTemp = 0;
       let countTemp = 0;
-      
+
       Object.values(this.dados.leitura).forEach(sensores => {
         Object.values(sensores).forEach(valores => {
           const temp = parseFloat(valores[0]);
           const ativo = valores[4];
-          
+
           if (ativo && temp !== -1000 && temp !== 0 && !isNaN(temp)) {
             somaTemp += temp;
             countTemp++;
           }
         });
       });
-      
+
       return countTemp > 0 ? (somaTemp / countTemp).toFixed(1) : '--';
+    },
+
+    detectarCliqueCabo(event, container) {
+      if (this.isMouseDown) return; // Ignorar se estava arrastando
+
+      const rect = container.getBoundingClientRect();
+      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+
+      // Verificar interseção apenas com cabos
+      const intersects = this.raycaster.intersectObjects(this.cabos3D);
+
+      if (intersects.length > 0) {
+        const cabo = intersects[0].object;
+        if (cabo.userData.tipo === 'cabo') {
+          this.mostrarInfoCabo(cabo.userData);
+        }
+      }
+    },
+
+    mostrarInfoCabo(dadosCabo) {
+      this.caboSelecionado = dadosCabo;
+      this.mostrarCardCabo = true;
+    },
+
+    fecharCardCabo() {
+      this.mostrarCardCabo = false;
+      this.caboSelecionado = null;
+    },
+
+    getCorSensor(temperatura, ativo, falha) {
+      if (falha) return '#ff0000';
+      if (!ativo) return '#cccccc';
+
+      // Usar mesma função corFaixaExata
+      return `#${this.corFaixaExata(parseFloat(temperatura)).toString(16).padStart(6, '0')}`;
+    },
+
+    calcularMediaTemperatura(sensores) {
+      const sensoresAtivos = sensores.filter(s => s.ativo && !s.falha && s.temperatura !== -1000);
+      if (sensoresAtivos.length === 0) return '--';
+
+      const soma = sensoresAtivos.reduce((acc, sensor) => acc + sensor.temperatura, 0);
+      return (soma / sensoresAtivos.length).toFixed(1);
     },
 
     cleanup() {

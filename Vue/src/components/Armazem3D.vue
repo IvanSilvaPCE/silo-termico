@@ -16,21 +16,108 @@
       <br><small>Usando dados de demonstração</small>
     </div>
 
-    <!-- Controles simples -->
-    <div
-      style="position: absolute; bottom: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.9); padding: 10px; border-radius: 5px;">
-      <label style="display: block; margin-bottom: 5px;">
+    <!-- Controles de configuração do modelador -->
+    <div ref="cardConfig"
+         @mousedown="iniciarArrastoCardConfig"
+         style="position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; min-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: move;">
+      <h6 style="margin: 0 0 10px 0; color: #333; font-weight: bold; cursor: move;">⚙️ Configurações do Modelador</h6>
+      
+      <div style="margin-bottom: 10px;">
+        <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600;">Configuração:</label>
+        <select 
+          v-model="configuracaoSelecionada" 
+          @change="aplicarConfiguracao3D"
+          style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"
+        >
+          <option value="">Configuração Padrão</option>
+          <option v-for="config in configuracoesDisponiveis" :key="config" :value="config">
+            {{ config }}
+          </option>
+        </select>
+      </div>
+
+      <div v-if="configuracaoModelador" style="margin-bottom: 10px;">
+        <div style="margin-bottom: 5px;">
+          <label style="display: block; margin-bottom: 2px; font-size: 12px; font-weight: 600;">Arco Atual:</label>
+          <select 
+            v-model.number="arcoAtual" 
+            @change="mudarArco3D"
+            style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"
+          >
+            <option v-for="n in (analiseArcos?.totalArcos || 1)" :key="n" :value="n">
+              Arco {{ n }}
+            </option>
+          </select>
+        </div>
+        <small style="display: block; color: #666; font-size: 11px;">
+          Modelo: {{ getModeloAtualInfo() }}
+        </small>
+      </div>
+
+      <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
+      
+      <label style="display: block; margin-bottom: 5px; font-size: 12px;">
         <input type="checkbox" v-model="autoRotate" />
         Rotação Automática
       </label>
-      <label style="display: block; margin-bottom: 5px;">
+      <label style="display: block; margin-bottom: 5px; font-size: 12px;">
         <input type="checkbox" v-model="mostrarLabels" />
         Mostrar Labels
       </label>
-      <div style="margin-top: 10px;">
-        <small style="display: block;">Sensores: {{ totalSensores }}</small>
-        <small style="display: block;">Pêndulos: {{ totalPendulos }}</small>
-        <small v-if="erroAPI" style="display: block; color: red;">Modo offline</small>
+      
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
+        <small style="display: block; font-size: 11px; color: #666;">Sensores: {{ totalSensores }}</small>
+        <small style="display: block; font-size: 11px; color: #666;">Pêndulos: {{ totalPendulos }}</small>
+        <small v-if="erroAPI" style="display: block; color: red; font-size: 11px;">Modo offline</small>
+        <small v-if="configuracaoModelador" style="display: block; color: #28a745; font-size: 11px;">✓ Modelador ativo</small>
+      </div>
+    </div>
+
+    <!-- Card de informações do cabo -->
+    <div v-if="mostrarCardCabo && caboSelecionado" 
+         ref="cardCabo"
+         @mousedown="iniciarArrastoCard"
+         style="position: absolute; top: 80px; right: 20px; z-index: 2000; background: rgba(255,255,255,0.98); padding: 20px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); max-width: 400px; font-family: Arial, sans-serif; cursor: move;">
+      
+      <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px; cursor: move;">
+        <h4 style="margin: 0; color: #2E86AB; font-size: 18px;">
+          📊 {{ caboSelecionado.nome }}
+        </h4>
+        <button @click="fecharCardCabo" 
+                @mousedown.stop
+                style="background: #ff4444; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px; margin-left: auto;">
+          ×
+        </button>
+      </div>
+
+      <div style="max-height: 300px; overflow-y: auto;">
+        <div v-for="(sensor, index) in caboSelecionado.sensores" :key="index"
+             style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid;"
+             :style="`border-left-color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)}; background: rgba(0,0,0,0.05);`">
+          
+          <div>
+            <strong style="color: #333;">Sensor {{ sensor.numero }}:</strong>
+            <div style="font-size: 12px; color: #666; margin-top: 2px;">
+              {{ sensor.ativo ? (sensor.falha ? 'ERRO' : 'Ativo') : 'Inativo' }}
+            </div>
+          </div>
+          
+          <div style="text-align: right;">
+            <div style="font-size: 16px; font-weight: bold;"
+                 :style="`color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)};`">
+              {{ sensor.falha ? 'ERR' : `${sensor.temperatura.toFixed(1)}°C` }}
+            </div>
+            <div style="font-size: 10px; color: #888;">
+              {{ sensor.pontoQuente ? '🔥 Ponto Quente' : '' }}
+              {{ sensor.preAlarme ? '⚠️ Pré-Alarme' : '' }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 12px; color: #666;">
+        <span>Total: {{ caboSelecionado.sensores.length }} sensores</span>
+        <span>Média: {{ calcularMediaTemperatura(caboSelecionado.sensores) }}°C</span>
       </div>
     </div>
 
@@ -56,6 +143,9 @@ export default {
       aeradorHélices: [],
       textSprites: [],
       sensores3D: [],
+      cabos3D: [],
+      raycaster: null,
+      mouse: null,
       isMouseDown: false,
       mouseX: 0,
       mouseY: 0,
@@ -68,8 +158,22 @@ export default {
       totalPendulos: 0,
       carregandoDados: true,
       erroAPI: null,
+      
+      // Card de informações do cabo
+      caboSelecionado: null,
+      mostrarCardCabo: false,
+      
+      // Arrastar card
+      arrastando: false,
+      offsetX: 0,
+      offsetY: 0,
+      
+      // Arrastar card de configurações
+      arrastandoConfig: false,
+      offsetXConfig: 0,
+      offsetYConfig: 0,
 
-      // Configurações do armazém
+      // Configurações do armazém (padrão)
       alturaArmazem: 6,
       larguraArmazem: 25,
       profundidadeArmazem: 12,
@@ -79,10 +183,18 @@ export default {
         url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-07%2008:03:36',
         token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg'
       },
+
+      // Configurações do modelador 3D
+      configuracaoModelador: null,
+      arcoAtual: 1,
+      configuracoesDisponiveis: [],
+      configuracaoSelecionada: '',
+      analiseArcos: null,
     };
   },
   mounted() {
     this.carregarDados();
+    this.carregarConfiguracoesDisponiveis();
   },
   beforeDestroy() {
     this.cleanup();
@@ -128,6 +240,11 @@ export default {
         this.dados = response.data;
         // Validar estrutura essencial
         this.validarEstruturaDados(this.dados);
+        
+        // Inicializar análise de arcos se disponível
+        if (this.dados.arcos) {
+          this.analiseArcos = this.analisarEstruturaArcos(this.dados);
+        }
 
       } catch (error) {
         console.error('Erro ao carregar dados da API:', error);
@@ -149,6 +266,74 @@ export default {
       if (!dados.configuracao && !dados.arcos && !dados.pendulos) {
         console.warn('Estrutura de dados não reconhecida, adaptando automaticamente');
       }
+    },
+
+    analisarEstruturaArcos(dados) {
+      if (!dados.arcos) {
+        return {
+          totalArcos: 1,
+          arcos: {
+            1: {
+              numero: 1,
+              totalPendulos: 1,
+              totalSensores: 1,
+              pendulos: [{ numero: 1, totalSensores: 1 }]
+            }
+          },
+          estatisticas: {
+            totalPendulos: 1,
+            totalSensores: 1
+          }
+        };
+      }
+
+      const estrutura = {
+        totalArcos: 0,
+        arcos: {},
+        estatisticas: {
+          totalPendulos: 0,
+          totalSensores: 0
+        }
+      };
+
+      // Processar cada arco
+      Object.keys(dados.arcos).forEach(numeroArco => {
+        const dadosArco = dados.arcos[numeroArco];
+        const arcoNum = parseInt(numeroArco);
+        
+        estrutura.totalArcos = Math.max(estrutura.totalArcos, arcoNum);
+        
+        const infoArco = {
+          numero: arcoNum,
+          totalPendulos: 0,
+          totalSensores: 0,
+          pendulos: []
+        };
+
+        // Processar cada pêndulo no arco
+        Object.keys(dadosArco).forEach(numeroPendulo => {
+          const dadosPendulo = dadosArco[numeroPendulo];
+          const penduloNum = parseInt(numeroPendulo);
+          
+          const infoPendulo = {
+            numero: penduloNum,
+            totalSensores: Object.keys(dadosPendulo).length
+          };
+
+          infoArco.pendulos.push(infoPendulo);
+          infoArco.totalPendulos++;
+          infoArco.totalSensores += infoPendulo.totalSensores;
+        });
+
+        // Ordenar pêndulos por número
+        infoArco.pendulos.sort((a, b) => a.numero - b.numero);
+        
+        estrutura.arcos[arcoNum] = infoArco;
+        estrutura.estatisticas.totalPendulos += infoArco.totalPendulos;
+        estrutura.estatisticas.totalSensores += infoArco.totalSensores;
+      });
+
+      return estrutura;
     },
 
     tratarErroAPI(error) {
@@ -247,6 +432,10 @@ export default {
       );
       this.updateCameraPosition();
 
+      // Raycaster para detecção de cliques
+      this.raycaster = new THREE.Raycaster();
+      this.mouse = new THREE.Vector2();
+
       // Renderer
       this.renderer = new THREE.WebGLRenderer({ antialias: true });
       this.renderer.setSize(container.clientWidth, container.clientHeight);
@@ -311,6 +500,11 @@ export default {
         this.isMouseDown = false;
       });
 
+      // Adicionar evento de clique para detecção de cabos
+      container.addEventListener('click', (event) => {
+        this.detectarCliqueCabo(event, container);
+      });
+
       container.addEventListener('wheel', (event) => {
         event.preventDefault();
         const scale = event.deltaY > 0 ? 1.1 : 0.9;
@@ -347,6 +541,8 @@ export default {
     },
 
     buildArmazemStructure() {
+      const config = this.getConfiguracao3DAtual();
+      
       const corTelhado = 0xE6E6E6;
       const corBase = 0x999999;
       const corParede = 0xD0D0D0;
@@ -366,6 +562,7 @@ export default {
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
       base.position.set(0, 0, 0);
       base.receiveShadow = true;
+      base.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(base);
 
       // Material das paredes
@@ -375,69 +572,85 @@ export default {
         opacity: 0.4
       });
 
-      // Paredes laterais (retas) - agora nas laterais esquerda e direita
+      // Paredes laterais (retas) - laterais esquerda e direita
       const paredeLateralGeometry = new THREE.BoxGeometry(this.larguraArmazem, this.alturaArmazem, espessuraParede);
 
       // Parede esquerda (lateral)
       const paredeEsquerda = new THREE.Mesh(paredeLateralGeometry, paredeMaterial);
       paredeEsquerda.position.set(0, this.alturaArmazem / 2, -this.profundidadeArmazem / 2);
       paredeEsquerda.castShadow = true;
+      paredeEsquerda.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(paredeEsquerda);
 
       // Parede direita (lateral)
       const paredeDireita = new THREE.Mesh(paredeLateralGeometry, paredeMaterial);
       paredeDireita.position.set(0, this.alturaArmazem / 2, this.profundidadeArmazem / 2);
       paredeDireita.castShadow = true;
+      paredeDireita.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(paredeDireita);
 
-      // Paredes frontais triangulares (frente e fundo para alinhar com o telhado)
-      this.buildParedesTriangulares(paredeMaterial, espessuraParede);
+      // Paredes frontais baseadas na configuração do modelador
+      this.buildParedesComConfiguracao(paredeMaterial, espessuraParede, config);
 
-      // Telhado em duas águas
-      this.buildTelhado(corTelhado);
+      // Telhado baseado na configuração do modelador
+      this.buildTelhadoComConfiguracao(corTelhado, config);
+
+      // Fundo baseado na configuração do modelador
+      this.buildFundoComConfiguracao(corBase, config);
 
       // Vigas estruturais
       this.buildVigas();
     },
 
-    buildParedesTriangulares(paredeMaterial, espessuraParede) {
-      const alturaTelhado = this.alturaArmazem + 0.6;
-      const inclinacaoTelhado = Math.PI / 12;
+    buildParedesComConfiguracao(paredeMaterial, espessuraParede, config) {
+      const tipo_telhado = config.tipo_telhado || 1;
+      const curvatura_topo = config.curvatura_topo || 30;
+      const ht = (config.ht || 50) / 100 * 12; // Converter para escala 3D
+      
+      const alturaTelhado = this.alturaArmazem + (ht / 10); // Ajustar altura do telhado
+      
+      if (tipo_telhado === 1) {
+        // Telhado pontudo - paredes triangulares
+        this.buildParedesTriangularesPontudas(paredeMaterial, espessuraParede, alturaTelhado, config);
+      } else if (tipo_telhado === 2) {
+        // Telhado arredondado - paredes com topo curvado
+        this.buildParedesArredondadas(paredeMaterial, espessuraParede, alturaTelhado, curvatura_topo);
+      } else if (tipo_telhado === 3) {
+        // Telhado em arco - paredes com formato de arco
+        this.buildParedesArco(paredeMaterial, espessuraParede, alturaTelhado, curvatura_topo);
+      }
+    },
 
-      // Criar shape que segue exatamente o formato do telhado em V
+    buildParedesTriangularesPontudas(paredeMaterial, espessuraParede, alturaTelhado, config) {
+      const pontas_redondas = config.pontas_redondas || false;
+      const raio_pontas = (config.raio_pontas || 15) / 100; // Converter para escala 3D
+      const estilo_laterais = config.estilo_laterais || 'reta';
+      const curvatura_laterais = (config.curvatura_laterais || 0) / 100;
+
       const shape = new THREE.Shape();
 
-      // Começar da base esquerda
+      // Base da parede
       shape.moveTo(-this.profundidadeArmazem / 2, 0);
-
-      // Ir para base direita
       shape.lineTo(this.profundidadeArmazem / 2, 0);
-
-      // Subir verticalmente até a altura da parede reta
       shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
 
-      // Calcular onde o telhado começa a inclinar (exatamente na borda do telhado)
-      const inicioProfundidadeTelhado = this.profundidadeArmazem / 4; // Onde começa a inclinação
+      if (estilo_laterais === 'curvatura_lateral' && curvatura_laterais !== 0) {
+        // Aplicar curvatura lateral
+        const pontoControle = this.profundidadeArmazem / 4 + curvatura_laterais;
+        shape.quadraticCurveTo(pontoControle, (this.alturaArmazem + alturaTelhado) / 2, 0, alturaTelhado);
+      } else {
+        // Linha reta até o topo
+        shape.lineTo(0, alturaTelhado);
+      }
 
-      // Altura no ponto onde começa a inclinação do telhado
-      const alturaInicioInclinacao = alturaTelhado - (inicioProfundidadeTelhado * Math.tan(inclinacaoTelhado));
+      if (pontas_redondas) {
+        // Aplicar curvatura no topo
+        shape.quadraticCurveTo(-raio_pontas, alturaTelhado - raio_pontas, -this.profundidadeArmazem / 4, this.alturaArmazem);
+      }
 
-      // Seguir a inclinação do telhado do lado direito
-      shape.lineTo(inicioProfundidadeTelhado, alturaInicioInclinacao);
-
-      // Ir até o pico central (cumeeira)
-      shape.lineTo(0, alturaTelhado);
-
-      // Descer seguindo a inclinação do telhado do lado esquerdo
-      shape.lineTo(-inicioProfundidadeTelhado, alturaInicioInclinacao);
-
-      // Descer verticalmente até a altura da parede reta
       shape.lineTo(-this.profundidadeArmazem / 2, this.alturaArmazem);
-
-      // Fechar voltando à base
       shape.lineTo(-this.profundidadeArmazem / 2, 0);
 
-      // Geometria extrudada
       const extrudeSettings = {
         depth: espessuraParede,
         bevelEnabled: false
@@ -450,6 +663,7 @@ export default {
       paredeFrente.position.set(-this.larguraArmazem / 2, 0, 0);
       paredeFrente.rotation.y = Math.PI / 2;
       paredeFrente.castShadow = true;
+      paredeFrente.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(paredeFrente);
 
       // Parede traseira
@@ -457,27 +671,119 @@ export default {
       paredeTras.position.set(this.larguraArmazem / 2, 0, 0);
       paredeTras.rotation.y = -Math.PI / 2;
       paredeTras.castShadow = true;
+      paredeTras.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(paredeTras);
     },
 
-    buildTelhado(cor) {
-      // Ajustar as dimensões para ter melhor alinhamento
-      const extensaoTelhado = 0.8; // Reduzir a extensão para não ultrapassar tanto
-      const telhadoGeometry = new THREE.BoxGeometry(this.larguraArmazem + extensaoTelhado, 0.1, this.profundidadeArmazem / 2 + 0.2);
+    buildParedesArredondadas(paredeMaterial, espessuraParede, alturaTelhado, curvatura_topo) {
+      const alturaMaxima = alturaTelhado - (curvatura_topo / 100 * 2); // Ajustar altura baseada na curvatura
+
+      const shape = new THREE.Shape();
+      shape.moveTo(-this.profundidadeArmazem / 2, 0);
+      shape.lineTo(this.profundidadeArmazem / 2, 0);
+      shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
+      
+      // Curva arredondada no topo
+      shape.quadraticCurveTo(0, alturaMaxima, -this.profundidadeArmazem / 2, this.alturaArmazem);
+      shape.lineTo(-this.profundidadeArmazem / 2, 0);
+
+      const extrudeSettings = {
+        depth: espessuraParede,
+        bevelEnabled: false
+      };
+
+      const paredeGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+      // Parede frontal
+      const paredeFrente = new THREE.Mesh(paredeGeometry, paredeMaterial);
+      paredeFrente.position.set(-this.larguraArmazem / 2, 0, 0);
+      paredeFrente.rotation.y = Math.PI / 2;
+      paredeFrente.castShadow = true;
+      paredeFrente.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(paredeFrente);
+
+      // Parede traseira
+      const paredeTras = new THREE.Mesh(paredeGeometry, paredeMaterial);
+      paredeTras.position.set(this.larguraArmazem / 2, 0, 0);
+      paredeTras.rotation.y = -Math.PI / 2;
+      paredeTras.castShadow = true;
+      paredeTras.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(paredeTras);
+    },
+
+    buildParedesArco(paredeMaterial, espessuraParede, alturaTelhado, curvatura_topo) {
+      const raio = curvatura_topo / 100 * this.profundidadeArmazem; // Ajustar raio baseado na curvatura
+
+      const shape = new THREE.Shape();
+      shape.moveTo(-this.profundidadeArmazem / 2, 0);
+      shape.lineTo(this.profundidadeArmazem / 2, 0);
+      shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
+      
+      // Arco no topo usando arc()
+      shape.arc(-this.profundidadeArmazem / 2, 0, raio, 0, Math.PI, false);
+      shape.lineTo(-this.profundidadeArmazem / 2, this.alturaArmazem);
+      shape.lineTo(-this.profundidadeArmazem / 2, 0);
+
+      const extrudeSettings = {
+        depth: espessuraParede,
+        bevelEnabled: false
+      };
+
+      const paredeGeometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
+
+      // Parede frontal
+      const paredeFrente = new THREE.Mesh(paredeGeometry, paredeMaterial);
+      paredeFrente.position.set(-this.larguraArmazem / 2, 0, 0);
+      paredeFrente.rotation.y = Math.PI / 2;
+      paredeFrente.castShadow = true;
+      paredeFrente.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(paredeFrente);
+
+      // Parede traseira
+      const paredeTras = new THREE.Mesh(paredeGeometry, paredeMaterial);
+      paredeTras.position.set(this.larguraArmazem / 2, 0, 0);
+      paredeTras.rotation.y = -Math.PI / 2;
+      paredeTras.castShadow = true;
+      paredeTras.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(paredeTras);
+    },
+
+    buildTelhadoComConfiguracao(cor, config) {
+      const tipo_telhado = config.tipo_telhado || 1;
+      const curvatura_topo = config.curvatura_topo || 30;
+      const ht = (config.ht || 50) / 100 * 12;
+      
+      const alturaTelhado = this.alturaArmazem + (ht / 10);
+      const extensaoTelhado = 0.8;
+      
       const telhadoMaterial = new THREE.MeshStandardMaterial({
         color: cor,
         metalness: 0.1,
         roughness: 0.8
       });
 
-      const alturaTelhado = this.alturaArmazem + 0.6;
-      const inclinacao = Math.PI / 12;
+      if (tipo_telhado === 1) {
+        // Telhado pontudo (duas águas)
+        this.buildTelhadoPontudo(telhadoMaterial, alturaTelhado, extensaoTelhado, curvatura_topo);
+      } else if (tipo_telhado === 2) {
+        // Telhado arredondado
+        this.buildTelhadoArredondado(telhadoMaterial, alturaTelhado, extensaoTelhado, curvatura_topo);
+      } else if (tipo_telhado === 3) {
+        // Telhado em arco
+        this.buildTelhadoArco(telhadoMaterial, alturaTelhado, extensaoTelhado, curvatura_topo);
+      }
+    },
+
+    buildTelhadoPontudo(telhadoMaterial, alturaTelhado, extensaoTelhado, curvatura_topo) {
+      const inclinacao = Math.PI / 12 + (curvatura_topo / 1000); // Ajustar inclinação baseada na curvatura
+      const telhadoGeometry = new THREE.BoxGeometry(this.larguraArmazem + extensaoTelhado, 0.1, this.profundidadeArmazem / 2 + 0.2);
 
       // Primeira parte do telhado (inclinada)
       const telhado1 = new THREE.Mesh(telhadoGeometry, telhadoMaterial);
       telhado1.position.set(0, alturaTelhado, -this.profundidadeArmazem / 4);
       telhado1.rotation.x = -inclinacao;
       telhado1.castShadow = true;
+      telhado1.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(telhado1);
 
       // Segunda parte do telhado (inclinada)
@@ -485,14 +791,226 @@ export default {
       telhado2.position.set(0, alturaTelhado, this.profundidadeArmazem / 4);
       telhado2.rotation.x = inclinacao;
       telhado2.castShadow = true;
+      telhado2.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(telhado2);
 
-      // Cumeeira (linha central do telhado) - ajustar largura
+      // Cumeeira (linha central do telhado)
       const cumeeiraGeometry = new THREE.BoxGeometry(this.larguraArmazem + extensaoTelhado + 0.1, 0.12, 0.15);
       const cumeeira = new THREE.Mesh(cumeeiraGeometry, telhadoMaterial);
       cumeeira.position.set(0, alturaTelhado + 0.2, 0);
       cumeeira.castShadow = true;
+      cumeeira.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(cumeeira);
+    },
+
+    buildTelhadoArredondado(telhadoMaterial, alturaTelhado, extensaoTelhado, curvatura_topo) {
+      // Criar telhado curvo usando geometria customizada
+      const largura = this.larguraArmazem + extensaoTelhado;
+      const profundidade = this.profundidadeArmazem;
+      const segments = 32;
+      
+      const geometry = new THREE.CylinderGeometry(
+        profundidade / 2, 
+        profundidade / 2, 
+        largura, 
+        segments, 
+        1, 
+        true, 
+        0, 
+        Math.PI
+      );
+      
+      const telhado = new THREE.Mesh(geometry, telhadoMaterial);
+      telhado.position.set(0, alturaTelhado + (curvatura_topo / 200), 0);
+      telhado.rotation.z = Math.PI / 2;
+      telhado.castShadow = true;
+      telhado.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(telhado);
+    },
+
+    buildTelhadoArco(telhadoMaterial, alturaTelhado, extensaoTelhado, curvatura_topo) {
+      const largura = this.larguraArmazem + extensaoTelhado;
+      const raio = curvatura_topo / 100 * this.profundidadeArmazem;
+      const segments = 24;
+      
+      // Criar arco usando TorusGeometry parcial
+      const geometry = new THREE.CylinderGeometry(
+        raio,
+        raio, 
+        largura, 
+        segments, 
+        1, 
+        true, 
+        0, 
+        Math.PI
+      );
+      
+      const telhado = new THREE.Mesh(geometry, telhadoMaterial);
+      telhado.position.set(0, alturaTelhado + (raio / 4), 0);
+      telhado.rotation.z = Math.PI / 2;
+      telhado.castShadow = true;
+      telhado.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(telhado);
+    },
+
+    buildFundoComConfiguracao(corBase, config) {
+      const tipo_fundo = config.tipo_fundo || 0;
+      
+      if (tipo_fundo === 0) {
+        // Fundo reto - não adicionar nada especial além da base
+        this.buildFundoReto(corBase, config);
+      } else if (tipo_fundo === 1) {
+        // Fundo funil V
+        this.buildFundoFunilV(corBase, config);
+      } else if (tipo_fundo === 2) {
+        // Fundo duplo V
+        this.buildFundoDuploV(corBase, config);
+      }
+    },
+
+    buildFundoReto(corBase, config) {
+      const altura_fundo_reto = (config.altura_fundo_reto || 10) / 100 * 0.5; // Converter para escala 3D
+      
+      if (altura_fundo_reto > 0.1) {
+        const fundoGeometry = new THREE.BoxGeometry(
+          this.larguraArmazem * 0.8,
+          altura_fundo_reto,
+          this.profundidadeArmazem * 0.8
+        );
+        const fundoMaterial = new THREE.MeshStandardMaterial({
+          color: corBase,
+          roughness: 0.9,
+          metalness: 0.1
+        });
+        
+        const fundo = new THREE.Mesh(fundoGeometry, fundoMaterial);
+        fundo.position.set(0, altura_fundo_reto / 2 + 0.15, 0);
+        fundo.castShadow = true;
+        fundo.receiveShadow = true;
+        fundo.userData = { tipo: 'estrutura_armazem' };
+        this.scene.add(fundo);
+      }
+    },
+
+    buildFundoFunilV(corBase, config) {
+      const altura_funil_v = (config.altura_funil_v || 18) / 100 * 1.2; // Converter para escala 3D
+      const largura_abertura_v = (config.largura_abertura_v || 20) / 100 * 1.0;
+      const posicao_ponta_v = (config.posicao_ponta_v || 0) * this.larguraArmazem * 0.1;
+      
+      // Criar geometria de funil em V
+      const vertices = [];
+      const indices = [];
+      
+      // Base retangular
+      const baseVertices = [
+        [-this.larguraArmazem/2, 0.15, -this.profundidadeArmazem/2],
+        [this.larguraArmazem/2, 0.15, -this.profundidadeArmazem/2],
+        [this.larguraArmazem/2, 0.15, this.profundidadeArmazem/2],
+        [-this.larguraArmazem/2, 0.15, this.profundidadeArmazem/2]
+      ];
+      
+      // Ponto do funil (ajustado pela posição)
+      const pontaFunil = [posicao_ponta_v, 0.15 - altura_funil_v, 0];
+      
+      // Abertura do funil
+      const abertura = [
+        [pontaFunil[0] - largura_abertura_v/2, pontaFunil[1], pontaFunil[2] - largura_abertura_v/4],
+        [pontaFunil[0] + largura_abertura_v/2, pontaFunil[1], pontaFunil[2] - largura_abertura_v/4],
+        [pontaFunil[0] + largura_abertura_v/2, pontaFunil[1], pontaFunil[2] + largura_abertura_v/4],
+        [pontaFunil[0] - largura_abertura_v/2, pontaFunil[1], pontaFunil[2] + largura_abertura_v/4]
+      ];
+      
+      // Adicionar vértices
+      baseVertices.forEach(v => vertices.push(...v));
+      abertura.forEach(v => vertices.push(...v));
+      
+      // Criar faces conectando base à abertura
+      const baseIndices = [
+        [0, 1, 5], [0, 5, 4],  // Face lateral 1
+        [1, 2, 6], [1, 6, 5],  // Face lateral 2
+        [2, 3, 7], [2, 7, 6],  // Face lateral 3
+        [3, 0, 4], [3, 4, 7],  // Face lateral 4
+        [4, 5, 6], [4, 6, 7]   // Face do fundo (abertura)
+      ];
+      
+      baseIndices.forEach(face => indices.push(...face));
+      
+      const geometry = new THREE.BufferGeometry();
+      geometry.setIndex(indices);
+      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+      geometry.computeVertexNormals();
+      
+      const fundoMaterial = new THREE.MeshStandardMaterial({
+        color: corBase,
+        roughness: 0.9,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+      });
+      
+      const fundo = new THREE.Mesh(geometry, fundoMaterial);
+      fundo.castShadow = true;
+      fundo.receiveShadow = true;
+      fundo.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(fundo);
+    },
+
+    buildFundoDuploV(corBase, config) {
+      const altura_duplo_v = (config.altura_duplo_v || 22) / 100 * 1.4;
+      const largura_abertura_duplo_v = (config.largura_abertura_duplo_v || 2) / 100 * 0.8;
+      const posicao_v_esquerdo = (config.posicao_v_esquerdo || -1) * this.larguraArmazem * 0.2;
+      const posicao_v_direito = (config.posicao_v_direito || 1) * this.larguraArmazem * 0.2;
+      const largura_plataforma_duplo_v = (config.largura_plataforma_duplo_v || 10) / 100 * 2.0;
+      const altura_plataforma_duplo_v = (config.altura_plataforma_duplo_v || 0.3) * altura_duplo_v;
+      
+      // Criar base plana primeiro
+      const baseGeometry = new THREE.BoxGeometry(
+        this.larguraArmazem * 0.9,
+        0.1,
+        this.profundidadeArmazem * 0.9
+      );
+      const baseMaterial = new THREE.MeshStandardMaterial({
+        color: corBase,
+        roughness: 0.9,
+        metalness: 0.1
+      });
+      
+      const base = new THREE.Mesh(baseGeometry, baseMaterial);
+      base.position.set(0, 0.2, 0);
+      base.castShadow = true;
+      base.receiveShadow = true;
+      base.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(base);
+      
+      // Plataforma central
+      const plataformaGeometry = new THREE.BoxGeometry(
+        largura_plataforma_duplo_v,
+        altura_plataforma_duplo_v,
+        this.profundidadeArmazem * 0.6
+      );
+      
+      const plataforma = new THREE.Mesh(plataformaGeometry, baseMaterial);
+      plataforma.position.set(0, 0.25 + altura_plataforma_duplo_v/2, 0);
+      plataforma.castShadow = true;
+      plataforma.receiveShadow = true;
+      plataforma.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(plataforma);
+      
+      // Funis laterais (simplificados como cones)
+      const funilGeometry = new THREE.ConeGeometry(largura_abertura_duplo_v, altura_duplo_v, 8);
+      
+      // Funil esquerdo
+      const funilEsquerdo = new THREE.Mesh(funilGeometry, baseMaterial);
+      funilEsquerdo.position.set(posicao_v_esquerdo, 0.25 - altura_duplo_v/2, 0);
+      funilEsquerdo.castShadow = true;
+      funilEsquerdo.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(funilEsquerdo);
+      
+      // Funil direito
+      const funilDireito = new THREE.Mesh(funilGeometry, baseMaterial);
+      funilDireito.position.set(posicao_v_direito, 0.25 - altura_duplo_v/2, 0);
+      funilDireito.castShadow = true;
+      funilDireito.userData = { tipo: 'estrutura_armazem' };
+      this.scene.add(funilDireito);
     },
 
     buildVigas() {
@@ -512,6 +1030,7 @@ export default {
         const viga = new THREE.Mesh(vigaGeometry, vigaMaterial);
         viga.position.set(x, this.alturaArmazem / 2, 0);
         viga.castShadow = true;
+        viga.userData = { tipo: 'estrutura_armazem' };
         this.scene.add(viga);
       }
     },
@@ -612,6 +1131,27 @@ export default {
       const cable = new THREE.Mesh(cableGeometry, cableMaterial);
       cable.position.set(posX, posYCabo, posZ);
       cable.castShadow = true;
+      
+      // Armazenar dados do cabo para clique
+      cable.userData = {
+        tipo: 'cabo',
+        arcoNum,
+        penduloNum,
+        nome: `Arco ${arcoNum} - Pêndulo ${penduloNum}`,
+        sensores: Object.entries(sensores).map(([sensorNum, dadosSensor]) => {
+          const [temp, pontoQuente, preAlarme, falha, ativo] = dadosSensor;
+          return {
+            numero: parseInt(sensorNum),
+            temperatura: parseFloat(temp),
+            pontoQuente,
+            preAlarme,
+            falha,
+            ativo
+          };
+        })
+      };
+      
+      this.cabos3D.push(cable);
       this.scene.add(cable);
 
       // Construir sensores distribuídos ao longo do cabo
@@ -673,15 +1213,7 @@ export default {
       // Armazenar para futuras atualizações
       this.sensores3D.push(sensor);
 
-      // Label do sensor se mostrar labels estiver ativo
-      if (this.mostrarLabels && temp !== undefined) {
-        const textoLabel = falha ? "ERR" : `${tempNum.toFixed(1)}°C`;
-        this.createTextSprite(textoLabel, {
-          x: position + 0.1,
-          y: posY,
-          z: posZ
-        }, 0.2);
-      }
+      // Remover label individual de temperatura - agora só no card
     },
 
     buildNivelVisual() {
@@ -1335,6 +1867,7 @@ export default {
       this.aeradorHélices = [];
       this.textSprites = [];
       this.sensores3D = [];
+      this.cabos3D = [];
 
       // Reconstruir
       this.setupLighting();
@@ -1354,6 +1887,334 @@ export default {
       this.camera.aspect = container.clientWidth / container.clientHeight;
       this.camera.updateProjectionMatrix();
       this.renderer.setSize(container.clientWidth, container.clientHeight);
+    },
+
+    carregarConfiguracoesDisponiveis() {
+      const prefixo = 'configArmazem_';
+      const configs = [];
+
+      if (typeof localStorage !== 'undefined') {
+        for (let i = 0; i < localStorage.length; i++) {
+          const chave = localStorage.key(i);
+          if (chave && chave.startsWith(prefixo)) {
+            const nome = chave.replace(prefixo, '');
+            configs.push(nome);
+          }
+        }
+      }
+
+      this.configuracoesDisponiveis = configs.sort();
+    },
+
+    aplicarConfiguracao3D() {
+      if (!this.configuracaoSelecionada) {
+        this.configuracaoModelador = null;
+        this.reconstruirArmazem3D();
+        return;
+      }
+
+      if (typeof localStorage !== 'undefined') {
+        const chave = `configArmazem_${this.configuracaoSelecionada}`;
+        const configSalva = localStorage.getItem(chave);
+
+        if (configSalva) {
+          try {
+            const configData = JSON.parse(configSalva);
+            this.configuracaoModelador = configData;
+            
+            // Aplicar dimensões baseadas na configuração
+            this.aplicarDimensoes3D(configData);
+            
+            // Reconstruir armazém com nova configuração
+            this.reconstruirArmazem3D();
+            
+            console.log('Configuração 3D aplicada:', configData.nome);
+          } catch (error) {
+            console.error('Erro ao aplicar configuração 3D:', error);
+          }
+        }
+      }
+    },
+
+    aplicarDimensoes3D(configData) {
+      // Extrair configuração baseada no modelo ou usar padrão
+      let config;
+      
+      if (configData.tipo === 'configuracao_armazem_hierarquica') {
+        config = configData.configuracaoPadrao || {};
+      } else if (configData.configuracaoPadrao) {
+        config = configData.configuracaoPadrao;
+      } else {
+        config = configData;
+      }
+
+      // Converter dimensões 2D para 3D (escala 1:100)
+      this.larguraArmazem = (config.lb || 350) / 100 * 7; // 350px = ~25m
+      this.profundidadeArmazem = (config.pb || 185) / 100 * 6.5; // 185px = ~12m  
+      this.alturaArmazem = (config.ht || 50) / 100 * 12; // 50px = ~6m
+
+      console.log('Dimensões 3D aplicadas:', {
+        largura: this.larguraArmazem,
+        profundidade: this.profundidadeArmazem,
+        altura: this.alturaArmazem
+      });
+    },
+
+    mudarArco3D() {
+      console.log('Mudando para arco 3D:', this.arcoAtual);
+      // Lógica específica para mudança de arco no 3D pode ser implementada aqui
+      // Por enquanto, apenas log para debug
+    },
+
+    getModeloAtualInfo() {
+      if (!this.configuracaoModelador) return 'Padrão';
+      
+      if (this.configuracaoModelador.tipo === 'configuracao_armazem_hierarquica') {
+        const modeloParaArco = this.determinarModeloParaArco3D(this.arcoAtual);
+        return modeloParaArco ? modeloParaArco.nome : 'Modelo Padrão';
+      }
+      
+      return this.configuracaoModelador.nome || 'Configuração Aplicada';
+    },
+
+    determinarModeloParaArco3D(numeroArco) {
+      if (!this.configuracaoModelador || !this.configuracaoModelador.configModelos) {
+        return null;
+      }
+
+      const configModelos = this.configuracaoModelador.configModelos;
+      const quantidadeModelos = configModelos.quantidadeModelos || 1;
+      const totalArcos = this.analiseArcos?.totalArcos || 1;
+
+      if (quantidadeModelos === 1) {
+        return Object.values(configModelos.modelosDefinidos || {})[0] || null;
+      }
+
+      if (quantidadeModelos === 2) {
+        const isImpar = numeroArco % 2 === 1;
+        const posicaoProcurada = isImpar ? 'impar' : 'par';
+        return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+          modelo && modelo.posicao === posicaoProcurada
+        ) || null;
+      }
+
+      if (quantidadeModelos === 3) {
+        if (numeroArco === 1 || numeroArco === totalArcos) {
+          return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+            modelo && modelo.posicao === 'frente_fundo'
+          ) || null;
+        }
+        const isParIntermediario = numeroArco % 2 === 0;
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar';
+        return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+          modelo && modelo.posicao === posicaoProcurada
+        ) || null;
+      }
+
+      if (quantidadeModelos === 4) {
+        if (numeroArco === 1) {
+          return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+            modelo && modelo.posicao === 'frente'
+          ) || null;
+        }
+        if (numeroArco === totalArcos) {
+          return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+            modelo && modelo.posicao === 'fundo'
+          ) || null;
+        }
+        const isParIntermediario = numeroArco % 2 === 0;
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar';
+        return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+          modelo && modelo.posicao === posicaoProcurada
+        ) || null;
+      }
+
+      return null;
+    },
+
+    reconstruirArmazem3D() {
+      if (!this.scene) return;
+
+      // Limpar estruturas existentes (exceto sensores e nível para preservar dados)
+      const objetosParaRemover = [];
+      this.scene.traverse((child) => {
+        if (child.userData && child.userData.tipo === 'estrutura_armazem') {
+          objetosParaRemover.push(child);
+        }
+      });
+
+      objetosParaRemover.forEach(obj => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach(mat => {
+              if (mat.map) mat.map.dispose();
+              mat.dispose();
+            });
+          } else {
+            if (obj.material.map) obj.material.map.dispose();
+            obj.material.dispose();
+          }
+        }
+        this.scene.remove(obj);
+      });
+
+      // Reconstruir apenas a estrutura
+      this.buildArmazemStructure();
+    },
+
+    getConfiguracao3DAtual() {
+      if (!this.configuracaoModelador) {
+        return {
+          // Configuração padrão
+          pb: 185, lb: 350, hb: 30, hf: 5, lf: 250, le: 15, ht: 50,
+          tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false,
+          raio_pontas: 15, estilo_laterais: 'reta', curvatura_laterais: 0,
+          tipo_fundo: 0, altura_fundo_reto: 10
+        };
+      }
+
+      if (this.configuracaoModelador.tipo === 'configuracao_armazem_hierarquica') {
+        const modeloParaArco = this.determinarModeloParaArco3D(this.arcoAtual);
+        if (modeloParaArco && modeloParaArco.configuracao) {
+          return modeloParaArco.configuracao;
+        }
+        return this.configuracaoModelador.configuracaoPadrao || {};
+      }
+
+      return this.configuracaoModelador.configuracaoPadrao || this.configuracaoModelador;
+    },
+
+    detectarCliqueCabo(event, container) {
+      if (this.isMouseDown) return; // Ignorar se estava arrastando
+
+      const rect = container.getBoundingClientRect();
+      this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      this.raycaster.setFromCamera(this.mouse, this.camera);
+      
+      // Verificar interseção apenas com cabos
+      const intersects = this.raycaster.intersectObjects(this.cabos3D);
+      
+      if (intersects.length > 0) {
+        const cabo = intersects[0].object;
+        if (cabo.userData.tipo === 'cabo') {
+          this.mostrarInfoCabo(cabo.userData);
+        }
+      }
+    },
+
+    mostrarInfoCabo(dadosCabo) {
+      this.caboSelecionado = dadosCabo;
+      this.mostrarCardCabo = true;
+    },
+
+    fecharCardCabo() {
+      this.mostrarCardCabo = false;
+      this.caboSelecionado = null;
+    },
+
+    getCorSensor(temperatura, ativo, falha) {
+      if (falha) return '#ff0000';
+      if (!ativo) return '#cccccc';
+      
+      // Usar mesma lógica de cores dos outros componentes
+      const temp = parseFloat(temperatura);
+      if (temp < 12) return '#0384fc';
+      else if (temp < 15) return '#03e8fc';
+      else if (temp < 17) return '#03fcbe';
+      else if (temp < 21) return '#07fc03';
+      else if (temp < 25) return '#c3ff00';
+      else if (temp < 27) return '#fcf803';
+      else if (temp < 30) return '#ffb300';
+      else if (temp < 35) return '#ff2200';
+      else if (temp < 50) return '#ff0090';
+      else return '#f700ff';
+    },
+
+    calcularMediaTemperatura(sensores) {
+      const sensoresAtivos = sensores.filter(s => s.ativo && !s.falha && s.temperatura !== -1000);
+      if (sensoresAtivos.length === 0) return '--';
+      
+      const soma = sensoresAtivos.reduce((acc, sensor) => acc + sensor.temperatura, 0);
+      return (soma / sensoresAtivos.length).toFixed(1);
+    },
+
+    iniciarArrastoCard(event) {
+      this.arrastando = true;
+      const rect = this.$refs.cardCabo.getBoundingClientRect();
+      this.offsetX = event.clientX - rect.left;
+      this.offsetY = event.clientY - rect.top;
+      
+      document.addEventListener('mousemove', this.arrastarCard);
+      document.addEventListener('mouseup', this.pararArrastoCard);
+      event.preventDefault();
+    },
+
+    arrastarCard(event) {
+      if (!this.arrastando) return;
+      
+      const card = this.$refs.cardCabo;
+      if (!card) return;
+      
+      const x = event.clientX - this.offsetX;
+      const y = event.clientY - this.offsetY;
+      
+      // Limitar às bordas da tela
+      const maxX = window.innerWidth - card.offsetWidth;
+      const maxY = window.innerHeight - card.offsetHeight;
+      
+      const limitedX = Math.max(0, Math.min(x, maxX));
+      const limitedY = Math.max(0, Math.min(y, maxY));
+      
+      card.style.left = `${limitedX}px`;
+      card.style.top = `${limitedY}px`;
+      card.style.right = 'auto';
+    },
+
+    pararArrastoCard() {
+      this.arrastando = false;
+      document.removeEventListener('mousemove', this.arrastarCard);
+      document.removeEventListener('mouseup', this.pararArrastoCard);
+    },
+
+    iniciarArrastoCardConfig(event) {
+      this.arrastandoConfig = true;
+      const rect = this.$refs.cardConfig.getBoundingClientRect();
+      this.offsetXConfig = event.clientX - rect.left;
+      this.offsetYConfig = event.clientY - rect.top;
+      
+      document.addEventListener('mousemove', this.arrastarCardConfig);
+      document.addEventListener('mouseup', this.pararArrastoCardConfig);
+      event.preventDefault();
+    },
+
+    arrastarCardConfig(event) {
+      if (!this.arrastandoConfig) return;
+      
+      const card = this.$refs.cardConfig;
+      if (!card) return;
+      
+      const x = event.clientX - this.offsetXConfig;
+      const y = event.clientY - this.offsetYConfig;
+      
+      // Limitar às bordas da tela
+      const maxX = window.innerWidth - card.offsetWidth;
+      const maxY = window.innerHeight - card.offsetHeight;
+      
+      const limitedX = Math.max(0, Math.min(x, maxX));
+      const limitedY = Math.max(0, Math.min(y, maxY));
+      
+      card.style.left = `${limitedX}px`;
+      card.style.top = `${limitedY}px`;
+      card.style.right = 'auto';
+    },
+
+    pararArrastoCardConfig() {
+      this.arrastandoConfig = false;
+      document.removeEventListener('mousemove', this.arrastarCardConfig);
+      document.removeEventListener('mouseup', this.pararArrastoCardConfig);
     },
 
     cleanup() {
