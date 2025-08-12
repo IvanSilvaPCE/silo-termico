@@ -9,11 +9,13 @@
       </label>
     </div>
 
-    <!-- Card de informações -->
+    <!-- Card de informações do silo (movível) -->
     <div
-      style="position: absolute; top: 10px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-width: 250px; font-family: Arial, sans-serif;">
-      <h3 style="margin: 0 0 10px 0; color: #2E86AB; font-size: 16px; border-bottom: 2px solid #2E86AB; padding-bottom: 5px;">
-        Informações do Silo
+      ref="cardSilo"
+      @mousedown="iniciarArrastoCardSilo"
+      style="position: absolute; top: 120px; right: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); min-width: 250px; font-family: Arial, sans-serif; cursor: move;">
+      <h3 style="margin: 0 0 10px 0; color: #2E86AB; font-size: 16px; border-bottom: 2px solid #2E86AB; padding-bottom: 5px; cursor: move;">
+        📊 Informações do Silo
       </h3>
 
       <!-- Nível -->
@@ -49,15 +51,18 @@
       </div>
     </div>
 
-    <!-- Card de informações do cabo -->
-    <div v-if="mostrarCardCabo && caboSelecionado"
-         style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2000; background: rgba(255,255,255,0.98); padding: 20px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); max-width: 400px; font-family: Arial, sans-serif;">
+    <!-- Card de informações do cabo (movível) -->
+    <div v-if="mostrarCardCabo && caboSelecionado" 
+         ref="cardCabo"
+         @mousedown="iniciarArrastoCard"
+         style="position: absolute; top: 80px; right: 20px; z-index: 2000; background: rgba(255,255,255,0.98); padding: 20px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); max-width: 400px; font-family: Arial, sans-serif; cursor: move;">
 
-      <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px;">
+      <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px; cursor: move;">
         <h4 style="margin: 0; color: #2E86AB; font-size: 18px;">
           📊 {{ caboSelecionado.nome }}
         </h4>
-        <button @click="fecharCardCabo"
+        <button @click="fecharCardCabo" 
+                @mousedown.stop
                 style="background: #ff4444; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px; margin-left: auto;">
           ×
         </button>
@@ -66,23 +71,24 @@
       <div style="max-height: 300px; overflow-y: auto;">
         <div v-for="(sensor, index) in caboSelecionado.sensores" :key="index"
              style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid;"
-             :style="`border-left-color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)}; background: rgba(0,0,0,0.05);`">
+             :style="`border-left-color: ${getCorSensorComNivel(sensor.temperatura, sensor.ativo, sensor.falha, sensor.temGrao)}; background: rgba(0,0,0,0.05);`">
 
           <div>
             <strong style="color: #333;">Sensor {{ sensor.numero }}:</strong>
             <div style="font-size: 12px; color: #666; margin-top: 2px;">
-              {{ sensor.ativo ? (sensor.falha ? 'ERRO' : 'Ativo') : 'Inativo' }}
+              {{ getStatusSensor(sensor) }}
             </div>
           </div>
 
           <div style="text-align: right;">
             <div style="font-size: 16px; font-weight: bold;"
-                 :style="`color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)};`">
-              {{ sensor.falha ? 'ERR' : sensor.ativo ? `${sensor.temperatura.toFixed(1)}°C` : 'OFF' }}
+                 :style="`color: ${getCorSensorComNivel(sensor.temperatura, sensor.ativo, sensor.falha, sensor.temGrao)};`">
+              {{ getTextoTemperatura(sensor) }}
             </div>
             <div style="font-size: 10px; color: #888;">
               {{ sensor.alarme ? '🚨 Alarme' : '' }}
               {{ sensor.preAlarme ? '⚠️ Pré-Alarme' : '' }}
+              {{ !sensor.temGrao && sensor.ativo && !sensor.falha ? '⬜ Sem nível' : '' }}
             </div>
           </div>
         </div>
@@ -90,7 +96,8 @@
 
       <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #ddd; display: flex; justify-content: space-between; font-size: 12px; color: #666;">
         <span>Total: {{ caboSelecionado.sensores.length }} sensores</span>
-        <span>Média: {{ calcularMediaTemperatura(caboSelecionado.sensores) }}°C</span>
+        <span>Temp. Média: {{ calcularMediaTemperatura(caboSelecionado.sensores) }}°C</span>
+        <span>Com nível: {{ calcularSensoresComNivel(caboSelecionado.sensores) }}</span>
       </div>
     </div>
 
@@ -130,7 +137,17 @@ export default {
 
       // Card de informações do cabo
       caboSelecionado: null,
-      mostrarCardCabo: false
+      mostrarCardCabo: false,
+
+      // Arrastar card do cabo
+      arrastando: false,
+      offsetX: 0,
+      offsetY: 0,
+
+      // Arrastar card do silo
+      arrastandoSilo: false,
+      offsetXSilo: 0,
+      offsetYSilo: 0
     };
   },
   mounted() {
@@ -855,7 +872,8 @@ export default {
             alarme,
             preAlarme,
             falha,
-            ativo
+            ativo,
+            temGrao: ativo && temp !== -1000 && temp !== 0 && !falha // Determinar se tem grão
           };
         })
       };
@@ -920,7 +938,11 @@ export default {
     },
 
     createSensorBody(position, yPos, temp, alarme, falha, ativo) {
-      const cor = ativo ? this.corFaixaExata(temp) : 0xcccccc;
+      // Determinar se tem grão (nível)
+      const temGrao = ativo && temp !== -1000 && temp !== 0 && !falha;
+
+      // Cor: cinza se não tem nível, cor da temperatura se tem nível
+      const cor = ativo ? (temGrao ? this.corFaixaExata(temp) : 0xcccccc) : 0xcccccc;
 
       const sensorGeometry = new THREE.BoxGeometry(0.25, 0.12, 0.12);
       const sensorMaterial = new THREE.MeshStandardMaterial({
@@ -952,10 +974,14 @@ export default {
       context.fillStyle = 'rgba(0, 0, 0, 0.7)';
       context.fillRect(0, 0, canvas.width, canvas.height);
 
-      context.fillStyle = falha ? '#ff0000' : '#00ff00';
+      // Determinar se tem grão (nível)
+      const temGrao = ativo && temp !== -1000 && temp !== 0 && !falha;
+
+      // Sempre mostrar temperatura, cor cinza se não tem nível
+      context.fillStyle = falha ? '#ff0000' : (temGrao ? '#00ff00' : '#cccccc');
       context.font = '20px Arial';
       context.textAlign = 'center';
-      const texto = falha ? "ERR" : ativo ? `${temp.toFixed(1)}°C` : "OFF";
+      const texto = falha ? "ERR" : `${temp.toFixed(1)}°C`;
       context.fillText(texto, canvas.width / 2, canvas.height / 2 + 7);
 
       // Adicionar número do sensor
@@ -1006,112 +1032,221 @@ export default {
         const y = 0.2;
 
         const status = motorStatus[i] || 0;
-        this.createAerator([x, y, z], i + 1, status);
+        this.createAerador([x, y, z], i + 1, status);
       }
     },
 
-    createAerator(position, id, status) {
+    createAerador(position, id, status) {
       const cores = {
-        0: 0xc5c5c5, // desligado
-        1: 0xffeb3b, // startando
-        3: 0x31dd0f, // ligado
-        4: 0xff0000  // erro
+        0: 0x4682B4, // desligado - azul padrão do motor
+        1: 0xffeb3b, // startando - amarelo
+        3: 0x31dd0f, // ligado - verde
+        4: 0xff0000  // erro - vermelho
       };
 
-      // Base do motor
-      const baseGeometry = new THREE.CylinderGeometry(0.4, 0.45, 0.2, 24);
+      // Grupo principal do aerador
+      const aeradorGroup = new THREE.Group();
+      aeradorGroup.position.set(position[0], position[1], position[2]);
+
+      // Base orgânica com curvaturas suaves (em formato de gota achatada)
+      const baseGeometry = new THREE.SphereGeometry(0.35, 32, 16);
+      baseGeometry.scale(1, 0.3, 0.8); // Achatar para criar forma orgânica
       const baseMaterial = new THREE.MeshStandardMaterial({
         color: 0x666666,
+        metalness: 0.4,
+        roughness: 0.6
+      });
+      const base = new THREE.Mesh(baseGeometry, baseMaterial);
+      base.position.set(0, 0.05, 0);
+      base.castShadow = true;
+      aeradorGroup.add(base);
+
+      // Pernas de apoio orgânicas (formato de gota invertida)
+      for (let i = 0; i < 3; i++) {
+        const angle = (i * 120) * Math.PI / 180;
+        const x = Math.cos(angle) * 0.25;
+        const z = Math.sin(angle) * 0.25;
+
+        // Criar perna como uma esfera alongada
+        const pernaGeometry = new THREE.SphereGeometry(0.04, 16, 16);
+        pernaGeometry.scale(1, 4, 1); // Alongar verticalmente
+        const pernaMaterial = new THREE.MeshStandardMaterial({
+          color: 0x555555,
+          metalness: 0.5,
+          roughness: 0.5
+        });
+        const perna = new THREE.Mesh(pernaGeometry, pernaMaterial);
+        perna.position.set(x, -0.08, z);
+        perna.castShadow = true;
+        aeradorGroup.add(perna);
+
+        // Pé orgânico (formato de bolha)
+        const peGeometry = new THREE.SphereGeometry(0.06, 16, 12);
+        peGeometry.scale(1, 0.5, 1); // Achatar para criar forma de bolha
+        const pe = new THREE.Mesh(peGeometry, pernaMaterial);
+        pe.position.set(x, -0.15, z);
+        pe.castShadow = true;
+        aeradorGroup.add(pe);
+      }
+
+      // Motor com formato orgânico (cápsula suave)
+      const motorShape = new THREE.Shape();
+      
+      // Criar geometria customizada usando lathe para forma suave
+      const motorPoints = [];
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20;
+        const radius = 0.08 + 0.06 * Math.sin(t * Math.PI); // Curvatura suave
+        motorPoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.4));
+      }
+      
+      const motorGeometry = new THREE.LatheGeometry(motorPoints, 32);
+      const motorMaterial = new THREE.MeshStandardMaterial({
+        color: cores[status],
+        metalness: 0.3,
+        roughness: 0.7
+      });
+      const motor = new THREE.Mesh(motorGeometry, motorMaterial);
+      motor.position.set(0, 0.22, 0);
+      motor.rotation.z = Math.PI / 2; // Posicionar lateralmente
+      motor.castShadow = true;
+      aeradorGroup.add(motor);
+
+      // Cobertura frontal orgânica (formato de ovo)
+      const cobertura1Geometry = new THREE.SphereGeometry(0.09, 24, 16);
+      cobertura1Geometry.scale(1.2, 1, 1); // Alongar para formato de ovo
+      const cobertura1 = new THREE.Mesh(cobertura1Geometry, motorMaterial);
+      cobertura1.position.set(0.22, 0.22, 0);
+      cobertura1.castShadow = true;
+      aeradorGroup.add(cobertura1);
+
+      // Cobertura traseira orgânica
+      const cobertura2 = new THREE.Mesh(cobertura1Geometry, motorMaterial);
+      cobertura2.position.set(-0.22, 0.22, 0);
+      cobertura2.castShadow = true;
+      aeradorGroup.add(cobertura2);
+
+      // Aletas de ventilação orgânicas (formato de ondas)
+      for (let j = 0; j < 8; j++) {
+        const offsetX = -0.15 + (j * 0.04);
+        
+        // Criar aleta curvada usando geometria de torus parcial
+        const aletaGeometry = new THREE.TorusGeometry(0.08, 0.008, 4, 12, Math.PI / 3);
+        const aletaMaterial = new THREE.MeshStandardMaterial({
+          color: 0x444444,
+          metalness: 0.6,
+          roughness: 0.4
+        });
+        const aleta = new THREE.Mesh(aletaGeometry, aletaMaterial);
+        aleta.position.set(offsetX, 0.32, 0);
+        aleta.rotation.x = Math.PI / 2;
+        aleta.rotation.z = j * 0.2; // Rotação variada para efeito orgânico
+        aeradorGroup.add(aleta);
+      }
+
+      // Eixo de transmissão com variação orgânica
+      const eixoPoints = [];
+      for (let i = 0; i <= 15; i++) {
+        const t = i / 15;
+        const radius = 0.012 + 0.004 * Math.sin(t * Math.PI * 3); // Variação suave
+        eixoPoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.5));
+      }
+      
+      const eixoGeometry = new THREE.LatheGeometry(eixoPoints, 16);
+      const eixoMaterial = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const eixo = new THREE.Mesh(eixoGeometry, eixoMaterial);
+      eixo.position.set(0.28, 0.22, 0);
+      eixo.rotation.z = Math.PI / 2;
+      eixo.castShadow = true;
+      aeradorGroup.add(eixo);
+
+      // Hélice com pás orgânicas curvadas
+      const heliceGroup = new THREE.Group();
+      heliceGroup.position.set(0.5, 0.22, 0);
+
+      // Hub central orgânico (formato de pêra)
+      const hubGeometry = new THREE.SphereGeometry(0.04, 20, 16);
+      hubGeometry.scale(1.5, 1, 1); // Alongar para formato orgânico
+      const hubMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
         metalness: 0.7,
         roughness: 0.3
       });
-      const baseMotor = new THREE.Mesh(baseGeometry, baseMaterial);
-      baseMotor.position.set(position[0], position[1], position[2]);
-      this.scene.add(baseMotor);
-
-      // Corpo do motor
-      const bodyGeometry = new THREE.CylinderGeometry(0.25, 0.3, 0.3, 16);
-      const bodyMaterial = new THREE.MeshStandardMaterial({
-        color: cores[status] || cores[0],
-        metalness: 0.6,
-        roughness: 0.4
-      });
-      const bodyMotor = new THREE.Mesh(bodyGeometry, bodyMaterial);
-      bodyMotor.position.set(position[0], position[1] + 0.15, position[2]);
-      this.scene.add(bodyMotor);
-
-      // Aletas de refrigeração
-      for (let j = 0; j < 4; j++) {
-        const angle = (j * 90 * Math.PI) / 180;
-        const finGeometry = new THREE.BoxGeometry(0.03, 0.25, 0.08);
-        const finMaterial = new THREE.MeshStandardMaterial({
-          color: 0x555555,
-          metalness: 0.8,
-          roughness: 0.2
-        });
-        const fin = new THREE.Mesh(finGeometry, finMaterial);
-        fin.position.set(
-          position[0] + Math.cos(angle) * 0.32,
-          position[1] + 0.15,
-          position[2] + Math.sin(angle) * 0.32
-        );
-        fin.rotation.y = angle;
-        this.scene.add(fin);
-      }
-
-      // Eixo do motor
-      const axisGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.1, 8);
-      const axisMaterial = new THREE.MeshStandardMaterial({
-        color: 0x222222,
-        metalness: 0.9,
-        roughness: 0.1
-      });
-      const axis = new THREE.Mesh(axisGeometry, axisMaterial);
-      axis.position.set(position[0], position[1] + 0.35, position[2]);
-      this.scene.add(axis);
-
-      // Hélices
-      const heliceGroup = new THREE.Group();
-      heliceGroup.position.set(position[0], position[1] + 0.42, position[2]);
-
-      // Hub central
-      const hubGeometry = new THREE.CylinderGeometry(0.12, 0.08, 0.06, 8);
-      const hubMaterial = new THREE.MeshStandardMaterial({
-        color: 0x2c2c2c,
-        metalness: 0.9,
-        roughness: 0.1
-      });
       const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+      hub.rotation.z = Math.PI / 2;
       heliceGroup.add(hub);
 
-      // Pás da hélice
-      for (let j = 0; j < 5; j++) {
-        const angle = (j * 72 * Math.PI) / 180;
-        const bladeGeometry = new THREE.BoxGeometry(0.3, 0.03, 0.08);
-        const bladeMaterial = new THREE.MeshStandardMaterial({
-          color: 0xf0f0f0,
-          metalness: 0.6,
-          roughness: 0.3
+      // Pás da hélice orgânicas (formato de folha)
+      for (let j = 0; j < 4; j++) {
+        const angle = (j * 90) * Math.PI / 180;
+
+        // Criar pá usando curva spline para formato de folha
+        const paShape = new THREE.Shape();
+        paShape.moveTo(0, 0);
+        paShape.quadraticCurveTo(0.1, 0.05, 0.18, 0.02);
+        paShape.quadraticCurveTo(0.2, 0, 0.18, -0.02);
+        paShape.quadraticCurveTo(0.1, -0.05, 0, 0);
+
+        const paGeometry = new THREE.ExtrudeGeometry(paShape, {
+          depth: 0.004,
+          bevelEnabled: true,
+          bevelThickness: 0.002,
+          bevelSize: 0.002,
+          bevelSegments: 4
         });
-        const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
-        blade.position.set(
-          Math.cos(angle) * 0.2,
-          0,
-          Math.sin(angle) * 0.2
-        );
-        blade.rotation.y = angle;
-        blade.rotation.z = Math.PI / 8;
-        heliceGroup.add(blade);
+
+        const paMaterial = new THREE.MeshStandardMaterial({
+          color: 0xF0F0F0,
+          metalness: 0.4,
+          roughness: 0.6
+        });
+
+        const pa = new THREE.Mesh(paGeometry, paMaterial);
+        pa.position.set(0, 0, 0);
+        pa.rotation.z = angle;
+        pa.rotation.y = Math.PI / 8; // Ângulo de ataque suave
+        
+        // Curvar a pá para dar efeito orgânico
+        const curvaExtra = new THREE.Group();
+        curvaExtra.add(pa);
+        curvaExtra.rotation.x = Math.sin(angle) * 0.1;
+        
+        heliceGroup.add(curvaExtra);
       }
 
-      this.scene.add(heliceGroup);
+      aeradorGroup.add(heliceGroup);
 
       // Armazenar para animação se ligado
       if (status === 3) {
         this.aeradorHélices.push(heliceGroup);
       }
 
-      // Placa de identificação
+      // Suporte de conexão orgânico (formato de braço curvado)
+      const suportePoints = [];
+      for (let i = 0; i <= 12; i++) {
+        const t = i / 12;
+        const radius = 0.03 + 0.02 * Math.sin(t * Math.PI); // Variação orgânica
+        suportePoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.25));
+      }
+      
+      const suporteGeometry = new THREE.LatheGeometry(suportePoints, 16);
+      const suporteMaterial = new THREE.MeshStandardMaterial({
+        color: 0x666666,
+        metalness: 0.4,
+        roughness: 0.6
+      });
+      const suporte = new THREE.Mesh(suporteGeometry, suporteMaterial);
+      suporte.position.set(0, 0.125, 0);
+      suporte.castShadow = true;
+      aeradorGroup.add(suporte);
+
+      this.scene.add(aeradorGroup);
+
+      // Placa de identificação (no motor)
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
       canvas.width = 128;
@@ -1128,20 +1263,20 @@ export default {
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMaterial = new THREE.SpriteMaterial({ map: texture });
       const sprite = new THREE.Sprite(spriteMaterial);
-      sprite.position.set(position[0], position[1] + 0.05, position[2] + 0.4);
-      sprite.scale.set(0.3, 0.1, 1);
+      sprite.position.set(position[0], position[1] + 0.05, position[2] + 0.25);
+      sprite.scale.set(0.25, 0.12, 1);
       this.scene.add(sprite);
       this.textSprites.push(sprite);
 
-      // LED indicador
-      const ledGeometry = new THREE.SphereGeometry(0.02, 16, 16);
+      // LED indicador de status (no motor)
+      const ledGeometry = new THREE.SphereGeometry(0.012, 16, 16);
       const ledMaterial = new THREE.MeshStandardMaterial({
-        color: cores[status] || cores[0],
+        color: cores[status],
         emissive: status === 3 ? cores[status] : 0x000000,
-        emissiveIntensity: status === 3 ? 0.8 : 0
+        emissiveIntensity: status === 3 ? 0.6 : 0
       });
       const led = new THREE.Mesh(ledGeometry, ledMaterial);
-      led.position.set(position[0], position[1] + 0.32, position[2] + 0.32);
+      led.position.set(position[0] - 0.1, position[1] + 0.3, position[2] + 0.13);
       this.scene.add(led);
     },
 
@@ -1404,6 +1539,109 @@ export default {
 
       const soma = sensoresAtivos.reduce((acc, sensor) => acc + sensor.temperatura, 0);
       return (soma / sensoresAtivos.length).toFixed(1);
+    },
+
+    calcularSensoresComNivel(sensores) {
+      const comNivel = sensores.filter(s => s.temGrao).length;
+      return `${comNivel}/${sensores.length}`;
+    },
+
+    getCorSensorComNivel(temperatura, ativo, falha, temGrao) {
+      if (falha) return '#ff0000';
+      if (!ativo) return '#cccccc';
+      if (!temGrao) return '#cccccc'; // Cinza se não tem nível
+
+      // Se tem nível, usar cor baseada na temperatura
+      return `#${this.corFaixaExata(parseFloat(temperatura)).toString(16).padStart(6, '0')}`;
+    },
+
+    getStatusSensor(sensor) {
+      if (sensor.falha) return 'ERRO';
+      if (!sensor.ativo) return 'Sem nível';
+      if (!sensor.temGrao) return 'Sem nível';
+      return 'Com nível - Ativo';
+    },
+
+    getTextoTemperatura(sensor) {
+      if (sensor.falha) return 'ERR';
+      // Sempre mostrar temperatura, independente do status de ativo/nível
+      return `${sensor.temperatura.toFixed(1)}°C`;
+    },
+
+    iniciarArrastoCard(event) {
+      this.arrastando = true;
+      const rect = this.$refs.cardCabo.getBoundingClientRect();
+      this.offsetX = event.clientX - rect.left;
+      this.offsetY = event.clientY - rect.top;
+
+      document.addEventListener('mousemove', this.arrastarCard);
+      document.addEventListener('mouseup', this.pararArrastoCard);
+      event.preventDefault();
+    },
+
+    arrastarCard(event) {
+      if (!this.arrastando) return;
+
+      const card = this.$refs.cardCabo;
+      if (!card) return;
+
+      const x = event.clientX - this.offsetX;
+      const y = event.clientY - this.offsetY;
+
+      // Limitar às bordas da tela
+      const maxX = window.innerWidth - card.offsetWidth;
+      const maxY = window.innerHeight - card.offsetHeight;
+
+      const limitedX = Math.max(0, Math.min(x, maxX));
+      const limitedY = Math.max(0, Math.min(y, maxY));
+
+      card.style.left = `${limitedX}px`;
+      card.style.top = `${limitedY}px`;
+      card.style.right = 'auto';
+    },
+
+    pararArrastoCard() {
+      this.arrastando = false;
+      document.removeEventListener('mousemove', this.arrastarCard);
+      document.removeEventListener('mouseup', this.pararArrastoCard);
+    },
+
+    iniciarArrastoCardSilo(event) {
+      this.arrastandoSilo = true;
+      const rect = this.$refs.cardSilo.getBoundingClientRect();
+      this.offsetXSilo = event.clientX - rect.left;
+      this.offsetYSilo = event.clientY - rect.top;
+
+      document.addEventListener('mousemove', this.arrastarCardSilo);
+      document.addEventListener('mouseup', this.pararArrastoCardSilo);
+      event.preventDefault();
+    },
+
+    arrastarCardSilo(event) {
+      if (!this.arrastandoSilo) return;
+
+      const card = this.$refs.cardSilo;
+      if (!card) return;
+
+      const x = event.clientX - this.offsetXSilo;
+      const y = event.clientY - this.offsetYSilo;
+
+      // Limitar às bordas da tela
+      const maxX = window.innerWidth - card.offsetWidth;
+      const maxY = window.innerHeight - card.offsetHeight;
+
+      const limitedX = Math.max(0, Math.min(x, maxX));
+      const limitedY = Math.max(0, Math.min(y, maxY));
+
+      card.style.left = `${limitedX}px`;
+      card.style.top = `${limitedY}px`;
+      card.style.right = 'auto';
+    },
+
+    pararArrastoCardSilo() {
+      this.arrastandoSilo = false;
+      document.removeEventListener('mousemove', this.arrastarCardSilo);
+      document.removeEventListener('mouseup', this.pararArrastoCardSilo);
     },
 
     cleanup() {

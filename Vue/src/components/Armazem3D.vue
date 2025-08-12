@@ -21,11 +21,11 @@
          @mousedown="iniciarArrastoCardConfig"
          style="position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; min-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: move;">
       <h6 style="margin: 0 0 10px 0; color: #333; font-weight: bold; cursor: move;">⚙️ Configurações do Modelador</h6>
-      
+
       <div style="margin-bottom: 10px;">
         <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600;">Configuração:</label>
-        <select 
-          v-model="configuracaoSelecionada" 
+        <select
+          v-model="configuracaoSelecionada"
           @change="aplicarConfiguracao3D"
           style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"
         >
@@ -39,8 +39,8 @@
       <div v-if="configuracaoModelador" style="margin-bottom: 10px;">
         <div style="margin-bottom: 5px;">
           <label style="display: block; margin-bottom: 2px; font-size: 12px; font-weight: 600;">Arco Atual:</label>
-          <select 
-            v-model.number="arcoAtual" 
+          <select
+            v-model.number="arcoAtual"
             @change="mudarArco3D"
             style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"
           >
@@ -55,7 +55,7 @@
       </div>
 
       <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
-      
+
       <label style="display: block; margin-bottom: 5px; font-size: 12px;">
         <input type="checkbox" v-model="autoRotate" />
         Rotação Automática
@@ -64,7 +64,7 @@
         <input type="checkbox" v-model="mostrarLabels" />
         Mostrar Labels
       </label>
-      
+
       <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee;">
         <small style="display: block; font-size: 11px; color: #666;">Sensores: {{ totalSensores }}</small>
         <small style="display: block; font-size: 11px; color: #666;">Pêndulos: {{ totalPendulos }}</small>
@@ -74,16 +74,16 @@
     </div>
 
     <!-- Card de informações do cabo -->
-    <div v-if="mostrarCardCabo && caboSelecionado" 
+    <div v-if="mostrarCardCabo && caboSelecionado"
          ref="cardCabo"
          @mousedown="iniciarArrastoCard"
          style="position: absolute; top: 80px; right: 20px; z-index: 2000; background: rgba(255,255,255,0.98); padding: 20px; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.3); max-width: 400px; font-family: Arial, sans-serif; cursor: move;">
-      
+
       <div style="display: flex; justify-content: between; align-items: center; margin-bottom: 15px; cursor: move;">
         <h4 style="margin: 0; color: #2E86AB; font-size: 18px;">
           📊 {{ caboSelecionado.nome }}
         </h4>
-        <button @click="fecharCardCabo" 
+        <button @click="fecharCardCabo"
                 @mousedown.stop
                 style="background: #ff4444; color: white; border: none; border-radius: 50%; width: 25px; height: 25px; cursor: pointer; font-size: 14px; margin-left: auto;">
           ×
@@ -94,14 +94,14 @@
         <div v-for="(sensor, index) in caboSelecionado.sensores" :key="index"
              style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; border-radius: 6px; border-left: 4px solid;"
              :style="`border-left-color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)}; background: rgba(0,0,0,0.05);`">
-          
+
           <div>
             <strong style="color: #333;">Sensor {{ sensor.numero }}:</strong>
             <div style="font-size: 12px; color: #666; margin-top: 2px;">
               {{ sensor.ativo ? (sensor.falha ? 'ERRO' : 'Ativo') : 'Inativo' }}
             </div>
           </div>
-          
+
           <div style="text-align: right;">
             <div style="font-size: 16px; font-weight: bold;"
                  :style="`color: ${getCorSensor(sensor.temperatura, sensor.ativo, sensor.falha)};`">
@@ -158,16 +158,16 @@ export default {
       totalPendulos: 0,
       carregandoDados: true,
       erroAPI: null,
-      
+
       // Card de informações do cabo
       caboSelecionado: null,
       mostrarCardCabo: false,
-      
+
       // Arrastar card
       arrastando: false,
       offsetX: 0,
       offsetY: 0,
-      
+
       // Arrastar card de configurações
       arrastandoConfig: false,
       offsetXConfig: 0,
@@ -240,7 +240,7 @@ export default {
         this.dados = response.data;
         // Validar estrutura essencial
         this.validarEstruturaDados(this.dados);
-        
+
         // Inicializar análise de arcos se disponível
         if (this.dados.arcos) {
           this.analiseArcos = this.analisarEstruturaArcos(this.dados);
@@ -300,9 +300,9 @@ export default {
       Object.keys(dados.arcos).forEach(numeroArco => {
         const dadosArco = dados.arcos[numeroArco];
         const arcoNum = parseInt(numeroArco);
-        
+
         estrutura.totalArcos = Math.max(estrutura.totalArcos, arcoNum);
-        
+
         const infoArco = {
           numero: arcoNum,
           totalPendulos: 0,
@@ -314,7 +314,7 @@ export default {
         Object.keys(dadosArco).forEach(numeroPendulo => {
           const dadosPendulo = dadosArco[numeroPendulo];
           const penduloNum = parseInt(numeroPendulo);
-          
+
           const infoPendulo = {
             numero: penduloNum,
             totalSensores: Object.keys(dadosPendulo).length
@@ -327,7 +327,7 @@ export default {
 
         // Ordenar pêndulos por número
         infoArco.pendulos.sort((a, b) => a.numero - b.numero);
-        
+
         estrutura.arcos[arcoNum] = infoArco;
         estrutura.estatisticas.totalPendulos += infoArco.totalPendulos;
         estrutura.estatisticas.totalSensores += infoArco.totalSensores;
@@ -542,7 +542,7 @@ export default {
 
     buildArmazemStructure() {
       const config = this.getConfiguracao3DAtual();
-      
+
       const corTelhado = 0xE6E6E6;
       const corBase = 0x999999;
       const corParede = 0xD0D0D0;
@@ -606,9 +606,9 @@ export default {
       const tipo_telhado = config.tipo_telhado || 1;
       const curvatura_topo = config.curvatura_topo || 30;
       const ht = (config.ht || 50) / 100 * 12; // Converter para escala 3D
-      
+
       const alturaTelhado = this.alturaArmazem + (ht / 10); // Ajustar altura do telhado
-      
+
       if (tipo_telhado === 1) {
         // Telhado pontudo - paredes triangulares
         this.buildParedesTriangularesPontudas(paredeMaterial, espessuraParede, alturaTelhado, config);
@@ -682,7 +682,7 @@ export default {
       shape.moveTo(-this.profundidadeArmazem / 2, 0);
       shape.lineTo(this.profundidadeArmazem / 2, 0);
       shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
-      
+
       // Curva arredondada no topo
       shape.quadraticCurveTo(0, alturaMaxima, -this.profundidadeArmazem / 2, this.alturaArmazem);
       shape.lineTo(-this.profundidadeArmazem / 2, 0);
@@ -718,7 +718,7 @@ export default {
       shape.moveTo(-this.profundidadeArmazem / 2, 0);
       shape.lineTo(this.profundidadeArmazem / 2, 0);
       shape.lineTo(this.profundidadeArmazem / 2, this.alturaArmazem);
-      
+
       // Arco no topo usando arc()
       shape.arc(-this.profundidadeArmazem / 2, 0, raio, 0, Math.PI, false);
       shape.lineTo(-this.profundidadeArmazem / 2, this.alturaArmazem);
@@ -752,10 +752,10 @@ export default {
       const tipo_telhado = config.tipo_telhado || 1;
       const curvatura_topo = config.curvatura_topo || 30;
       const ht = (config.ht || 50) / 100 * 12;
-      
+
       const alturaTelhado = this.alturaArmazem + (ht / 10);
       const extensaoTelhado = 0.8;
-      
+
       const telhadoMaterial = new THREE.MeshStandardMaterial({
         color: cor,
         metalness: 0.1,
@@ -808,18 +808,18 @@ export default {
       const largura = this.larguraArmazem + extensaoTelhado;
       const profundidade = this.profundidadeArmazem;
       const segments = 32;
-      
+
       const geometry = new THREE.CylinderGeometry(
-        profundidade / 2, 
-        profundidade / 2, 
-        largura, 
-        segments, 
-        1, 
-        true, 
-        0, 
+        profundidade / 2,
+        profundidade / 2,
+        largura,
+        segments,
+        1,
+        true,
+        0,
         Math.PI
       );
-      
+
       const telhado = new THREE.Mesh(geometry, telhadoMaterial);
       telhado.position.set(0, alturaTelhado + (curvatura_topo / 200), 0);
       telhado.rotation.z = Math.PI / 2;
@@ -832,19 +832,19 @@ export default {
       const largura = this.larguraArmazem + extensaoTelhado;
       const raio = curvatura_topo / 100 * this.profundidadeArmazem;
       const segments = 24;
-      
+
       // Criar arco usando TorusGeometry parcial
       const geometry = new THREE.CylinderGeometry(
         raio,
-        raio, 
-        largura, 
-        segments, 
-        1, 
-        true, 
-        0, 
+        raio,
+        largura,
+        segments,
+        1,
+        true,
+        0,
         Math.PI
       );
-      
+
       const telhado = new THREE.Mesh(geometry, telhadoMaterial);
       telhado.position.set(0, alturaTelhado + (raio / 4), 0);
       telhado.rotation.z = Math.PI / 2;
@@ -855,7 +855,7 @@ export default {
 
     buildFundoComConfiguracao(corBase, config) {
       const tipo_fundo = config.tipo_fundo || 0;
-      
+
       if (tipo_fundo === 0) {
         // Fundo reto - não adicionar nada especial além da base
         this.buildFundoReto(corBase, config);
@@ -870,7 +870,7 @@ export default {
 
     buildFundoReto(corBase, config) {
       const altura_fundo_reto = (config.altura_fundo_reto || 10) / 100 * 0.5; // Converter para escala 3D
-      
+
       if (altura_fundo_reto > 0.1) {
         const fundoGeometry = new THREE.BoxGeometry(
           this.larguraArmazem * 0.8,
@@ -882,7 +882,7 @@ export default {
           roughness: 0.9,
           metalness: 0.1
         });
-        
+
         const fundo = new THREE.Mesh(fundoGeometry, fundoMaterial);
         fundo.position.set(0, altura_fundo_reto / 2 + 0.15, 0);
         fundo.castShadow = true;
@@ -896,11 +896,12 @@ export default {
       const altura_funil_v = (config.altura_funil_v || 18) / 100 * 1.2; // Converter para escala 3D
       const largura_abertura_v = (config.largura_abertura_v || 20) / 100 * 1.0;
       const posicao_ponta_v = (config.posicao_ponta_v || 0) * this.larguraArmazem * 0.1;
-      
+
       // Criar geometria de funil em V
       const vertices = [];
       const indices = [];
-      
+      const normals = [];
+
       // Base retangular
       const baseVertices = [
         [-this.larguraArmazem/2, 0.15, -this.profundidadeArmazem/2],
@@ -908,10 +909,10 @@ export default {
         [this.larguraArmazem/2, 0.15, this.profundidadeArmazem/2],
         [-this.larguraArmazem/2, 0.15, this.profundidadeArmazem/2]
       ];
-      
+
       // Ponto do funil (ajustado pela posição)
       const pontaFunil = [posicao_ponta_v, 0.15 - altura_funil_v, 0];
-      
+
       // Abertura do funil
       const abertura = [
         [pontaFunil[0] - largura_abertura_v/2, pontaFunil[1], pontaFunil[2] - largura_abertura_v/4],
@@ -919,11 +920,11 @@ export default {
         [pontaFunil[0] + largura_abertura_v/2, pontaFunil[1], pontaFunil[2] + largura_abertura_v/4],
         [pontaFunil[0] - largura_abertura_v/2, pontaFunil[1], pontaFunil[2] + largura_abertura_v/4]
       ];
-      
+
       // Adicionar vértices
       baseVertices.forEach(v => vertices.push(...v));
       abertura.forEach(v => vertices.push(...v));
-      
+
       // Criar faces conectando base à abertura
       const baseIndices = [
         [0, 1, 5], [0, 5, 4],  // Face lateral 1
@@ -932,21 +933,21 @@ export default {
         [3, 0, 4], [3, 4, 7],  // Face lateral 4
         [4, 5, 6], [4, 6, 7]   // Face do fundo (abertura)
       ];
-      
+
       baseIndices.forEach(face => indices.push(...face));
-      
+
       const geometry = new THREE.BufferGeometry();
       geometry.setIndex(indices);
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-      geometry.computeVertexNormals();
-      
+      geometry.computeVertexNormals(); // Computa normais iniciais
+
       const fundoMaterial = new THREE.MeshStandardMaterial({
         color: corBase,
         roughness: 0.9,
         metalness: 0.1,
         side: THREE.DoubleSide
       });
-      
+
       const fundo = new THREE.Mesh(geometry, fundoMaterial);
       fundo.castShadow = true;
       fundo.receiveShadow = true;
@@ -961,7 +962,7 @@ export default {
       const posicao_v_direito = (config.posicao_v_direito || 1) * this.larguraArmazem * 0.2;
       const largura_plataforma_duplo_v = (config.largura_plataforma_duplo_v || 10) / 100 * 2.0;
       const altura_plataforma_duplo_v = (config.altura_plataforma_duplo_v || 0.3) * altura_duplo_v;
-      
+
       // Criar base plana primeiro
       const baseGeometry = new THREE.BoxGeometry(
         this.larguraArmazem * 0.9,
@@ -973,38 +974,38 @@ export default {
         roughness: 0.9,
         metalness: 0.1
       });
-      
+
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
       base.position.set(0, 0.2, 0);
       base.castShadow = true;
       base.receiveShadow = true;
       base.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(base);
-      
+
       // Plataforma central
       const plataformaGeometry = new THREE.BoxGeometry(
         largura_plataforma_duplo_v,
         altura_plataforma_duplo_v,
         this.profundidadeArmazem * 0.6
       );
-      
+
       const plataforma = new THREE.Mesh(plataformaGeometry, baseMaterial);
       plataforma.position.set(0, 0.25 + altura_plataforma_duplo_v/2, 0);
       plataforma.castShadow = true;
       plataforma.receiveShadow = true;
       plataforma.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(plataforma);
-      
+
       // Funis laterais (simplificados como cones)
       const funilGeometry = new THREE.ConeGeometry(largura_abertura_duplo_v, altura_duplo_v, 8);
-      
+
       // Funil esquerdo
       const funilEsquerdo = new THREE.Mesh(funilGeometry, baseMaterial);
       funilEsquerdo.position.set(posicao_v_esquerdo, 0.25 - altura_duplo_v/2, 0);
       funilEsquerdo.castShadow = true;
       funilEsquerdo.userData = { tipo: 'estrutura_armazem' };
       this.scene.add(funilEsquerdo);
-      
+
       // Funil direito
       const funilDireito = new THREE.Mesh(funilGeometry, baseMaterial);
       funilDireito.position.set(posicao_v_direito, 0.25 - altura_duplo_v/2, 0);
@@ -1131,7 +1132,7 @@ export default {
       const cable = new THREE.Mesh(cableGeometry, cableMaterial);
       cable.position.set(posX, posYCabo, posZ);
       cable.castShadow = true;
-      
+
       // Armazenar dados do cabo para clique
       cable.userData = {
         tipo: 'cabo',
@@ -1150,7 +1151,7 @@ export default {
           };
         })
       };
-      
+
       this.cabos3D.push(cable);
       this.scene.add(cable);
 
@@ -1305,11 +1306,6 @@ export default {
     },
 
     createModularGrainVisualization(niveisPorPendulo) {
-      // Criar superfície única e moldável como no Silo3D.vue
-      this.createGrainSurfaceWithRelief(niveisPorPendulo);
-    },
-
-    createGrainSurfaceWithRelief(niveisPorPendulo) {
       // Criar um único elemento modular com volume baseado nos dados dos pêndulos
       this.createModularGrainVolume(niveisPorPendulo, 0.2); // Altura mínima do chão
     },
@@ -1681,63 +1677,210 @@ export default {
 
     createAerador(position, id, status) {
       const cores = {
-        0: 0xc5c5c5, // desligado
-        1: 0xffeb3b, // startando
-        3: 0x31dd0f, // ligado
-        4: 0xff0000  // erro
+        0: 0x4682B4, // desligado - azul padrão do motor
+        1: 0xffeb3b, // startando - amarelo
+        3: 0x31dd0f, // ligado - verde
+        4: 0xff0000  // erro - vermelho
       };
 
-      // Base do motor
-      const baseGeometry = new THREE.CylinderGeometry(0.25, 0.3, 0.15, 12);
+      // Grupo principal do aerador
+      const aeradorGroup = new THREE.Group();
+      aeradorGroup.position.set(position[0], position[1], position[2]);
+
+      // Base orgânica com curvaturas suaves (em formato de gota achatada)
+      const baseGeometry = new THREE.SphereGeometry(0.35, 32, 16);
+      baseGeometry.scale(1, 0.3, 0.8); // Achatar para criar forma orgânica
       const baseMaterial = new THREE.MeshStandardMaterial({
-        color: cores[status] || cores[0],
+        color: 0x666666,
+        metalness: 0.4,
+        roughness: 0.6
+      });
+      const base = new THREE.Mesh(baseGeometry, baseMaterial);
+      base.position.set(0, 0.05, 0);
+      base.castShadow = true;
+      aeradorGroup.add(base);
+
+      // Pernas de apoio orgânicas (formato de gota invertida)
+      for (let i = 0; i < 3; i++) {
+        const angle = (i * 120) * Math.PI / 180;
+        const x = Math.cos(angle) * 0.25;
+        const z = Math.sin(angle) * 0.25;
+
+        // Criar perna como uma esfera alongada
+        const pernaGeometry = new THREE.SphereGeometry(0.04, 16, 16);
+        pernaGeometry.scale(1, 4, 1); // Alongar verticalmente
+        const pernaMaterial = new THREE.MeshStandardMaterial({
+          color: 0x555555,
+          metalness: 0.5,
+          roughness: 0.5
+        });
+        const perna = new THREE.Mesh(pernaGeometry, pernaMaterial);
+        perna.position.set(x, -0.08, z);
+        perna.castShadow = true;
+        aeradorGroup.add(perna);
+
+        // Pé orgânico (formato de bolha)
+        const peGeometry = new THREE.SphereGeometry(0.06, 16, 12);
+        peGeometry.scale(1, 0.5, 1); // Achatar para criar forma de bolha
+        const pe = new THREE.Mesh(peGeometry, pernaMaterial);
+        pe.position.set(x, -0.15, z);
+        pe.castShadow = true;
+        aeradorGroup.add(pe);
+      }
+
+      // Motor com formato orgânico (cápsula suave)
+      const motorPoints = [];
+      for (let i = 0; i <= 20; i++) {
+        const t = i / 20;
+        const radius = 0.08 + 0.06 * Math.sin(t * Math.PI); // Curvatura suave
+        motorPoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.4));
+      }
+
+      const motorGeometry = new THREE.LatheGeometry(motorPoints, 32);
+      const motorMaterial = new THREE.MeshStandardMaterial({
+        color: cores[status],
         metalness: 0.3,
         roughness: 0.7
       });
-      const baseMotor = new THREE.Mesh(baseGeometry, baseMaterial);
-      baseMotor.position.set(position[0], position[1], position[2]);
-      baseMotor.castShadow = true;
-      this.scene.add(baseMotor);
+      const motor = new THREE.Mesh(motorGeometry, motorMaterial);
+      motor.position.set(0, 0.22, 0);
+      motor.rotation.z = Math.PI / 2; // Posicionar lateralmente
+      motor.castShadow = true;
+      aeradorGroup.add(motor);
 
-      // Grupo para rotação das hélices
-      const heliceGroup = new THREE.Group();
-      heliceGroup.position.set(position[0], position[1] + 0.1, position[2]);
+      // Cobertura frontal orgânica (formato de ovo)
+      const cobertura1Geometry = new THREE.SphereGeometry(0.09, 24, 16);
+      cobertura1Geometry.scale(1.2, 1, 1); // Alongar para formato de ovo
+      const cobertura1 = new THREE.Mesh(cobertura1Geometry, motorMaterial);
+      cobertura1.position.set(0.22, 0.22, 0);
+      cobertura1.castShadow = true;
+      aeradorGroup.add(cobertura1);
 
-      // Hélices (3 pás)
-      for (let i = 0; i < 3; i++) {
-        const angle = (i * 120 * Math.PI) / 180;
-        const paGeometry = new THREE.BoxGeometry(0.2, 0.02, 0.04);
-        const paMaterial = new THREE.MeshStandardMaterial({
-          color: 0xf0f0f0,
-          metalness: 0.1,
-          roughness: 0.8
+      // Cobertura traseira orgânica
+      const cobertura2 = new THREE.Mesh(cobertura1Geometry, motorMaterial);
+      cobertura2.position.set(-0.22, 0.22, 0);
+      cobertura2.castShadow = true;
+      aeradorGroup.add(cobertura2);
+
+      // Aletas de ventilação orgânicas (formato de ondas)
+      for (let j = 0; j < 8; j++) {
+        const offsetX = -0.15 + (j * 0.04);
+
+        // Criar aleta curvada usando geometria de torus parcial
+        const aletaGeometry = new THREE.TorusGeometry(0.08, 0.008, 4, 12, Math.PI / 3);
+        const aletaMaterial = new THREE.MeshStandardMaterial({
+          color: 0x444444,
+          metalness: 0.6,
+          roughness: 0.4
         });
-        const pa = new THREE.Mesh(paGeometry, paMaterial);
-        pa.position.set(
-          Math.cos(angle) * 0.12,
-          0,
-          Math.sin(angle) * 0.12
-        );
-        pa.rotation.y = angle;
-        pa.castShadow = true;
-        heliceGroup.add(pa);
+        const aleta = new THREE.Mesh(aletaGeometry, aletaMaterial);
+        aleta.position.set(offsetX, 0.32, 0);
+        aleta.rotation.x = Math.PI / 2;
+        aleta.rotation.z = j * 0.2; // Rotação variada para efeito orgânico
+        aeradorGroup.add(aleta);
       }
 
-      this.scene.add(heliceGroup);
+      // Eixo de transmissão com variação orgânica
+      const eixoPoints = [];
+      for (let i = 0; i <= 15; i++) {
+        const t = i / 15;
+        const radius = 0.012 + 0.004 * Math.sin(t * Math.PI * 3); // Variação suave
+        eixoPoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.5));
+      }
 
-      // Armazenar para rotação se ligado
+      const eixoGeometry = new THREE.LatheGeometry(eixoPoints, 16);
+      const eixoMaterial = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        metalness: 0.8,
+        roughness: 0.2
+      });
+      const eixo = new THREE.Mesh(eixoGeometry, eixoMaterial);
+      eixo.position.set(0.28, 0.22, 0);
+      eixo.rotation.z = Math.PI / 2;
+      eixo.castShadow = true;
+      aeradorGroup.add(eixo);
+
+      // Hélice com pás orgânicas curvadas
+      const heliceGroup = new THREE.Group();
+      heliceGroup.position.set(0.5, 0.22, 0);
+
+      // Hub central orgânico (formato de pêra)
+      const hubGeometry = new THREE.SphereGeometry(0.04, 20, 16);
+      hubGeometry.scale(1.5, 1, 1); // Alongar para formato orgânico
+      const hubMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        metalness: 0.7,
+        roughness: 0.3
+      });
+      const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+      hub.rotation.z = Math.PI / 2;
+      heliceGroup.add(hub);
+
+      // Pás da hélice orgânicas (formato de folha)
+      for (let j = 0; j < 4; j++) {
+        const angle = (j * 90) * Math.PI / 180;
+
+        // Criar pá usando curva spline para formato de folha
+        const paShape = new THREE.Shape();
+        paShape.moveTo(0, 0);
+        paShape.quadraticCurveTo(0.1, 0.05, 0.18, 0.02);
+        paShape.quadraticCurveTo(0.2, 0, 0.18, -0.02);
+        paShape.quadraticCurveTo(0.1, -0.05, 0, 0);
+
+        const paGeometry = new THREE.ExtrudeGeometry(paShape, {
+          depth: 0.004,
+          bevelEnabled: true,
+          bevelThickness: 0.002,
+          bevelSize: 0.002,
+          bevelSegments: 4
+        });
+
+        const paMaterial = new THREE.MeshStandardMaterial({
+          color: 0xF0F0F0,
+          metalness: 0.4,
+          roughness: 0.6
+        });
+
+        const pa = new THREE.Mesh(paGeometry, paMaterial);
+        pa.position.set(0, 0, 0);
+        pa.rotation.z = angle;
+        pa.rotation.y = Math.PI / 8; // Ângulo de ataque suave
+
+        // Curvar a pá para dar efeito orgânico
+        const curvaExtra = new THREE.Group();
+        curvaExtra.add(pa);
+        curvaExtra.rotation.x = Math.sin(angle) * 0.1;
+
+        heliceGroup.add(curvaExtra);
+      }
+
+      aeradorGroup.add(heliceGroup);
+
+      // Armazenar para animação se ligado
       if (status === 3) {
         this.aeradorHélices.push(heliceGroup);
       }
 
-      // Label
-      if (this.mostrarLabels) {
-        this.createTextSprite(`AE-${id}`, {
-          x: position[0],
-          y: position[1] + 0.3,
-          z: position[2]
-        });
+      // Suporte de conexão orgânico (formato de braço curvado)
+      const suportePoints = [];
+      for (let i = 0; i <= 12; i++) {
+        const t = i / 12;
+        const radius = 0.03 + 0.02 * Math.sin(t * Math.PI); // Variação orgânica
+        suportePoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.25));
       }
+
+      const suporteGeometry = new THREE.LatheGeometry(suportePoints, 16);
+      const suporteMaterial = new THREE.MeshStandardMaterial({
+        color: 0x666666,
+        metalness: 0.4,
+        roughness: 0.6
+      });
+      const suporte = new THREE.Mesh(suporteGeometry, suporteMaterial);
+      suporte.position.set(0, 0.125, 0);
+      suporte.castShadow = true;
+      aeradorGroup.add(suporte);
+
+      this.scene.add(aeradorGroup);
     },
 
     buildGroundGrid() {
@@ -1921,13 +2064,13 @@ export default {
           try {
             const configData = JSON.parse(configSalva);
             this.configuracaoModelador = configData;
-            
+
             // Aplicar dimensões baseadas na configuração
             this.aplicarDimensoes3D(configData);
-            
+
             // Reconstruir armazém com nova configuração
             this.reconstruirArmazem3D();
-            
+
             console.log('Configuração 3D aplicada:', configData.nome);
           } catch (error) {
             console.error('Erro ao aplicar configuração 3D:', error);
@@ -1939,7 +2082,7 @@ export default {
     aplicarDimensoes3D(configData) {
       // Extrair configuração baseada no modelo ou usar padrão
       let config;
-      
+
       if (configData.tipo === 'configuracao_armazem_hierarquica') {
         config = configData.configuracaoPadrao || {};
       } else if (configData.configuracaoPadrao) {
@@ -1950,7 +2093,7 @@ export default {
 
       // Converter dimensões 2D para 3D (escala 1:100)
       this.larguraArmazem = (config.lb || 350) / 100 * 7; // 350px = ~25m
-      this.profundidadeArmazem = (config.pb || 185) / 100 * 6.5; // 185px = ~12m  
+      this.profundidadeArmazem = (config.pb || 185) / 100 * 6.5; // 185px = ~12m
       this.alturaArmazem = (config.ht || 50) / 100 * 12; // 50px = ~6m
 
       console.log('Dimensões 3D aplicadas:', {
@@ -1968,12 +2111,12 @@ export default {
 
     getModeloAtualInfo() {
       if (!this.configuracaoModelador) return 'Padrão';
-      
+
       if (this.configuracaoModelador.tipo === 'configuracao_armazem_hierarquica') {
         const modeloParaArco = this.determinarModeloParaArco3D(this.arcoAtual);
         return modeloParaArco ? modeloParaArco.nome : 'Modelo Padrão';
       }
-      
+
       return this.configuracaoModelador.nome || 'Configuração Aplicada';
     },
 
@@ -1993,38 +2136,38 @@ export default {
       if (quantidadeModelos === 2) {
         const isImpar = numeroArco % 2 === 1;
         const posicaoProcurada = isImpar ? 'impar' : 'par';
-        return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+        return Object.values(configModelos.modelosDefinidos || {}).find(modelo =>
           modelo && modelo.posicao === posicaoProcurada
         ) || null;
       }
 
       if (quantidadeModelos === 3) {
         if (numeroArco === 1 || numeroArco === totalArcos) {
-          return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+          return Object.values(configModelos.modelosDefinidos || {}).find(modelo =>
             modelo && modelo.posicao === 'frente_fundo'
           ) || null;
         }
         const isParIntermediario = numeroArco % 2 === 0;
         const posicaoProcurada = isParIntermediario ? 'par' : 'impar';
-        return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+        return Object.values(configModelos.modelosDefinidos || {}).find(modelo =>
           modelo && modelo.posicao === posicaoProcurada
         ) || null;
       }
 
       if (quantidadeModelos === 4) {
         if (numeroArco === 1) {
-          return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+          return Object.values(configModelos.modelosDefinidos || {}).find(modelo =>
             modelo && modelo.posicao === 'frente'
           ) || null;
         }
         if (numeroArco === totalArcos) {
-          return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+          return Object.values(configModelos.modelosDefinidos || {}).find(modelo =>
             modelo && modelo.posicao === 'fundo'
           ) || null;
         }
         const isParIntermediario = numeroArco % 2 === 0;
         const posicaoProcurada = isParIntermediario ? 'par' : 'impar';
-        return Object.values(configModelos.modelosDefinidos || {}).find(modelo => 
+        return Object.values(configModelos.modelosDefinidos || {}).find(modelo =>
           modelo && modelo.posicao === posicaoProcurada
         ) || null;
       }
@@ -2093,10 +2236,10 @@ export default {
       this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
       this.raycaster.setFromCamera(this.mouse, this.camera);
-      
+
       // Verificar interseção apenas com cabos
       const intersects = this.raycaster.intersectObjects(this.cabos3D);
-      
+
       if (intersects.length > 0) {
         const cabo = intersects[0].object;
         if (cabo.userData.tipo === 'cabo') {
@@ -2118,7 +2261,7 @@ export default {
     getCorSensor(temperatura, ativo, falha) {
       if (falha) return '#ff0000';
       if (!ativo) return '#cccccc';
-      
+
       // Usar mesma lógica de cores dos outros componentes
       const temp = parseFloat(temperatura);
       if (temp < 12) return '#0384fc';
@@ -2136,7 +2279,7 @@ export default {
     calcularMediaTemperatura(sensores) {
       const sensoresAtivos = sensores.filter(s => s.ativo && !s.falha && s.temperatura !== -1000);
       if (sensoresAtivos.length === 0) return '--';
-      
+
       const soma = sensoresAtivos.reduce((acc, sensor) => acc + sensor.temperatura, 0);
       return (soma / sensoresAtivos.length).toFixed(1);
     },
@@ -2146,7 +2289,7 @@ export default {
       const rect = this.$refs.cardCabo.getBoundingClientRect();
       this.offsetX = event.clientX - rect.left;
       this.offsetY = event.clientY - rect.top;
-      
+
       document.addEventListener('mousemove', this.arrastarCard);
       document.addEventListener('mouseup', this.pararArrastoCard);
       event.preventDefault();
@@ -2154,20 +2297,20 @@ export default {
 
     arrastarCard(event) {
       if (!this.arrastando) return;
-      
+
       const card = this.$refs.cardCabo;
       if (!card) return;
-      
+
       const x = event.clientX - this.offsetX;
       const y = event.clientY - this.offsetY;
-      
+
       // Limitar às bordas da tela
       const maxX = window.innerWidth - card.offsetWidth;
       const maxY = window.innerHeight - card.offsetHeight;
-      
+
       const limitedX = Math.max(0, Math.min(x, maxX));
       const limitedY = Math.max(0, Math.min(y, maxY));
-      
+
       card.style.left = `${limitedX}px`;
       card.style.top = `${limitedY}px`;
       card.style.right = 'auto';
@@ -2184,7 +2327,7 @@ export default {
       const rect = this.$refs.cardConfig.getBoundingClientRect();
       this.offsetXConfig = event.clientX - rect.left;
       this.offsetYConfig = event.clientY - rect.top;
-      
+
       document.addEventListener('mousemove', this.arrastarCardConfig);
       document.addEventListener('mouseup', this.pararArrastoCardConfig);
       event.preventDefault();
@@ -2192,20 +2335,20 @@ export default {
 
     arrastarCardConfig(event) {
       if (!this.arrastandoConfig) return;
-      
+
       const card = this.$refs.cardConfig;
       if (!card) return;
-      
+
       const x = event.clientX - this.offsetXConfig;
       const y = event.clientY - this.offsetYConfig;
-      
+
       // Limitar às bordas da tela
       const maxX = window.innerWidth - card.offsetWidth;
       const maxY = window.innerHeight - card.offsetHeight;
-      
+
       const limitedX = Math.max(0, Math.min(x, maxX));
       const limitedY = Math.max(0, Math.min(y, maxY));
-      
+
       card.style.left = `${limitedX}px`;
       card.style.top = `${limitedY}px`;
       card.style.right = 'auto';
