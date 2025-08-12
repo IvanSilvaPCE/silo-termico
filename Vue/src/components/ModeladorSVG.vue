@@ -67,8 +67,8 @@
             <div class="mb-3">
               <label class="form-label">Escala Sensores: {{ configSilo.escala_sensores }}px</label>
               <div class="d-flex align-items-center">
-                <input v-model.number="configSilo.escala_sensores" type="range" min="10" max="25"
-                  class="form-range me-2" @input="onSiloChange" />
+                <input v-model.number="configSilo.escala_sensores" type="range" min="10" max="25" class="form-range me-2"
+                  @input="onSiloChange" />
                 <button type="button" class="btn btn-sm btn-outline-secondary"
                   @click="resetSiloField('escala_sensores', 16)" title="Resetar para padrão (16)">
                   ×
@@ -361,8 +361,8 @@
                       <option :value="2">Arredondado</option>
                       <option :value="3">Arco</option>
                     </select>
-                    <button type="button" class="btn btn-outline-secondary"
-                      @click="resetArmazemField('tipo_telhado', 1)" title="Reset">
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('tipo_telhado', 1)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -371,14 +371,15 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Curvatura do Topo:</label>
                   <div class="input-group input-group-sm">
-                    <input v-model.number="configArmazem.curvatura_topo" type="range" min="1" max="100"
-                      class="form-range" @input="onArmazemChange" />
+                    <input v-model.number="configArmazem.curvatura_topo" type="range" min="10" max="80" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.curvatura_topo }}</span>
                     <button type="button" class="btn btn-outline-secondary"
-                      @click="resetArmazemField('curvatura_topo', 50)" title="Reset">
+                      @click="resetArmazemField('curvatura_topo', 30)" title="Reset">
                       ×
                     </button>
                   </div>
+                  <small class="text-muted">Controla a altura/curvatura do topo do telhado</small>
                 </div>
 
                 <!-- Personalização das Pontas -->
@@ -393,11 +394,11 @@
                 <div v-if="configArmazem.pontas_redondas" class="mb-2">
                   <label class="small fw-bold">Raio das Pontas:</label>
                   <div class="input-group input-group-sm">
-                    <input v-model.number="configArmazem.raio_pontas" type="range" min="5" max="50"
-                      class="form-range" @input="onArmazemChange" />
+                    <input v-model.number="configArmazem.raio_pontas" type="range" min="5" max="50" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.raio_pontas }}</span>
-                    <button type="button" class="btn btn-outline-secondary"
-                      @click="resetArmazemField('raio_pontas', 15)" title="Reset">
+                    <button type="button" class="btn btn-outline-secondary" @click="resetArmazemField('raio_pontas', 15)"
+                      title="Reset">
                       ×
                     </button>
                   </div>
@@ -409,8 +410,7 @@
                   <div class="input-group input-group-sm">
                     <select class="form-select" v-model="configArmazem.estilo_laterais" @change="onArmazemChange">
                       <option value="reta">Laterais Retas</option>
-                      <option value="parede_para_fora">Paredes Para Fora</option>
-                      <option value="parede_para_dentro">Paredes Para Dentro</option>
+                      <option value="curvatura_lateral">Curvatura Lateral</option>
                     </select>
                     <button type="button" class="btn btn-outline-secondary"
                       @click="resetArmazemField('estilo_laterais', 'reta')" title="Reset">
@@ -422,14 +422,15 @@
                 <div v-if="configArmazem.estilo_laterais !== 'reta'" class="mb-2">
                   <label class="small fw-bold">Intensidade da Curvatura:</label>
                   <div class="input-group input-group-sm">
-                    <input v-model.number="configArmazem.curvatura_laterais" type="range" min="5" max="100"
+                    <input v-model.number="configArmazem.curvatura_laterais" type="range" min="-150" max="150"
                       class="form-range" @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.curvatura_laterais }}</span>
                     <button type="button" class="btn btn-outline-secondary"
-                      @click="resetArmazemField('curvatura_laterais', 30)" title="Reset">
+                      @click="resetArmazemField('curvatura_laterais', 0)" title="Reset">
                       ×
                     </button>
                   </div>
+                  <small class="text-muted">0 = reto | Negativo = barriga para dentro | Positivo = barriga para fora</small>
                 </div>
               </div>
             </div>
@@ -515,8 +516,8 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Inclinação das Paredes:</label>
                       <div class="input-group input-group-sm">
-                        <input v-model.number="configArmazem.inclinacao_funil_v" type="range" min="0" max="10"
-                          step="0.1" class="form-range" @input="onArmazemChange" />
+                        <input v-model.number="configArmazem.inclinacao_funil_v" type="range" min="0" max="10" step="0.1"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.inclinacao_funil_v }}</span>
                         <button type="button" class="btn btn-outline-secondary"
                           @click="resetArmazemField('inclinacao_funil_v', 1)" title="Reset">
@@ -558,8 +559,8 @@
                     <div class="col-6 mb-2">
                       <label class="form-label">Posição V Direito:</label>
                       <div class="input-group input-group-sm">
-                        <input v-model.number="configArmazem.posicao_v_direito" type="range" min="-0.5" max="2"
-                          step="0.1" class="form-range" @input="onArmazemChange" />
+                        <input v-model.number="configArmazem.posicao_v_direito" type="range" min="-0.5" max="2" step="0.1"
+                          class="form-range" @input="onArmazemChange" />
                         <span class="input-group-text">{{ configArmazem.posicao_v_direito }}</span>
                         <button type="button" class="btn btn-outline-secondary"
                           @click="resetArmazemField('posicao_v_direito', 1)" title="Reset">
@@ -662,8 +663,8 @@
                 <div class="mb-2">
                   <label class="small fw-bold">Distância Y Sensores:</label>
                   <div class="input-group input-group-sm">
-                    <input v-model.number="configArmazem.dist_y_sensores" type="range" min="8" max="20"
-                      class="form-range" @input="onArmazemChange" />
+                    <input v-model.number="configArmazem.dist_y_sensores" type="range" min="8" max="20" class="form-range"
+                      @input="onArmazemChange" />
                     <span class="input-group-text">{{ configArmazem.dist_y_sensores }}</span>
                     <button type="button" class="btn btn-outline-secondary"
                       @click="resetArmazemField('dist_y_sensores', 12)" title="Reset">
@@ -813,8 +814,7 @@
             height: 'calc(100vh - 60px)'
           }">
             <div class="card-header bg-primary text-white">
-              <div
-                class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+              <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
                 <h6 class="mb-1 mb-md-0">
                   Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO:
                   ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
@@ -826,20 +826,20 @@
                 <small v-if="tipoAtivo === 'armazem'" class="text-white-50">
                   {{ modeloArcoAtual ?
                     `${quantidadeModelosArcos === 1 ? 'Modelo Único' : modelosArcos[modeloArcoAtual]?.posicao || ''} |
-                  ${modeloArcoAtual}/${quantidadeModelosArcos}` :
+                                    ${modeloArcoAtual}/${quantidadeModelosArcos}` :
                     `${determinarModeloParaArco(arcoAtual)?.nome || 'Padrão'} | ${quantidadeModelosArcos}
-                  modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
+                                    modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
                   }}
                 </small>
               </div>
             </div>
 
             <div class="card-body text-center d-flex align-items-center justify-content-center p-1 p-md-2" :style="{
-              height: isMobile ? 'auto' : 'calc(100vh - 250px)',
-              overflow: isMobile ? 'visible' : 'auto',
-              minHeight: isMobile ? '250px' : '300px',
-              maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
-            }">
+                  height: isMobile ? 'auto' : 'calc(100vh - 250px)',
+                  overflow: isMobile ? 'visible' : 'auto',
+                  minHeight: isMobile ? '250px' : '300px',
+                  maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
+                }">
               <div class="svg-container-responsive w-100">
                 <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
                   width: '100%',
@@ -885,8 +885,8 @@
                 <!-- Linha 1: Navegação compacta -->
                 <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1">
                   <button type="button" class="btn btn-outline-primary btn-sm"
-                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1"
-                    title="Arco anterior" style="min-width: 35px;">
+                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1" title="Arco anterior"
+                    style="min-width: 35px;">
                     ←
                   </button>
                   <select class="form-select form-select-sm text-center mx-1" style="max-width: 100px; min-width: 80px;"
@@ -967,8 +967,7 @@
 
                   <!-- Badges de Contadores -->
                   <div class="col-md-4 col-lg-6 text-center text-md-end">
-                    <div
-                      class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
+                    <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
                       <span class="badge bg-info text-white">
                         {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
                       </span>
@@ -1029,7 +1028,7 @@ export default {
         pontas_redondas: false,
         raio_pontas: 15,
         estilo_laterais: 'reta',
-        curvatura_laterais: 30,
+        curvatura_laterais: 0,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1209,7 +1208,7 @@ export default {
 
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-07%2008:03:36', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzUzNzA3MjMwLCJleHAiOjE3NTQ5MTY4MzAsIm5iZiI6MTc1MzcwNzIzMCwianRpIjoieG9oam1Vd1k4bDIzWW84NSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.EgTIJSQ7fOU2qJKb7qLrDEDR03bDA78rywayrKWI_iM',
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpby9wZXJmaXMiOlskeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -1745,15 +1744,55 @@ export default {
       for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
         const modelo = this.modelosArcos[i]
         if (modelo) {
+          const configCompleta = modelo.config || this.configArmazem
           modelosPreparados[i] = {
             numero: i,
             nome: modelo.nome || `Modelo ${i}`,
             posicao: modelo.posicao || this.determinarPosicaoDoModelo(i, this.quantidadeModelosArcos),
             configuracao: {
-              ...modelo.config || this.configArmazem
+              // Garantir que TODAS as propriedades sejam salvas, mesmo as não alteradas
+              pb: configCompleta.pb || 185,
+              lb: configCompleta.lb || 350,
+              hb: configCompleta.hb || 30,
+              hf: configCompleta.hf || 5,
+              lf: configCompleta.lf || 250,
+              le: configCompleta.le || 15,
+              ht: configCompleta.ht || 50,
+              tipo_telhado: configCompleta.tipo_telhado || 1,
+              curvatura_topo: configCompleta.curvatura_topo || 30,
+              pontas_redondas: configCompleta.pontas_redondas || false,
+              raio_pontas: configCompleta.raio_pontas || 15,
+              estilo_laterais: configCompleta.estilo_laterais || 'reta',
+              curvatura_laterais: configCompleta.curvatura_laterais || 0,
+              tipo_fundo: configCompleta.tipo_fundo || 0,
+              altura_fundo_reto: configCompleta.altura_fundo_reto || 10,
+              altura_funil_v: configCompleta.altura_funil_v || 18,
+              posicao_ponta_v: configCompleta.posicao_ponta_v || 0,
+              inclinacao_funil_v: configCompleta.inclinacao_funil_v || 1,
+              largura_abertura_v: configCompleta.largura_abertura_v || 20,
+              altura_duplo_v: configCompleta.altura_duplo_v || 22,
+              posicao_v_esquerdo: configCompleta.posicao_v_esquerdo || -1,
+              posicao_v_direito: configCompleta.posicao_v_direito || 1,
+              largura_abertura_duplo_v: configCompleta.largura_abertura_duplo_v || 2,
+              altura_plataforma_duplo_v: configCompleta.altura_plataforma_duplo_v || 0.3,
+              largura_plataforma_duplo_v: configCompleta.largura_plataforma_duplo_v || 10,
+              deslocamento_horizontal_fundo: configCompleta.deslocamento_horizontal_fundo || 0,
+              deslocamento_vertical_fundo: configCompleta.deslocamento_vertical_fundo || -1,
+              escala_sensores: configCompleta.escala_sensores || 16,
+              dist_y_sensores: configCompleta.dist_y_sensores || 12,
+              dist_x_sensores: configCompleta.dist_x_sensores || 0,
+              posicao_horizontal: configCompleta.posicao_horizontal || 0,
+              posicao_vertical: configCompleta.posicao_vertical || 0,
+              afastamento_vertical_pendulo: configCompleta.afastamento_vertical_pendulo || 0
             },
             status: this.modelosSalvos[i] ? 'salvo' : 'pendente',
-            timestampUltimaEdicao: new Date().toISOString()
+            timestampUltimaEdicao: new Date().toISOString(),
+            // Incluir informações adicionais do modelo
+            metadados: {
+              criadoEm: modelo.criadoEm || new Date().toISOString(),
+              ultimaModificacao: new Date().toISOString(),
+              versaoModelo: '3.0'
+            }
           }
         }
       }
@@ -1878,7 +1917,7 @@ export default {
         pontas_redondas: false,
         raio_pontas: 15,
         estilo_laterais: 'reta',
-        curvatura_laterais: 30,
+        curvatura_laterais: 0,
         tipo_fundo: 0,
         altura_fundo_reto: 10,
         altura_funil_v: 18,
@@ -1922,11 +1961,29 @@ export default {
 
       if (typeof localStorage !== 'undefined') {
         if (this.tipoAtivo === 'silo') {
-          localStorage.setItem('configSilo', JSON.stringify(this.configSilo))
-          localStorage.setItem(`configSilo_${this.nomeConfiguracao}`, JSON.stringify(this.configSilo))
+          // Para silo, incluir todas as configurações e dimensões SVG
+          const configCompletaSilo = {
+            // Configurações básicas do silo
+            ...this.configSilo,
+
+            // Dimensões calculadas do SVG
+            dimensoesSVG: {
+              largura: this.larguraSVG,
+              altura: this.alturaSVG
+            },
+
+            // Metadados
+            nome: this.nomeConfiguracao,
+            timestamp: new Date().toISOString(),
+            versao: '3.0',
+            tipo: 'configuracao_silo_completa'
+          }
+
+          localStorage.setItem('configSilo', JSON.stringify(configCompletaSilo))
+          localStorage.setItem(`configSilo_${this.nomeConfiguracao}`, JSON.stringify(configCompletaSilo))
           this.mostrarToast(`Configuração Silo "${this.nomeConfiguracao}" salva com sucesso!`, 'success')
         } else {
-          // Para armazém, criar hierarquia completa
+          // Para armazém, criar hierarquia completa com TODAS as variáveis
           const hierarquiaCompleta = {
             // Metadados da configuração
             nome: this.nomeConfiguracao,
@@ -1941,21 +1998,85 @@ export default {
               estatisticas: this.analiseArcos?.estatisticas || { totalPendulos: 0, totalSensores: 0 }
             },
 
-            // Configuração dos modelos
+            // Configuração dos modelos com TODAS as variáveis preservadas
             configModelos: {
               quantidadeModelos: this.quantidadeModelosArcos,
+              modeloAtualSelecionado: this.modeloArcoAtual,
               logicaDistribuicao: this.obterLogicaDistribuicao(),
-              modelosDefinidos: this.prepararModelosParaSalvar()
+              modelosDefinidos: this.prepararModelosParaSalvar(),
+              modelosSalvos: { ...this.modelosSalvos }
             },
 
             // Layouts automáticos se disponível
             layoutsAutomaticos: this.layoutsAutomaticos || {},
 
-            // Configuração padrão atual
-            configuracaoPadrao: { ...this.configArmazem },
+            // Configuração padrão atual COM TODAS as propriedades
+            configuracaoPadrao: {
+              // Dimensões Básicas
+              pb: this.configArmazem.pb,
+              lb: this.configArmazem.lb,
+              hb: this.configArmazem.hb,
+              hf: this.configArmazem.hf,
+              lf: this.configArmazem.lf,
+              le: this.configArmazem.le,
+              ht: this.configArmazem.ht,
+
+              // Configuração do Telhado
+              tipo_telhado: this.configArmazem.tipo_telhado,
+              curvatura_topo: this.configArmazem.curvatura_topo,
+              pontas_redondas: this.configArmazem.pontas_redondas,
+              raio_pontas: this.configArmazem.raio_pontas,
+              estilo_laterais: this.configArmazem.estilo_laterais,
+              curvatura_laterais: this.configArmazem.curvatura_laterais,
+
+              // Configuração do Fundo
+              tipo_fundo: this.configArmazem.tipo_fundo,
+              altura_fundo_reto: this.configArmazem.altura_fundo_reto,
+              altura_funil_v: this.configArmazem.altura_funil_v,
+              posicao_ponta_v: this.configArmazem.posicao_ponta_v,
+              inclinacao_funil_v: this.configArmazem.inclinacao_funil_v,
+              largura_abertura_v: this.configArmazem.largura_abertura_v,
+              altura_duplo_v: this.configArmazem.altura_duplo_v,
+              posicao_v_esquerdo: this.configArmazem.posicao_v_esquerdo,
+              posicao_v_direito: this.configArmazem.posicao_v_direito,
+              largura_abertura_duplo_v: this.configArmazem.largura_abertura_duplo_v,
+              altura_plataforma_duplo_v: this.configArmazem.altura_plataforma_duplo_v,
+              largura_plataforma_duplo_v: this.configArmazem.largura_plataforma_duplo_v,
+              deslocamento_horizontal_fundo: this.configArmazem.deslocamento_horizontal_fundo,
+              deslocamento_vertical_fundo: this.configArmazem.deslocamento_vertical_fundo,
+
+              // Configuração dos Sensores
+              escala_sensores: this.configArmazem.escala_sensores,
+              dist_y_sensores: this.configArmazem.dist_y_sensores,
+              dist_x_sensores: this.configArmazem.dist_x_sensores,
+              posicao_horizontal: this.configArmazem.posicao_horizontal,
+              posicao_vertical: this.configArmazem.posicao_vertical,
+              afastamento_vertical_pendulo: this.configArmazem.afastamento_vertical_pendulo
+            },
+
+            // Dimensões calculadas do SVG
+            dimensoesSVG: {
+              largura: this.larguraSVG,
+              altura: this.alturaSVG
+            },
+
+            // Estado atual da aplicação
+            estadoAtual: {
+              arcoAtual: this.arcoAtual,
+              tipoAtivo: this.tipoAtivo,
+              dadosVindosDoPreview: this.dadosVindosDoPreview,
+              configuracaoPreviewSelecionada: this.configuracaoPreviewSelecionada
+            },
 
             // Informações de distribuição de modelos por arco
-            mapeamentoArcos: this.gerarMapeamentoArcos()
+            mapeamentoArcos: this.gerarMapeamentoArcos(),
+
+            // Dados originais se disponíveis
+            dadosOriginais: {
+              dadosPortal: this.dadosPortal,
+              analiseArcos: this.analiseArcos,
+              dados: this.dados
+            }
           }
 
           localStorage.setItem('configArmazem', JSON.stringify(hierarquiaCompleta))
@@ -2025,7 +2146,9 @@ export default {
         const modeloConvertido = {
           nome: modeloHierarquico.nome,
           posicao: modeloHierarquico.posicao,
-          config: modeloHierarquico.configuracao
+          config: { ...modeloHierarquico.configuracao }, // Deep copy para preservar todas as propriedades
+          criadoEm: modeloHierarquico.metadados?.criadoEm,
+          ultimaModificacao: modeloHierarquico.metadados?.ultimaModificacao
         }
         modelosConvertidos[key] = modeloConvertido
 
@@ -2036,20 +2159,77 @@ export default {
 
       this.modelosArcos = modelosConvertidos
       this.modelosSalvos = modelosSalvosConvertidos
-      this.modeloArcoAtual = null
+
+      // Restaurar modelo selecionado se disponível
+      this.modeloArcoAtual = configModelos.modeloAtualSelecionado || null
 
       // Restaurar layouts se disponível
       if (dados.layoutsAutomaticos) {
         this.layoutsAutomaticos = dados.layoutsAutomaticos
       }
 
-      // Aplicar configuração para o arco atual
+      // Restaurar dados originais se disponíveis
+      if (dados.dadosOriginais) {
+        if (dados.dadosOriginais.dadosPortal) {
+          this.dadosPortal = dados.dadosOriginais.dadosPortal
+        }
+        if (dados.dadosOriginais.analiseArcos) {
+          this.analiseArcos = dados.dadosOriginais.analiseArcos
+        }
+        if (dados.dadosOriginais.dados) {
+          this.dados = dados.dadosOriginais.dados
+        }
+      }
+
+      // Restaurar dimensões SVG se disponíveis
+      if (dados.dimensoesSVG) {
+        this.larguraSVG = dados.dimensoesSVG.largura
+        this.alturaSVG = dados.dimensoesSVG.altura
+      }
+
+      // Restaurar estado da aplicação se disponível
+      if (dados.estadoAtual) {
+        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
+        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
+        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
+      }
+
+      // Aplicar configuração para o arco atual - com todas as propriedades
       setTimeout(() => {
         const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
         if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
-          this.configArmazem = { ...modeloParaArcoAtual.config }
+          // Garantir que todas as propriedades sejam restauradas
+          this.configArmazem = {
+            // Valores padrão primeiro
+            pb: 185, lb: 350, hb: 30, hf: 5, lf: 250, le: 15, ht: 50,
+            tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false, raio_pontas: 15,
+            estilo_laterais: 'reta', curvatura_laterais: 0, tipo_fundo: 0,
+            altura_fundo_reto: 10, altura_funil_v: 18, posicao_ponta_v: 0,
+            inclinacao_funil_v: 1, largura_abertura_v: 20, altura_duplo_v: 22,
+            posicao_v_esquerdo: -1, posicao_v_direito: 1, largura_abertura_duplo_v: 2,
+            altura_plataforma_duplo_v: 0.3, largura_plataforma_duplo_v: 10,
+            deslocamento_horizontal_fundo: 0, deslocamento_vertical_fundo: -1,
+            escala_sensores: 16, dist_y_sensores: 12, dist_x_sensores: 0,
+            posicao_horizontal: 0, posicao_vertical: 0, afastamento_vertical_pendulo: 0,
+            // Depois sobrescrever com valores salvos
+            ...modeloParaArcoAtual.config
+          }
         } else if (dados.configuracaoPadrao) {
-          this.configArmazem = { ...dados.configuracaoPadrao }
+          this.configArmazem = {
+            // Valores padrão primeiro
+            pb: 185, lb: 350, hb: 30, hf: 5, lf: 250, le: 15, ht: 50,
+            tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false, raio_pontas: 15,
+            estilo_laterais: 'reta', curvatura_laterais: 0, tipo_fundo: 0,
+            altura_fundo_reto: 10, altura_funil_v: 18, posicao_ponta_v: 0,
+            inclinacao_funil_v: 1, largura_abertura_v: 20, altura_duplo_v: 22,
+            posicao_v_esquerdo: -1, posicao_v_direito: 1, largura_abertura_duplo_v: 2,
+            altura_plataforma_duplo_v: 0.3, largura_plataforma_duplo_v: 10,
+            deslocamento_horizontal_fundo: 0, deslocamento_vertical_fundo: -1,
+            escala_sensores: 16, dist_y_sensores: 12, dist_x_sensores: 0,
+            posicao_horizontal: 0, posicao_vertical: 0, afastamento_vertical_pendulo: 0,
+            // Depois sobrescrever com valores salvos
+            ...dados.configuracaoPadrao
+          }
         }
       }, 100)
 
@@ -2059,7 +2239,8 @@ export default {
       this.mostrarToast(
         `Configuração hierárquica "${nomeConfig}" carregada!\n` +
         `📊 ${totalArcos} arcos, ${this.quantidadeModelosArcos} modelo(s)\n` +
-        `🎯 Lógica: ${logica}`,
+        `🎯 Lógica: ${logica}\n` +
+        `📐 Dimensões SVG: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}`,
         'success'
       )
     },
@@ -2501,25 +2682,38 @@ export default {
         this.larguraSVG = this.configSilo.lb + (this.configSilo.aeradores_ativo ? this.configSilo.ds * 2 + 68 : 0)
         this.alturaSVG = this.configSilo.hs + this.configSilo.hb * 1.75
       } else {
-        // Para armazém, calcular dimensões baseadas no conteúdo e responsividade
-        const larguraBase = Math.max(this.configArmazem.lb, 300)
-        const alturaBase = Math.max(this.configArmazem.pb + this.configArmazem.ht + 50, 200)
+        // Para armazém, calcular dimensões adequadas incluindo espaço para o topo
+        const config = this.configPreviewAplicada || this.configArmazem
+        const larguraBase = Math.max(config.lb, 300)
+        
+        // Calcular altura necessária considerando todos os elementos
+        const alturaFundo = config.pb + 20  // Altura base + margem
+        const alturaTopoNecessaria = 80     // Espaço adequado para o topo
+        const alturaTotal = alturaFundo + alturaTopoNecessaria
+        
+        // Para diferentes tipos de fundo, ajustar altura
+        let extensaoFundo = 0
+        if (config.tipo_fundo === 1) {
+          extensaoFundo = config.altura_funil_v || 40
+        } else if (config.tipo_fundo === 2) {
+          extensaoFundo = config.altura_duplo_v || 35
+        }
+        
+        const alturaFinal = Math.max(alturaTotal + extensaoFundo, 280)
 
         // Ajustar para mobile se necessário
         if (this.isMobile) {
-          // Em mobile, garantir proporções adequadas
-          const aspectRatio = larguraBase / alturaBase
+          const aspectRatio = larguraBase / alturaFinal
           if (aspectRatio > 2) {
-            // Se muito largo, ajustar altura
             this.larguraSVG = larguraBase
-            this.alturaSVG = Math.max(alturaBase, larguraBase / 1.8)
+            this.alturaSVG = Math.max(alturaFinal, larguraBase / 1.8)
           } else {
             this.larguraSVG = larguraBase
-            this.alturaSVG = alturaBase
+            this.alturaSVG = alturaFinal
           }
         } else {
           this.larguraSVG = larguraBase
-          this.alturaSVG = alturaBase
+          this.alturaSVG = alturaFinal
         }
       }
     },
@@ -2639,11 +2833,12 @@ export default {
           extensao = 7
         }
 
-        // Pontos base do modelo padrão
+        // Pontos base do modelo padrão - ajustar altura do topo
+        const alturaTopo = Math.max(10, 50 - (curvatura_topo || 30))
         const p1 = [(lb - lf) / 2, pb - hf + extensao]
         const p2 = [le, pb - hb + extensao]
         const p3 = [le, pb - ht]
-        const p4 = [lb / 2, 1]
+        const p4 = [lb / 2, alturaTopo]
         const p5 = [lb - le, pb - ht]
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
@@ -2651,43 +2846,62 @@ export default {
         // Aplicar modificações baseadas no modelo padrão
         if (pontas_redondas || estilo_laterais !== 'reta') {
           const raio = raio_pontas || 15
-          const curvaLateral = curvatura_laterais || 30
+          const curvaLateral = curvatura_laterais || 0
 
           let pathTelhado = `M ${p1[0]} ${p1[1]}`
 
           // Lateral esquerda - seguir exatamente o modelo padrão
           pathTelhado += ` L ${p2[0]} ${p2[1]}`
 
-          // Aplicar curvatura lateral esquerda baseada no modelo padrão
-          if (estilo_laterais === 'parede_para_fora') {
-            pathTelhado += ` Q ${p2[0] + curvaLateral} ${p2[1]} ${p3[0]} ${p3[1]}`
-          } else if (estilo_laterais === 'parede_para_dentro') {
-            pathTelhado += ` Q ${p2[0] - curvaLateral} ${p2[1]} ${p3[0]} ${p3[1]}`
+          // Aplicar curvatura lateral esquerda - começar sempre reto como no modelo padrão
+          pathTelhado += ` L ${p3[0]} ${p3[1]}`
+          
+          // Aplicar curvatura apenas na linha do topo para o ponto central
+          if (estilo_laterais === 'curvatura_lateral') {
+            if (curvaLateral === 0) {
+              // Valor 0 = reto
+              pathTelhado += ` L ${p4[0]} ${p4[1]}`
+            } else if (curvaLateral < 0) {
+              // Negativo = barriga para dentro
+              pathTelhado += ` Q ${p3[0] + Math.abs(curvaLateral)} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}`
+            } else {
+              // Positivo = barriga para fora  
+              pathTelhado += ` Q ${p3[0] - curvaLateral} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}`
+            }
           } else {
-            pathTelhado += ` L ${p3[0]} ${p3[1]}`
+            pathTelhado += ` L ${p4[0]} ${p4[1]}`
           }
 
-          // Ponto do topo (sempre igual no modelo padrão)
-          pathTelhado += ` L ${p4[0]} ${p4[1]}`
-
-          // Aplicar curvatura lateral direita baseada no modelo padrão
-          if (estilo_laterais === 'parede_para_fora') {
-            pathTelhado += ` Q ${p6[0] - curvaLateral} ${p6[1]} ${p5[0]} ${p5[1]}`
-          } else if (estilo_laterais === 'parede_para_dentro') {
-            pathTelhado += ` Q ${p6[0] + curvaLateral} ${p6[1]} ${p5[0]} ${p5[1]}`
+          // Aplicar ponta arredondada apenas no topo (p4 -> p5) se habilitado
+          if (pontas_redondas) {
+            // Criar arco suave no topo do telhado
+            const pontoControle1X = p4[0] - raio
+            const pontoControle2X = p4[0] + raio
+            pathTelhado += ` Q ${pontoControle1X} ${p4[1] - raio} ${p4[0]} ${p4[1]}`
+            pathTelhado += ` Q ${pontoControle2X} ${p4[1] - raio} ${p5[0]} ${p5[1]}`
           } else {
-            pathTelhado += ` L ${p5[0]} ${p5[1]}`
+            // Aplicar curvatura lateral direita - do ponto central para baixo
+            if (estilo_laterais === 'curvatura_lateral') {
+              if (curvaLateral === 0) {
+                // Valor 0 = reto
+                pathTelhado += ` L ${p5[0]} ${p5[1]}`
+              } else if (curvaLateral < 0) {
+                // Negativo = barriga para dentro
+                pathTelhado += ` Q ${p5[0] - Math.abs(curvaLateral)} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}`
+              } else {
+                // Positivo = barriga para fora
+                pathTelhado += ` Q ${p5[0] + curvaLateral} ${(p5[1] + p4[1]) / 2} ${p5[0]} ${p5[1]}`
+              }
+            } else {
+              pathTelhado += ` L ${p5[0]} ${p5[1]}`
+            }
           }
 
           // Lateral direita - seguir exatamente o modelo padrão
           pathTelhado += ` L ${p6[0]} ${p6[1]}`
-
-          // Aplicar pontas redondas apenas nas pontas finais se habilitado
-          if (pontas_redondas) {
-            pathTelhado += ` Q ${p7[0]} ${p7[1] + raio} ${p7[0]} ${p7[1]}`
-          } else {
-            pathTelhado += ` L ${p7[0]} ${p7[1]}`
-          }
+          
+          // Lateral inferior direita - sempre reta
+          pathTelhado += ` L ${p7[0]} ${p7[1]}`
 
           pathTelhado += ` Z`
 
@@ -2698,34 +2912,40 @@ export default {
           return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" points="${pathTelhado}" />`
         }
       } else if (tipo_telhado === 2) {
-        // Telhado Arredondado - manter formato padrão sem curvatura lateral
+        // Telhado Arredondado - aplicar curvatura do topo
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        // Formato padrão arredondado sem modificações laterais
+        // Calcular altura da curva baseada na configuração
+        const alturaCurva = Math.max(10, 60 - (curvatura_topo || 30))
+
+        // Formato arredondado com curvatura configurável
         let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
         pathTelhado += ` L ${le} ${pb - hb + extensao}`
         pathTelhado += ` L ${le} ${pb - ht}`
-        pathTelhado += ` Q ${lb / 2} ${1 - curvatura_topo} ${lb - le} ${pb - ht}`
+        pathTelhado += ` Q ${lb / 2} ${alturaCurva} ${lb - le} ${pb - ht}`
         pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
         pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
         pathTelhado += ` Z`
 
         return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" stroke-miterlimit="23" d="${pathTelhado}" />`
       } else if (tipo_telhado === 3) {
-        // Telhado em Arco - manter formato padrão sem curvatura lateral
+        // Telhado em Arco - aplicar curvatura do topo
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        // Formato padrão arco sem modificações laterais
+        // Calcular raio do arco baseado na configuração de curvatura
+        const raioArco = Math.max(20, curvatura_topo || 30)
+
+        // Formato arco com curvatura configurável
         let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
         pathTelhado += ` L ${le} ${pb - hb + extensao}`
         pathTelhado += ` L ${le} ${pb - ht}`
-        pathTelhado += ` A ${(lb - le * 2) / 2} ${curvatura_topo} 0 0 1 ${lb - le} ${pb - ht}`
+        pathTelhado += ` A ${(lb - le * 2) / 2} ${raioArco} 0 0 1 ${lb - le} ${pb - ht}`
         pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
         pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao}`
         pathTelhado += ` Z`
