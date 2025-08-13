@@ -1,0 +1,231 @@
+
+<template>
+  <div class="card mb-3">
+    <div class="card-header bg-warning text-dark">
+      <h6 class="mb-0">⬇️ Configuração do Fundo</h6>
+    </div>
+    <div class="card-body">
+      <div class="mb-2">
+        <label class="small fw-bold">Tipo do Fundo:</label>
+        <div class="input-group input-group-sm">
+          <select class="form-select" v-model="configArmazem.tipo_fundo" @change="$emit('armazem-change')">
+            <option :value="0">Reto</option>
+            <option :value="1">Funil/V</option>
+            <option :value="2">Duplo V</option>
+          </select>
+          <button type="button" class="btn btn-outline-secondary" @click="resetField('tipo_fundo', 0)"
+            title="Reset">
+            ×
+          </button>
+        </div>
+      </div>
+
+      <!-- Controles específicos para Fundo Reto -->
+      <div v-if="configArmazem.tipo_fundo === 0" class="alert alert-light">
+        <h6>Configurações do Fundo Reto:</h6>
+        <div class="mb-2">
+          <label class="form-label">Altura do Fundo Reto:</label>
+          <div class="input-group input-group-sm">
+            <input v-model.number="configArmazem.altura_fundo_reto" type="range" min="0" max="50"
+              class="form-range" @input="$emit('armazem-change')" />
+            <span class="input-group-text">{{ configArmazem.altura_fundo_reto }}</span>
+            <button type="button" class="btn btn-outline-secondary"
+              @click="resetField('altura_fundo_reto', 10)" title="Reset">
+              ×
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles específicos para Funil V -->
+      <div v-if="configArmazem.tipo_fundo === 1" class="alert alert-light">
+        <h6>Configurações do Funil V:</h6>
+        <div class="row">
+          <div class="col-6 mb-2">
+            <label class="form-label">Altura do Funil:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.altura_funil_v" type="range" min="10" max="120"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.altura_funil_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('altura_funil_v', 18)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Posição da Ponta:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.posicao_ponta_v" type="range" min="-2" max="2" step="0.1"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.posicao_ponta_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('posicao_ponta_v', 0)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Largura da Abertura:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.largura_abertura_v" type="range" min="2" max="80"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.largura_abertura_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('largura_abertura_v', 20)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Inclinação das Paredes:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.inclinacao_funil_v" type="range" min="0" max="10" step="0.1"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.inclinacao_funil_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('inclinacao_funil_v', 1)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles específicos para Duplo V -->
+      <div v-if="configArmazem.tipo_fundo === 2" class="alert alert-light">
+        <h6>Configurações do Duplo V:</h6>
+        <div class="row">
+          <div class="col-6 mb-2">
+            <label class="form-label">Altura dos Funis:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.altura_duplo_v" type="range" min="10" max="120"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.altura_duplo_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('altura_duplo_v', 22)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Posição V Esquerdo:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.posicao_v_esquerdo" type="range" min="-2" max="0.5"
+                step="0.1" class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.posicao_v_esquerdo }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('posicao_v_esquerdo', -1)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Posição V Direito:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.posicao_v_direito" type="range" min="-0.5" max="2" step="0.1"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.posicao_v_direito }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('posicao_v_direito', 1)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Largura das Aberturas:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.largura_abertura_duplo_v" type="range" min="2" max="80"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.largura_abertura_duplo_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('largura_abertura_duplo_v', 2)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Altura da Plataforma:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.altura_plataforma_duplo_v" type="range" min="0" max="1"
+                step="0.1" class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.altura_plataforma_duplo_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('altura_plataforma_duplo_v', 0.3)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="form-label">Largura da Plataforma:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.largura_plataforma_duplo_v" type="range" min="10" max="120"
+                class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.largura_plataforma_duplo_v }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('largura_plataforma_duplo_v', 10)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Movimentação do Fundo (comum a todos) -->
+      <div class="alert alert-warning p-2">
+        <h6 class="small">🔄 Movimentação do Fundo:</h6>
+        <div class="row">
+          <div class="col-6 mb-2">
+            <label class="small fw-bold">Deslocamento Horizontal:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.deslocamento_horizontal_fundo" type="range" min="-100"
+                max="100" class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.deslocamento_horizontal_fundo }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('deslocamento_horizontal_fundo', 0)" title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+          <div class="col-6 mb-2">
+            <label class="small fw-bold">Deslocamento Vertical:</label>
+            <div class="input-group input-group-sm">
+              <input v-model.number="configArmazem.deslocamento_vertical_fundo" type="range" min="-100"
+                max="100" class="form-range" @input="$emit('armazem-change')" />
+              <span class="input-group-text">{{ configArmazem.deslocamento_vertical_fundo }}</span>
+              <button type="button" class="btn btn-outline-secondary"
+                @click="resetField('deslocamento_vertical_fundo', obterDeslocamentoVerticalPadrao(configArmazem.tipo_fundo))"
+                title="Reset">
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'ConfiguracaoFundo',
+  props: {
+    configArmazem: Object
+  },
+  emits: ['armazem-change'],
+  methods: {
+    resetField(campo, valor) {
+      this.configArmazem[campo] = valor
+      this.$emit('armazem-change')
+    },
+    obterDeslocamentoVerticalPadrao(tipoFundo) {
+      switch (tipoFundo) {
+        case 0: return 0  // Reto
+        case 1: return 7  // Funil V
+        case 2: return 10 // Duplo V
+        default: return 0
+      }
+    }
+  }
+}
+</script>
