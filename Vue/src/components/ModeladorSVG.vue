@@ -143,20 +143,21 @@
               <div class="card-header bg-dark text-white">
                 <h6 class="mb-0">🏗️ Modelos de Arcos do Armazém</h6>
               </div>
-              <div class="card-body">
-                <div class="row mb-3">
-                  <div class="col-lg-6 col-md-12 mb-3">
-                    <label class="form-label">Quantidade de Modelos:</label>
-                    <select class="form-select" v-model="quantidadeModelosArcos" @change="onQuantidadeModelosChange">
+              <div class="card-body p-2">
+                <!-- Layout responsivo com grid -->
+                <div class="row g-2 mb-3">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold">Quantidade de Modelos:</label>
+                    <select class="form-select form-select-sm w-100" v-model="quantidadeModelosArcos" @change="onQuantidadeModelosChange">
                       <option :value="1">1 Modelo</option>
                       <option :value="2">2 Modelos</option>
                       <option :value="3">3 Modelos</option>
                       <option :value="4">4 Modelos</option>
                     </select>
                   </div>
-                  <div class="col-lg-6 col-md-12 mb-3">
-                    <label class="form-label">Modelo Atual:</label>
-                    <select class="form-select" v-model="modeloArcoAtual" @change="onModeloArcoChange">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label small fw-bold">Modelo Atual:</label>
+                    <select class="form-select form-select-sm w-100" v-model="modeloArcoAtual" @change="onModeloArcoChange">
                       <option :value="null">Selecione Modelo</option>
                       <option v-for="i in quantidadeModelosArcos" :key="i" :value="i">
                         Modelo {{ i }} - {{ getDescricaoModelo(i) }}
@@ -165,15 +166,18 @@
                   </div>
                 </div>
 
-                <div class="row mb-3">
-                  <div class="col-lg-6 col-md-12 mb-3">
-                    <label class="form-label">Nome do Modelo:</label>
-                    <input type="text" class="form-control" v-model="modeloNome" placeholder="Nome do modelo"
+                <div class="row g-2 mb-3">
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Nome do Modelo:</label>
+                    <input type="text" class="form-control form-control-sm w-100" v-model="modeloNome" placeholder="Nome do modelo"
                       :disabled="!modeloArcoAtual" @input="onNomeModeloChange" />
                   </div>
-                  <div class="col-lg-6 col-md-12 mb-3">
-                    <label class="form-label">Posição no Armazém:</label>
-                    <select class="form-select" v-model="modeloPosicao" @change="onPosicaoArcoChange"
+                </div>
+
+                <div class="row g-2 mb-3">
+                  <div class="col-12">
+                    <label class="form-label small fw-bold">Posição no Armazém:</label>
+                    <select class="form-select form-select-sm w-100" v-model="modeloPosicao" @change="onPosicaoArcoChange"
                       :disabled="!modeloArcoAtual">
                       <template v-if="quantidadeModelosArcos === 1">
                         <option value="todos">Todos os Arcos</option>
@@ -197,48 +201,157 @@
                   </div>
                 </div>
 
-                <div v-if="modeloArcoAtual" class="alert alert-info">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                      <strong>EDITANDO:</strong> {{ modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}`
-                      }}
-                      <span class="badge bg-primary ms-2">
-                        {{ modelosArcos[modeloArcoAtual]?.posicao || '' }}
-                      </span>
-                      <span v-if="modelosSalvos[modeloArcoAtual]" class="badge bg-success ms-2">
-                        SALVO
-                      </span>
+                <!-- Controle de Quantidade de Pêndulos por Modelo -->
+                <div v-if="modeloArcoAtual" class="mb-3">
+                  <label class="form-label small fw-bold">Quantidade de Pêndulos/Cabos:</label>
+                  <div class="d-flex align-items-center justify-content-center mb-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
+                      @click="alterarQuantidadePendulos(-1)"
+                      :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5) <= 0"
+                      title="Diminuir quantidade">
+                      -
+                    </button>
+                    <input type="number" class="form-control form-control-sm text-center mx-2"
+                      style="max-width: 70px; min-width: 60px;"
+                      v-model.number="modelosArcos[modeloArcoAtual].quantidadePendulos"
+                      @input="onQuantidadePendulosChange"
+                      min="0" max="50" />
+                    <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
+                      @click="alterarQuantidadePendulos(1)"
+                      :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5) >= 50"
+                      title="Aumentar quantidade">
+                      +
+                    </button>
+                  </div>
+                  <div class="text-center">
+                    <small class="text-muted d-block">
+                      (0 a 50 pêndulos)
+                    </small>
+                    <small class="text-info d-block">
+                      💡 Aplicado automaticamente no preview
+                    </small>
+                  </div>
+
+                  <!-- Controles de Modelagem Individual -->
+                  <div class="mt-3 p-2 border rounded bg-light">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <small class="fw-bold text-dark">🎯 Modelagem Individual:</small>
+                      <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" v-model="modelagemIndividualAtiva" @change="onToggleModelagemIndividual">
+                        <label class="form-check-label small">
+                          {{ modelagemIndividualAtiva ? 'Individual' : 'Geral' }}
+                        </label>
+                      </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-success" @click="salvarModeloAtual"
+
+                    <div v-if="modelagemIndividualAtiva">
+                      <!-- Seletor de Pêndulo -->
+                      <div class="mb-2">
+                        <label class="form-label small fw-bold">Pêndulo Selecionado:</label>
+                        <select class="form-select form-select-sm" v-model="penduloSelecionado" @change="onPenduloSelecionadoChange">
+                          <option v-for="i in (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5)" :key="i" :value="i">
+                            Pêndulo {{ i }}
+                          </option>
+                        </select>
+                      </div>
+
+                      <!-- Controles de Movimentação -->
+                      <div class="mb-2" v-if="penduloSelecionado">
+                        <label class="form-label small fw-bold">Posicionamento Individual:</label>
+                        <div class="row g-1">
+                          <div class="col-6">
+                            <label class="form-label" style="font-size: 0.7rem;">Horizontal (X):</label>
+                            <div class="input-group input-group-sm">
+                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('left')" title="Esquerda">←</button>
+                              <input type="number" class="form-control form-control-sm text-center" 
+                                     v-model.number="posicoesPendulosIndividuais[penduloSelecionado].x"
+                                     @input="onPosicaoPenduloChange"
+                                     step="1" style="max-width: 60px;">
+                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('right')" title="Direita">→</button>
+                            </div>
+                          </div>
+                          <div class="col-6">
+                            <label class="form-label" style="font-size: 0.7rem;">Vertical (Y):</label>
+                            <div class="input-group input-group-sm">
+                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('up')" title="Cima">↑</button>
+                              <input type="number" class="form-control form-control-sm text-center" 
+                                     v-model.number="posicoesPendulosIndividuais[penduloSelecionado].y"
+                                     @input="onPosicaoPenduloChange"
+                                     step="1" style="max-width: 60px;">
+                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('down')" title="Baixo">↓</button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="text-center mt-2">
+                        <small class="text-info d-block" style="font-size: 0.7rem;">
+                          ✨ Modelagem individual ativa - dados desvinculados da API
+                        </small>
+                        <button type="button" class="btn btn-outline-primary btn-sm mt-1" @click="resetarPosicoesPendulos">
+                          🔄 Resetar Posições
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Status do Modelo Atual -->
+                <div v-if="modeloArcoAtual" class="alert alert-info p-2">
+                  <div class="text-center mb-2">
+                    <strong class="d-block">EDITANDO:</strong>
+                    <span class="d-block small">{{ modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` }}</span>
+                  </div>
+                  <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
+                    <span class="badge bg-primary">
+                      {{ modelosArcos[modeloArcoAtual]?.posicao || '' }}
+                    </span>
+                    <span class="badge bg-info">
+                      {{ modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5 }}P
+                    </span>
+                    <span v-if="modelosSalvos[modeloArcoAtual]" class="badge bg-success">
+                      SALVO
+                    </span>
+                  </div>
+                  <div class="d-grid">
+                    <button type="button" class="btn btn-success btn-sm" @click="salvarModeloAtual"
                       title="Salvar este modelo">
                       💾 Salvar Modelo
                     </button>
                   </div>
                 </div>
 
-                <div v-if="!modeloArcoAtual" class="alert alert-warning">
-                  <strong>⚠️ Nenhum modelo selecionado</strong>
+                <div v-if="!modeloArcoAtual" class="alert alert-warning p-2 text-center">
+                  <strong class="small">⚠️ Nenhum modelo selecionado</strong>
                 </div>
 
                 <!-- Resumo dos modelos -->
                 <div class="mt-3">
-                  <h6>Resumo dos Modelos:</h6>
-                  <div class="row">
-                    <div v-for="i in quantidadeModelosArcos" :key="i" class="col-lg-6 col-md-12 col-sm-12 mb-2">
-                      <div :class="['card', { 'border-primary': modeloArcoAtual === i }]">
+                  <h6 class="small fw-bold">Resumo dos Modelos:</h6>
+                  <div class="row g-1">
+                    <div v-for="i in quantidadeModelosArcos" :key="i" class="col-12 mb-1">
+                      <div :class="['card card-sm', { 'border-primary': modeloArcoAtual === i }]">
                         <div class="card-body p-2">
-                          <div class="d-flex justify-content-between align-items-start">
-                            <small>
-                              <strong>Modelo {{ i }}:</strong> {{ modelosArcos[i]?.posicao || '' }}<br />
-                              {{ modelosArcos[i]?.nome || '' }}
-                            </small>
-                            <span v-if="modelosSalvos[i]" class="badge bg-success badge-sm">✓</span>
+                          <div class="d-flex justify-content-between align-items-center">
+                            <div class="flex-grow-1 me-2">
+                              <small class="fw-bold d-block">Modelo {{ i }}</small>
+                              <small class="text-muted d-block text-truncate" style="max-width: 120px;">
+                                {{ modelosArcos[i]?.posicao || 'N/A' }}
+                              </small>
+                              <small class="text-muted d-block text-truncate" style="max-width: 120px;">
+                                {{ modelosArcos[i]?.nome || 'Sem nome' }}
+                              </small>
+                            </div>
+                            <div class="text-end">
+                              <span v-if="modelosSalvos[i]" class="badge bg-success badge-sm mb-1">✓</span>
+                              <small class="d-block text-muted">{{ modelosArcos[i]?.quantidadePendulos || 5 }}P</small>
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div class="mt-2">
+                  <div class="mt-2 text-center">
                     <small class="text-muted">
                       <strong>Status:</strong> {{ Object.keys(modelosSalvos).length }} de {{ quantidadeModelosArcos }}
                       modelos salvos
@@ -745,21 +858,21 @@
           <!-- Gerenciador de Configurações -->
           <div class="card mt-3">
             <div class="card-header bg-info text-white">
-              <h6 class="mb-0">📋 Gerenciar Configurações</h6>
+              <h6 class="mb-0 small">📋 Gerenciar Configurações</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-2 p-md-3">
               <div class="mb-3">
-                <label class="form-label">Nome da Configuração:</label>
-                <input type="text" class="form-control" v-model="nomeConfiguracao"
-                  placeholder="Digite o nome para salvar/carregar" />
+                <label class="form-label small fw-bold">Nome da Configuração:</label>
+                <input type="text" class="form-control form-control-sm" v-model="nomeConfiguracao"
+                  placeholder="Digite o nome..." />
               </div>
 
               <div class="d-grid gap-2 mb-3">
-                <button type="button" class="btn btn-success" @click="salvarConfiguracao"
+                <button type="button" class="btn btn-success btn-sm" @click="salvarConfiguracao"
                   :disabled="!nomeConfiguracao.trim()">
-                  💾 Salvar {{ tipoAtivo === 'silo' ? 'Silo' : 'Armazém' }} Completo
+                  💾 Salvar {{ tipoAtivo === 'silo' ? 'Silo' : 'Armazém' }}
                 </button>
-                <button type="button" class="btn btn-primary" @click="carregarConfiguracao"
+                <button type="button" class="btn btn-primary btn-sm" @click="carregarConfiguracao"
                   :disabled="!nomeConfiguracao.trim()">
                   📂 Carregar Configuração
                 </button>
@@ -990,7 +1103,7 @@
 </template>
 
 <script>
-import LayoutManager from './utils/layoutManager'
+import LayoutManager from './utils/layoutManager.js'
 
 export default {
   name: 'ModeladorSVG',
@@ -1058,7 +1171,8 @@ export default {
         1: {
           posicao: 'todos',
           config: {},
-          nome: 'Modelo Único'
+          nome: 'Modelo Único',
+          quantidadePendulos: 5 // Valor inicial padrão
         }
       },
       modelosSalvos: {},
@@ -1079,7 +1193,13 @@ export default {
       dadosVindosDoPreview: false,
       configuracaoPreviewSelecionada: '',
       configPreviewAplicada: null,
-      configuracaoAplicada: null
+      configuracaoAplicada: null,
+
+      // Modelagem Individual de Pêndulos
+      modelagemIndividualAtiva: false,
+      penduloSelecionado: 1,
+      posicoesPendulosIndividuais: {},
+      dadosPreviewDesvinculados: null
     }
   },
   computed: {
@@ -1206,9 +1326,9 @@ export default {
           return
         }
 
-        const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-07%2008:03:36', {
+        const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MDg0NjI2LCJleHAiOjE3NTUxMTM0MjYsIm5iZiI6MTc1NTA4NDYyNiwianRpIjoibUxacmxJUUUzVWV1cHhmeSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJOIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.6yTpZAAu7q88cmuHvCpNNiEBnExpsykqxz-CCplQX-Q',
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MDg0ODExLCJleHAiOjE3NTUxMTM2MTEsIm5iZiI6MTc1NTA4NDgxMSwianRpIjoiOWxQMFZRV0k5YU51cmdMMSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJOIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.th1JB14DJeVk_cdX9nnh6a46kLC42o0cO-Il3ZTSLFM',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -1474,7 +1594,8 @@ export default {
         novosModelos[i] = this.modelosArcos[i] || {
           posicao,
           config: { ...this.configArmazem },
-          nome
+          nome,
+          quantidadePendulos: this.analiseArcos?.arcos[i]?.totalPendulos || 5 // Valor padrão para 5 pêndulos
         }
       }
 
@@ -1792,7 +1913,8 @@ export default {
               criadoEm: modelo.criadoEm || new Date().toISOString(),
               ultimaModificacao: new Date().toISOString(),
               versaoModelo: '3.0'
-            }
+            },
+            quantidadePendulos: modelo.quantidadePendulos || 5 // Valor padrão para 5 pêndulos
           }
         }
       }
@@ -1946,7 +2068,8 @@ export default {
         1: {
           posicao: 'todos',
           config: { ...configPadrao },
-          nome: 'Modelo Único'
+          nome: 'Modelo Único',
+          quantidadePendulos: 5 // Resetar para valor padrão
         }
       }
       this.modeloArcoAtual = null
@@ -2148,7 +2271,8 @@ export default {
           posicao: modeloHierarquico.posicao,
           config: { ...modeloHierarquico.configuracao }, // Deep copy para preservar todas as propriedades
           criadoEm: modeloHierarquico.metadados?.criadoEm,
-          ultimaModificacao: modeloHierarquico.metadados?.ultimaModificacao
+          ultimaModificacao: modeloHierarquico.metadados?.ultimaModificacao,
+          quantidadePendulos: modeloHierarquico.quantidadePendulos || 5 // Garantir que quantidadePendulos seja carregado
         }
         modelosConvertidos[key] = modeloConvertido
 
@@ -2465,7 +2589,21 @@ export default {
 
       let elementos = ''
       const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`]
-      const arcoInfo = this.analiseArcos.arcos[this.arcoAtual]
+      
+      // Usar dados desvinculados se em modo individual, senão usar análise normal
+      let arcoInfo
+      if (this.modelagemIndividualAtiva && this.dadosPreviewDesvinculados) {
+        // Gerar estrutura fake baseada na quantidade de pêndulos
+        const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+        arcoInfo = {
+          pendulos: Array.from({length: quantidade}, (_, i) => ({
+            numero: i + 1,
+            totalSensores: 1
+          }))
+        }
+      } else {
+        arcoInfo = this.analiseArcos.arcos[this.arcoAtual]
+      }
 
       if (!layoutArco || !arcoInfo) return ''
 
@@ -2485,23 +2623,53 @@ export default {
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
       arcoInfo.pendulos.forEach((pendulo, index) => {
-        const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index]
+        let xCaboBase
+        
+        // Calcular posição base do cabo
+        if (this.modelagemIndividualAtiva && layoutArco.desenho_sensores.pos_x_cabo.length < totalCabos) {
+          // Gerar posições automáticas se não há layout suficiente
+          const larguraDisponivel = (config.lb || 350) - 70
+          const espacamento = totalCabos > 1 ? larguraDisponivel / (totalCabos - 1) : 0
+          xCaboBase = 35 + (index * espacamento)
+        } else {
+          xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index] || (35 + index * 50)
+        }
+        
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
-        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX
+        
+        // Aplicar offset individual se em modo de modelagem individual
+        let offsetIndividualX = 0
+        let offsetIndividualY = 0
+        
+        if (this.modelagemIndividualAtiva && this.posicoesPendulosIndividuais[pendulo.numero]) {
+          offsetIndividualX = this.posicoesPendulosIndividuais[pendulo.numero].x || 0
+          offsetIndividualY = this.posicoesPendulosIndividuais[pendulo.numero].y || 0
+        }
+        
+        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetIndividualX
+        const yPenduloFinal = yPendulo + offsetIndividualY
         const numSensores = pendulo.totalSensores
+
+        // Determinar cor do pêndulo (destacar se selecionado)
+        const isPenduloSelecionado = this.modelagemIndividualAtiva && this.penduloSelecionado === pendulo.numero
+        const corPendulo = isPenduloSelecionado ? "#FF6B35" : "#3A78FD"
+        const strokePendulo = isPenduloSelecionado ? "#FF4500" : "none"
+        const strokeWidth = isPenduloSelecionado ? "2" : "0"
 
         // Retângulo do nome do pêndulo
         elementos += `
           <rect
             id="C${index + 1}"
             x="${xCabo - escala_sensores / 2}"
-            y="${yPendulo}"
+            y="${yPenduloFinal}"
             width="${escala_sensores}"
             height="${escala_sensores / 2}"
             rx="2"
             ry="2"
-            fill="#3A78FD"
+            fill="${corPendulo}"
+            stroke="${strokePendulo}"
+            stroke-width="${strokeWidth}"
           />
         `
 
@@ -2510,7 +2678,7 @@ export default {
           <text
             id="TC${index + 1}"
             x="${xCabo}"
-            y="${yPendulo + escala_sensores / 4}"
+            y="${yPenduloFinal + escala_sensores / 4}"
             text-anchor="middle"
             dominant-baseline="central"
             font-weight="bold"
@@ -2524,9 +2692,20 @@ export default {
 
         // Sensores
         for (let s = 1; s <= numSensores; s++) {
-          const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+          const ySensor = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
           if (ySensor > 10 && ySensor < (this.alturaSVG - 60)) {
+            // Determinar cor do sensor (para dados desvinculados)
+            let corSensor = "#ccc"
+            let valorSensor = "0"
+            
+            if (this.modelagemIndividualAtiva && this.dadosPreviewDesvinculados?.leitura?.[pendulo.numero]?.[s]) {
+              const dadosSensor = this.dadosPreviewDesvinculados.leitura[pendulo.numero][s]
+              const temp = parseFloat(dadosSensor[0])
+              corSensor = this.corFaixaExata(temp)
+              valorSensor = temp.toFixed(1)
+            }
+
             // Retângulo do sensor
             elementos += `
               <rect
@@ -2537,9 +2716,9 @@ export default {
                 height="${escala_sensores / 2}"
                 rx="2"
                 ry="2"
-                fill="#ccc"
-                stroke="black"
-                stroke-width="1"
+                fill="${corSensor}"
+                stroke="${isPenduloSelecionado ? strokePendulo : 'black'}"
+                stroke-width="${isPenduloSelecionado ? '2' : '1'}"
               />
             `
 
@@ -2553,9 +2732,9 @@ export default {
                 dominant-baseline="central"
                 font-size="${escala_sensores * 0.4 - 0.5}"
                 font-family="Arial"
-                fill="black"
+                fill="${corSensor === '#ff2200' ? 'white' : 'black'}"
               >
-                0
+                ${valorSensor}
               </text>
             `
 
@@ -2609,6 +2788,7 @@ export default {
           const distanciaDoMeio = penduloIndex - indiceCentral
           const deslocamentoX = distanciaDoMeio * dist_x_sensores
           const xCabo = xCaboBase + posicao_horizontal + deslocamentoX
+          const numSensores = Object.keys(sensores).length
 
           // Atualizar posição do pêndulo
           const pendulo = document.getElementById(`C${penduloIndex + 1}`)
@@ -2685,12 +2865,12 @@ export default {
         // Para armazém, calcular dimensões adequadas incluindo espaço para o topo
         const config = this.configPreviewAplicada || this.configArmazem
         const larguraBase = Math.max(config.lb, 300)
-        
+
         // Calcular altura necessária considerando todos os elementos
         const alturaFundo = config.pb + 20  // Altura base + margem
         const alturaTopoNecessaria = 80     // Espaço adequado para o topo
         const alturaTotal = alturaFundo + alturaTopoNecessaria
-        
+
         // Para diferentes tipos de fundo, ajustar altura
         let extensaoFundo = 0
         if (config.tipo_fundo === 1) {
@@ -2698,7 +2878,7 @@ export default {
         } else if (config.tipo_fundo === 2) {
           extensaoFundo = config.altura_duplo_v || 35
         }
-        
+
         const alturaFinal = Math.max(alturaTotal + extensaoFundo, 280)
 
         // Ajustar para mobile se necessário
@@ -2855,7 +3035,7 @@ export default {
 
           // Aplicar curvatura lateral esquerda - começar sempre reto como no modelo padrão
           pathTelhado += ` L ${p3[0]} ${p3[1]}`
-          
+
           // Aplicar curvatura apenas na linha do topo para o ponto central
           if (estilo_laterais === 'curvatura_lateral') {
             if (curvaLateral === 0) {
@@ -2865,7 +3045,7 @@ export default {
               // Negativo = barriga para dentro
               pathTelhado += ` Q ${p3[0] + Math.abs(curvaLateral)} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}`
             } else {
-              // Positivo = barriga para fora  
+              // Positivo = barriga para fora
               pathTelhado += ` Q ${p3[0] - curvaLateral} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}`
             }
           } else {
@@ -2899,7 +3079,7 @@ export default {
 
           // Lateral direita - seguir exatamente o modelo padrão
           pathTelhado += ` L ${p6[0]} ${p6[1]}`
-          
+
           // Lateral inferior direita - sempre reta
           pathTelhado += ` L ${p7[0]} ${p7[1]}`
 
@@ -2918,7 +3098,7 @@ export default {
           extensao = 5
         }
 
-        // Calcular altura da curva baseada na configuração
+        // Calcular altura da curva baseada na configuração de curvatura
         const alturaCurva = Math.max(10, 60 - (curvatura_topo || 30))
 
         // Formato arredondado com curvatura configurável
@@ -3136,6 +3316,130 @@ export default {
       const pathBase = pontos.map(p => p.join(',')).join(' ')
 
       return `<polygon fill="#999999" points="${pathBase}" />`
+    },
+
+    // Funções para lidar com a quantidade de pêndulos
+    alterarQuantidadePendulos(incremento) {
+      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 5
+        let novaQtd = qtdAtual + incremento
+
+        // Validar limites
+        if (novaQtd < 0) novaQtd = 0
+        if (novaQtd > 50) novaQtd = 50
+
+        this.modelosArcos[this.modeloArcoAtual].quantidadePendulos = novaQtd
+        this.onQuantidadePendulosChange() // Garantir que a mudança seja salva e refletida
+      }
+    },
+
+    onQuantidadePendulosChange() {
+      if (this.modeloArcoAtual) {
+        // Resetar posições individuais quando quantidade mudar
+        this.inicializarPosicoesPendulos()
+        // Salvar automaticamente a alteração no modelo
+        this.salvarModelosAutomatico()
+        // Se estiver em modo individual, desvincular dados
+        if (this.modelagemIndividualAtiva) {
+          this.desvincularDadosParaModelagem()
+        }
+        this.updateSVG()
+      }
+    },
+
+    // Métodos para Modelagem Individual
+    onToggleModelagemIndividual() {
+      if (this.modelagemIndividualAtiva) {
+        // Ativar modelagem individual
+        this.inicializarPosicoesPendulos()
+        this.desvincularDadosParaModelagem()
+      } else {
+        // Voltar para modelagem geral
+        this.posicoesPendulosIndividuais = {}
+        this.dadosPreviewDesvinculados = null
+        this.penduloSelecionado = 1
+      }
+      this.updateSVG()
+    },
+
+    inicializarPosicoesPendulos() {
+      if (!this.modeloArcoAtual) return
+      
+      const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+      const posicoes = {}
+      
+      // Inicializar posições baseadas no layout atual
+      for (let i = 1; i <= quantidade; i++) {
+        posicoes[i] = {
+          x: 0, // Offset horizontal
+          y: 0  // Offset vertical
+        }
+      }
+      
+      this.posicoesPendulosIndividuais = posicoes
+      
+      // Garantir que o pêndulo selecionado seja válido
+      if (this.penduloSelecionado > quantidade) {
+        this.penduloSelecionado = 1
+      }
+    },
+
+    desvincularDadosParaModelagem() {
+      if (!this.dados) return
+      
+      // Criar cópia dos dados atuais para manipulação independente
+      this.dadosPreviewDesvinculados = JSON.parse(JSON.stringify(this.dados))
+      
+      // Gerar dados de preview baseados na quantidade selecionada
+      const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+      const leituraFake = {}
+      
+      for (let p = 1; p <= quantidade; p++) {
+        leituraFake[p] = {
+          1: [Math.floor(Math.random() * 30 + 15), false, false, false, true] // temp, pq, pre-alarme, falha, ativo
+        }
+      }
+      
+      this.dadosPreviewDesvinculados.leitura = leituraFake
+    },
+
+    onPenduloSelecionadoChange() {
+      // Atualizar SVG para destacar pêndulo selecionado
+      this.updateSVG()
+    },
+
+    onPosicaoPenduloChange() {
+      // Atualizar preview em tempo real
+      this.updateSVG()
+    },
+
+    moverPendulo(direcao) {
+      if (!this.penduloSelecionado || !this.posicoesPendulosIndividuais[this.penduloSelecionado]) return
+      
+      const posicao = this.posicoesPendulosIndividuais[this.penduloSelecionado]
+      const passo = 5 // Pixels por movimento
+      
+      switch (direcao) {
+        case 'left':
+          posicao.x -= passo
+          break
+        case 'right':
+          posicao.x += passo
+          break
+        case 'up':
+          posicao.y -= passo
+          break
+        case 'down':
+          posicao.y += passo
+          break
+      }
+      
+      this.updateSVG()
+    },
+
+    resetarPosicoesPendulos() {
+      this.inicializarPosicoesPendulos()
+      this.updateSVG()
     }
   }
 }
@@ -3175,11 +3479,140 @@ export default {
   .form-control,
   .form-select {
     font-size: 14px;
+    min-height: 32px;
   }
 
   .btn-sm {
     font-size: 12px;
     padding: 0.25rem 0.5rem;
+    min-height: 32px;
+  }
+
+  .input-group-sm .form-control,
+  .input-group-sm .btn {
+    min-height: 28px;
+  }
+
+  .row.g-1 > * {
+    padding-right: 0.125rem;
+    padding-left: 0.125rem;
+  }
+
+  .row.g-2 > * {
+    padding-right: 0.25rem;
+    padding-left: 0.25rem;
+  }
+}
+
+/* Estilos adicionais para cards compactos */
+.card-sm {
+  min-height: unset;
+}
+
+.card-sm .card-body {
+  padding: 0.5rem;
+}
+
+/* Garantir que selects não transbordem */
+.form-select,
+.form-control {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.form-select option {
+  padding: 0.25rem;
+  font-size: 0.875rem;
+}
+
+/* Melhor espaçamento em telas pequenas */
+@media (max-width: 768px) {
+  .card-body {
+    padding: 0.75rem !important;
+  }
+  
+  .alert {
+    padding: 0.5rem !important;
+  }
+  
+  .badge {
+    font-size: 0.65rem;
+  }
+  
+  .input-group-text {
+    min-width: 50px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Ajustes para dispositivos muito pequenos */
+@media (max-width: 480px) {
+  .form-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .btn-sm {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.75rem;
+  }
+  
+  .small {
+    font-size: 0.8rem !important;
+  }
+
+  /* Controles de movimentação individual em mobile */
+  .input-group-sm .btn {
+    min-width: 28px;
+    padding: 0.2rem;
+  }
+
+  .input-group-sm .form-control {
+    min-width: 40px;
+  }
+
+  /* Compactar controles de posicionamento */
+  .row.g-1 .col-6 {
+    padding: 0.1rem;
+  }
+}
+
+/* Estilos específicos para modelagem individual */
+.form-check-input:checked {
+  background-color: #FF6B35;
+  border-color: #FF6B35;
+}
+
+.bg-light {
+  background-color: #f8f9fa !important;
+  border: 1px solid #dee2e6;
+}
+
+/* Botões de movimentação */
+.btn-outline-secondary:hover {
+  background-color: #FF6B35;
+  border-color: #FF6B35;
+  color: white;
+}
+
+/* Responsivo para controles complexos */
+@media (max-width: 768px) {
+  .row.g-2 .col-12.col-md-6 {
+    margin-bottom: 0.5rem;
+  }
+
+  .d-flex.align-items-center.justify-content-center {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .input-group.input-group-sm {
+    flex-wrap: nowrap;
+  }
+
+  .form-control.text-center {
+    text-align: center !important;
   }
 }
 
