@@ -18,16 +18,21 @@
 
     <!-- Controles de configuração do modelador -->
     <div ref="cardConfig"
-         @mousedown="iniciarArrastoCardConfig"
-         style="position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; min-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: move;">
-      <h6 style="margin: 0 0 10px 0; color: #333; font-weight: bold; cursor: move;">⚙️ Configurações do Modelador</h6>
+         style="position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(255,255,255,0.95); padding: 15px; border-radius: 8px; min-width: 280px; box-shadow: 0 4px 12px rgba(0,0,0,0.2);">
+      
+      <!-- Barra de título para arrastar -->
+      <div @mousedown="iniciarArrastoCardConfig"
+           style="margin: -15px -15px 10px -15px; padding: 10px 15px; background: rgba(0,0,0,0.05); border-radius: 8px 8px 0 0; cursor: move; user-select: none;">
+        <h6 style="margin: 0; color: #333; font-weight: bold;">⚙️ Configurações do Modelador</h6>
+      </div>
 
       <div style="margin-bottom: 10px;">
         <label style="display: block; margin-bottom: 5px; font-size: 12px; font-weight: 600;">Configuração:</label>
         <select
           v-model="configuracaoSelecionada"
           @change="aplicarConfiguracao3D"
-          style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"
+          @mousedown.stop
+          style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; cursor: pointer;"
         >
           <option value="">Configuração Padrão</option>
           <option v-for="config in configuracoesDisponiveis" :key="config" :value="config">
@@ -42,7 +47,8 @@
           <select
             v-model.number="arcoAtual"
             @change="mudarArco3D"
-            style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px;"
+            @mousedown.stop
+            style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px; font-size: 12px; cursor: pointer;"
           >
             <option v-for="n in (analiseArcos?.totalArcos || 1)" :key="n" :value="n">
               Arco {{ n }}
@@ -56,12 +62,12 @@
 
       <hr style="margin: 10px 0; border: 0; border-top: 1px solid #eee;">
 
-      <label style="display: block; margin-bottom: 5px; font-size: 12px;">
-        <input type="checkbox" v-model="autoRotate" />
+      <label style="display: block; margin-bottom: 5px; font-size: 12px; cursor: pointer;" @mousedown.stop>
+        <input type="checkbox" v-model="autoRotate" @mousedown.stop />
         Rotação Automática
       </label>
-      <label style="display: block; margin-bottom: 5px; font-size: 12px;">
-        <input type="checkbox" v-model="mostrarLabels" />
+      <label style="display: block; margin-bottom: 5px; font-size: 12px; cursor: pointer;" @mousedown.stop>
+        <input type="checkbox" v-model="mostrarLabels" @mousedown.stop />
         Mostrar Labels
       </label>
 
@@ -180,8 +186,8 @@ export default {
 
       // Configuração da API
       apiConfig: {
-        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-07%2008:03:36',
-        token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg'
+        url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47',
+        token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MDg0NjI2LCJleHAiOjE3NTUxMTM0MjYsIm5iZiI6MTc1NTA4NDYyNiwianRpIjoibUxacmxJUUUzVWV1cHhmeSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJOIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.6yTpZAAu7q88cmuHvCpNNiEBnExpsykqxz-CCplQX-Q'
       },
 
       // Configurações do modelador 3D
@@ -1196,8 +1202,8 @@ export default {
       const tempNum = parseFloat(temp);
       const cor = ativo ? this.corFaixaExata(tempNum) : 0xcccccc;
 
-      // Sensor redondo e maior
-      const sensorGeometry = new THREE.SphereGeometry(0.08, 12, 8);
+      // Sensor redondo e maior para facilitar cliques
+      const sensorGeometry = new THREE.SphereGeometry(0.12, 16, 12);
       const sensorMaterial = new THREE.MeshStandardMaterial({
         color: cor,
         emissive: falha ? 0xff0000 : pontoQuente ? 0xffaa00 : 0x000000,
@@ -1208,13 +1214,58 @@ export default {
       const sensor = new THREE.Mesh(sensorGeometry, sensorMaterial);
       sensor.position.set(position, posY, posZ);
       sensor.castShadow = true;
-      sensor.userData = { temp: tempNum, arcoNum, penduloNum, sensorNum, ativo, falha };
+
+      // Adicionar userData completo para permitir clique no sensor individual
+      sensor.userData = {
+        tipo: 'sensor_clicavel',
+        arcoNum,
+        penduloNum,
+        sensorNum,
+        temp: tempNum,
+        pontoQuente,
+        preAlarme,
+        falha,
+        ativo,
+        // Criar dados do cabo correspondente para mostrar no card
+        caboCompleto: {
+          tipo: 'cabo',
+          arcoNum,
+          penduloNum,
+          nome: `Arco ${arcoNum} - Pêndulo ${penduloNum}`,
+          sensores: [{
+            numero: parseInt(sensorNum),
+            temperatura: tempNum,
+            pontoQuente,
+            preAlarme,
+            falha,
+            ativo
+          }]
+        }
+      };
+
+      // Adicionar à lista de objetos clicáveis
+      this.cabos3D.push(sensor);
       this.scene.add(sensor);
 
       // Armazenar para futuras atualizações
       this.sensores3D.push(sensor);
 
-      // Remover label individual de temperatura - agora só no card
+      // Criar área invisível maior ao redor do sensor para facilitar cliques
+      const areaClickGeometry = new THREE.SphereGeometry(0.2, 8, 6);
+      const areaClickMaterial = new THREE.MeshBasicMaterial({
+        transparent: true,
+        opacity: 0,
+        visible: false
+      });
+      const areaClick = new THREE.Mesh(areaClickGeometry, areaClickMaterial);
+      areaClick.position.set(position, posY, posZ);
+      
+      // Copiar userData do sensor para a área de clique
+      areaClick.userData = { ...sensor.userData };
+      
+      // Adicionar à lista de objetos clicáveis
+      this.cabos3D.push(areaClick);
+      this.scene.add(areaClick);
     },
 
     buildNivelVisual() {
@@ -1687,172 +1738,224 @@ export default {
       const aeradorGroup = new THREE.Group();
       aeradorGroup.position.set(position[0], position[1], position[2]);
 
-      // Base orgânica com curvaturas suaves (em formato de gota achatada)
-      const baseGeometry = new THREE.SphereGeometry(0.35, 32, 16);
-      baseGeometry.scale(1, 0.3, 0.8); // Achatar para criar forma orgânica
+      // Base robusta do aerador (formato industrial real)
+      const baseGeometry = new THREE.CylinderGeometry(0.5, 0.55, 0.18, 20);
       const baseMaterial = new THREE.MeshStandardMaterial({
-        color: 0x666666,
-        metalness: 0.4,
-        roughness: 0.6
+        color: 0x333333,
+        metalness: 0.8,
+        roughness: 0.3
       });
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
-      base.position.set(0, 0.05, 0);
+      base.position.set(0, 0.09, 0);
       base.castShadow = true;
+      base.receiveShadow = true;
       aeradorGroup.add(base);
 
-      // Pernas de apoio orgânicas (formato de gota invertida)
-      for (let i = 0; i < 3; i++) {
-        const angle = (i * 120) * Math.PI / 180;
-        const x = Math.cos(angle) * 0.25;
-        const z = Math.sin(angle) * 0.25;
-
-        // Criar perna como uma esfera alongada
-        const pernaGeometry = new THREE.SphereGeometry(0.04, 16, 16);
-        pernaGeometry.scale(1, 4, 1); // Alongar verticalmente
-        const pernaMaterial = new THREE.MeshStandardMaterial({
-          color: 0x555555,
-          metalness: 0.5,
-          roughness: 0.5
+      // Parafusos de fixação da base
+      for (let i = 0; i < 12; i++) {
+        const angle = (i / 12) * Math.PI * 2;
+        const parafusoGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.04, 8);
+        const parafusoMaterial = new THREE.MeshStandardMaterial({
+          color: 0x222222,
+          metalness: 0.9,
+          roughness: 0.1
         });
-        const perna = new THREE.Mesh(pernaGeometry, pernaMaterial);
-        perna.position.set(x, -0.08, z);
-        perna.castShadow = true;
-        aeradorGroup.add(perna);
-
-        // Pé orgânico (formato de bolha)
-        const peGeometry = new THREE.SphereGeometry(0.06, 16, 12);
-        peGeometry.scale(1, 0.5, 1); // Achatar para criar forma de bolha
-        const pe = new THREE.Mesh(peGeometry, pernaMaterial);
-        pe.position.set(x, -0.15, z);
-        pe.castShadow = true;
-        aeradorGroup.add(pe);
+        const parafuso = new THREE.Mesh(parafusoGeometry, parafusoMaterial);
+        parafuso.position.set(
+          Math.cos(angle) * 0.45,
+          0.2,
+          Math.sin(angle) * 0.45
+        );
+        aeradorGroup.add(parafuso);
       }
 
-      // Motor com formato orgânico (cápsula suave)
-      const motorPoints = [];
-      for (let i = 0; i <= 20; i++) {
-        const t = i / 20;
-        const radius = 0.08 + 0.06 * Math.sin(t * Math.PI); // Curvatura suave
-        motorPoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.4));
-      }
+      // Pernas de apoio robustas - formato industrial
+      for (let i = 0; i < 6; i++) {
+        const angle = (i * 60) * Math.PI / 180;
+        const x = Math.cos(angle) * 0.4;
+        const z = Math.sin(angle) * 0.4;
 
-      const motorGeometry = new THREE.LatheGeometry(motorPoints, 32);
-      const motorMaterial = new THREE.MeshStandardMaterial({
-        color: cores[status],
-        metalness: 0.3,
-        roughness: 0.7
-      });
-      const motor = new THREE.Mesh(motorGeometry, motorMaterial);
-      motor.position.set(0, 0.22, 0);
-      motor.rotation.z = Math.PI / 2; // Posicionar lateralmente
-      motor.castShadow = true;
-      aeradorGroup.add(motor);
-
-      // Cobertura frontal orgânica (formato de ovo)
-      const cobertura1Geometry = new THREE.SphereGeometry(0.09, 24, 16);
-      cobertura1Geometry.scale(1.2, 1, 1); // Alongar para formato de ovo
-      const cobertura1 = new THREE.Mesh(cobertura1Geometry, motorMaterial);
-      cobertura1.position.set(0.22, 0.22, 0);
-      cobertura1.castShadow = true;
-      aeradorGroup.add(cobertura1);
-
-      // Cobertura traseira orgânica
-      const cobertura2 = new THREE.Mesh(cobertura1Geometry, motorMaterial);
-      cobertura2.position.set(-0.22, 0.22, 0);
-      cobertura2.castShadow = true;
-      aeradorGroup.add(cobertura2);
-
-      // Aletas de ventilação orgânicas (formato de ondas)
-      for (let j = 0; j < 8; j++) {
-        const offsetX = -0.15 + (j * 0.04);
-
-        // Criar aleta curvada usando geometria de torus parcial
-        const aletaGeometry = new THREE.TorusGeometry(0.08, 0.008, 4, 12, Math.PI / 3);
-        const aletaMaterial = new THREE.MeshStandardMaterial({
+        // Perna principal (tubo estrutural)
+        const pernaGeometry = new THREE.CylinderGeometry(0.035, 0.045, 0.25, 12);
+        const pernaMaterial = new THREE.MeshStandardMaterial({
           color: 0x444444,
           metalness: 0.6,
           roughness: 0.4
         });
+        const perna = new THREE.Mesh(pernaGeometry, pernaMaterial);
+        perna.position.set(x, -0.125, z);
+        perna.castShadow = true;
+        aeradorGroup.add(perna);
+
+        // Sapata de apoio reforçada
+        const sapataGeometry = new THREE.CylinderGeometry(0.1, 0.08, 0.05, 10);
+        const sapata = new THREE.Mesh(sapataGeometry, pernaMaterial);
+        sapata.position.set(x, -0.25, z);
+        sapata.castShadow = true;
+        aeradorGroup.add(sapata);
+
+        // Diagonal de reforço estrutural
+        const diagonalGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.2, 8);
+        const diagonal = new THREE.Mesh(diagonalGeometry, pernaMaterial);
+        diagonal.position.set(x * 0.7, 0.05, z * 0.7);
+        diagonal.rotation.x = Math.atan2(z, x) + Math.PI / 4;
+        diagonal.rotation.z = -Math.PI / 6;
+        aeradorGroup.add(diagonal);
+
+        // Reforços triangulares
+        const reforcoGeometry = new THREE.ConeGeometry(0.06, 0.1, 6);
+        const reforco = new THREE.Mesh(reforcoGeometry, pernaMaterial);
+        reforco.position.set(x * 0.8, 0, z * 0.8);
+        reforco.rotation.x = Math.PI;
+        aeradorGroup.add(reforco);
+      }
+
+      // Carcaça do motor (formato industrial cilíndrico maior)
+      const carcacaGeometry = new THREE.CylinderGeometry(0.15, 0.17, 0.45, 32);
+      const carcacaMaterial = new THREE.MeshStandardMaterial({
+        color: cores[status],
+        metalness: 0.7,
+        roughness: 0.3,
+        emissive: status === 3 ? cores[status] : 0x000000,
+        emissiveIntensity: status === 3 ? 0.1 : 0
+      });
+      const carcaca = new THREE.Mesh(carcacaGeometry, carcacaMaterial);
+      carcaca.position.set(0, 0.405, 0);
+      carcaca.castShadow = true;
+      aeradorGroup.add(carcaca);
+
+      // Aletas de refrigeração do motor mais detalhadas
+      for (let i = 0; i < 16; i++) {
+        const aletaGeometry = new THREE.BoxGeometry(0.32, 0.02, 0.01);
+        const aletaMaterial = new THREE.MeshStandardMaterial({
+          color: 0x333333,
+          metalness: 0.8,
+          roughness: 0.2
+        });
         const aleta = new THREE.Mesh(aletaGeometry, aletaMaterial);
-        aleta.position.set(offsetX, 0.32, 0);
-        aleta.rotation.x = Math.PI / 2;
-        aleta.rotation.z = j * 0.2; // Rotação variada para efeito orgânico
+        aleta.position.set(0, 0.405 + (i - 8) * 0.025, 0);
         aeradorGroup.add(aleta);
       }
 
-      // Eixo de transmissão com variação orgânica
-      const eixoPoints = [];
-      for (let i = 0; i <= 15; i++) {
-        const t = i / 15;
-        const radius = 0.012 + 0.004 * Math.sin(t * Math.PI * 3); // Variação suave
-        eixoPoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.5));
-      }
-
-      const eixoGeometry = new THREE.LatheGeometry(eixoPoints, 16);
-      const eixoMaterial = new THREE.MeshStandardMaterial({
-        color: 0x888888,
+      // Tampa superior do motor com detalhes
+      const tampaGeometry = new THREE.CylinderGeometry(0.16, 0.15, 0.06, 32);
+      const tampaMaterial = new THREE.MeshStandardMaterial({
+        color: 0x555555,
         metalness: 0.8,
         roughness: 0.2
       });
+      const tampa = new THREE.Mesh(tampaGeometry, tampaMaterial);
+      tampa.position.set(0, 0.66, 0);
+      tampa.castShadow = true;
+      aeradorGroup.add(tampa);
+
+      // Eixo do motor mais robusto
+      const eixoGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.35, 16);
+      const eixoMaterial = new THREE.MeshStandardMaterial({
+        color: 0x777777,
+        metalness: 0.9,
+        roughness: 0.1
+      });
       const eixo = new THREE.Mesh(eixoGeometry, eixoMaterial);
-      eixo.position.set(0.28, 0.22, 0);
-      eixo.rotation.z = Math.PI / 2;
+      eixo.position.set(0, 0.82, 0);
       eixo.castShadow = true;
       aeradorGroup.add(eixo);
 
-      // Hélice com pás orgânicas curvadas
-      const heliceGroup = new THREE.Group();
-      heliceGroup.position.set(0.5, 0.22, 0);
+      
 
-      // Hub central orgânico (formato de pêra)
-      const hubGeometry = new THREE.SphereGeometry(0.04, 20, 16);
-      hubGeometry.scale(1.5, 1, 1); // Alongar para formato orgânico
+      // Hélice realista de grande porte horizontal (posição mais baixa)
+      const heliceGroup = new THREE.Group();
+      heliceGroup.position.set(0, 0.85, 0); // Posição mais baixa
+
+      // Hub central da hélice menor e cinza claro
+      const hubGeometry = new THREE.CylinderGeometry(0.06, 0.075, 0.1, 16); // Menor
       const hubMaterial = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        metalness: 0.7,
+        color: 0xB0B0B0, // Cinza claro
+        metalness: 0.6,
         roughness: 0.3
       });
       const hub = new THREE.Mesh(hubGeometry, hubMaterial);
+      // Rotacionar o hub para ficar horizontal
       hub.rotation.z = Math.PI / 2;
       heliceGroup.add(hub);
 
-      // Pás da hélice orgânicas (formato de folha)
-      for (let j = 0; j < 4; j++) {
-        const angle = (j * 90) * Math.PI / 180;
+      // Pás da hélice arredondadas industriais menores e mais magras (3 pás)
+      for (let j = 0; j < 3; j++) {
+        const angle = (j * 120) * Math.PI / 180;
 
-        // Criar pá usando curva spline para formato de folha
-        const paShape = new THREE.Shape();
-        paShape.moveTo(0, 0);
-        paShape.quadraticCurveTo(0.1, 0.05, 0.18, 0.02);
-        paShape.quadraticCurveTo(0.2, 0, 0.18, -0.02);
-        paShape.quadraticCurveTo(0.1, -0.05, 0, 0);
-
-        const paGeometry = new THREE.ExtrudeGeometry(paShape, {
-          depth: 0.004,
-          bevelEnabled: true,
-          bevelThickness: 0.002,
-          bevelSize: 0.002,
-          bevelSegments: 4
-        });
-
+        // Criar pá arredondada usando geometria customizada menor e mais magra
+        const paGroup = new THREE.Group();
+        
+        // Material das pás cinza claro
         const paMaterial = new THREE.MeshStandardMaterial({
-          color: 0xF0F0F0,
-          metalness: 0.4,
-          roughness: 0.6
+          color: 0xC0C0C0, // Cinza claro
+          metalness: 0.5,
+          roughness: 0.3
         });
 
-        const pa = new THREE.Mesh(paGeometry, paMaterial);
-        pa.position.set(0, 0, 0);
-        pa.rotation.z = angle;
-        pa.rotation.y = Math.PI / 8; // Ângulo de ataque suave
+        // Criar forma arredondada da pá usando menos segmentos e mais magra
+        const segmentos = 8;
+        for (let k = 0; k < segmentos; k++) {
+          const t = k / (segmentos - 1);
+          const raio = 0.03 + (0.06 * Math.sin(t * Math.PI)); // Menor e mais magra
+          const distancia = 0.05 + (t * 0.22); // Menor alcance
+          
+          const segmentoGeometry = new THREE.SphereGeometry(raio, 12, 8);
+          segmentoGeometry.scale(1, 0.1, 1.2); // Mais magra e achatada
+          
+          const segmento = new THREE.Mesh(segmentoGeometry, paMaterial);
+          segmento.position.set(distancia, 0, 0);
+          segmento.castShadow = true;
+          paGroup.add(segmento);
+        }
 
-        // Curvar a pá para dar efeito orgânico
-        const curvaExtra = new THREE.Group();
-        curvaExtra.add(pa);
-        curvaExtra.rotation.x = Math.sin(angle) * 0.1;
+        // Ponta arredondada da pá menor e mais magra
+        const pontaGeometry = new THREE.SphereGeometry(0.05, 12, 8);
+        pontaGeometry.scale(0.6, 0.1, 1.2); // Mais magra
+        const ponta = new THREE.Mesh(pontaGeometry, paMaterial);
+        ponta.position.set(0.28, 0, 0); // Menor alcance
+        ponta.castShadow = true;
+        paGroup.add(ponta);
 
-        heliceGroup.add(curvaExtra);
+        // Base da pá menor e mais magra
+        const baseGeometry = new THREE.SphereGeometry(0.03, 8, 6);
+        baseGeometry.scale(1, 0.15, 1.0); // Mais magra
+        const base = new THREE.Mesh(baseGeometry, paMaterial);
+        base.position.set(0.025, 0, 0);
+        base.castShadow = true;
+        paGroup.add(base);
+
+        // Posicionar e rotacionar a pá com mais espaço entre elas
+        paGroup.position.set(
+          Math.cos(angle) * 0.03, // Mais afastada do centro
+          0,
+          Math.sin(angle) * 0.03
+        );
+        paGroup.rotation.y = angle;
+        paGroup.rotation.z = Math.PI / 18; // Inclinação mais sutil
+
+        heliceGroup.add(paGroup);
       }
+
+      // Parafusos do hub menores
+      for (let j = 0; j < 8; j++) {
+        const angle = (j * 45) * Math.PI / 180;
+        const parafusoGeometry = new THREE.CylinderGeometry(0.008, 0.008, 0.02, 6);
+        const parafuso = new THREE.Mesh(parafusoGeometry, hubMaterial);
+        parafuso.position.set(
+          Math.cos(angle) * 0.04,
+          0,
+          Math.sin(angle) * 0.04
+        );
+        parafuso.rotation.z = Math.PI / 2;
+        heliceGroup.add(parafuso);
+      }
+
+      // Anel de reforço do hub menor
+      const anelGeometry = new THREE.TorusGeometry(0.045, 0.005, 6, 16);
+      const anel = new THREE.Mesh(anelGeometry, hubMaterial);
+      anel.rotation.x = Math.PI / 2;
+      heliceGroup.add(anel);
 
       aeradorGroup.add(heliceGroup);
 
@@ -1861,26 +1964,88 @@ export default {
         this.aeradorHélices.push(heliceGroup);
       }
 
-      // Suporte de conexão orgânico (formato de braço curvado)
-      const suportePoints = [];
-      for (let i = 0; i <= 12; i++) {
-        const t = i / 12;
-        const radius = 0.03 + 0.02 * Math.sin(t * Math.PI); // Variação orgânica
-        suportePoints.push(new THREE.Vector2(radius, (t - 0.5) * 0.25));
+      // Caixa de conexão elétrica mais detalhada
+      const caixaGeometry = new THREE.BoxGeometry(0.12, 0.08, 0.06);
+      const caixaMaterial = new THREE.MeshStandardMaterial({
+        color: 0x333333,
+        metalness: 0.3,
+        roughness: 0.7
+      });
+      const caixa = new THREE.Mesh(caixaGeometry, caixaMaterial);
+      caixa.position.set(0.25, 0.4, 0);
+      caixa.castShadow = true;
+      aeradorGroup.add(caixa);
+
+      // Tampa da caixa elétrica
+      const tampaCaixaGeometry = new THREE.BoxGeometry(0.13, 0.02, 0.07);
+      const tampaCaixa = new THREE.Mesh(tampaCaixaGeometry, caixaMaterial);
+      tampaCaixa.position.set(0.25, 0.45, 0);
+      aeradorGroup.add(tampaCaixa);
+
+      // Eletrodutos múltiplos
+      for (let i = 0; i < 2; i++) {
+        const eletrodutoGeometry = new THREE.CylinderGeometry(0.012, 0.012, 0.4, 8);
+        const eletroduto = new THREE.Mesh(eletrodutoGeometry, caixaMaterial);
+        eletroduto.position.set(0.25 + (i * 0.03), 0.18, 0);
+        aeradorGroup.add(eletroduto);
       }
 
-      const suporteGeometry = new THREE.LatheGeometry(suportePoints, 16);
-      const suporteMaterial = new THREE.MeshStandardMaterial({
-        color: 0x666666,
-        metalness: 0.4,
-        roughness: 0.6
+      // Fundação de concreto
+      const fundacaoGeometry = new THREE.CylinderGeometry(0.6, 0.65, 0.1, 16);
+      const fundacaoMaterial = new THREE.MeshStandardMaterial({
+        color: 0x888888,
+        roughness: 0.9,
+        metalness: 0.1
       });
-      const suporte = new THREE.Mesh(suporteGeometry, suporteMaterial);
-      suporte.position.set(0, 0.125, 0);
-      suporte.castShadow = true;
-      aeradorGroup.add(suporte);
+      const fundacao = new THREE.Mesh(fundacaoGeometry, fundacaoMaterial);
+      fundacao.position.set(0, -0.3, 0);
+      fundacao.receiveShadow = true;
+      aeradorGroup.add(fundacao);
 
       this.scene.add(aeradorGroup);
+
+      // Placa de identificação industrial
+      const placaGeometry = new THREE.BoxGeometry(0.15, 0.08, 0.008);
+      const placaMaterial = new THREE.MeshStandardMaterial({
+        color: 0x2E86AB,
+        metalness: 0.1,
+        roughness: 0.8
+      });
+      const placa = new THREE.Mesh(placaGeometry, placaMaterial);
+      placa.position.set(0, 0.5, 0.18);
+      aeradorGroup.add(placa);
+
+      // LED indicador de status mais realista
+      const ledGeometry = new THREE.CylinderGeometry(0.01, 0.012, 0.025, 8);
+      const ledMaterial = new THREE.MeshStandardMaterial({
+        color: cores[status],
+        emissive: status === 3 ? cores[status] : 0x000000,
+        emissiveIntensity: status === 3 ? 0.8 : 0,
+        transparent: true,
+        opacity: 0.9
+      });
+      const led = new THREE.Mesh(ledGeometry, ledMaterial);
+      led.position.set(0.08, 0.5, 0.18);
+      aeradorGroup.add(led);
+
+      // Efeito de luz quando ligado
+      if (status === 3) {
+        const luzLed = new THREE.PointLight(cores[status], 0.4, 1.5);
+        luzLed.position.set(0.08, 0.5, 0.18);
+        aeradorGroup.add(luzLed);
+
+        // Luz adicional na hélice
+        const luzHelice = new THREE.PointLight(0xffffff, 0.2, 2);
+        luzHelice.position.set(0, 1.0, 0);
+        aeradorGroup.add(luzHelice);
+      }
+
+      // Vibrações visuais quando ligado
+      if (status === 3) {
+        const originalPosition = aeradorGroup.position.clone();
+        aeradorGroup.userData.originalPosition = originalPosition;
+        aeradorGroup.userData.isVibrating = true;
+      }
     },
 
     buildGroundGrid() {
@@ -1986,7 +2151,18 @@ export default {
 
       // Animar hélices dos aeradores
       this.aeradorHélices.forEach(helice => {
-        helice.rotation.y += 0.1;
+        helice.rotation.y += 0.8; // Velocidade aumentada para aeradores industriais
+      });
+
+      // Animar vibrações dos aeradores ligados
+      const time = Date.now() * 0.01;
+      this.scene.traverse((child) => {
+        if (child.userData && child.userData.isVibrating) {
+          const originalPos = child.userData.originalPosition;
+          child.position.x = originalPos.x + Math.sin(time * 2.2) * 0.003;
+          child.position.y = originalPos.y + Math.cos(time * 1.8) * 0.002;
+          child.position.z = originalPos.z + Math.sin(time * 2.5) * 0.003;
+        }
       });
 
       if (this.renderer && this.scene && this.camera) {
@@ -2237,14 +2413,69 @@ export default {
 
       this.raycaster.setFromCamera(this.mouse, this.camera);
 
-      // Verificar interseção apenas com cabos
+      // Verificar interseção com cabos e sensores
       const intersects = this.raycaster.intersectObjects(this.cabos3D);
 
       if (intersects.length > 0) {
-        const cabo = intersects[0].object;
-        if (cabo.userData.tipo === 'cabo') {
-          this.mostrarInfoCabo(cabo.userData);
+        const objeto = intersects[0].object;
+        
+        if (objeto.userData.tipo === 'cabo') {
+          // Clicou no cabo - mostrar informações do cabo completo
+          this.mostrarInfoCabo(objeto.userData);
+        } else if (objeto.userData.tipo === 'sensor_clicavel') {
+          // Clicou em um sensor individual - usar dados do cabo correspondente
+          if (objeto.userData.caboCompleto) {
+            // Buscar todos os sensores do mesmo pêndulo para mostrar informações completas
+            this.mostrarInfoCaboDoSensor(objeto.userData);
+          } else {
+            // Fallback - mostrar apenas este sensor
+            this.mostrarInfoCabo(objeto.userData.caboCompleto || {
+              tipo: 'cabo',
+              nome: `Arco ${objeto.userData.arcoNum} - Pêndulo ${objeto.userData.penduloNum}`,
+              sensores: [{
+                numero: objeto.userData.sensorNum,
+                temperatura: objeto.userData.temp,
+                pontoQuente: objeto.userData.pontoQuente,
+                preAlarme: objeto.userData.preAlarme,
+                falha: objeto.userData.falha,
+                ativo: objeto.userData.ativo
+              }]
+            });
+          }
         }
+      }
+    },
+
+    mostrarInfoCaboDoSensor(dadosSensor) {
+      // Buscar todos os sensores do mesmo pêndulo nos dados originais
+      const arcoNum = dadosSensor.arcoNum;
+      const penduloNum = dadosSensor.penduloNum;
+      
+      if (this.dados?.arcos?.[arcoNum]?.[penduloNum]) {
+        const sensoresCompletos = this.dados.arcos[arcoNum][penduloNum];
+        
+        const caboCompleto = {
+          tipo: 'cabo',
+          arcoNum,
+          penduloNum,
+          nome: `Arco ${arcoNum} - Pêndulo ${penduloNum}`,
+          sensores: Object.entries(sensoresCompletos).map(([sensorNum, dadosSensor]) => {
+            const [temp, pontoQuente, preAlarme, falha, ativo] = dadosSensor;
+            return {
+              numero: parseInt(sensorNum),
+              temperatura: parseFloat(temp),
+              pontoQuente,
+              preAlarme,
+              falha,
+              ativo
+            };
+          })
+        };
+        
+        this.mostrarInfoCabo(caboCompleto);
+      } else {
+        // Fallback - usar dados do sensor individual
+        this.mostrarInfoCabo(dadosSensor.caboCompleto);
       }
     },
 
