@@ -207,7 +207,7 @@
                   <div class="d-flex align-items-center justify-content-center mb-2">
                     <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
                       @click="alterarQuantidadePendulos(-1)"
-                      :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5) <= 0"
+                      :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3) <= 0"
                       title="Diminuir quantidade">
                       -
                     </button>
@@ -218,7 +218,7 @@
                       min="0" max="50" />
                     <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
                       @click="alterarQuantidadePendulos(1)"
-                      :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5) >= 50"
+                      :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3) >= 50"
                       title="Aumentar quantidade">
                       +
                     </button>
@@ -232,66 +232,51 @@
                     </small>
                   </div>
 
-                  <!-- Controles de Modelagem Individual -->
-                  <div class="mt-3 p-2 border rounded bg-light">
-                    <div class="d-flex align-items-center justify-content-between mb-2">
-                      <small class="fw-bold text-dark">🎯 Modelagem Individual:</small>
-                      <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" v-model="modelagemIndividualAtiva" @change="onToggleModelagemIndividual">
-                        <label class="form-check-label small">
-                          {{ modelagemIndividualAtiva ? 'Individual' : 'Geral' }}
-                        </label>
+                  <!-- Controles de Posicionamento dos Pêndulos/Cabos -->
+                  <div class="mt-3 p-2 border rounded" style="background-color: #f0f8ff;">
+                    <div class="mb-2">
+                      <small class="fw-bold text-primary">🎯 Posicionamento dos Pêndulos/Cabos:</small>
+                    </div>
+                    
+                    <!-- Seletor de Cabo para Posicionamento Individual -->
+                    <div class="mb-2">
+                      <label class="form-label small fw-bold">Cabo Selecionado:</label>
+                      <select class="form-select form-select-sm" v-model="caboSelecionadoPosicionamento">
+                        <option :value="null">Selecione um cabo</option>
+                        <option v-for="i in (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3)" :key="i" :value="i">
+                          Cabo {{ i }}
+                        </option>
+                      </select>
+                    </div>
+
+                    <!-- Controles de Posicionamento do Cabo Selecionado -->
+                    <div v-if="caboSelecionadoPosicionamento" class="mb-2">
+                      <label class="form-label small fw-bold">Posição do Cabo {{ caboSelecionadoPosicionamento }}:</label>
+                      <div class="row g-1">
+                        <div class="col-12 mb-2">
+                          <label class="form-label" style="font-size: 0.7rem;">Horizontal (X): {{ posicoesCabos[caboSelecionadoPosicionamento]?.x || 0 }}px</label>
+                          <input type="range" class="form-range" 
+                                 v-model.number="posicoesCabos[caboSelecionadoPosicionamento].x"
+                                 @input="onPosicaoCaboChange"
+                                 min="-100" max="100" step="1">
+                        </div>
+                        <div class="col-12">
+                          <label class="form-label" style="font-size: 0.7rem;">Vertical (Y): {{ posicoesCabos[caboSelecionadoPosicionamento]?.y || 0 }}px</label>
+                          <input type="range" class="form-range" 
+                                 v-model.number="posicoesCabos[caboSelecionadoPosicionamento].y"
+                                 @input="onPosicaoCaboChange"
+                                 min="-50" max="50" step="1">
+                        </div>
                       </div>
                     </div>
 
-                    <div v-if="modelagemIndividualAtiva">
-                      <!-- Seletor de Pêndulo -->
-                      <div class="mb-2">
-                        <label class="form-label small fw-bold">Pêndulo Selecionado:</label>
-                        <select class="form-select form-select-sm" v-model="penduloSelecionado" @change="onPenduloSelecionadoChange">
-                          <option v-for="i in (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5)" :key="i" :value="i">
-                            Pêndulo {{ i }}
-                          </option>
-                        </select>
-                      </div>
-
-                      <!-- Controles de Movimentação -->
-                      <div class="mb-2" v-if="penduloSelecionado">
-                        <label class="form-label small fw-bold">Posicionamento Individual:</label>
-                        <div class="row g-1">
-                          <div class="col-6">
-                            <label class="form-label" style="font-size: 0.7rem;">Horizontal (X):</label>
-                            <div class="input-group input-group-sm">
-                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('left')" title="Esquerda">←</button>
-                              <input type="number" class="form-control form-control-sm text-center" 
-                                     v-model.number="posicoesPendulosIndividuais[penduloSelecionado].x"
-                                     @input="onPosicaoPenduloChange"
-                                     step="1" style="max-width: 60px;">
-                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('right')" title="Direita">→</button>
-                            </div>
-                          </div>
-                          <div class="col-6">
-                            <label class="form-label" style="font-size: 0.7rem;">Vertical (Y):</label>
-                            <div class="input-group input-group-sm">
-                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('up')" title="Cima">↑</button>
-                              <input type="number" class="form-control form-control-sm text-center" 
-                                     v-model.number="posicoesPendulosIndividuais[penduloSelecionado].y"
-                                     @input="onPosicaoPenduloChange"
-                                     step="1" style="max-width: 60px;">
-                              <button type="button" class="btn btn-outline-secondary btn-sm" @click="moverPendulo('down')" title="Baixo">↓</button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div class="text-center mt-2">
-                        <small class="text-info d-block" style="font-size: 0.7rem;">
-                          ✨ Modelagem individual ativa - dados desvinculados da API
-                        </small>
-                        <button type="button" class="btn btn-outline-primary btn-sm mt-1" @click="resetarPosicoesPendulos">
-                          🔄 Resetar Posições
-                        </button>
-                      </div>
+                    <div class="text-center mt-2">
+                      <small class="text-info d-block" style="font-size: 0.7rem;">
+                        ⚙️ Selecione um cabo acima para ajustar sua posição individual
+                      </small>
+                      <button type="button" class="btn btn-outline-primary btn-sm mt-1" @click="resetarPosicoesCabos">
+                        🔄 Resetar Posições dos Cabos
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -307,7 +292,7 @@
                       {{ modelosArcos[modeloArcoAtual]?.posicao || '' }}
                     </span>
                     <span class="badge bg-info">
-                      {{ modelosArcos[modeloArcoAtual]?.quantidadePendulos || 5 }}P
+                      {{ modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3 }}P
                     </span>
                     <span v-if="modelosSalvos[modeloArcoAtual]" class="badge bg-success">
                       SALVO
@@ -344,7 +329,7 @@
                             </div>
                             <div class="text-end">
                               <span v-if="modelosSalvos[i]" class="badge bg-success badge-sm mb-1">✓</span>
-                              <small class="d-block text-muted">{{ modelosArcos[i]?.quantidadePendulos || 5 }}P</small>
+                              <small class="d-block text-muted">{{ modelosArcos[i]?.quantidadePendulos || 3 }}P</small>
                             </div>
                           </div>
                         </div>
@@ -1172,10 +1157,19 @@ export default {
           posicao: 'todos',
           config: {},
           nome: 'Modelo Único',
-          quantidadePendulos: 5 // Valor inicial padrão
+          quantidadePendulos: 3, // Padrão alterado para 3 pêndulos
+          sensoresPorPendulo: {
+            1: 4, // Pêndulo 1 tem 4 sensores
+            2: 3, // Pêndulo 2 tem 3 sensores
+            3: 5  // Pêndulo 3 tem 5 sensores
+          }
         }
       },
       modelosSalvos: {},
+      
+      // Novos estados para posicionamento de cabos
+      caboSelecionadoPosicionamento: null,
+      posicoesCabos: {},
 
       // Estados para dados do JSON
       dados: null,
@@ -1199,7 +1193,14 @@ export default {
       modelagemIndividualAtiva: false,
       penduloSelecionado: 1,
       posicoesPendulosIndividuais: {},
-      dadosPreviewDesvinculados: null
+      dadosPreviewDesvinculados: null,
+      
+      // Modelagem Individual de Sensores
+      posicoesSensoresIndividuais: {},
+      ajustesGlobaisSensores: {
+        horizontal: 0,
+        vertical: 0
+      }
     }
   },
   computed: {
@@ -1249,6 +1250,7 @@ export default {
     await this.verificarDadosArcoRecebidos()
     await this.carregarDadosAPI()
     this.resetarModelosParaPadrao()
+    this.inicializarPosicoesCabos()
     this.updateSVG()
   },
   watch: {
@@ -1326,6 +1328,12 @@ export default {
           return
         }
 
+        // Para o modelador de armazém, usar dados exemplares ao invés da API
+        if (this.tipoAtivo === 'armazem') {
+          this.criarDadosExemplaresArmazem()
+          return
+        }
+
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
           headers: {
             'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MDg0ODExLCJleHAiOjE3NTUxMTM2MTEsIm5iZiI6MTc1NTA4NDgxMSwianRpIjoiOWxQMFZRV0k5YU51cmdMMSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJOIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.th1JB14DJeVk_cdX9nnh6a46kLC42o0cO-Il3ZTSLFM',
@@ -1364,6 +1372,115 @@ export default {
         console.error('Erro ao carregar dados da API:', error)
         this.error = this.tratarErroAPI(error)
       }
+    },
+
+    criarDadosExemplaresArmazem() {
+      // Criar dados exemplares para 3 arcos com diferentes configurações
+      const dadosExemplo = {
+        arcos: {
+          1: {
+            1: { // Pêndulo 1
+              1: [22.5, false, false, false, true],
+              2: [21.8, false, false, false, true],
+              3: [23.1, false, false, false, true],
+              4: [24.2, false, false, false, true]
+            },
+            2: { // Pêndulo 2
+              1: [25.3, false, false, false, true],
+              2: [26.1, false, false, false, true],
+              3: [24.8, false, false, false, true]
+            },
+            3: { // Pêndulo 3
+              1: [23.7, false, false, false, true],
+              2: [22.9, false, false, false, true],
+              3: [24.5, false, false, false, true],
+              4: [25.1, false, false, false, true],
+              5: [23.3, false, false, false, true]
+            },
+            4: { // Pêndulo 4
+              1: [21.2, false, false, false, true],
+              2: [22.4, false, false, false, true]
+            },
+            5: { // Pêndulo 5
+              1: [26.8, false, false, false, true],
+              2: [27.2, false, false, false, true],
+              3: [25.9, false, false, false, true],
+              4: [26.5, false, false, false, true]
+            }
+          },
+          2: {
+            1: { // Pêndulo 1
+              1: [20.5, false, false, false, true],
+              2: [19.8, false, false, false, true],
+              3: [21.1, false, false, false, true]
+            },
+            2: { // Pêndulo 2
+              1: [22.3, false, false, false, true],
+              2: [23.1, false, false, false, true],
+              3: [21.8, false, false, false, true],
+              4: [22.9, false, false, false, true]
+            },
+            3: { // Pêndulo 3
+              1: [24.7, false, false, false, true],
+              2: [25.2, false, false, false, true]
+            },
+            4: { // Pêndulo 4
+              1: [26.1, false, false, false, true],
+              2: [25.8, false, false, false, true],
+              3: [26.4, false, false, false, true],
+              4: [25.7, false, false, false, true],
+              5: [26.9, false, false, false, true]
+            }
+          },
+          3: {
+            1: { // Pêndulo 1
+              1: [18.5, false, false, false, true],
+              2: [19.2, false, false, false, true],
+              3: [18.8, false, false, false, true],
+              4: [19.5, false, false, false, true]
+            },
+            2: { // Pêndulo 2
+              1: [21.3, false, false, false, true],
+              2: [22.1, false, false, false, true],
+              3: [20.8, false, false, false, true]
+            },
+            3: { // Pêndulo 3
+              1: [23.7, false, false, false, true],
+              2: [24.2, false, false, false, true],
+              3: [23.4, false, false, false, true],
+              4: [24.8, false, false, false, true],
+              5: [23.1, false, false, false, true],
+              6: [24.5, false, false, false, true]
+            }
+          }
+        }
+      }
+
+      // Armazenar dados originais
+      this.dadosPortal = dadosExemplo
+
+      // Analisar estrutura dos arcos
+      const analise = this.analisarEstruturaArcos(dadosExemplo)
+      this.analiseArcos = analise
+
+      // Gerar layouts automáticos
+      const layouts = LayoutManager.gerarLayoutAutomatico(analise)
+      this.layoutsAutomaticos = layouts
+
+      // Calcular dimensões ideais
+      const dimensoes = this.calcularDimensoesIdeais(analise)
+      this.dimensoesSVG = dimensoes
+
+      // Converter dados para formato de renderização
+      const dadosConvertidos = this.converterDadosParaRenderizacao(dadosExemplo, 1)
+      this.dados = dadosConvertidos
+
+      console.log('Dados exemplares criados para o armazém:', {
+        analise,
+        layouts,
+        dimensoes,
+        dadosConvertidos
+      })
     },
 
     // Analisar estrutura dos arcos baseada na nova estrutura da API
@@ -1591,11 +1708,26 @@ export default {
           }
         }
 
+        const quantidadePendulos = this.analiseArcos?.arcos[i]?.totalPendulos || 3
+        
+        // Criar configuração padrão de sensores por pêndulo se não existir
+        let sensoresPorPendulo = {}
+        if (this.modelosArcos[i]?.sensoresPorPendulo) {
+          sensoresPorPendulo = { ...this.modelosArcos[i].sensoresPorPendulo }
+        } else {
+          // Criar configuração baseada nos dados exemplares se disponível
+          for (let p = 1; p <= quantidadePendulos; p++) {
+            const sensoresDoArco = this.analiseArcos?.arcos[i]?.pendulos?.find(pend => pend.numero === p)?.totalSensores
+            sensoresPorPendulo[p] = sensoresDoArco || Math.floor(Math.random() * 4) + 2 // 2-5 sensores aleatório
+          }
+        }
+
         novosModelos[i] = this.modelosArcos[i] || {
           posicao,
           config: { ...this.configArmazem },
           nome,
-          quantidadePendulos: this.analiseArcos?.arcos[i]?.totalPendulos || 5 // Valor padrão para 5 pêndulos
+          quantidadePendulos,
+          sensoresPorPendulo
         }
       }
 
@@ -1613,6 +1745,10 @@ export default {
     onModeloArcoChange() {
       if (this.modeloArcoAtual) {
         this.configArmazem = { ...this.modelosArcos[this.modeloArcoAtual].config }
+        
+        // Inicializar posições dos cabos para o modelo selecionado
+        this.inicializarPosicoesCabos()
+        
         this.salvarModelosAutomatico()
 
         // Automação: navegar para arco representativo do modelo selecionado
@@ -1914,7 +2050,9 @@ export default {
               ultimaModificacao: new Date().toISOString(),
               versaoModelo: '3.0'
             },
-            quantidadePendulos: modelo.quantidadePendulos || 5 // Valor padrão para 5 pêndulos
+            quantidadePendulos: modelo.quantidadePendulos || 5, // Valor padrão para 5 pêndulos
+            sensoresPorPendulo: modelo.sensoresPorPendulo || {}, // Configuração de sensores por pêndulo
+            posicoesCabos: modelo.posicoesCabos || {} // Posições dos cabos/pêndulos
           }
         }
       }
@@ -2069,11 +2207,16 @@ export default {
           posicao: 'todos',
           config: { ...configPadrao },
           nome: 'Modelo Único',
-          quantidadePendulos: 5 // Resetar para valor padrão
+          quantidadePendulos: 3, // Padrão alterado para 3 pêndulos
+          sensoresPorPendulo: {
+            1: 4, 2: 3, 3: 5 // Configuração padrão de sensores para 3 pêndulos
+          }
         }
       }
       this.modeloArcoAtual = null
       this.modelosSalvos = {}
+      this.caboSelecionadoPosicionamento = null
+      this.posicoesCabos = {}
     },
 
     salvarConfiguracao() {
@@ -2593,16 +2736,30 @@ export default {
       // Usar dados desvinculados se em modo individual, senão usar análise normal
       let arcoInfo
       if (this.modelagemIndividualAtiva && this.dadosPreviewDesvinculados) {
-        // Gerar estrutura fake baseada na quantidade de pêndulos
+        // Gerar estrutura fake baseada na quantidade de pêndulos e sensores configurados
         const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+        const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {}
+        
         arcoInfo = {
           pendulos: Array.from({length: quantidade}, (_, i) => ({
             numero: i + 1,
-            totalSensores: 1
+            totalSensores: sensoresPorPendulo[i + 1] || 1
           }))
         }
       } else {
-        arcoInfo = this.analiseArcos.arcos[this.arcoAtual]
+        // Para modo normal, usar configuração do modelo se disponível
+        const modeloAtual = this.determinarModeloParaArco(this.arcoAtual)
+        if (modeloAtual?.sensoresPorPendulo) {
+          const arcoOriginal = this.analiseArcos.arcos[this.arcoAtual]
+          arcoInfo = {
+            pendulos: arcoOriginal.pendulos.map(pendulo => ({
+              numero: pendulo.numero,
+              totalSensores: modeloAtual.sensoresPorPendulo[pendulo.numero] || pendulo.totalSensores
+            }))
+          }
+        } else {
+          arcoInfo = this.analiseArcos.arcos[this.arcoAtual]
+        }
       }
 
       if (!layoutArco || !arcoInfo) return ''
@@ -2625,26 +2782,52 @@ export default {
       arcoInfo.pendulos.forEach((pendulo, index) => {
         let xCaboBase
         
-        // Calcular posição base do cabo
+        // Calcular posição base do cabo com distribuição uniforme
         if (this.modelagemIndividualAtiva && layoutArco.desenho_sensores.pos_x_cabo.length < totalCabos) {
-          // Gerar posições automáticas se não há layout suficiente
-          const larguraDisponivel = (config.lb || 350) - 70
-          const espacamento = totalCabos > 1 ? larguraDisponivel / (totalCabos - 1) : 0
-          xCaboBase = 35 + (index * espacamento)
+          // Gerar posições automáticas uniformes usando toda a largura
+          const larguraTotal = config.lb || 350
+          const margemLateral = 35
+          const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+          
+          if (totalCabos === 1) {
+            xCaboBase = larguraTotal / 2
+          } else {
+            const espacamento = larguraUtilizavel / (totalCabos - 1)
+            xCaboBase = margemLateral + (index * espacamento)
+          }
         } else {
-          xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index] || (35 + index * 50)
+          // Usar layout existente ou fallback uniforme
+          if (layoutArco.desenho_sensores.pos_x_cabo[index] !== undefined) {
+            xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[index]
+          } else {
+            // Fallback: distribuição uniforme
+            const larguraTotal = config.lb || 350
+            const margemLateral = 35
+            const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+            
+            if (totalCabos === 1) {
+              xCaboBase = larguraTotal / 2
+            } else {
+              const espacamento = larguraUtilizavel / (totalCabos - 1)
+              xCaboBase = margemLateral + (index * espacamento)
+            }
+          }
         }
         
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
         
-        // Aplicar offset individual se em modo de modelagem individual
+        // Aplicar offset individual (seja de modelagem individual ou posicionamento de cabos)
         let offsetIndividualX = 0
         let offsetIndividualY = 0
         
         if (this.modelagemIndividualAtiva && this.posicoesPendulosIndividuais[pendulo.numero]) {
           offsetIndividualX = this.posicoesPendulosIndividuais[pendulo.numero].x || 0
           offsetIndividualY = this.posicoesPendulosIndividuais[pendulo.numero].y || 0
+        } else if (this.posicoesCabos && this.posicoesCabos[pendulo.numero]) {
+          // Usar posições dos cabos - garantir que sejam números
+          offsetIndividualX = parseFloat(this.posicoesCabos[pendulo.numero].x) || 0
+          offsetIndividualY = parseFloat(this.posicoesCabos[pendulo.numero].y) || 0
         }
         
         const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetIndividualX
@@ -2653,9 +2836,10 @@ export default {
 
         // Determinar cor do pêndulo (destacar se selecionado)
         const isPenduloSelecionado = this.modelagemIndividualAtiva && this.penduloSelecionado === pendulo.numero
+        const isCaboSelecionado = this.caboSelecionadoPosicionamento === pendulo.numero
         const corPendulo = isPenduloSelecionado ? "#FF6B35" : "#3A78FD"
-        const strokePendulo = isPenduloSelecionado ? "#FF4500" : "none"
-        const strokeWidth = isPenduloSelecionado ? "2" : "0"
+        const strokePendulo = (isPenduloSelecionado || isCaboSelecionado) ? "#FF6B35" : "none"
+        const strokeWidth = (isPenduloSelecionado || isCaboSelecionado) ? "3" : "0"
 
         // Retângulo do nome do pêndulo
         elementos += `
@@ -2692,9 +2876,24 @@ export default {
 
         // Sensores
         for (let s = 1; s <= numSensores; s++) {
-          const ySensor = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+          const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+          
+          // Aplicar offset individual se em modo de modelagem individual
+          let offsetSensorX = 0
+          let offsetSensorY = 0
+          
+          if (this.modelagemIndividualAtiva) {
+            const chaveSensor = `${pendulo.numero}-${s}`
+            if (this.posicoesSensoresIndividuais[chaveSensor]) {
+              offsetSensorX = this.posicoesSensoresIndividuais[chaveSensor].x || 0
+              offsetSensorY = this.posicoesSensoresIndividuais[chaveSensor].y || 0
+            }
+          }
+          
+          const xSensorFinal = xCabo + offsetSensorX
+          const ySensorFinal = ySensorBase + offsetSensorY
 
-          if (ySensor > 10 && ySensor < (this.alturaSVG - 60)) {
+          if (ySensorFinal > 10 && ySensorFinal < (this.alturaSVG - 60)) {
             // Determinar cor do sensor (para dados desvinculados)
             let corSensor = "#ccc"
             let valorSensor = "0"
@@ -2706,19 +2905,24 @@ export default {
               valorSensor = temp.toFixed(1)
             }
 
+            // Destacar sensor se for do pêndulo selecionado
+            const isSensorDestacado = this.modelagemIndividualAtiva && this.penduloSelecionado === pendulo.numero
+            const strokeSensor = isSensorDestacado ? "#FF6B35" : "black"
+            const strokeWidthSensor = isSensorDestacado ? "2" : "1"
+
             // Retângulo do sensor
             elementos += `
               <rect
                 id="C${index + 1}S${s}"
-                x="${xCabo - escala_sensores / 2}"
-                y="${ySensor}"
+                x="${xSensorFinal - escala_sensores / 2}"
+                y="${ySensorFinal}"
                 width="${escala_sensores}"
                 height="${escala_sensores / 2}"
                 rx="2"
                 ry="2"
                 fill="${corSensor}"
-                stroke="${isPenduloSelecionado ? strokePendulo : 'black'}"
-                stroke-width="${isPenduloSelecionado ? '2' : '1'}"
+                stroke="${strokeSensor}"
+                stroke-width="${strokeWidthSensor}"
               />
             `
 
@@ -2726,8 +2930,8 @@ export default {
             elementos += `
               <text
                 id="TC${index + 1}S${s}"
-                x="${xCabo}"
-                y="${ySensor + escala_sensores / 4}"
+                x="${xSensorFinal}"
+                y="${ySensorFinal + escala_sensores / 4}"
                 text-anchor="middle"
                 dominant-baseline="central"
                 font-size="${escala_sensores * 0.4 - 0.5}"
@@ -2742,8 +2946,8 @@ export default {
             elementos += `
               <text
                 id="TIND${index + 1}S${s}"
-                x="${xCabo - escala_sensores / 2 - 2}"
-                y="${ySensor + escala_sensores / 4}"
+                x="${xSensorFinal - escala_sensores / 2 - 2}"
+                y="${ySensorFinal + escala_sensores / 4}"
                 text-anchor="end"
                 dominant-baseline="central"
                 font-size="${escala_sensores * 0.4 - 1.5}"
@@ -2787,7 +2991,18 @@ export default {
           const xCaboBase = layoutArco.desenho_sensores.pos_x_cabo[penduloIndex]
           const distanciaDoMeio = penduloIndex - indiceCentral
           const deslocamentoX = distanciaDoMeio * dist_x_sensores
-          const xCabo = xCaboBase + posicao_horizontal + deslocamentoX
+          
+          // Aplicar offset dos cabos se existir
+          let offsetCaboX = 0
+          let offsetCaboY = 0
+          const numeroPenduloInt = parseInt(numeroPendulo)
+          if (this.posicoesCabos && this.posicoesCabos[numeroPenduloInt]) {
+            offsetCaboX = parseFloat(this.posicoesCabos[numeroPenduloInt].x) || 0
+            offsetCaboY = parseFloat(this.posicoesCabos[numeroPenduloInt].y) || 0
+          }
+          
+          const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetCaboX
+          const yPenduloFinal = yPendulo + offsetCaboY
           const numSensores = Object.keys(sensores).length
 
           // Atualizar posição do pêndulo
@@ -2795,9 +3010,9 @@ export default {
           const textoPendulo = document.getElementById(`TC${penduloIndex + 1}`)
           if (pendulo && textoPendulo) {
             pendulo.setAttribute('x', xCabo - escala_sensores / 2)
-            pendulo.setAttribute('y', yPendulo)
+            pendulo.setAttribute('y', yPenduloFinal)
             textoPendulo.setAttribute('x', xCabo)
-            textoPendulo.setAttribute('y', yPendulo + escala_sensores / 4)
+            textoPendulo.setAttribute('y', yPenduloFinal + escala_sensores / 4)
             textoPendulo.setAttribute('font-size', escala_sensores * 0.4 - 0.5)
           }
 
@@ -2806,7 +3021,7 @@ export default {
 
             const s = parseInt(numeroSensor)
             const [temp, , , falha, nivel] = dadosSensor
-            const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+            const ySensor = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
             const rec = document.getElementById(`C${penduloIndex + 1}S${numeroSensor}`)
             const txt = document.getElementById(`TC${penduloIndex + 1}S${numeroSensor}`)
@@ -3321,7 +3536,7 @@ export default {
     // Funções para lidar com a quantidade de pêndulos
     alterarQuantidadePendulos(incremento) {
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
-        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 5
+        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3
         let novaQtd = qtdAtual + incremento
 
         // Validar limites
@@ -3335,15 +3550,175 @@ export default {
 
     onQuantidadePendulosChange() {
       if (this.modeloArcoAtual) {
-        // Resetar posições individuais quando quantidade mudar
-        this.inicializarPosicoesPendulos()
+        // Regenerar dados de exemplo com nova quantidade
+        this.criarDadosExemplaresComNovaQuantidade()
+        // Regenerar layouts automáticos com nova quantidade
+        this.regenerarLayoutsAutomaticos()
+        // Inicializar posições dos cabos
+        this.inicializarPosicoesCabos()
         // Salvar automaticamente a alteração no modelo
         this.salvarModelosAutomatico()
-        // Se estiver em modo individual, desvincular dados
-        if (this.modelagemIndividualAtiva) {
-          this.desvincularDadosParaModelagem()
-        }
+        // Atualizar preview automaticamente
         this.updateSVG()
+      }
+    },
+    
+    // Novos métodos para controle de cabos
+    inicializarPosicoesCabos() {
+      if (!this.modeloArcoAtual) return
+      
+      const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
+      const posicoes = {}
+      
+      // Tentar carregar posições salvas do modelo
+      const posicoesSalvas = this.modelosArcos[this.modeloArcoAtual]?.posicoesCabos || {}
+      
+      // Inicializar posições baseadas no modelo salvo ou criar novas
+      for (let i = 1; i <= quantidade; i++) {
+        if (posicoesSalvas[i]) {
+          // Usar posições salvas do modelo - garantir que sejam números
+          posicoes[i] = { 
+            x: parseFloat(posicoesSalvas[i].x) || 0,
+            y: parseFloat(posicoesSalvas[i].y) || 0
+          }
+        } else if (this.posicoesCabos[i]) {
+          // Preservar posições existentes na sessão atual
+          posicoes[i] = { 
+            x: parseFloat(this.posicoesCabos[i].x) || 0,
+            y: parseFloat(this.posicoesCabos[i].y) || 0
+          }
+        } else {
+          // Criar nova posição
+          posicoes[i] = {
+            x: 0, // Offset horizontal
+            y: 0  // Offset vertical
+          }
+        }
+      }
+      
+      this.posicoesCabos = posicoes
+      
+      // Garantir que o cabo selecionado seja válido
+      if (this.caboSelecionadoPosicionamento > quantidade) {
+        this.caboSelecionadoPosicionamento = null
+      }
+    },
+    
+    onPosicaoCaboChange() {
+      // Garantir que a mudança seja salva no modelo atual
+      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+        // Salvar as posições dos cabos no modelo
+        this.modelosArcos[this.modeloArcoAtual].posicoesCabos = { ...this.posicoesCabos }
+        this.salvarModelosAutomatico()
+      }
+      // Atualizar preview em tempo real
+      this.$nextTick(() => {
+        this.updateSVG()
+      })
+    },
+
+    moverCabo(direcao) {
+      if (!this.caboSelecionadoPosicionamento || !this.posicoesCabos[this.caboSelecionadoPosicionamento]) return
+      
+      const posicao = this.posicoesCabos[this.caboSelecionadoPosicionamento]
+      const passo = 5 // Pixels por movimento
+      
+      switch (direcao) {
+        case 'left':
+          posicao.x -= passo
+          break
+        case 'right':
+          posicao.x += passo
+          break
+        case 'up':
+          posicao.y -= passo
+          break
+        case 'down':
+          posicao.y += passo
+          break
+      }
+      
+      this.updateSVG()
+    },
+
+    resetarPosicoesCabos() {
+      this.inicializarPosicoesCabos()
+      this.updateSVG()
+    },
+
+    criarDadosExemplaresComNovaQuantidade() {
+      if (!this.modeloArcoAtual) return
+      
+      const novaQuantidade = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3
+      const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo || {}
+      
+      // Atualizar dados do portal com nova quantidade para o arco atual
+      if (!this.dadosPortal.arcos[this.arcoAtual]) {
+        this.dadosPortal.arcos[this.arcoAtual] = {}
+      }
+      
+      // Limpar dados antigos
+      this.dadosPortal.arcos[this.arcoAtual] = {}
+      
+      // Criar novos dados baseados na quantidade configurada
+      for (let p = 1; p <= novaQuantidade; p++) {
+        const numSensores = sensoresPorPendulo[p] || Math.floor(Math.random() * 4) + 2 // 2-5 sensores
+        this.dadosPortal.arcos[this.arcoAtual][p] = {}
+        
+        for (let s = 1; s <= numSensores; s++) {
+          const temp = Math.random() * 15 + 15 // 15-30°C
+          this.dadosPortal.arcos[this.arcoAtual][p][s] = [temp, false, false, false, true]
+        }
+        
+        // Atualizar configuração de sensores se não existir
+        if (!sensoresPorPendulo[p]) {
+          this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo[p] = numSensores
+        }
+      }
+      
+      // Reanalisar estrutura
+      const novaAnalise = this.analisarEstruturaArcos(this.dadosPortal)
+      this.analiseArcos = novaAnalise
+      
+      // Converter dados para renderização
+      const dadosConvertidos = this.converterDadosParaRenderizacao(this.dadosPortal, this.arcoAtual)
+      this.dados = dadosConvertidos
+    },
+
+    regenerarLayoutsAutomaticos() {
+      if (!this.analiseArcos) return
+
+      // Criar nova estrutura de análise baseada nos modelos configurados
+      const analiseAtualizada = JSON.parse(JSON.stringify(this.analiseArcos))
+      
+      // Atualizar informações do arco atual com base no modelo
+      const modeloAtual = this.modelosArcos[this.modeloArcoAtual]
+      if (modeloAtual && analiseAtualizada.arcos[this.arcoAtual]) {
+        const novaQuantidade = modeloAtual.quantidadePendulos || 3
+        const sensoresPorPendulo = modeloAtual.sensoresPorPendulo || {}
+        
+        // Atualizar pendulos do arco
+        const novosPendulos = []
+        let totalSensores = 0
+        
+        for (let i = 1; i <= novaQuantidade; i++) {
+          const numSensores = sensoresPorPendulo[i] || 1
+          novosPendulos.push({
+            numero: i,
+            totalSensores: numSensores
+          })
+          totalSensores += numSensores
+        }
+        
+        analiseAtualizada.arcos[this.arcoAtual].pendulos = novosPendulos
+        analiseAtualizada.arcos[this.arcoAtual].totalPendulos = novaQuantidade
+        analiseAtualizada.arcos[this.arcoAtual].totalSensores = totalSensores
+      }
+
+      // Regenerar layouts com distribuição uniforme
+      const novosLayouts = LayoutManager.gerarLayoutAutomatico(analiseAtualizada)
+      if (novosLayouts) {
+        this.layoutsAutomaticos = { ...this.layoutsAutomaticos, ...novosLayouts }
       }
     },
 
@@ -3352,10 +3727,13 @@ export default {
       if (this.modelagemIndividualAtiva) {
         // Ativar modelagem individual
         this.inicializarPosicoesPendulos()
+        this.inicializarPosicoesSensores()
         this.desvincularDadosParaModelagem()
       } else {
         // Voltar para modelagem geral
         this.posicoesPendulosIndividuais = {}
+        this.posicoesSensoresIndividuais = {}
+        this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
         this.dadosPreviewDesvinculados = null
         this.penduloSelecionado = 1
       }
@@ -3365,7 +3743,7 @@ export default {
     inicializarPosicoesPendulos() {
       if (!this.modeloArcoAtual) return
       
-      const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+      const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
       const posicoes = {}
       
       // Inicializar posições baseadas no layout atual
@@ -3439,6 +3817,193 @@ export default {
 
     resetarPosicoesPendulos() {
       this.inicializarPosicoesPendulos()
+      this.updateSVG()
+    },
+
+    // Métodos para gerenciar sensores por pêndulo
+    alterarSensoresPendulo(numeroPendulo, incremento) {
+      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+        if (!this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo) {
+          this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = {}
+        }
+        
+        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo[numeroPendulo] || 1
+        let novaQtd = qtdAtual + incremento
+
+        // Validar limites
+        if (novaQtd < 1) novaQtd = 1
+        if (novaQtd > 10) novaQtd = 10
+
+        this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo[numeroPendulo] = novaQtd
+        this.onSensoresPenduloChange()
+      }
+    },
+
+    onSensoresPenduloChange() {
+      if (this.modeloArcoAtual) {
+        // Salvar automaticamente a alteração no modelo
+        this.salvarModelosAutomatico()
+        // Atualizar dados de preview se em modo individual
+        if (this.modelagemIndividualAtiva) {
+          this.atualizarDadosComNovosSensores()
+        }
+        this.updateSVG()
+      }
+    },
+
+    aplicarSensoresUniformes() {
+      if (!this.modeloArcoAtual) {
+        this.mostrarToast('Selecione um modelo primeiro!', 'warning')
+        return
+      }
+
+      const sensoresUniformes = prompt('Quantos sensores para todos os pêndulos? (1-10)', '3')
+      if (sensoresUniformes === null) return
+
+      const numero = parseInt(sensoresUniformes)
+      if (isNaN(numero) || numero < 1 || numero > 10) {
+        this.mostrarToast('Número inválido! Digite um valor entre 1 e 10.', 'error')
+        return
+      }
+
+      const quantidadePendulos = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+      const novosSensores = {}
+      
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        novosSensores[i] = numero
+      }
+
+      this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = novosSensores
+      this.onSensoresPenduloChange()
+      this.mostrarToast(`Aplicado ${numero} sensores para todos os ${quantidadePendulos} pêndulos!`, 'success')
+    },
+
+    atualizarDadosComNovosSensores() {
+      if (!this.modeloArcoAtual || !this.dadosPreviewDesvinculados) return
+
+      const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo || {}
+      const quantidadePendulos = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
+      const leituraAtualizada = {}
+
+      for (let p = 1; p <= quantidadePendulos; p++) {
+        const numSensores = sensoresPorPendulo[p] || 1
+        leituraAtualizada[p] = {}
+        
+        for (let s = 1; s <= numSensores; s++) {
+          // Gerar temperatura aleatória para cada sensor
+          const tempBase = Math.floor(Math.random() * 15 + 15) // 15-30°C
+          leituraAtualizada[p][s] = [tempBase, false, false, false, true]
+        }
+      }
+
+      this.dadosPreviewDesvinculados.leitura = leituraAtualizada
+    },
+
+    // Métodos para controle individual de sensores
+    inicializarPosicoesSensores() {
+      if (!this.modeloArcoAtual) return
+      
+      const quantidadePendulos = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
+      const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {}
+      const posicoes = {}
+      
+      for (let p = 1; p <= quantidadePendulos; p++) {
+        const numSensores = sensoresPorPendulo[p] || 1
+        for (let s = 1; s <= numSensores; s++) {
+          const chave = `${p}-${s}`
+          posicoes[chave] = {
+            x: 0, // Offset horizontal individual
+            y: 0  // Offset vertical individual
+          }
+        }
+      }
+      
+      this.posicoesSensoresIndividuais = posicoes
+    },
+
+    moverSensorIndividual(pendulo, sensor, direcao) {
+      const chave = `${pendulo}-${sensor}`
+      if (!this.posicoesSensoresIndividuais[chave]) {
+        this.posicoesSensoresIndividuais[chave] = { x: 0, y: 0 }
+      }
+      
+      const posicao = this.posicoesSensoresIndividuais[chave]
+      const passo = 2 // Pixels por movimento para sensores (mais preciso)
+      
+      switch (direcao) {
+        case 'left':
+          posicao.x -= passo
+          break
+        case 'right':
+          posicao.x += passo
+          break
+        case 'up':
+          posicao.y -= passo
+          break
+        case 'down':
+          posicao.y += passo
+          break
+      }
+      
+      this.updateSVG()
+    },
+
+    moverSensoresGlobal(direcao) {
+      const passo = 2
+      
+      switch (direcao) {
+        case 'left':
+          this.ajustesGlobaisSensores.horizontal -= passo
+          break
+        case 'right':
+          this.ajustesGlobaisSensores.horizontal += passo
+          break
+        case 'up':
+          this.ajustesGlobaisSensores.vertical -= passo
+          break
+        case 'down':
+          this.ajustesGlobaisSensores.vertical += passo
+          break
+      }
+      
+      this.aplicarAjusteGlobalSensores()
+    },
+
+    aplicarAjusteGlobalSensores() {
+      if (!this.penduloSelecionado) return
+      
+      const numSensores = this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo?.[this.penduloSelecionado] || 1
+      
+      for (let s = 1; s <= numSensores; s++) {
+        const chave = `${this.penduloSelecionado}-${s}`
+        if (!this.posicoesSensoresIndividuais[chave]) {
+          this.posicoesSensoresIndividuais[chave] = { x: 0, y: 0 }
+        }
+        
+        this.posicoesSensoresIndividuais[chave].x = this.ajustesGlobaisSensores.horizontal
+        this.posicoesSensoresIndividuais[chave].y = this.ajustesGlobaisSensores.vertical
+      }
+      
+      this.updateSVG()
+    },
+
+    resetarPosicaoSensor(pendulo, sensor) {
+      const chave = `${pendulo}-${sensor}`
+      if (this.posicoesSensoresIndividuais[chave]) {
+        this.posicoesSensoresIndividuais[chave] = { x: 0, y: 0 }
+        this.updateSVG()
+      }
+    },
+
+    resetarTodasPosicoesSensores() {
+      this.posicoesSensoresIndividuais = {}
+      this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
+      this.inicializarPosicoesSensores()
+      this.updateSVG()
+    },
+
+    onPosicaoSensorChange() {
+      // Atualizar preview em tempo real quando posição de sensor mudar
       this.updateSVG()
     }
   }
