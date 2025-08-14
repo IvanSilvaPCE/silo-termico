@@ -26,16 +26,17 @@
             <!-- Seção 0: Configuração de Modelos de Arcos -->
             <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
               :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
-              :modelo-posicao="modeloPosicao" @quantidade-modelos-change="onQuantidadeModelosChange"
+              :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
+              :posicoes-cabos="posicoesCabos"
+              @quantidade-modelos-change="onQuantidadeModelosChange"
               @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
               @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
-              @quantidade-pendulos-change="onQuantidadePendulosChange" @salvar-modelo-atual="salvarModeloAtual" />
-
-            <!-- Posicionamento de Cabos -->
-            <PosicionamentoCabos v-if="modeloArcoAtual" :modelo-arco-atual="modeloArcoAtual" :modelos-arcos="modelosArcos"
-              :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento" :posicoes-cabos="posicoesCabos"
+              @quantidade-pendulos-change="onQuantidadePendulosChange"
               @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
-              @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos" />
+              @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
+              @salvar-modelo-atual="salvarModeloAtual" />
+
+
 
             <!-- Seção 1: Dimensões Básicas -->
             <DimensoesBasicas :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
@@ -55,11 +56,20 @@
             @resetar-padrao="resetarPadrao" @resetar-modelos-padrao="resetarModelosParaPadrao"
             @voltar-preview="voltarParaPreview" />
 
-          <!-- Gerenciador de Configurações -->
-          <GerenciadorConfiguracoes :tipo-ativo="tipoAtivo" :nome-configuracao="nomeConfiguracao"
-            :configs-disponiveis="configsDisponiveis" :quantidade-modelos-arcos="quantidadeModelosArcos"
-            @update:nome-configuracao="nomeConfiguracao = $event" @salvar-configuracao="salvarConfiguracao"
-            @carregar-configuracao="carregarConfiguracao" @deletar-configuracao="deletarConfiguracao" />
+          <!-- Gerenciador de Configurações (Banco de Dados) -->
+          <GerenciadorModelosBanco
+            :tipo-ativo="tipoAtivo"
+            :quantidade-modelos-arcos="quantidadeModelosArcos"
+            :modelos-arcos="modelosArcos"
+            :modelos-salvos="modelosSalvos"
+            :config-silo="configSilo"
+            :config-armazem="configArmazem"
+            @configuracao-carregada="carregarConfiguracaoDoBanco"
+            @mostrar-toast="mostrarToast"
+          />
+
+          <!-- Gerenciador de Configurações (Backup Local) -->
+          <GerenciadorConfiguracoes />
         </div>
       </div>
 
@@ -264,6 +274,7 @@ import ConfiguracaoTelhado from './compModelador/ConfiguracaoTelhado.vue'
 import ConfiguracaoFundo from './compModelador/ConfiguracaoFundo.vue'
 import ConfiguracaoSensores from './compModelador/ConfiguracaoSensores.vue'
 import BotoesControle from './compModelador/BotoesControle.vue'
+import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue'
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
 
 export default {
@@ -278,6 +289,7 @@ export default {
     ConfiguracaoFundo,
     ConfiguracaoSensores,
     BotoesControle,
+    GerenciadorModelosBanco,
     GerenciadorConfiguracoes
   },
   data() {
@@ -396,6 +408,8 @@ export default {
       return typeof window !== 'undefined' && window.innerWidth <= 576
     },
     configsDisponiveis() {
+      // Manter compatibilidade com localStorage temporariamente
+      // TODO: Migrar completamente para banco de dados
       const prefixo = `config${this.tipoAtivo === 'silo' ? 'Silo' : 'Armazem'}_`
       const configs = []
 
@@ -437,7 +451,12 @@ export default {
   async mounted() {
     await this.verificarDadosArcoRecebidos()
     await this.carregarDadosAPI()
-    this.resetarModelosParaPadrao()
+
+    // Tentar carregar estado dos modelos salvo anteriormente
+    if (!this.carregarEstadoModelosSalvo()) {
+      this.resetarModelosParaPadrao()
+    }
+
     this.inicializarPosicoesCabos()
     this.updateSVG()
   },
@@ -524,7 +543,7 @@ export default {
 
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MDg0ODExLCJleHAiOjE3NTUxMTM2MTEsIm5iZiI6MTc1NTA4NDgxMSwianRpIjoiOWxQMFZRV0k5YU51cmdMMSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJOIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.th1JB14DJeVk_cdX9nnh6a46kLC42o0cO-Il3ZTSLFM',
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MTY3MzAyLCJleHAiOjE3NTUxOTYxMDIsIm5iZiI6MTc1NTE2NzMwMiwianRpIjoibTlOdXlBSzFueDFtSVBNZCIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.kXfVBg1uEyg88qWOLO448qwwd5LgpaF0nf1aFe0Oujo',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -547,7 +566,7 @@ export default {
         const analise = this.analisarEstruturaArcos(data)
         this.analiseArcos = analise
 
-        // Gerar layouts automáticos
+        // Gerar layouts automaticos
         const layouts = LayoutManager.gerarLayoutAutomatico(analise)
         this.layoutsAutomaticos = layouts
         // Calcular dimensões ideais
@@ -651,7 +670,7 @@ export default {
       const analise = this.analisarEstruturaArcos(dadosExemplo)
       this.analiseArcos = analise
 
-      // Gerar layouts automáticos
+      // Gerar layouts automaticos
       const layouts = LayoutManager.gerarLayoutAutomatico(analise)
       this.layoutsAutomaticos = layouts
 
@@ -1296,13 +1315,18 @@ export default {
         return
       }
 
+      // Salvar configuração atual no modelo
       const modeloParaSalvar = {
         ...this.modelosArcos[this.modeloArcoAtual],
-        config: { ...this.configArmazem }
+        config: { ...this.configArmazem },
+        quantidadePendulos: this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3,
+        sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo },
+        posicoesCabos: { ...this.posicoesCabos },
+        timestampSalvamento: new Date().toISOString()
       }
 
       this.modelosArcos[this.modeloArcoAtual] = modeloParaSalvar
-      this.modelosSalvos[this.modeloArcoAtual] = modeloParaSalvar
+      this.modelosSalvos[this.modeloArcoAtual] = true
 
       this.salvarModelosAutomatico()
 
@@ -1311,17 +1335,54 @@ export default {
 
     salvarModelosAutomatico() {
       if (typeof localStorage !== 'undefined') {
-        const configCompleta = {
+        const estadoModelos = {
           quantidadeModelos: this.quantidadeModelosArcos,
           modelosArcos: this.modelosArcos,
+          modelosSalvos: this.modelosSalvos,
           modeloAtual: this.modeloArcoAtual,
+          posicoesCabos: this.posicoesCabos,
           timestamp: new Date().toISOString(),
-          versao: '2.0',
-          tipo: 'configuracao_armazem_completa'
+          versao: '3.0',
+          tipo: 'estado_modelos_arcos'
         }
 
-        localStorage.setItem('configArmazem', JSON.stringify(configCompleta))
+        localStorage.setItem('estadoModelosArcos', JSON.stringify(estadoModelos))
       }
+    },
+
+    // Sistema de validação antes de salvar configuração final
+    validarModelosParaSalvar() {
+      const modelosValidados = {}
+      let todosValidados = true
+
+      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+        const modelo = this.modelosArcos[i]
+        if (!modelo || !this.modelosSalvos[i]) {
+          todosValidados = false
+          this.mostrarToast(`Modelo ${i} não foi salvo ainda! Salve todos os modelos antes de salvar a configuração.`, 'warning')
+          break
+        }
+
+        // Validar se o modelo tem configuração completa
+        if (!modelo.config || !modelo.nome || !modelo.posicao) {
+          todosValidados = false
+          this.mostrarToast(`Modelo ${i} está incompleto! Configure nome, posição e configurações.`, 'warning')
+          break
+        }
+
+        modelosValidados[i] = {
+          numero: i,
+          nome: modelo.nome,
+          posicao: modelo.posicao,
+          quantidadePendulos: modelo.quantidadePendulos || 3,
+          sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+          posicoesCabos: modelo.posicoesCabos || {},
+          configuracao: { ...modelo.config },
+          timestampSalvamento: modelo.timestampSalvamento || new Date().toISOString()
+        }
+      }
+
+      return todosValidados ? modelosValidados : null
     },
 
     resetSiloField(campo, valor) {
@@ -1445,114 +1506,113 @@ export default {
           localStorage.setItem(`configSilo_${this.nomeConfiguracao}`, JSON.stringify(configCompletaSilo))
           this.mostrarToast(`Configuração Silo "${this.nomeConfiguracao}" salva com sucesso!`, 'success')
         } else {
-          // Para armazém, criar hierarquia completa com TODAS as variáveis
-          const hierarquiaCompleta = {
-            // Metadados da configuração
+          // ETAPA 2: Validar se todos os modelos estão salvos antes de salvar configuração
+          const modelosValidados = this.validarModelosParaSalvar()
+          if (!modelosValidados) {
+            return // Mensagem de erro já foi mostrada na validação
+          }
+
+          // Criar configuração completa do armazém
+          const configCompleta = {
+            // Metadados
             nome: this.nomeConfiguracao,
             timestamp: new Date().toISOString(),
-            versao: '3.0',
-            tipo: 'configuracao_armazem_hierarquica',
+            versao: '4.0',
+            tipo: 'configuracao_armazem_completa',
 
-            // Informações da estrutura do armazém
-            estruturaArmazem: {
+            // SISTEMA DE MODELOS - Informações essenciais para recriação
+            sistemaModelos: {
+              quantidadeModelos: this.quantidadeModelosArcos,
+              logicaDistribuicao: this.obterLogicaDistribuicaoCompleta(),
+              modelosDefinidos: modelosValidados
+            },
+
+            // Informações da estrutura (para referência)
+            estruturaReferencia: {
               totalArcos: this.analiseArcos?.totalArcos || 1,
-              arcosDetalhados: this.analiseArcos?.arcos || {},
               estatisticas: this.analiseArcos?.estatisticas || { totalPendulos: 0, totalSensores: 0 }
             },
 
-            // Configuração dos modelos com TODAS as variáveis preservadas
-            configModelos: {
-              quantidadeModelos: this.quantidadeModelosArcos,
-              modeloAtualSelecionado: this.modeloArcoAtual,
-              logicaDistribuicao: this.obterLogicaDistribuicao(),
-              modelosDefinidos: this.prepararModelosParaSalvar(),
-              modelosSalvos: { ...this.modelosSalvos }
-            },
+            // Configurações globais padrão
+            configuracaoGlobal: { ...this.configArmazem },
 
-            // Layouts automáticos se disponível
-            layoutsAutomaticos: this.layoutsAutomaticos || {},
-
-            // Configuração padrão atual COM TODAS as propriedades
-            configuracaoPadrao: {
-              // Dimensões Básicas
-              pb: this.configArmazem.pb,
-              lb: this.configArmazem.lb,
-              hb: this.configArmazem.hb,
-              hf: this.configArmazem.hf,
-              lf: this.configArmazem.lf,
-              le: this.configArmazem.le,
-              ht: this.configArmazem.ht,
-
-              // Configuração do Telhado
-              tipo_telhado: this.configArmazem.tipo_telhado,
-              curvatura_topo: this.configArmazem.curvatura_topo,
-              pontas_redondas: this.configArmazem.pontas_redondas,
-              raio_pontas: this.configArmazem.raio_pontas,
-              estilo_laterais: this.configArmazem.estilo_laterais,
-              curvatura_laterais: this.configArmazem.curvatura_laterais,
-
-              // Configuração do Fundo
-              tipo_fundo: this.configArmazem.tipo_fundo,
-              altura_fundo_reto: this.configArmazem.altura_fundo_reto,
-              altura_funil_v: this.configArmazem.altura_funil_v,
-              posicao_ponta_v: this.configArmazem.posicao_ponta_v,
-              inclinacao_funil_v: this.configArmazem.inclinacao_funil_v,
-              largura_abertura_v: this.configArmazem.largura_abertura_v,
-              altura_duplo_v: this.configArmazem.altura_duplo_v,
-              posicao_v_esquerdo: this.configArmazem.posicao_v_esquerdo,
-              posicao_v_direito: this.configArmazem.posicao_v_direito,
-              largura_abertura_duplo_v: this.configArmazem.largura_abertura_duplo_v,
-              altura_plataforma_duplo_v: this.configArmazem.altura_plataforma_duplo_v,
-              largura_plataforma_duplo_v: this.configArmazem.largura_plataforma_duplo_v,
-              deslocamento_horizontal_fundo: this.configArmazem.deslocamento_horizontal_fundo,
-              deslocamento_vertical_fundo: this.configArmazem.deslocamento_vertical_fundo,
-
-              // Configuração dos Sensores
-              escala_sensores: this.configArmazem.escala_sensores,
-              dist_y_sensores: this.configArmazem.dist_y_sensores,
-              dist_x_sensores: this.configArmazem.dist_x_sensores,
-              posicao_horizontal: this.configArmazem.posicao_horizontal,
-              posicao_vertical: this.configArmazem.posicao_vertical,
-              afastamento_vertical_pendulo: this.configArmazem.afastamento_vertical_pendulo
-            },
-
-            // Dimensões calculadas do SVG
+            // Dimensões SVG
             dimensoesSVG: {
               largura: this.larguraSVG,
               altura: this.alturaSVG
             },
 
-            // Estado atual da aplicação
-            estadoAtual: {
-              arcoAtual: this.arcoAtual,
-              tipoAtivo: this.tipoAtivo,
-              dadosVindosDoPreview: this.dadosVindosDoPreview,
-              configuracaoPreviewSelecionada: this.configuracaoPreviewSelecionada
-            },
+            // Layouts automáticos
+            layoutsAutomaticos: this.layoutsAutomaticos || {},
 
-            // Informações de distribuição de modelos por arco
-            mapeamentoArcos: this.gerarMapeamentoArcos(),
-
-            // Dados originais se disponíveis
+            // Dados originais (se disponíveis)
             dadosOriginais: {
               dadosPortal: this.dadosPortal,
-              analiseArcos: this.analiseArcos,
-              dados: this.dados
+              analiseArcos: this.analiseArcos
             }
           }
 
-          localStorage.setItem('configArmazem', JSON.stringify(hierarquiaCompleta))
-          localStorage.setItem(`configArmazem_${this.nomeConfiguracao}`, JSON.stringify(hierarquiaCompleta))
+          // Salvar configuração
+          localStorage.setItem('configArmazem', JSON.stringify(configCompleta))
+          localStorage.setItem(`configArmazem_${this.nomeConfiguracao}`, JSON.stringify(configCompleta))
 
-          const resumo = this.gerarResumoConfiguracao(hierarquiaCompleta)
-          this.mostrarToast(resumo, 'success')
+          // Gerar mapeamento de como os arcos serão distribuídos
+          const mapeamento = this.gerarMapeamentoDistribuicao()
 
-          // Não resetar após salvar - manter contexto atual
+          this.mostrarToast(
+            `✅ Configuração "${this.nomeConfiguracao}" salva!\n\n` +
+            `📊 ${this.quantidadeModelosArcos} modelo(s) de arco configurado(s)\n` +
+            `🎯 Lógica: ${this.obterLogicaDistribuicao().nome}\n` +
+            `📐 Total de ${this.analiseArcos?.totalArcos || 1} arcos no armazém\n\n` +
+            `${mapeamento}`,
+            'success'
+          )
+
           this.nomeConfiguracao = ''
         }
 
         this.forceUpdateLista++
       }
+    },
+
+    // Nova função para gerar lógica de distribuição completa
+    obterLogicaDistribuicaoCompleta() {
+      const logica = this.obterLogicaDistribuicao()
+
+      return {
+        ...logica,
+        mapeamentoDetalhado: {
+          1: this.quantidadeModelosArcos === 1 ? 'todos' :
+              this.quantidadeModelosArcos === 2 ? 'impar' :
+              this.quantidadeModelosArcos === 3 ? 'frente_fundo' :
+              'frente',
+          2: this.quantidadeModelosArcos <= 1 ? 'todos' :
+              this.quantidadeModelosArcos === 2 ? 'par' :
+              this.quantidadeModelosArcos === 3 ? 'par' :
+              'par',
+          3: this.quantidadeModelosArcos <= 2 ? null :
+              this.quantidadeModelosArcos === 3 ? 'impar' :
+              'impar',
+          4: this.quantidadeModelosArcos <= 3 ? null : 'fundo'
+        }
+      }
+    },
+
+    // Gerar preview do mapeamento
+    gerarMapeamentoDistribuicao() {
+      const totalArcos = this.analiseArcos?.totalArcos || 1
+      let preview = "📋 Distribuição dos modelos:\n"
+
+      for (let arco = 1; arco <= Math.min(totalArcos, 10); arco++) {
+        const modelo = this.determinarModeloParaArco(arco)
+        preview += `   Arco ${arco}: ${modelo?.nome || 'Padrão'}\n`
+      }
+
+      if (totalArcos > 10) {
+        preview += `   ... e mais ${totalArcos - 10} arcos seguindo o padrão`
+      }
+
+      return preview
     },
 
     carregarConfiguracao(nome = null) {
@@ -1567,18 +1627,21 @@ export default {
           const dadosCarregados = JSON.parse(configSalva)
 
           if (this.tipoAtivo === 'silo') {
-            this.configSilo = dadosCarregados
+            this.carregarConfiguracaoV4(dadosCarregados, nomeConfig) // Usando v4 para carregar silo também
             this.mostrarToast('Configuração do silo carregada com sucesso!', 'success')
           } else {
-            // Verificar tipo de configuração
-            if (dadosCarregados.tipo === 'configuracao_armazem_hierarquica') {
-              // Configuração hierárquica nova (v3.0+)
+            // Sistema de carregamento baseado na versão
+            if (dadosCarregados.versao === '4.0' && dadosCarregados.tipo === 'configuracao_armazem_completa') {
+              // Nova versão v4.0 - sistema completo de modelos
+              this.carregarConfiguracaoV4(dadosCarregados, nomeConfig)
+            } else if (dadosCarregados.tipo === 'configuracao_armazem_hierarquica') {
+              // Configuração hierárquica v3.0
               this.carregarConfiguracaoHierarquica(dadosCarregados, nomeConfig)
             } else if (dadosCarregados.modelosArcos && dadosCarregados.tipo === 'configuracao_armazem_completa') {
-              // Configuração completa antiga (v2.0)
+              // Configuração completa v2.0
               this.carregarConfiguracaoCompleta(dadosCarregados, nomeConfig)
             } else {
-              // Configuração simples (formato antigo v1.0) - converter
+              // Configuração simples v1.0
               this.carregarConfiguracaoSimples(dadosCarregados, nomeConfig)
             }
           }
@@ -1591,6 +1654,124 @@ export default {
           this.mostrarToast('Configuração não encontrada!', 'error')
         }
       }
+    },
+
+    // Nova função para carregar configurações v4.0
+    carregarConfiguracaoV4(dados, nomeConfig) {
+      console.log('Carregando configuração v4.0:', dados)
+
+      // Limpar estado atual
+      this.resetarEstadoModelos()
+
+      // Restaurar sistema de modelos
+      const sistemaModelos = dados.sistemaModelos
+      this.quantidadeModelosArcos = sistemaModelos.quantidadeModelos
+
+      // Recriar modelos baseado na configuração salva
+      const novosModelos = {}
+      const novosSalvos = {}
+
+      Object.keys(sistemaModelos.modelosDefinidos).forEach(numeroModelo => {
+        const modeloSalvo = sistemaModelos.modelosDefinidos[numeroModelo]
+
+        const modelo = {
+          numero: parseInt(numeroModelo),
+          nome: modeloSalvo.nome,
+          posicao: modeloSalvo.posicao,
+          quantidadePendulos: modeloSalvo.quantidadePendulos || 3,
+          sensoresPorPendulo: { ...modeloSalvo.sensoresPorPendulo },
+          posicoesCabos: { ...modeloSalvo.posicoesCabos },
+          config: { ...modeloSalvo.configuracao },
+          timestampSalvamento: modeloSalvo.timestampSalvamento
+        }
+
+        novosModelos[numeroModelo] = modelo
+        novosSalvos[numeroModelo] = true
+      })
+
+      this.modelosArcos = novosModelos
+      this.modelosSalvos = novosSalvos
+
+      // Restaurar configuração global
+      this.configArmazem = { ...dados.configuracaoGlobal }
+
+      // Restaurar dados originais se disponíveis
+      if (dados.dadosOriginais?.dadosPortal) {
+        this.dadosPortal = dados.dadosOriginais.dadosPortal
+      }
+      if (dados.dadosOriginais?.analiseArcos) {
+        this.analiseArcos = dados.dadosOriginais.analiseArcos
+      }
+
+      // Restaurar layouts
+      if (dados.layoutsAutomaticos) {
+        this.layoutsAutomaticos = dados.layoutsAutomaticos
+      }
+
+      // Restaurar dimensões SVG
+      if (dados.dimensoesSVG) {
+        this.larguraSVG = dados.dimensoesSVG.largura
+        this.alturaSVG = dados.dimensoesSVG.altura
+      }
+
+      // Aplicar configuração do primeiro modelo no preview
+      setTimeout(() => {
+        const primeiroModelo = novosModelos[1]
+        if (primeiroModelo) {
+          this.configArmazem = { ...primeiroModelo.config }
+          this.inicializarPosicoesCabos()
+        }
+      }, 100)
+
+      const logica = sistemaModelos.logicaDistribuicao?.nome || 'Personalizada'
+      this.mostrarToast(
+        `✅ Configuração "${nomeConfig}" carregada!\n\n` +
+        `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s)\n` +
+        `🎯 Lógica: ${logica}\n` +
+        `📐 Dimensões: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}\n\n` +
+        `💡 Todos os modelos foram restaurados com suas configurações originais!`,
+        'success'
+      )
+    },
+
+    // Função para resetar estado dos modelos
+    resetarEstadoModelos() {
+      this.modelosArcos = {}
+      this.modelosSalvos = {}
+      this.modeloArcoAtual = null
+      this.posicoesCabos = {}
+      this.caboSelecionadoPosicionamento = null
+    },
+
+    // Carregar estado dos modelos salvos automaticamente
+    carregarEstadoModelosSalvo() {
+      if (typeof localStorage !== 'undefined') {
+        const estadoSalvo = localStorage.getItem('estadoModelosArcos')
+        if (estadoSalvo) {
+          try {
+            const estado = JSON.parse(estadoSalvo)
+
+            // Verificar se é uma sessão recente (menos de 1 hora)
+            const agora = new Date().getTime()
+            const timestampEstado = new Date(estado.timestamp).getTime()
+            const umaHora = 60 * 60 * 1000
+
+            if ((agora - timestampEstado) < umaHora) {
+              this.quantidadeModelosArcos = estado.quantidadeModelos || 1
+              this.modelosArcos = estado.modelosArcos || {}
+              this.modelosSalvos = estado.modelosSalvos || {}
+              this.modeloArcoAtual = estado.modeloAtual || null
+              this.posicoesCabos = estado.posicoesCabos || {}
+
+              console.log('Estado dos modelos restaurado da sessão anterior')
+              return true
+            }
+          } catch (error) {
+            console.warn('Erro ao carregar estado dos modelos:', error)
+          }
+        }
+      }
+      return false
     },
 
     carregarConfiguracaoHierarquica(dados, nomeConfig) {
@@ -1736,7 +1917,7 @@ export default {
         }
       }, 100)
 
-      this.mostrarToast(`Configuração completa "${nomeConfig}" carregada com ${this.quantidadeModelosArcos} modelo(s)!`, 'success')
+      this.mostrarToast(`Configuração "${nomeConfig}" carregada com ${this.quantidadeModelosArcos} modelo(s)!`, 'success')
     },
 
     carregarConfiguracaoSimples(dadosCarregados, nomeConfig) {
@@ -1842,9 +2023,9 @@ export default {
           try {
             const configData = JSON.parse(configSalva)
 
-            if (configData.tipo === 'configuracao_armazem_hierarquica' && configData.modelosArcos) {
+            if (configData.tipo === 'configuracao_armazem_completa' && configData.sistemaModelos?.modelosDefinidos) {
               // Determinar qual modelo aplicar baseado no arco atual
-              const modeloParaArco = this.determinarModeloParaArcoComConfig(this.arcoAtual, configData.modelosArcos, configData.quantidadeModelos)
+              const modeloParaArco = this.determinarModeloParaArcoComConfig(this.arcoAtual, configData.sistemaModelos.modelosDefinidos, configData.sistemaModelos.quantidadeModelos)
 
               if (modeloParaArco && modeloParaArco.config) {
                 this.configPreviewAplicada = modeloParaArco.config
@@ -1927,11 +2108,11 @@ export default {
       if (!this.layoutsAutomaticos || !this.analiseArcos) return ''
 
       let elementos = ''
-      
+
       // Determinar estrutura dos pêndulos baseada no modelo atual
       let arcoInfo
       const modeloAtual = this.determinarModeloParaArco(this.arcoAtual)
-      
+
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
         // Quando editando um modelo específico, usar configuração do modelo
         const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
@@ -1963,13 +2144,13 @@ export default {
 
       // Garantir que o layout seja atualizado com a quantidade correta
       const layoutArco = this.layoutsAutomaticos[`arco_${this.arcoAtual}`] || LayoutManager.gerarLayoutParaArco(arcoInfo)
-      
+
       // Forçar atualização do layout se a quantidade de pêndulos mudou
       if (!layoutArco || layoutArco.configuracao?.totalPendulos !== arcoInfo.pendulos.length) {
         const novoLayout = LayoutManager.gerarLayoutParaArco(arcoInfo)
         this.layoutsAutomaticos[`arco_${this.arcoAtual}`] = novoLayout
       }
-      
+
       // Garantir que o layout está atualizado com a quantidade correta
       const layoutAtualizado = this.layoutsAutomaticos[`arco_${this.arcoAtual}`] || LayoutManager.gerarLayoutParaArco(arcoInfo)
 
@@ -1993,7 +2174,7 @@ export default {
       const margemLateral = 35
       const larguraUtilizavel = larguraTotal - (2 * margemLateral)
       const posicoesCabos = []
-      
+
       if (totalCabos === 1) {
         posicoesCabos.push(larguraTotal / 2)
       } else {
@@ -2002,7 +2183,7 @@ export default {
           posicoesCabos.push(margemLateral + (i * espacamento))
         }
       }
-      
+
       // Forçar atualização das posições
       if (!layoutAtualizado.desenho_sensores) {
         layoutAtualizado.desenho_sensores = {}
@@ -2150,7 +2331,7 @@ export default {
                 dominant-baseline="central"
                 font-size="${escala_sensores * 0.4 - 0.5}"
                 font-family="Arial"
-                fill="${corSensor === '#ff2200' ? 'white' : 'black'}"
+                fill="${corSensor === "#ff2200" ? "white" : "black"}"
               >
                 ${valorSensor}
               </text>
@@ -2748,23 +2929,22 @@ export default {
     },
 
     // Funções para lidar com a quantidade de pêndulos
-    alterarQuantidadePendulos(incremento) {
-      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
-        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3
-        let novaQtd = qtdAtual + incremento
+    alterarQuantidadePendulos(data) {
+      if (data.modeloArcoAtual && this.modelosArcos[data.modeloArcoAtual]) {
+        this.modelosArcos[data.modeloArcoAtual].quantidadePendulos = data.novaQuantidade
 
-        // Validar limites
-        if (novaQtd < 0) novaQtd = 0
-        if (novaQtd > 50) novaQtd = 50
-
-        this.modelosArcos[this.modeloArcoAtual].quantidadePendulos = novaQtd
-        this.onQuantidadePendulosChange() // Garantir que a mudança seja salva e refletida
+        // Criar evento fake para manter compatibilidade
+        const fakeEvent = { target: { value: data.novaQuantidade } }
+        this.onQuantidadePendulosChange(fakeEvent)
       }
     },
 
     onQuantidadePendulosChange(event) {
-      if (this.modeloArcoAtual) {
-        this.modelosArcos[this.modeloArcoAtual].quantidadePendulos = parseInt(event.target.value) || 0
+      const modeloAtual = event.modeloArcoAtual || this.modeloArcoAtual
+      if (modeloAtual) {
+        const novaQuantidade = parseInt(event.target.value) || 0
+        this.modelosArcos[modeloAtual].quantidadePendulos = novaQuantidade
+
         // Regenerar dados de exemplo com nova quantidade
         this.criarDadosExemplaresComNovaQuantidade()
         // Regenerar layouts automáticos com nova quantidade
@@ -2951,13 +3131,13 @@ export default {
         if (!this.layoutsAutomaticos) {
           this.layoutsAutomaticos = {}
         }
-        
+
         // Forçar nova criação do layout com as dimensões corretas
         delete this.layoutsAutomaticos[`arco_${this.arcoAtual}`]
         this.layoutsAutomaticos[`arco_${this.arcoAtual}`] = layoutArco
-        
+
         console.log(`Layout regenerado para ${novaQuantidade} pêndulos:`, layoutArco)
-        
+
         // Recalcular dimensões do SVG se necessário
         this.calcularDimensoesSVG()
       }
@@ -3246,6 +3426,189 @@ export default {
     onPosicaoSensorChange() {
       // Atualizar preview em tempo real quando posição de sensor mudar
       this.updateSVG()
+    },
+
+    // Método para carregar configuração do banco de dados
+    carregarConfiguracaoDoBanco(configuracaoCarregada) {
+      console.log('🔄 [ModeladorSVG] Carregando configuração do banco:', configuracaoCarregada)
+
+      const { nome, dados, tipo, tipoConfiguracao } = configuracaoCarregada
+
+      if (tipo === 'S') {
+        // Carregar configuração de Silo
+        this.tipoAtivo = 'silo'
+        if (dados.configuracao) {
+          this.configSilo = { ...dados.configuracao }
+        }
+        this.mostrarToast(`Silo "${nome}" carregado do banco!`, 'success')
+        this.updateSVG()
+      } else if (tipo === 'A') {
+        // Carregar configuração de Armazém
+        this.tipoAtivo = 'armazem'
+
+        // Verificar se é uma configuração completa com sistema de modelos
+        if (tipoConfiguracao === 'configuracao_armazem_completa' && dados.quantidadeModelos) {
+          // Nova estrutura com sistema de modelos
+          this.quantidadeModelosArcos = dados.quantidadeModelos
+          
+          // Restaurar modelos de arcos
+          const novosModelos = {}
+          const novosSalvos = {}
+          
+          if (dados.modelosArcos) {
+            Object.keys(dados.modelosArcos).forEach(key => {
+              const modelo = dados.modelosArcos[key]
+              novosModelos[key] = {
+                posicao: modelo.posicao || this.determinarPosicaoDoModelo(parseInt(key), dados.quantidadeModelos),
+                config: { ...modelo.config },
+                nome: modelo.nome || `Modelo ${key}`,
+                quantidadePendulos: modelo.quantidadePendulos || 3,
+                sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+                posicoesCabos: modelo.posicoesCabos || {}
+              }
+              novosSalvos[key] = true
+            })
+            
+            this.modelosArcos = novosModelos
+            this.modelosSalvos = novosSalvos
+          }
+
+          // Restaurar configuração global
+          if (dados.configuracaoGlobal) {
+            this.configArmazem = { ...dados.configuracaoGlobal }
+          }
+
+          // Restaurar dados originais se disponíveis
+          if (dados.dadosOriginais?.dadosPortal) {
+            this.dadosPortal = dados.dadosOriginais.dadosPortal
+            this.analiseArcos = this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
+          }
+
+          this.mostrarToast(`Configuração "${nome}" com ${dados.quantidadeModelos} modelo(s) carregada!`, 'success')
+        } else {
+          // Configuração simples (compatibilidade)
+          this.quantidadeModelosArcos = 1
+          this.modelosArcos = {
+            1: {
+              posicao: 'todos',
+              config: { ...dados },
+              nome: 'Modelo Único',
+              quantidadePendulos: 3,
+              sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 }
+            }
+          }
+          this.modelosSalvos = { 1: true }
+          this.configArmazem = { ...dados }
+          
+          this.mostrarToast(`Configuração simples "${nome}" convertida para novo formato!`, 'info')
+        }
+
+        // Resetar estado de edição
+        this.modeloArcoAtual = null
+        this.caboSelecionadoPosicionamento = null
+        this.posicoesCabos = {}
+
+        // Inicializar posições dos cabos
+        this.inicializarPosicoesCabos()
+
+        // Atualizar preview
+        this.updateSVG()
+
+        console.log(`✅ [ModeladorSVG] Configuração "${nome}" carregada com sucesso`)
+      }
+    },
+
+    // Métodos do Gerenciador de Configurações
+    handleModeloSalvo(modelo) {
+      // Este método é chamado quando um modelo é salvo através do Gerenciador de Modelos do Banco
+      // A lógica para atualizar `modelosArcos` já deve estar sendo tratada dentro de GerenciadorModelosBanco
+      console.log('Modelo salvo via Gerenciador de Modelos do Banco:', modelo);
+    },
+
+    handleModelosSalvos(modelos) {
+      console.log('Modelos de arcos atualizados:', modelos);
+      // Poderia ser usado para atualizar o estado global se necessário
+    },
+
+    handleConfiguracaoSalva(dadosConfig) {
+      console.log('Configuração salva via Gerenciador de Configurações:', dadosConfig);
+      // Lógica para salvar a configuração no localStorage ou API
+      // A função `salvarConfiguracao` já faz isso, então aqui podemos apenas confirmar
+      this.mostrarToast(`Configuração "${dadosConfig.nome}" salva!`, 'success');
+    },
+
+    handleConfiguracaoCarregada(dadosConfig) {
+      console.log('Configuração carregada via Gerenciador de Configurações:', dadosConfig);
+      // Aqui, vamos restaurar o estado da aplicação com base nos dados carregados
+
+      if (!dadosConfig) return;
+
+      // Restaurar Configurações Globais
+      if (dadosConfig.configuracaoGlobal) {
+        this.configArmazem = { ...dadosConfig.configuracaoGlobal };
+      }
+
+      // Restaurar Modelos de Arcos
+      if (dadosConfig.sistemaModelos && dadosConfig.sistemaModelos.modelosDefinidos) {
+        this.quantidadeModelosArcos = dadosConfig.sistemaModelos.quantidadeModelos || 1;
+        const novosModelos = {};
+        const novosSalvos = {};
+
+        Object.keys(dadosConfig.sistemaModelos.modelosDefinidos).forEach(key => {
+          const modeloSalvo = dadosConfig.sistemaModelos.modelosDefinidos[key];
+          novosModelos[key] = {
+            ...modeloSalvo,
+            config: modeloSalvo.configuracao || {}, // Usar 'configuracao' da v4.0
+            quantidadePendulos: modeloSalvo.quantidadePendulos || 3,
+            sensoresPorPendulo: modeloSalvo.sensoresPorPendulo || {},
+            posicoesCabos: modeloSalvo.posicoesCabos || {}
+          };
+          novosSalvos[key] = true; // Assumir que os modelos carregados estão salvos
+        });
+
+        this.modelosArcos = novosModelos;
+        this.modelosSalvos = novosSalvos;
+      }
+
+      // Restaurar Layouts Automáticos
+      if (dadosConfig.layoutsAutomaticos) {
+        this.layoutsAutomaticos = dadosConfig.layoutsAutomaticos;
+      }
+
+      // Restaurar Dados Originais (se disponíveis)
+      if (dadosConfig.dadosOriginais?.dadosPortal) {
+        this.dadosPortal = dadosConfig.dadosOriginais.dadosPortal;
+      }
+      if (dadosConfig.dadosOriginais?.analiseArcos) {
+        this.analiseArcos = dadosConfig.dadosOriginais.analiseArcos;
+      }
+
+      // Restaurar Dimensões SVG
+      if (dadosConfig.dimensoesSVG) {
+        this.larguraSVG = dadosConfig.dimensoesSVG.largura;
+        this.alturaSVG = dadosConfig.dimensoesSVG.altura;
+      }
+
+      // Aplicar configuração inicial (geralmente do primeiro modelo)
+      setTimeout(() => {
+        const primeiroModelo = Object.values(this.modelosArcos)[0];
+        if (primeiroModelo) {
+          this.configArmazem = { ...primeiroModelo.config };
+          this.inicializarPosicoesCabos(); // Re-inicializar cabos com base no modelo carregado
+        }
+        this.updateSVG(); // Atualizar visualização
+      }, 100);
+
+      this.mostrarToast(`Configuração "${dadosConfig.nome}" carregada!`, 'success');
+    },
+
+    handleConfiguracaoLegadoCarregada(dadosLegado) {
+      console.log('Configuração Legado carregada:', dadosLegado);
+      // Para configurações legadas, apenas carregamos a configuração base,
+      // e resetamos os modelos para o estado padrão.
+      this.configArmazem = { ...dadosLegado.configuracao };
+      this.resetarModelosParaPadrao();
+      this.mostrarToast('Configuração Legado carregada. Modelos resetados para o padrão.', 'info');
     }
   }
 }
@@ -3274,7 +3637,7 @@ export default {
   font-size: 0.75em;
 }
 
-/* Melhorar visualização em mobile */
+/* Melhor visualização em mobile */
 @media (max-width: 576px) {
   .modelador-painel-controles {
     height: auto !important;

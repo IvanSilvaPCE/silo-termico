@@ -202,5 +202,77 @@ export default {
     "TEM": 17.7,
     "UMI": 100,
     "CHO": "0"
+  },
+  "pendulos": {
+    "P7": {
+      "1": [27, false, false, false, true],
+      "2": [25.5, false, false, false, true],
+      "3": [25, false, false, false, true],
+      "4": [29, true, false, false, true],
+      "5": [27, false, false, false, true],
+      "6": [27.5, false, false, false, true],
+      "7": [27.5, false, false, false, true],
+      "8": [26.5, false, false, false, true]
+    },
+    "P6": {
+      "1": [27.5, false, false, false, true],
+      "2": [27, false, false, false, true],
+      "3": [26.5, false, false, false, true],
+      "4": [28, false, false, false, true],
+      "5": [27.5, false, false, false, true],
+      "6": [26, false, false, false, true],
+      "7": [28.5, false, false, false, true],
+      "8": [27, false, false, false, true]
+    },
+    "P5": {
+      "1": [26, false, false, false, true],
+      "2": [27.5, false, false, false, true],
+      "3": [28, false, false, false, true],
+      "4": [26.5, false, false, false, true],
+      "5": [29, true, false, false, true],
+      "6": [27, false, false, false, true],
+      "7": [26.5, false, false, false, true],
+      "8": [28, false, false, false, true]
+    },
+    "P4": {
+      "1": [28, false, false, false, true],
+      "2": [27, false, false, false, true],
+      "3": [26, false, false, false, true],
+      "4": [28.5, false, false, false, true],
+      "5": [27.5, false, false, false, true],
+      "6": [26.5, false, false, false, true],
+      "7": [29, true, false, false, true],
+      "8": [27, false, false, false, true]
+    },
+    "P3": {
+      "1": [27, false, false, false, true],
+      "2": [28, false, false, false, true],
+      "3": [26.5, false, false, false, true],
+      "4": [27.5, false, false, false, true],
+      "5": [28.5, false, false, false, true],
+      "6": [27, false, false, false, true],
+      "7": [26, false, false, false, true],
+      "8": [28, false, false, false, true]
+    },
+    "P2": {
+      "1": [26.5, false, false, false, true],
+      "2": [28, false, false, false, true],
+      "3": [27, false, false, false, true],
+      "4": [26, false, false, false, true],
+      "5": [28.5, false, false, false, true],
+      "6": [27.5, false, false, false, true],
+      "7": [26.5, false, false, false, true],
+      "8": [29, true, false, false, true]
+    },
+    "P1": {
+      "1": [28, false, false, false, true],
+      "2": [27, false, false, false, true],
+      "3": [26.5, false, false, false, true],
+      "4": [28.5, false, false, false, true],
+      "5": [27.5, false, false, false, true],
+      "6": [26, false, false, false, true],
+      "7": [28, false, false, false, true],
+      "8": [27, false, false, false, true]
+    }
   }
 }

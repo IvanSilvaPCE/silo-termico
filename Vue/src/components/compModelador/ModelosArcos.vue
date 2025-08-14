@@ -1,4 +1,3 @@
-
 <template>
   <div class="card mb-3">
     <div class="card-header bg-dark text-white">
@@ -67,7 +66,7 @@
         <label class="form-label small fw-bold">Quantidade de Pêndulos/Cabos:</label>
         <div class="d-flex align-items-center justify-content-center mb-2">
           <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
-            @click="$emit('alterar-quantidade-pendulos', -1)"
+            @click="alterarQuantidadePendulos(-1)"
             :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3) <= 0"
             title="Diminuir quantidade">
             -
@@ -75,10 +74,10 @@
           <input type="number" class="form-control form-control-sm text-center mx-2"
             style="max-width: 70px; min-width: 60px;"
             :value="modelosArcos[modeloArcoAtual].quantidadePendulos"
-            @input="$emit('quantidade-pendulos-change', $event)"
+            @input="onQuantidadePendulosChange"
             min="0" max="50" />
           <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
-            @click="$emit('alterar-quantidade-pendulos', 1)"
+            @click="alterarQuantidadePendulos(1)"
             :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3) >= 50"
             title="Aumentar quantidade">
             +
@@ -218,6 +217,31 @@ export default {
         else return 'fundo'
       }
       return ''
+    },
+    onQuantidadePendulosChange(event) {
+      if (this.modeloArcoAtual) {
+        const novaQuantidade = parseInt(event.target.value) || 0
+        this.$emit('quantidade-pendulos-change', {
+          target: { value: novaQuantidade },
+          modeloArcoAtual: this.modeloArcoAtual
+        })
+      }
+    },
+    alterarQuantidadePendulos(incremento) {
+      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3
+        let novaQtd = qtdAtual + incremento
+
+        // Validar limites
+        if (novaQtd < 0) novaQtd = 0
+        if (novaQtd > 50) novaQtd = 50
+
+        this.$emit('alterar-quantidade-pendulos', {
+          incremento,
+          novaQuantidade: novaQtd,
+          modeloArcoAtual: this.modeloArcoAtual
+        })
+      }
     }
   }
 }

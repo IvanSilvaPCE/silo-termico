@@ -7,9 +7,7 @@
     <!-- Seletor de Cabo para Posicionamento Individual -->
     <div class="mb-2">
       <label class="form-label small fw-bold">Cabo Selecionado:</label>
-      <select class="form-select form-select-sm" :value="caboSelecionadoPosicionamento"
-        @change="$emit('update:cabo-selecionado-posicionamento', parseInt($event.target.value) || null)"
-        :style="caboSelecionadoPosicionamento ? 'border-color: #FF6B35; box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);' : ''">
+      <select class="form-select form-select-sm" :value="caboSelecionadoPosicionamento" @input="$emit('update:cabo-selecionado-posicionamento', parseInt($event.target.value) || null)">
         <option :value="null">Selecione um cabo</option>
         <option v-for="i in (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3)" :key="i" :value="i">
           Cabo {{ i }}
@@ -40,11 +38,11 @@
     </div>
 
     <div class="text-center mt-2">
-      <small class="text-info d-block" style="font-size: 0.7rem;">
-        ⚙️ Selecione um cabo acima para ajustar sua posição individual
-      </small>
-      <button type="button" class="btn btn-outline-primary btn-sm mt-1" @click="$emit('resetar-posicoes-cabos')">
-        🔄 Resetar Posições dos Cabos
+      <button type="button" class="btn btn-outline-secondary btn-sm me-1" @click="$emit('update:cabo-selecionado-posicionamento', null)">
+        ← Voltar
+      </button>
+      <button type="button" class="btn btn-outline-primary btn-sm" @click="resetarPosicoesCabos">
+        🔄 Resetar Posições
       </button>
     </div>
   </div>
@@ -66,6 +64,9 @@ export default {
 
       this.posicoesCabos[this.caboSelecionadoPosicionamento][tipo] = parseFloat(valor) || 0
       this.$emit('posicao-cabo-change')
+    },
+    resetarPosicoesCabos() {
+      this.$emit('resetar-posicoes-cabos');
     }
   }
 }

@@ -238,7 +238,6 @@
                       <small class="fw-bold text-primary">🎯 Posicionamento dos Pêndulos/Cabos:</small>
                     </div>
                     
-                    <!-- Seletor de Cabo para Posicionamento Individual -->
                     <div class="mb-2">
                       <label class="form-label small fw-bold">Cabo Selecionado:</label>
                       <select class="form-select form-select-sm" v-model="caboSelecionadoPosicionamento">
