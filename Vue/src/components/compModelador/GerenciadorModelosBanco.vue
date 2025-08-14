@@ -88,7 +88,7 @@
 
         <div v-if="isCarregando" class="text-center py-2">
           <div class="spinner-border spinner-border-sm" role="status">
-            <span class="visually-hidden">Carregando...</span>
+            <span class="visually-hidden"></span>
           </div>
           <small class="d-block text-muted">Carregando configurações...</small>
         </div>
