@@ -1,4 +1,3 @@
-
 <template>
   <div class="card mb-3">
     <div class="card-header bg-success text-white">
@@ -14,7 +13,7 @@
             2️⃣ Salve a configuração completa no banco
           </small>
         </div>
-        
+
         <!-- Status dos Modelos -->
         <div class="mb-2">
           <div class="d-flex justify-content-between align-items-center">
@@ -285,12 +284,12 @@ export default {
       this.isCarregando = true
       try {
         const { status, data } = await modeloSvgService.buscarModelos(this.tipoParaSalvar)
-        
+
         if (status === 200) {
           // Processar dados para mostrar informações dos modelos
           this.configuracoesGerais = (data || []).map(config => {
             try {
-              const dadosParsed = JSON.parse(config.dados_svg || '{}')
+              const dadosParsed = JSON.parse(config.dado_svg || '{}')
               return {
                 ...config,
                 dados_parsed: dadosParsed
@@ -335,42 +334,42 @@ export default {
       }
 
       this.isSalvando = true
-      
+
       try {
         const configuracaoParaSalvar = {
           nm_modelo: this.nomeModelo.trim(),
-          dados_svg: JSON.stringify(this.dadosParaSalvar),
+          dado_svg: JSON.stringify(this.dadosParaSalvar),
           ds_modelo: this.descricaoModelo.trim() || '',
           tp_svg: this.tipoParaSalvar,
           vista_svg: 'F'
         }
 
         console.log('🔄 [GerenciadorModelosBanco] Salvando configuração completa no banco:', {
-          nome: configuracaoParaSalvar.nm_modelo,
-          tipo: configuracaoParaSalvar.tp_svg,
-          tipoAtivo: this.tipoAtivo,
-          quantidadeModelos: this.tipoAtivo === 'armazem' ? this.quantidadeModelosArcos : 'N/A',
-          dadosSize: configuracaoParaSalvar.dados_svg.length,
-          temDescricao: !!configuracaoParaSalvar.ds_modelo
+          nm_modelo: configuracaoParaSalvar.nm_modelo,
+          tp_svg: configuracaoParaSalvar.tp_svg,
+          vista_svg: configuracaoParaSalvar.vista_svg,
+          ds_modelo: configuracaoParaSalvar.ds_modelo,
+          dado_svg_size: configuracaoParaSalvar.dado_svg.length,
+          todos_campos_presentes: !!(configuracaoParaSalvar.nm_modelo && configuracaoParaSalvar.tp_svg && configuracaoParaSalvar.vista_svg && configuracaoParaSalvar.dado_svg)
         })
 
-        const { status, data } = await modeloSvgService.salvarModelo(configuracaoParaSalvar)
+        const response = await modeloSvgService.salvarModelo(configuracaoParaSalvar)
 
-        console.log('📝 [GerenciadorModelosBanco] Resposta da API:', { status, data })
+        console.log('📝 [GerenciadorModelosBanco] Resposta da API:', response)
 
-        if (status === 201) {
+        if (response.success && response.status === 201) {
           console.log('✅ [GerenciadorModelosBanco] Configuração salva no banco com sucesso!')
           this.mostrarToast(`Configuração "${this.nomeModelo}" salva com sucesso no banco!`, 'success')
           this.nomeModelo = ''
           this.descricaoModelo = ''
           this.carregarConfiguracoesGerais()
-        } else if (status === 422) {
-          console.log('⚠️ [GerenciadorModelosBanco] Erro de validação:', data)
+        } else if (response.status === 422) {
+          console.log('⚠️ [GerenciadorModelosBanco] Erro de validação:', response.data)
           this.mostrarToast('Erro de validação: verifique os dados', 'error')
-          console.error('Erros de validação:', data)
+          console.error('Erros de validação:', response.error)
         } else {
-          console.log('❌ [GerenciadorModelosBanco] Erro no salvamento:', status)
-          this.mostrarToast('Erro ao salvar configuração', 'error')
+          console.log('❌ [GerenciadorModelosBanco] Erro no salvamento:', response.status)
+          this.mostrarToast(response.message || 'Erro ao salvar configuração', 'error')
         }
       } catch (error) {
         console.error('❌ [GerenciadorModelosBanco] Erro ao salvar configuração:', error)
@@ -382,14 +381,14 @@ export default {
 
     async carregarConfiguracao(configuracao) {
       try {
-        const dadosSvg = configuracao.dados_parsed || JSON.parse(configuracao.dados_svg)
-        
+        const dadosSvg = configuracao.dados_parsed || JSON.parse(configuracao.dado_svg)
+
         console.log('🔄 [GerenciadorModelosBanco] Carregando configuração:', {
           nome: configuracao.nm_modelo,
           tipo: dadosSvg.tipo,
           quantidadeModelos: dadosSvg.quantidadeModelos || 'N/A'
         })
-        
+
         this.$emit('configuracao-carregada', {
           nome: configuracao.nm_modelo,
           dados: dadosSvg,
@@ -415,7 +414,7 @@ export default {
       if (!this.modeloParaExcluir) return
 
       this.isExcluindo = true
-      
+
       try {
         const { status } = await modeloSvgService.excluirModelo(this.modeloParaExcluir.id_svg)
 
@@ -423,7 +422,7 @@ export default {
           console.log('🗑️ [GerenciadorModelosBanco] Configuração excluída:', this.modeloParaExcluir.nm_modelo)
           this.mostrarToast(`Configuração "${this.modeloParaExcluir.nm_modelo}" excluída com sucesso!`, 'success')
           this.carregarConfiguracoesGerais()
-          
+
           // Fechar modal
           const modal = bootstrap.Modal.getInstance(this.$refs.modalExclusao)
           modal.hide()
@@ -441,7 +440,7 @@ export default {
 
     formatarData(dataString) {
       if (!dataString) return 'N/A'
-      
+
       try {
         const data = new Date(dataString)
         return data.toLocaleDateString('pt-BR')
@@ -482,7 +481,7 @@ export default {
   .btn-group {
     flex-direction: column;
   }
-  
+
   .btn-group .btn {
     margin-bottom: 2px;
   }
