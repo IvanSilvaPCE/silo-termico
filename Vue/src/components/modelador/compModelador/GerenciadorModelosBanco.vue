@@ -23,8 +23,8 @@
             </span>
           </div>
           <div class="progress progress-sm mt-1">
-            <div 
-              class="progress-bar" 
+            <div
+              class="progress-bar"
               :class="podeSerSalvo ? 'bg-success' : 'bg-warning'"
               :style="{ width: (Object.keys(modelosArcos).length / quantidadeModelosArcos * 100) + '%' }"
             ></div>
@@ -88,7 +88,7 @@
 
         <div v-if="isCarregando" class="text-center py-2">
           <div class="spinner-border spinner-border-sm" role="status">
-            <span class="visually-hidden">Carregando...</span>
+            <span class="visually-hidden"></span>
           </div>
           <small class="d-block text-muted">Carregando configurações...</small>
         </div>
@@ -156,7 +156,7 @@
       <!-- Status -->
       <div v-if="!podeSerSalvo" class="alert alert-warning p-2">
         <small>
-          ⚠️ 
+          ⚠️
           <span v-if="tipoAtivo === 'armazem'">
             Configure todos os {{ quantidadeModelosArcos }} modelos de arcos antes de salvar.
           </span>
@@ -241,7 +241,9 @@ export default {
       isSalvando: false,
       isCarregando: false,
       isExcluindo: false,
-      modeloParaExcluir: null
+      modeloParaExcluir: null,
+      carregandoConfiguracao: false, // Adicionado para o novo método carregarConfiguracao
+      configuracaoSelecionada: null // Adicionado para o novo método carregarConfiguracao
     }
   },
   computed: {
@@ -265,13 +267,34 @@ export default {
           versao: '2.0'
         }
       } else {
+        // Preparar dados com tipos de modelos separados
+        const modelosComTipos = {}
+        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+          const modelo = this.modelosArcos[i]
+          if (modelo) {
+            modelosComTipos[i] = {
+              numero: i,
+              nome: modelo.nome,
+              posicao: modelo.posicao, // par, impar, frente, fundo, todos, frente_fundo
+              configuracao: modelo.configuracao,
+              quantidadePendulos: modelo.quantidadePendulos,
+              sensoresPorPendulo: modelo.sensoresPorPendulo,
+              posicoesCabos: modelo.posicoesCabos,
+              timestampSalvamento: modelo.timestampSalvamento
+            }
+          }
+        }
+
+        // Preparar dados para envio ao banco
         return {
           tipo: 'configuracao_armazem_completa',
           quantidadeModelos: this.quantidadeModelosArcos,
-          modelosArcos: this.modelosArcos,
-          configuracaoGlobal: this.configArmazem,
-          timestamp: Date.now(),
-          versao: '2.0'
+          tipoDistribuicao: this.obterTipoDistribuicao(this.quantidadeModelosArcos),
+          modelosArcos: modelosComTipos,
+          configuracao: this.configArmazem,
+          mapeamentoModelos: this.gerarMapeamentoModelos(this.quantidadeModelosArcos),
+          timestamp: new Date().toISOString(),
+          versao: '3.0'
         }
       }
     }
@@ -333,6 +356,35 @@ export default {
         return
       }
 
+      // Validar dados antes de salvar
+      const { configuracaoService } = await import('../services/configuracaoService')
+
+      console.log('🔍 [GerenciadorModelosBanco] Dados para validação:', {
+        tipoAtivo: this.tipoAtivo,
+        quantidadeModelosArcos: this.quantidadeModelosArcos,
+        configArmazem: this.configArmazem,
+        modelosArcos: this.modelosArcos,
+        modelosArcosKeys: Object.keys(this.modelosArcos || {}),
+        primeiroModelo: this.modelosArcos?.[1],
+        estruturaPrimeiroModelo: this.modelosArcos?.[1] ? Object.keys(this.modelosArcos[1]) : []
+      })
+
+      const validacao = configuracaoService.validarConfiguracao(
+        this.tipoAtivo === 'armazem' ? this.configArmazem : this.configSilo,
+        this.tipoAtivo === 'armazem' ? this.modelosArcos : null,
+        this.quantidadeModelosArcos,
+        this.tipoAtivo
+      )
+
+      if (!validacao.valido) {
+        console.warn('⚠️ [GerenciadorModelosBanco] Validação falhou:', validacao.erros)
+        console.warn('📋 [GerenciadorModelosBanco] Dados completos que falharam:', {
+          dadosParaSalvar: this.dadosParaSalvar
+        })
+        this.mostrarToast(`Erro de validação: ${validacao.erros[0]}`, 'warning')
+        return
+      }
+
       this.isSalvando = true
 
       try {
@@ -381,26 +433,76 @@ export default {
 
     async carregarConfiguracao(configuracao) {
       try {
-        const dadosSvg = configuracao.dados_parsed || JSON.parse(configuracao.dado_svg)
+        let dadosSvg
 
-        console.log('🔄 [GerenciadorModelosBanco] Carregando configuração:', {
+        // Tentar obter os dados parsed ou fazer parse do JSON
+        if (configuracao.dados_parsed) {
+          dadosSvg = configuracao.dados_parsed
+        } else {
+          dadosSvg = JSON.parse(configuracao.dado_svg)
+        }
+
+        console.log('🔄 [GerenciadorModelosBanco] Carregando configuração do banco:', {
           nome: configuracao.nm_modelo,
+          id: configuracao.id_svg,
           tipo: dadosSvg.tipo,
-          quantidadeModelos: dadosSvg.quantidadeModelos || 'N/A'
+          quantidadeModelos: dadosSvg.quantidadeModelos || dadosSvg.quantidadeModelosArcos || 'N/A',
+          estruturaDados: Object.keys(dadosSvg),
+          temModelosArcos: !!(dadosSvg.modelosArcos || dadosSvg.modelos),
+          temConfigGlobal: !!(dadosSvg.configuracaoGlobal || dadosSvg.configuracao),
+          dadosCompletos: dadosSvg
         })
 
-        this.$emit('configuracao-carregada', {
+        // Usar o serviço para aplicar a configuração sobre o modelo padrão
+        const { configuracaoService } = await import('../services/configuracaoService')
+
+        const resultado = configuracaoService.aplicarConfiguracaoCompleta({
           nome: configuracao.nm_modelo,
-          dados: dadosSvg,
-          tipo: configuracao.tp_svg,
-          tipoConfiguracao: dadosSvg.tipo
-        })
+          dados: dadosSvg
+        }, this.tipoAtivo)
 
-        console.log('✅ [GerenciadorModelosBanco] Configuração carregada e evento emitido')
-        this.mostrarToast(`Configuração "${configuracao.nm_modelo}" carregada com sucesso!`, 'success')
+        if (resultado.success) {
+          console.log('✅ [GerenciadorModelosBanco] Configuração aplicada sobre modelo padrão:', {
+            nomeConfiguracao: configuracao.nm_modelo,
+            quantidadeModelos: resultado.dados.quantidadeModelos,
+            modelosProcessados: Object.keys(resultado.dados.modelos || {}).length,
+            configGlobal: Object.keys(resultado.dados.configuracaoGlobal || {}),
+            exemploModelo1: resultado.dados.modelos?.[1] ? {
+              nome: resultado.dados.modelos[1].nome,
+              dimensoes: {
+                largura: resultado.dados.modelos[1].larguraArco,
+                altura: resultado.dados.modelos[1].alturaArco
+              },
+              temConfig: !!resultado.dados.modelos[1].config,
+              temPosicoesCabos: !!resultado.dados.modelos[1].posicoesCabos
+            } : 'N/A'
+          })
+
+          // Emitir evento com dados processados
+          this.$emit('configuracao-carregada', {
+            nome: configuracao.nm_modelo,
+            dados: resultado.dados,
+            tipo: configuracao.tp_svg,
+            tipoConfiguracao: dadosSvg.tipo || 'configuracao_completa',
+            origem: 'banco_dados',
+            aplicacaoCompleta: true,
+            dadosOriginais: dadosSvg,
+            configuracaoId: configuracao.id_svg
+          })
+
+          this.mostrarToast(resultado.message, 'success')
+        } else {
+          console.warn('⚠️ [GerenciadorModelosBanco] Problema ao aplicar configuração:', resultado.message)
+          this.mostrarToast(resultado.message, 'warning')
+        }
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro ao carregar configuração:', error)
-        this.mostrarToast('Erro ao carregar dados da configuração', 'error')
+        console.error('❌ [GerenciadorModelosBanco] Erro ao carregar configuração do banco:', error)
+        console.error('Configuração que falhou:', {
+          id: configuracao.id_svg,
+          nome: configuracao.nm_modelo,
+          dadosSvg: configuracao.dado_svg
+        })
+        this.mostrarToast('Erro ao processar dados da configuração do banco', 'error')
       }
     },
 
@@ -451,7 +553,73 @@ export default {
 
     mostrarToast(mensagem, tipo = 'info') {
       this.$emit('mostrar-toast', { mensagem, tipo })
-    }
+    },
+
+    // Função para obter tipo de distribuição
+    obterTipoDistribuicao(quantidade) {
+      const tipos = {
+        1: { nome: 'Modelo Único', descricao: 'Todos os arcos usam o mesmo modelo' },
+        2: { nome: 'Par/Ímpar', descricao: 'Arcos pares e ímpares com modelos diferentes' },
+        3: { nome: 'Frente/Fundo + Par/Ímpar', descricao: 'Primeiro e último iguais, meio alternado' },
+        4: { nome: 'Frente/Par/Ímpar/Fundo', descricao: 'Cada posição com modelo específico' }
+      }
+      return tipos[quantidade] || tipos[1]
+    },
+
+    // Função para gerar mapeamento de modelos
+    gerarMapeamentoModelos(quantidadeModelos) {
+      const mapeamento = {}
+      for (let i = 1; i <= quantidadeModelos; i++) {
+        mapeamento[i] = {
+          numero: i,
+          tipo: this.determinarTipoModelo(i, quantidadeModelos),
+          nome: this.gerarNomeModelo(i, quantidadeModelos)
+        }
+      }
+      return mapeamento
+    },
+
+    // Função para determinar tipo do modelo
+    determinarTipoModelo(numeroModelo, quantidadeTotal) {
+      switch (quantidadeTotal) {
+        case 1:
+          return 'todos'
+        case 2:
+          return numeroModelo === 1 ? 'impar' : 'par'
+        case 3:
+          if (numeroModelo === 1) return 'frente_fundo'
+          else if (numeroModelo === 2) return 'par'
+          else return 'impar'
+        case 4:
+          if (numeroModelo === 1) return 'frente'
+          else if (numeroModelo === 2) return 'par'
+          else if (numeroModelo === 3) return 'impar'
+          else return 'fundo'
+        default:
+          return 'todos'
+      }
+    },
+
+    // Função para gerar nome do modelo
+    gerarNomeModelo(numeroModelo, quantidadeTotal) {
+      switch (quantidadeTotal) {
+        case 1:
+          return 'Modelo Único'
+        case 2:
+          return numeroModelo === 1 ? 'Modelo Ímpar' : 'Modelo Par'
+        case 3:
+          if (numeroModelo === 1) return 'Modelo Frente/Fundo'
+          else if (numeroModelo === 2) return 'Modelo Par'
+          else return 'Modelo Ímpar'
+        case 4:
+          if (numeroModelo === 1) return 'Modelo Frente'
+          else if (numeroModelo === 2) return 'Modelo Par'
+          else if (numeroModelo === 3) return 'Modelo Ímpar'
+          else return 'Modelo Fundo'
+        default:
+          return `Modelo ${numeroModelo}`
+      }
+    },
   }
 }
 </script>

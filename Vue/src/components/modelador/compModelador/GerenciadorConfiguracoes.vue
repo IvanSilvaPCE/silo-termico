@@ -1,14 +1,17 @@
-
 <template>
   <div class="gerenciador-configuracoes">
+    <!-- Inicializador de Modelos -->
+    <InicializadorModelos :tipo-ativo="tipoAtivo" :tem-configuracao-atual="temConfiguracaoAtual"
+      @modelo-inicializado="$emit('modelo-inicializado', $event)" @mostrar-toast="$emit('mostrar-toast', $event)" />
+
     <div class="alert alert-info">
       <h6 class="mb-2">💾 Sistema de Salvamento Local (localStorage)</h6>
       <small>
-        Use o <strong>Gerenciador de Configurações (Banco de Dados)</strong> acima para 
+        Use o <strong>Gerenciador de Configurações (Banco de Dados)</strong> acima para
         salvamento definitivo. Este componente é apenas para backup local.
       </small>
     </div>
-    
+
     <!-- Informações sobre o Sistema -->
     <div class="alert alert-light">
       <h6>Como funciona o sistema de modelos:</h6>
@@ -23,8 +26,21 @@
 </template>
 
 <script>
+import InicializadorModelos from './InicializadorModelos.vue'
+
 export default {
-  name: 'GerenciadorConfiguracoes'
+  name: 'GerenciadorConfiguracoes',
+  components: {
+    InicializadorModelos
+  },
+  props: {
+    tipoAtivo: String,
+    temConfiguracaoAtual: Boolean
+  },
+  emits: [
+    'modelo-inicializado',
+    'mostrar-toast'
+  ]
 }
 </script>
 
@@ -33,11 +49,11 @@ export default {
   margin-top: 20px;
 }
 
-.d-flex.gap-2 > * {
+.d-flex.gap-2>* {
   margin-right: 0.5rem;
 }
 
-.d-flex.gap-2 > *:last-child {
+.d-flex.gap-2>*:last-child {
   margin-right: 0;
 }
 

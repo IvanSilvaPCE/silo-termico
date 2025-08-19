@@ -133,7 +133,7 @@
             </div>
 
             <!-- Navegação de Arcos para Armazém -->
-            <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-1">
+            <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-1" style="position: relative; z-index: 10;">
               <!-- Seletor de Configuração Salva no Preview -->
               <div class="row mb-2">
                 <div class="col-12">
@@ -156,48 +156,45 @@
               </div>
 
               <!-- Mobile First: Layout para pequenas telas -->
-              <div class="d-block d-md-none">
+              <div class="d-block d-md-none mobile-navigation">
                 <!-- Linha 1: Navegação compacta -->
-                <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1">
-                  <button type="button" class="btn btn-outline-primary btn-sm"
-                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1" title="Arco anterior"
-                    style="min-width: 35px;">
+                <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1 mobile-nav-buttons">
+                  <button type="button" class="btn btn-outline-primary btn-sm nav-btn"
+                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1" title="Arco anterior">
                     ←
                   </button>
-                  <select class="form-select form-select-sm text-center mx-1" style="max-width: 100px; min-width: 80px;"
+                  <select class="form-select form-select-sm text-center mx-1 mobile-select"
                     v-model.number="arcoAtual" @change="mudarArco(arcoAtual, false)">
                     <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
                       {{ numeroArco }}
                     </option>
                   </select>
-                  <button type="button" class="btn btn-outline-primary btn-sm"
+                  <button type="button" class="btn btn-outline-primary btn-sm nav-btn"
                     @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
-                    :disabled="arcoAtual >= analiseArcos.totalArcos" title="Próximo arco" style="min-width: 35px;">
+                    :disabled="arcoAtual >= analiseArcos.totalArcos" title="Próximo arco">
                     →
                   </button>
                 </div>
 
                 <!-- Linha 2: Informações compactas -->
-                <div class="text-center">
+                <div class="text-center mobile-info">
                   <div class="mb-1">
                     <small><strong>{{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong></small>
-                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1"
-                      style="font-size: 0.6rem;">EDIT</span>
-                    <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1"
-                      style="font-size: 0.6rem;">BANCO</span>
+                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1 mobile-badge">EDIT</span>
+                    <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1 mobile-badge">BANCO</span>
                   </div>
-                  <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1">
-                    <span class="badge bg-info text-white" style="font-size: 0.65rem;">
+                  <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1 mobile-badges">
+                    <span class="badge bg-info text-white mobile-badge">
                       {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }}P
                     </span>
-                    <span class="badge bg-secondary text-white" style="font-size: 0.65rem;">
+                    <span class="badge bg-secondary text-white mobile-badge">
                       {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }}S
                     </span>
-                    <span :class="getBadgeClass()" style="color: white; font-size: 0.65rem;">
+                    <span :class="getBadgeClass()" style="color: white;" class="mobile-badge">
                       {{ getBadgeText() }}
                     </span>
                   </div>
-                  <small class="text-muted d-block" style="font-size: 0.75rem;">{{
+                  <small class="text-muted d-block mobile-model-name">{{
                     determinarModeloParaArco(arcoAtual)?.nome
                     || 'Modelo Padrão' }}</small>
                 </div>
@@ -2047,21 +2044,12 @@ export default {
       try {
         const response = await modeloSvgService.buscarModeloPorId(this.configuracaoPreviewSelecionada)
         
-        console.log('📥 [aplicarModeloBancoNoPreview] Resposta da API:', response)
-        
         if (response && response.data) {
           const modeloCarregado = response.data
           
-          console.log('📊 [aplicarModeloBancoNoPreview] Modelo carregado completo:', {
-            id: modeloCarregado.id_svg,
+          console.log('📊 [aplicarModeloBancoNoPreview] Modelo carregado:', {
             nome: modeloCarregado.nm_modelo,
-            tipo: modeloCarregado.tp_svg,
-            vista: modeloCarregado.vista_svg,
-            descricao: modeloCarregado.ds_modelo,
-            tamanho_dado_svg: modeloCarregado.dado_svg?.length || 'N/A',
-            dado_svg_tipo: typeof modeloCarregado.dado_svg,
-            created_at: modeloCarregado.created_at,
-            updated_at: modeloCarregado.updated_at
+            tipo: modeloCarregado.tp_svg
           })
           
           // Verificar se tem dados SVG válidos
@@ -2071,57 +2059,44 @@ export default {
               dadosSVG = typeof modeloCarregado.dado_svg === 'string' 
                 ? JSON.parse(modeloCarregado.dado_svg) 
                 : modeloCarregado.dado_svg
-                
-              console.log('🔍 [aplicarModeloBancoNoPreview] Dados SVG parseados:', {
-                estrutura: Object.keys(dadosSVG),
-                temSistemaModelos: !!dadosSVG.sistemaModelos,
-                temConfiguracaoGlobal: !!dadosSVG.configuracaoGlobal,
-                tipo: dadosSVG.tipo,
-                versao: dadosSVG.versao,
-                dadosCompletos: dadosSVG
-              })
             } catch (parseError) {
               console.error('❌ [aplicarModeloBancoNoPreview] Erro ao fazer parse dos dados SVG:', parseError)
               this.mostrarToast('Dados SVG inválidos no modelo', 'error')
               return
             }
 
-            // Aplicar configuração baseada no tipo
-            if (modeloCarregado.tp_svg === 'S') {
-              // Silo
-              console.log('🏺 [aplicarModeloBancoNoPreview] Aplicando configuração de SILO:', dadosSVG)
-              this.configPreviewAplicada = dadosSVG
-            } else if (modeloCarregado.tp_svg === 'A') {
-              // Armazém - verificar se é configuração completa ou simples
-              if (dadosSVG.sistemaModelos) {
-                // Configuração completa com múltiplos modelos
-                console.log('🏭 [aplicarModeloBancoNoPreview] Configuração ARMAZÉM COMPLETA detectada')
-                console.log('📋 [aplicarModeloBancoNoPreview] Sistema de modelos:', dadosSVG.sistemaModelos)
-                
-                const modeloParaArco = this.determinarModeloParaArcoComConfig(
-                  this.arcoAtual, 
-                  dadosSVG.sistemaModelos.modelosDefinidos, 
-                  dadosSVG.sistemaModelos.quantidadeModelos
-                )
-                
-                console.log(`🎯 [aplicarModeloBancoNoPreview] Modelo determinado para arco ${this.arcoAtual}:`, modeloParaArco)
-                
-                if (modeloParaArco && modeloParaArco.configuracao) {
-                  this.configPreviewAplicada = modeloParaArco.configuracao
-                  console.log('✅ [aplicarModeloBancoNoPreview] Configuração aplicada:', this.configPreviewAplicada)
-                }
-              } else {
-                // Configuração simples
-                console.log('🏭 [aplicarModeloBancoNoPreview] Configuração ARMAZÉM SIMPLES detectada')
-                console.log('📋 [aplicarModeloBancoNoPreview] Dados diretos:', dadosSVG)
-                this.configPreviewAplicada = dadosSVG
-              }
-            }
-
-            console.log('🎨 [aplicarModeloBancoNoPreview] Configuração final aplicada ao preview:', this.configPreviewAplicada)
+            // Aplicar configuração baseada no tipo usando o serviço de configuração
+            const { configuracaoService } = await import('./services/configuracaoService')
             
-            this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
-            this.updateSVG()
+            const resultado = configuracaoService.aplicarConfiguracaoCompleta({
+              nome: modeloCarregado.nm_modelo,
+              dados: dadosSVG
+            }, this.tipoAtivo)
+
+            if (resultado.success) {
+              console.log('✅ [aplicarModeloBancoNoPreview] Configuração processada pelo serviço')
+              
+              // Para preview, aplicar configuração do modelo apropriado para o arco atual
+              if (this.tipoAtivo === 'silo') {
+                this.configPreviewAplicada = resultado.dados.configuracaoGlobal
+              } else {
+                // Para armazém, determinar qual modelo usar para o arco atual
+                const modeloParaArco = this.determinarModeloParaArcoAtual(resultado.dados)
+                if (modeloParaArco && modeloParaArco.config) {
+                  this.configPreviewAplicada = modeloParaArco.config
+                } else {
+                  // Fallback para configuração global
+                  this.configPreviewAplicada = resultado.dados.configuracaoGlobal
+                }
+              }
+              
+              console.log('🎨 [aplicarModeloBancoNoPreview] Configuração aplicada:', this.configPreviewAplicada)
+              this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
+              this.updateSVG()
+            } else {
+              console.warn('⚠️ [aplicarModeloBancoNoPreview] Erro ao processar configuração:', resultado.message)
+              this.mostrarToast(resultado.message, 'warning')
+            }
           } else {
             console.warn('⚠️ [aplicarModeloBancoNoPreview] Modelo não possui dados SVG')
             this.mostrarToast('Modelo não possui dados SVG', 'warning')
@@ -2184,6 +2159,76 @@ export default {
       }
 
       return Object.values(modelosArcos)[0] || null
+    },
+
+    // Método para determinar modelo correto para arco atual usando dados processados
+    determinarModeloParaArcoAtual(dadosProcessados) {
+      if (!dadosProcessados || !dadosProcessados.modelos) {
+        return null
+      }
+
+      const quantidadeModelos = dadosProcessados.quantidadeModelos || 1
+      const modelos = dadosProcessados.modelos
+      const numeroArco = this.arcoAtual
+      const totalArcos = this.analiseArcos?.totalArcos || 1
+
+      console.log('🔍 [determinarModeloParaArcoAtual]:', {
+        numeroArco,
+        quantidadeModelos,
+        totalArcos,
+        modelosDisponiveis: Object.keys(modelos)
+      })
+
+      // Aplicar mesma lógica de distribuição de modelos
+      if (quantidadeModelos === 1) {
+        return modelos[1] || modelos['1'] || Object.values(modelos)[0]
+      }
+
+      if (quantidadeModelos === 2) {
+        const isImpar = numeroArco % 2 === 1
+        // Procurar por posição primeiro
+        const modeloEncontrado = Object.values(modelos).find(modelo => {
+          return modelo.posicao === (isImpar ? 'impar' : 'par')
+        })
+        return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
+      }
+
+      if (quantidadeModelos === 3) {
+        if (numeroArco === 1 || numeroArco === totalArcos) {
+          const modeloEncontrado = Object.values(modelos).find(modelo => 
+            modelo.posicao === 'frente_fundo'
+          )
+          return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
+        } else {
+          const isParIntermediario = numeroArco % 2 === 0
+          const modeloEncontrado = Object.values(modelos).find(modelo => 
+            modelo.posicao === (isParIntermediario ? 'par' : 'impar')
+          )
+          return modeloEncontrado || modelos[2] || Object.values(modelos)[0]
+        }
+      }
+
+      if (quantidadeModelos === 4) {
+        if (numeroArco === 1) {
+          const modeloEncontrado = Object.values(modelos).find(modelo => 
+            modelo.posicao === 'frente'
+          )
+          return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
+        }
+        if (numeroArco === totalArcos) {
+          const modeloEncontrado = Object.values(modelos).find(modelo => 
+            modelo.posicao === 'fundo'
+          )
+          return modeloEncontrado || modelos[4] || Object.values(modelos)[0]
+        }
+        const isParIntermediario = numeroArco % 2 === 0
+        const modeloEncontrado = Object.values(modelos).find(modelo => 
+          modelo.posicao === (isParIntermediario ? 'par' : 'impar')
+        )
+        return modeloEncontrado || modelos[2] || Object.values(modelos)[0]
+      }
+
+      return modelos[1] || Object.values(modelos)[0]
     },
 
     corFaixaExata(t) {
@@ -3889,6 +3934,58 @@ export default {
   min-height: 200px;
 }
 
+/* Estilos específicos para navegação mobile */
+.mobile-navigation {
+  background: rgba(248, 249, 250, 0.95);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 4px 0;
+  border: 1px solid #dee2e6;
+}
+
+.mobile-nav-buttons {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.nav-btn {
+  min-width: 36px !important;
+  height: 32px;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.mobile-select {
+  max-width: 90px !important;
+  min-width: 75px !important;
+  height: 32px;
+  font-size: 13px;
+}
+
+.mobile-info {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.mobile-badge {
+  font-size: 0.65rem !important;
+  padding: 2px 4px !important;
+}
+
+.mobile-badges {
+  margin-bottom: 4px;
+}
+
+.mobile-model-name {
+  font-size: 0.7rem !important;
+  line-height: 1.2;
+}
+
 @media (max-width: 767.98px) {
   .svg-container-responsive {
     min-height: 180px;
@@ -3898,12 +3995,100 @@ export default {
   .card-body {
     padding: 0.5rem !important;
   }
+
+  .card-footer {
+    padding: 0.5rem !important;
+    position: relative;
+    z-index: 100;
+    background: #f8f9fa !important;
+    border-top: 2px solid #dee2e6;
+  }
 }
 
 @media (max-width: 575.98px) {
   .svg-container-responsive {
     min-height: 150px;
     padding: 0.25rem;
+  }
+
+  .mobile-navigation {
+    margin: 2px -2px;
+    padding: 6px;
+  }
+
+  .mobile-nav-buttons {
+    padding: 4px;
+    justify-content: space-between;
+  }
+
+  .nav-btn {
+    min-width: 32px !important;
+    height: 28px;
+    font-size: 12px;
+    padding: 2px 6px;
+  }
+
+  .mobile-select {
+    max-width: 70px !important;
+    min-width: 60px !important;
+    height: 28px;
+    font-size: 12px;
+    margin: 0 4px !important;
+  }
+
+  .mobile-info {
+    padding: 4px;
+  }
+
+  .mobile-badge {
+    font-size: 0.6rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.65rem !important;
+  }
+
+  .card-footer {
+    padding: 0.25rem !important;
+    position: sticky;
+    bottom: 0;
+    z-index: 150;
+    background: rgba(248, 249, 250, 0.98) !important;
+    backdrop-filter: blur(4px);
+    border-top: 2px solid #007bff;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+  }
+}
+
+/* Ajustes específicos para telas muito pequenas */
+@media (max-width: 420px) {
+  .mobile-nav-buttons {
+    gap: 2px !important;
+  }
+
+  .nav-btn {
+    min-width: 28px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 55px !important;
+    min-width: 50px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 2px !important;
+  }
+
+  .mobile-badge {
+    font-size: 0.55rem !important;
+    padding: 1px 2px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.6rem !important;
   }
 }
 </style>
