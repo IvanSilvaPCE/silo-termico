@@ -27,16 +27,13 @@
             <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
               :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
               :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
-              :posicoes-cabos="posicoesCabos"
-              @quantidade-modelos-change="onQuantidadeModelosChange"
+              :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
               @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
               @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
               @quantidade-pendulos-change="onQuantidadePendulosChange"
               @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
               @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
-              @salvar-modelo-atual="salvarModeloAtual"
-              @sensores-cabo-change="onSensoresCaboChange"
-              @aplicar-sensores-uniformes="onAplicarSensoresUniformes" />
+              @salvar-modelo-atual="salvarModeloAtual" />
 
 
 
@@ -50,7 +47,11 @@
             <ConfiguracaoFundo :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
 
             <!-- Seção 4: Configuração dos Sensores -->
-            <ConfiguracaoSensores :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+            <ConfiguracaoSensores :config-armazem="configArmazem" :modelo-arco-atual="modeloArcoAtual"
+              :quantidade-pendulos="modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 0) : 0"
+              :sensores-por-pendulo="modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.sensoresPorPendulo || {}) : {}"
+              @armazem-change="onArmazemChange" @sensores-cabo-change="onSensoresCaboChange"
+              @aplicar-sensores-uniformes="onAplicarSensoresUniformes" />
           </template>
 
           <!-- Botões de Reset -->
@@ -59,16 +60,10 @@
             @voltar-preview="voltarParaPreview" />
 
           <!-- Gerenciador de Configurações (Banco de Dados) -->
-          <GerenciadorModelosBanco
-            :tipo-ativo="tipoAtivo"
-            :quantidade-modelos-arcos="quantidadeModelosArcos"
-            :modelos-arcos="modelosArcos"
-            :modelos-salvos="modelosSalvos"
-            :config-silo="configSilo"
-            :config-armazem="configArmazem"
-            @configuracao-carregada="carregarConfiguracaoDoBanco"
-            @mostrar-toast="mostrarToast"
-          />
+          <GerenciadorModelosBanco :tipo-ativo="tipoAtivo" :quantidade-modelos-arcos="quantidadeModelosArcos"
+            :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :config-silo="configSilo"
+            :config-armazem="configArmazem" @configuracao-carregada="carregarConfiguracaoDoBanco"
+            @mostrar-toast="mostrarToast" />
 
           <!-- Gerenciador de Configurações (Backup Local) -->
           <GerenciadorConfiguracoes />
@@ -90,7 +85,8 @@
             height: 'calc(100vh - 60px)'
           }">
             <div class="card-header bg-primary text-white">
-              <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+              <div
+                class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
                 <h6 class="mb-1 mb-md-0">
                   Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO:
                   ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
@@ -102,20 +98,20 @@
                 <small v-if="tipoAtivo === 'armazem'" class="text-white-50">
                   {{ modeloArcoAtual ?
                     `${quantidadeModelosArcos === 1 ? 'Modelo Único' : modelosArcos[modeloArcoAtual]?.posicao || ''} |
-                                    ${modeloArcoAtual}/${quantidadeModelosArcos}` :
+                  ${modeloArcoAtual}/${quantidadeModelosArcos}` :
                     `${determinarModeloParaArco(arcoAtual)?.nome || 'Padrão'} | ${quantidadeModelosArcos}
-                                    modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
+                  modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
                   }}
                 </small>
               </div>
             </div>
 
             <div class="card-body text-center d-flex align-items-center justify-content-center p-1 p-md-2" :style="{
-                  height: isMobile ? 'auto' : 'calc(100vh - 250px)',
-                  overflow: isMobile ? 'visible' : 'auto',
-                  minHeight: isMobile ? '250px' : '300px',
-                  maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
-                }">
+              height: isMobile ? 'auto' : 'calc(100vh - 250px)',
+              overflow: isMobile ? 'visible' : 'auto',
+              minHeight: isMobile ? '250px' : '300px',
+              maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
+            }">
               <div class="svg-container-responsive w-100">
                 <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
                   width: '100%',
@@ -135,7 +131,8 @@
             </div>
 
             <!-- Navegação de Arcos para Armazém -->
-            <div v-if="tipoAtivo === 'armazem' && analiseArcos" class="card-footer bg-light p-1" style="position: relative; z-index: 10;">
+            <div v-if="tipoAtivo === 'armazem'" class="card-footer bg-light p-1"
+              style="position: relative; z-index: 10;">
               <!-- Seletor de Configuração Salva no Preview -->
               <div class="row mb-2">
                 <div class="col-12">
@@ -162,11 +159,12 @@
                 <!-- Linha 1: Navegação compacta -->
                 <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1 mobile-nav-buttons">
                   <button type="button" class="btn btn-outline-primary btn-sm nav-btn"
-                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1" title="Arco anterior">
+                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1"
+                    title="Arco anterior">
                     ←
                   </button>
-                  <select class="form-select form-select-sm text-center mx-1 mobile-select"
-                    v-model.number="arcoAtual" @change="mudarArco(arcoAtual, false)">
+                  <select class="form-select form-select-sm text-center mx-1 mobile-select" v-model.number="arcoAtual"
+                    @change="mudarArco(arcoAtual, false)">
                     <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
                       {{ numeroArco }}
                     </option>
@@ -183,7 +181,8 @@
                   <div class="mb-1">
                     <small><strong>{{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong></small>
                     <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1 mobile-badge">EDIT</span>
-                    <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1 mobile-badge">BANCO</span>
+                    <span v-if="configuracaoPreviewSelecionada"
+                      class="badge bg-success text-white ms-1 mobile-badge">BANCO</span>
                   </div>
                   <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1 mobile-badges">
                     <span class="badge bg-info text-white mobile-badge">
@@ -235,12 +234,13 @@
                       <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1">BANCO</span>
                     </div>
                     <small class="text-muted d-block">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'
-                    }}</small>
+                      }}</small>
                   </div>
 
                   <!-- Badges de Contadores -->
                   <div class="col-md-4 col-lg-6 text-center text-md-end">
-                    <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
+                    <div
+                      class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
                       <span class="badge bg-info text-white">
                         {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
                       </span>
@@ -613,7 +613,7 @@ export default {
 
             // Formato: [temp, pontoQuente, preAlarme, falha, nivel]
             dadosExemplo.arcos[arco][pendulo][sensor] = [
-              temperaturaFormatada, 
+              temperaturaFormatada,
               false, // pontoQuente
               false, // preAlarme
               false, // falha
@@ -1547,15 +1547,15 @@ export default {
         ...logica,
         mapeamentoDetalhado: {
           1: this.quantidadeModelosArcos === 1 ? 'todos' :
-              this.quantidadeModelosArcos === 2 ? 'impar' :
+            this.quantidadeModelosArcos === 2 ? 'impar' :
               this.quantidadeModelosArcos === 3 ? 'frente_fundo' :
-              'frente',
+                'frente',
           2: this.quantidadeModelosArcos <= 1 ? 'todos' :
-              this.quantidadeModelosArcos === 2 ? 'par' :
+            this.quantidadeModelosArcos === 2 ? 'par' :
               this.quantidadeModelosArcos === 3 ? 'par' :
-              'par',
+                'par',
           3: this.quantidadeModelosArcos <= 2 ? null :
-              this.quantidadeModelosArcos === 3 ? 'impar' :
+            this.quantidadeModelosArcos === 3 ? 'impar' :
               'impar',
           4: this.quantidadeModelosArcos <= 3 ? null : 'fundo'
         }
@@ -1645,8 +1645,7 @@ export default {
           quantidadePendulos: modeloSalvo.quantidadePendulos || 3,
           sensoresPorPendulo: { ...modeloSalvo.sensoresPorPendulo },
           posicoesCabos: { ...modeloSalvo.posicoesCabos },
-          config: { ...modeloSalvo.configuracao },
-          timestampSalvamento: modeloSalvo.timestampSalvamento
+          config: { ...modeloSalvo.configuracao }
         }
 
         novosModelos[numeroModelo] = modelo
@@ -1750,6 +1749,7 @@ export default {
       return false
     },
 
+    // Carregar configuração hierárquica v3.0
     carregarConfiguracaoHierarquica(dados, nomeConfig) {
 
       // Restaurar configuração dos modelos
@@ -2032,8 +2032,8 @@ export default {
           if (modeloCarregado.dado_svg) {
             let dadosSVG
             try {
-              dadosSVG = typeof modeloCarregado.dado_svg === 'string' 
-                ? JSON.parse(modeloCarregado.dado_svg) 
+              dadosSVG = typeof modeloCarregado.dado_svg === 'string'
+                ? JSON.parse(modeloCarregado.dado_svg)
                 : modeloCarregado.dado_svg
             } catch (parseError) {
               console.error('❌ [aplicarModeloBancoNoPreview] Erro ao fazer parse dos dados SVG:', parseError)
@@ -2100,44 +2100,6 @@ export default {
       this.mostrarToast('Preview voltou ao padrão', 'info')
     },
 
-    determinarModeloParaArcoComConfig(numeroArco, modelosArcos, quantidadeModelos) {
-      const totalArcos = this.analiseArcos?.totalArcos || 1
-
-      if (quantidadeModelos === 1) {
-        return Object.values(modelosArcos)[0] || null
-      }
-
-      if (quantidadeModelos === 2) {
-        const isImpar = numeroArco % 2 === 1
-        const posicaoProcurada = isImpar ? 'impar' : 'par'
-        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
-      }
-
-      if (quantidadeModelos === 3) {
-        if (numeroArco === 1 || numeroArco === totalArcos) {
-          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || Object.values(modelosArcos)[0] || null
-        }
-        const isParIntermediario = numeroArco % 2 === 0
-        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
-        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
-      }
-
-      if (quantidadeModelos === 4) {
-        if (numeroArco === 1) {
-          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || Object.values(modelosArcos)[0] || null
-        }
-        if (numeroArco === totalArcos) {
-          return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || Object.values(modelosArcos)[0] || null
-        }
-        const isParIntermediario = numeroArco % 2 === 0
-        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
-        return Object.values(modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || Object.values(modelosArcos)[0] || null
-      }
-
-      return Object.values(modelosArcos)[0] || null
-    },
-
-    // Método para determinar modelo correto para arco atual usando dados processados
     determinarModeloParaArcoAtual(dadosProcessados) {
       if (!dadosProcessados || !dadosProcessados.modelos) {
         return null
@@ -2171,13 +2133,13 @@ export default {
 
       if (quantidadeModelos === 3) {
         if (numeroArco === 1 || numeroArco === totalArcos) {
-          const modeloEncontrado = Object.values(modelos).find(modelo => 
+          const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === 'frente_fundo'
           )
           return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
         } else {
           const isParIntermediario = numeroArco % 2 === 0
-          const modeloEncontrado = Object.values(modelos).find(modelo => 
+          const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === (isParIntermediario ? 'par' : 'impar')
           )
           return modeloEncontrado || modelos[2] || Object.values(modelos)[0]
@@ -2186,19 +2148,19 @@ export default {
 
       if (quantidadeModelos === 4) {
         if (numeroArco === 1) {
-          const modeloEncontrado = Object.values(modelos).find(modelo => 
+          const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === 'frente'
           )
           return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
         }
         if (numeroArco === totalArcos) {
-          const modeloEncontrado = Object.values(modelos).find(modelo => 
+          const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === 'fundo'
           )
           return modeloEncontrado || modelos[4] || Object.values(modelos)[0]
         }
         const isParIntermediario = numeroArco % 2 === 0
-        const modeloEncontrado = Object.values(modelos).find(modelo => 
+        const modeloEncontrado = Object.values(modelos).find(modelo =>
           modelo.posicao === (isParIntermediario ? 'par' : 'impar')
         )
         return modeloEncontrado || modelos[2] || Object.values(modelos)[0]
@@ -3063,7 +3025,7 @@ export default {
         this.modelosArcos[modeloAtual].quantidadePendulos = novaQuantidade
 
         // Regenerar dados de exemplo com nova quantidade
-        this.criarDadosExemplaresComNovaQuantidade()
+        this.criarDadosExemplaresComNovaQuantidadeSensores() // Renomeado para clareza
         // Regenerar layouts automáticos com nova quantidade
         this.regenerarLayoutsAutomaticos()
         // Inicializar posições dos cabos
@@ -3158,7 +3120,7 @@ export default {
       this.updateSVG()
     },
 
-    criarDadosExemplaresComNovaQuantidade() {
+    criarDadosExemplaresComNovaQuantidadeSensores() {
       if (!this.modeloArcoAtual) return
 
       const novaQuantidade = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3
@@ -3178,7 +3140,7 @@ export default {
         this.dadosPortal.arcos[this.arcoAtual][p] = {}
 
         for (let s = 1; s <= numSensores; s++) {
-          // Temperatura aleatória entre 10°C e 40°C
+          // Gerar temperatura aleatória entre 10°C e 40°C
           const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
           const temp = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
 
@@ -3319,11 +3281,8 @@ export default {
         leituraFake[p] = {}
 
         for (let s = 1; s <= numSensores; s++) {
-          // Temperatura aleatória entre 10°C e 40°C
-          const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
-          const temp = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
-
-          leituraFake[p][s] = [temp, false, false, false, true] // temp, pq, pre-alarme, falha, ativo
+          // Gerar dados de exemplo
+          leituraFake[p][s] = [25, false, false, false, true] // Temperatura padrão, sem alertas, sensor ativo
         }
       }
 
@@ -3369,7 +3328,88 @@ export default {
       this.updateSVG()
     },
 
-    // Métodos para gerenciar sensores por pêndulo
+    // Métodos para controle de sensores por pêndulo
+    onSensoresCaboChange(data) {
+      console.log('🔧 [ModeladorSVG] onSensoresCaboChange:', data)
+
+      if (!this.modeloArcoAtual || !this.modelosArcos[this.modeloArcoAtual]) {
+        console.warn('⚠️ [ModeladorSVG] Nenhum modelo selecionado')
+        return
+      }
+
+      const { numeroPendulo, quantidade } = data
+
+      // Garantir que existe a estrutura de sensores por pêndulo
+      if (!this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo) {
+        this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = {}
+      }
+
+      // Atualizar quantidade de sensores para o pêndulo específico
+      this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo[numeroPendulo] = quantidade
+
+      console.log('✅ [ModeladorSVG] Sensores atualizados:', this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo)
+
+      // Regenerar dados exemplares com nova configuração
+      this.criarDadosExemplaresComNovaQuantidadeSensores()
+
+      // Regenerar layouts automáticos
+      this.regenerarLayoutsAutomaticos()
+
+      // Salvar modelo automaticamente
+      this.salvarModelosAutomatico()
+
+      // Atualizar visualização
+      this.updateSVG()
+    },
+
+    onAplicarSensoresUniformes() {
+      console.log('🔧 [ModeladorSVG] onAplicarSensoresUniformes')
+
+      if (!this.modeloArcoAtual) {
+        this.mostrarToast('Selecione um modelo primeiro!', 'warning')
+        return
+      }
+
+      const quantidadePendulos = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
+      const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {}
+      const primeiroValorPadrao = Object.values(sensoresPorPendulo)[0] || 3
+
+      const input = prompt(`Quantos sensores para todos os ${quantidadePendulos} pêndulos? (1-32)`, primeiroValorPadrao)
+      if (input === null) return // Usuário cancelou
+
+      const numero = parseInt(input)
+      // Validar limites
+      if (novaQtd < 1) novaQtd = 1
+      if (novaQtd > 32) novaQtd = 32
+      if (isNaN(numero) || numero < 1 || numero > 32) {
+        this.mostrarToast('Número inválido! Digite um valor entre 1 e 32.', 'error')
+        return
+      }
+
+      // Aplicar mesmo número de sensores para todos os pêndulos
+      const sensoresUniformes = {}
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        sensoresUniformes[i] = numero
+      }
+
+      this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = sensoresUniformes
+
+      console.log('✅ [ModeladorSVG] Sensores uniformizados:', sensoresUniformes)
+
+      // Regenerar dados com a nova configuração
+      this.criarDadosExemplaresComNovaQuantidadeSensores()
+
+      // Regenerar layouts
+      this.regenerarLayoutsAutomaticos()
+
+      // Salvar e atualizar
+      this.salvarModelosAutomatico()
+      this.updateSVG()
+
+      this.mostrarToast(`Aplicado ${numero} sensores uniformemente para todos os ${quantidadePendulos} pêndulos!`, 'success')
+    },
+
+    // Métodos para controle de sensores por pêndulo (compatibilidade)
     alterarSensoresPendulo(numeroPendulo, incremento) {
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
         if (!this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo) {
@@ -3381,50 +3421,21 @@ export default {
 
         // Validar limites
         if (novaQtd < 1) novaQtd = 1
-        if (novaQtd > 10) novaQtd = 10
+        if (novaQtd > 32) novaQtd = 32
 
-        this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo[numeroPendulo] = novaQtd
-        this.onSensoresPenduloChange()
+        // Usar o novo método de controle
+        this.onSensoresCaboChange({ numeroPendulo, quantidade: novaQtd })
       }
     },
 
     onSensoresPenduloChange() {
-      if (this.modeloArcoAtual) {
-        // Salvar automaticamente a alteração no modelo
-        this.salvarModelosAutomatico()
-        // Atualizar dados de preview se em modo individual
-        if (this.modelagemIndividualAtiva) {
-          this.atualizarDadosComNovosSensores()
-        }
-        this.updateSVG()
-      }
+      // Método mantido para compatibilidade - redireciona para updateSVG
+      this.updateSVG()
     },
 
     aplicarSensoresUniformes() {
-      if (!this.modeloArcoAtual) {
-        this.mostrarToast('Selecione um modelo primeiro!', 'warning')
-        return
-      }
-
-      const sensoresUniformes = prompt('Quantos sensores para todos os pêndulos? (1-10)', '3')
-      if (sensoresUniformes === null) return
-
-      const numero = parseInt(sensoresUniformes)
-      if (isNaN(numero) || numero < 1 || numero > 10) {
-        this.mostrarToast('Número inválido! Digite um valor entre 1 e 10.', 'error')
-        return
-      }
-
-      const quantidadePendulos = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
-      const novosSensores = {}
-
-      for (let i = 1; i <= quantidadePendulos; i++) {
-        novosSensores[i] = numero
-      }
-
-      this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = novosSensores
-      this.onSensoresPenduloChange()
-      this.mostrarToast(`Aplicado ${numero} sensores para todos os ${quantidadePendulos} pêndulos!`, 'success')
+      // Método mantido para compatibilidade - redireciona para o novo método
+      this.onAplicarSensoresUniformes()
     },
 
     atualizarDadosComNovosSensores() {
@@ -3558,7 +3569,7 @@ export default {
       this.updateSVG()
     },
 
-    // Método para carregar configuração do banco de dados
+    // Métodos para carregar configuração do banco
     carregarConfiguracaoDoBanco(configuracaoCarregada) {
       console.log('🔄 [ModeladorSVG] Carregando configuração do banco:', configuracaoCarregada)
 
@@ -3915,7 +3926,7 @@ export default {
   }
 }
 
-/* Responsividade para SVG */
+/* Estilos para SVG */
 .svg-container-responsive {
   display: flex;
   justify-content: center;
@@ -3936,7 +3947,7 @@ export default {
   background: white;
   border-radius: 4px;
   padding: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .nav-btn {
@@ -3958,7 +3969,7 @@ export default {
   background: white;
   border-radius: 4px;
   padding: 6px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .mobile-badge {
@@ -4006,7 +4017,7 @@ export default {
   }
 
   .mobile-nav-buttons {
-    padding: 4px;
+    gap: 2px !important;
     justify-content: space-between;
   }
 
@@ -4046,11 +4057,11 @@ export default {
     background: rgba(248, 249, 250, 0.98) !important;
     backdrop-filter: blur(4px);
     border-top: 2px solid #007bff;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
-/* Ajustes específicos para telas muito pequenas */
+/* Ajustes para telas muito pequenas */
 @media (max-width: 420px) {
   .mobile-nav-buttons {
     gap: 2px !important;
