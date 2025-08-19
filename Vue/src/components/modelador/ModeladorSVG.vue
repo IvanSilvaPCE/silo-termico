@@ -34,7 +34,9 @@
               @quantidade-pendulos-change="onQuantidadePendulosChange"
               @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
               @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
-              @salvar-modelo-atual="salvarModeloAtual" />
+              @salvar-modelo-atual="salvarModeloAtual"
+              @sensores-cabo-change="onSensoresCaboChange"
+              @aplicar-sensores-uniformes="onAplicarSensoresUniformes" />
 
 
 
@@ -575,83 +577,48 @@ export default {
     },
 
     criarDadosExemplaresArmazem() {
-      // Criar dados exemplares para 3 arcos com diferentes configurações
-      const dadosExemplo = {
-        arcos: {
-          1: {
-            1: { // Pêndulo 1
-              1: [22.5, false, false, false, true],
-              2: [21.8, false, false, false, true],
-              3: [23.1, false, false, false, true],
-              4: [24.2, false, false, false, true]
-            },
-            2: { // Pêndulo 2
-              1: [25.3, false, false, false, true],
-              2: [26.1, false, false, false, true],
-              3: [24.8, false, false, false, true]
-            },
-            3: { // Pêndulo 3
-              1: [23.7, false, false, false, true],
-              2: [22.9, false, false, false, true],
-              3: [24.5, false, false, false, true],
-              4: [25.1, false, false, false, true],
-              5: [23.3, false, false, false, true]
-            },
-            4: { // Pêndulo 4
-              1: [21.2, false, false, false, true],
-              2: [22.4, false, false, false, true]
-            },
-            5: { // Pêndulo 5
-              1: [26.8, false, false, false, true],
-              2: [27.2, false, false, false, true],
-              3: [25.9, false, false, false, true],
-              4: [26.5, false, false, false, true]
-            }
-          },
-          2: {
-            1: { // Pêndulo 1
-              1: [20.5, false, false, false, true],
-              2: [19.8, false, false, false, true],
-              3: [21.1, false, false, false, true]
-            },
-            2: { // Pêndulo 2
-              1: [22.3, false, false, false, true],
-              2: [23.1, false, false, false, true],
-              3: [21.8, false, false, false, true],
-              4: [22.9, false, false, false, true]
-            },
-            3: { // Pêndulo 3
-              1: [24.7, false, false, false, true],
-              2: [25.2, false, false, false, true]
-            },
-            4: { // Pêndulo 4
-              1: [26.1, false, false, false, true],
-              2: [25.8, false, false, false, true],
-              3: [26.4, false, false, false, true],
-              4: [25.7, false, false, false, true],
-              5: [26.9, false, false, false, true]
-            }
-          },
-          3: {
-            1: { // Pêndulo 1
-              1: [18.5, false, false, false, true],
-              2: [19.2, false, false, false, true],
-              3: [18.8, false, false, false, true],
-              4: [19.5, false, false, false, true]
-            },
-            2: { // Pêndulo 2
-              1: [21.3, false, false, false, true],
-              2: [22.1, false, false, false, true],
-              3: [20.8, false, false, false, true]
-            },
-            3: { // Pêndulo 3
-              1: [23.7, false, false, false, true],
-              2: [24.2, false, false, false, true],
-              3: [23.4, false, false, false, true],
-              4: [24.8, false, false, false, true],
-              5: [23.1, false, false, false, true],
-              6: [24.5, false, false, false, true]
-            }
+      // Gerar dados exemplares baseados na configuração atual de modelos
+      const dadosExemplo = { arcos: {} }
+
+      // Determinar quantos arcos criar (padrão 3 se não há análise)
+      const totalArcos = this.analiseArcos?.totalArcos || 3
+
+      for (let arco = 1; arco <= totalArcos; arco++) {
+        dadosExemplo.arcos[arco] = {}
+
+        // Determinar modelo para este arco
+        const modeloParaArco = this.determinarModeloParaArco(arco)
+
+        // Usar configuração do modelo ou padrão
+        let quantidadePendulos = 3
+        let sensoresPorPendulo = { 1: 4, 2: 3, 3: 5 }
+
+        if (modeloParaArco) {
+          quantidadePendulos = modeloParaArco.quantidadePendulos || 3
+          sensoresPorPendulo = modeloParaArco.sensoresPorPendulo || {}
+        }
+
+        // Gerar dados para cada pêndulo baseado na configuração
+        for (let pendulo = 1; pendulo <= quantidadePendulos; pendulo++) {
+          dadosExemplo.arcos[arco][pendulo] = {}
+
+          // Determinar quantidade de sensores para este pêndulo
+          const qtdSensores = sensoresPorPendulo[pendulo] || Math.floor(Math.random() * 4) + 2 // 2-5 sensores se não definido
+
+          // Gerar temperaturas aleatórias entre 10°C e 40°C para cada sensor
+          for (let sensor = 1; sensor <= qtdSensores; sensor++) {
+            // Temperatura aleatória entre 10 e 40 graus Celsius
+            const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
+            const temperaturaFormatada = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
+
+            // Formato: [temp, pontoQuente, preAlarme, falha, nivel]
+            dadosExemplo.arcos[arco][pendulo][sensor] = [
+              temperaturaFormatada, 
+              false, // pontoQuente
+              false, // preAlarme
+              false, // falha
+              true   // nivel (sensor ativo)
+            ]
           }
         }
       }
@@ -914,7 +881,6 @@ export default {
         }
 
         const quantidadePendulos = this.analiseArcos?.arcos[i]?.totalPendulos || 3
-
         // Criar configuração padrão de sensores por pêndulo se não existir
         let sensoresPorPendulo = {}
         if (this.modelosArcos[i]?.sensoresPorPendulo) {
@@ -1690,28 +1656,38 @@ export default {
       this.modelosArcos = novosModelos
       this.modelosSalvos = novosSalvos
 
-      // Restaurar configuração global
-      if (dados.configuracaoGlobal) {
-        this.configArmazem = { ...dados.configuracaoGlobal }
-      }
+      // Restaurar modelo selecionado se disponível
+      this.modeloArcoAtual = sistemaModelos.modeloAtualSelecionado || null
 
-      // Restaurar dados originais se disponíveis
-      if (dados.dadosOriginais?.dadosPortal) {
-        this.dadosPortal = dados.dadosOriginais.dadosPortal
-      }
-      if (dados.dadosOriginais?.analiseArcos) {
-        this.analiseArcos = dados.dadosOriginais.analiseArcos
-      }
-
-      // Restaurar layouts
+      // Restaurar layouts se disponível
       if (dados.layoutsAutomaticos) {
         this.layoutsAutomaticos = dados.layoutsAutomaticos
       }
 
-      // Restaurar dimensões SVG
+      // Restaurar dados originais se disponíveis
+      if (dados.dadosOriginais) {
+        if (dados.dadosOriginais.dadosPortal) {
+          this.dadosPortal = dados.dadosOriginais.dadosPortal
+        }
+        if (dados.dadosOriginais.analiseArcos) {
+          this.analiseArcos = dados.dadosOriginais.analiseArcos
+        }
+        if (dados.dadosOriginais.dados) {
+          this.dados = dados.dadosOriginais.dados
+        }
+      }
+
+      // Restaurar dimensões SVG se disponíveis
       if (dados.dimensoesSVG) {
         this.larguraSVG = dados.dimensoesSVG.largura
         this.alturaSVG = dados.dimensoesSVG.altura
+      }
+
+      // Restaurar estado da aplicação se disponível
+      if (dados.estadoAtual) {
+        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
+        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
+        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
       }
 
       // Aplicar configuração do primeiro modelo no preview
@@ -2011,11 +1987,11 @@ export default {
     // Método para carregar modelos do banco
     async carregarModelosDoBanco() {
       if (this.carregandoModelosBanco) return
-      
+
       this.carregandoModelosBanco = true
       try {
         const response = await modeloSvgService.buscarModelos()
-        
+
         if (response && response.data) {
           this.modelosBanco = Array.isArray(response.data) ? response.data : []
           console.log('Modelos carregados do banco:', this.modelosBanco)
@@ -2043,15 +2019,15 @@ export default {
 
       try {
         const response = await modeloSvgService.buscarModeloPorId(this.configuracaoPreviewSelecionada)
-        
+
         if (response && response.data) {
           const modeloCarregado = response.data
-          
+
           console.log('📊 [aplicarModeloBancoNoPreview] Modelo carregado:', {
             nome: modeloCarregado.nm_modelo,
             tipo: modeloCarregado.tp_svg
           })
-          
+
           // Verificar se tem dados SVG válidos
           if (modeloCarregado.dado_svg) {
             let dadosSVG
@@ -2067,7 +2043,7 @@ export default {
 
             // Aplicar configuração baseada no tipo usando o serviço de configuração
             const { configuracaoService } = await import('./services/configuracaoService')
-            
+
             const resultado = configuracaoService.aplicarConfiguracaoCompleta({
               nome: modeloCarregado.nm_modelo,
               dados: dadosSVG
@@ -2075,7 +2051,7 @@ export default {
 
             if (resultado.success) {
               console.log('✅ [aplicarModeloBancoNoPreview] Configuração processada pelo serviço')
-              
+
               // Para preview, aplicar configuração do modelo apropriado para o arco atual
               if (this.tipoAtivo === 'silo') {
                 this.configPreviewAplicada = resultado.dados.configuracaoGlobal
@@ -2089,7 +2065,7 @@ export default {
                   this.configPreviewAplicada = resultado.dados.configuracaoGlobal
                 }
               }
-              
+
               console.log('🎨 [aplicarModeloBancoNoPreview] Configuração aplicada:', this.configPreviewAplicada)
               this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
               this.updateSVG()
@@ -3202,7 +3178,10 @@ export default {
         this.dadosPortal.arcos[this.arcoAtual][p] = {}
 
         for (let s = 1; s <= numSensores; s++) {
-          const temp = Math.random() * 15 + 15 // 15-30°C
+          // Temperatura aleatória entre 10°C e 40°C
+          const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
+          const temp = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
+
           this.dadosPortal.arcos[this.arcoAtual][p][s] = [temp, false, false, false, true]
         }
 
@@ -3332,11 +3311,19 @@ export default {
 
       // Gerar dados de preview baseados na quantidade selecionada
       const quantidade = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 5
+      const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {}
       const leituraFake = {}
 
       for (let p = 1; p <= quantidade; p++) {
-        leituraFake[p] = {
-          1: [Math.floor(Math.random() * 30 + 15), false, false, false, true] // temp, pq, pre-alarme, falha, ativo
+        const numSensores = sensoresPorPendulo[p] || 1
+        leituraFake[p] = {}
+
+        for (let s = 1; s <= numSensores; s++) {
+          // Temperatura aleatória entre 10°C e 40°C
+          const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
+          const temp = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
+
+          leituraFake[p][s] = [temp, false, false, false, true] // temp, pq, pre-alarme, falha, ativo
         }
       }
 
@@ -3452,8 +3439,10 @@ export default {
         leituraAtualizada[p] = {}
 
         for (let s = 1; s <= numSensores; s++) {
-          // Gerar temperatura aleatória para cada sensor
-          const tempBase = Math.floor(Math.random() * 15 + 15) // 15-30°C
+          // Gerar temperatura aleatória entre 10°C e 40°C
+          const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
+          const tempBase = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
+
           leituraAtualizada[p][s] = [tempBase, false, false, false, true]
         }
       }
@@ -4023,16 +4012,16 @@ export default {
 
   .nav-btn {
     min-width: 32px !important;
-    height: 28px;
-    font-size: 12px;
-    padding: 2px 6px;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
   }
 
   .mobile-select {
     max-width: 70px !important;
     min-width: 60px !important;
-    height: 28px;
-    font-size: 12px;
+    height: 26px;
+    font-size: 11px;
     margin: 0 4px !important;
   }
 
