@@ -11,7 +11,7 @@ const salvarModelo = async (dadosModelo) => {
 
     const dadosValidados = {
       nm_modelo: (dadosModelo.nm_modelo || dadosModelo.nome || '').trim(),
-      dado_svg: paraString(dadosModelo.dado_svg || dadosModelo.dado_svg),
+      dado_svg: paraString(dadosModelo.dado_svg),
       ds_modelo: (dadosModelo.ds_modelo || dadosModelo.descricao || '').trim(),
       tp_svg: (dadosModelo.tp_svg || dadosModelo.tipo || '').trim(), // 'A' ou 'S'
       vista_svg: (dadosModelo.vista_svg || 'F').trim()               // 'T' ou 'F'
@@ -140,7 +140,7 @@ const buscarModeloPorId = (id) => {
 const atualizarModelo = (id, dadosModelo) => {
   const corpo = JSON.stringify({
     nm_modelo: (dadosModelo.nm_modelo || '').trim(),
-    dado_svg: paraString(dadosModelo.dado_svg || dadosModelo.dado_svg),
+    dado_svg: paraString(dadosModelo.dado_svg),
     ds_modelo: (dadosModelo.ds_modelo || '').trim(),
     tp_svg: (dadosModelo.tp_svg || '').trim(),
     vista_svg: (dadosModelo.vista_svg || 'F').trim()
@@ -150,10 +150,10 @@ const atualizarModelo = (id, dadosModelo) => {
   return client.put(`/svg/${id}`, corpo, {
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `bearer ${token()}`
+      Authorization: `bearer ${pegarToken()}`
     },
     transformRequest: [(data, headers) => {
-      headers.Authorization = `bearer ${token()}`;
+      headers.Authorization = `bearer ${pegarToken()}`;
       return data; // já é string
     }]
   }).catch(e => e.response);

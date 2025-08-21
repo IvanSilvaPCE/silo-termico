@@ -70,6 +70,8 @@
         </div>
       </div>
 
+
+
       <!-- Área de Visualização -->
       <div class="col-xl-9 col-lg-8 col-md-7 col-sm-12" :style="{
         padding: '10px',
@@ -402,7 +404,9 @@ export default {
       ajustesGlobaisSensores: {
         horizontal: 0,
         vertical: 0
-      }
+      },
+
+
     }
   },
   computed: {
@@ -454,6 +458,8 @@ export default {
 
     this.inicializarPosicoesCabos()
     this.updateSVG()
+
+
   },
   watch: {
     'configArmazem.tipo_fundo': {
@@ -538,7 +544,7 @@ export default {
 
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg',
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpby8xNzI5NzcyMDc5X3JjXzQ3MDcucG5nIiwiZXh0ZW5zYW8iOiJwbmciXX19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -814,11 +820,30 @@ export default {
     },
 
     onTipoChange() {
+      console.log('🔄 [onTipoChange] Mudando tipo para:', this.tipoAtivo)
+
       // Recarregar modelos do banco quando mudar o tipo
       this.carregarModelosDoBanco()
       // Limpar configuração preview se aplicada
       this.limparConfiguracaoPreview()
-      this.updateSVG()
+
+      // Se mudou para armazém e não tem dados, criar dados exemplares
+      if (this.tipoAtivo === 'armazem') {
+        if (!this.dadosPortal || !this.analiseArcos || !this.layoutsAutomaticos) {
+          console.log('📊 [onTipoChange] Criando dados exemplares para armazém')
+          this.criarDadosExemplaresArmazem()
+        }
+        // Garantir que o modelo padrão esteja configurado
+        if (!this.modelosArcos || Object.keys(this.modelosArcos).length === 0) {
+          this.resetarModelosParaPadrao()
+        }
+      }
+
+      // Forçar atualização do SVG
+      this.$nextTick(() => {
+        this.updateSVG()
+        console.log('✅ [onTipoChange] SVG atualizado para tipo:', this.tipoAtivo)
+      })
     },
 
     onSiloChange() {
@@ -914,9 +939,21 @@ export default {
     },
 
     onModeloArcoChange(event) {
-      this.modeloArcoAtual = parseInt(event.target.value) || null
+      const novoModelo = parseInt(event.target.value) || null
+
+      // Se estava editando um modelo antes, salvar as alterações
+      if (this.modeloArcoAtual && this.modeloArcoAtual !== novoModelo) {
+        this.salvarModeloAtualCompleto()
+      }
+
+      this.modeloArcoAtual = novoModelo
+
       if (this.modeloArcoAtual) {
-        this.configArmazem = { ...this.modelosArcos[this.modeloArcoAtual].config }
+        // Limpar todas as variáveis para começar do zero
+        this.limparVariaveisParaNovoModelo()
+
+        // Carregar configuração do modelo selecionado
+        this.carregarConfiguracaoModelo(this.modeloArcoAtual)
 
         // Inicializar posições dos cabos para o modelo selecionado
         this.inicializarPosicoesCabos()
@@ -963,6 +1000,13 @@ export default {
             this.mudarArco(arcoRepresentativo)
           }
         }
+
+        // Mostrar feedback visual sobre o modelo sendo editado
+        this.mostrarToast(`Editando ${this.modelosArcos[this.modeloArcoAtual]?.nome || `Modelo ${this.modeloArcoAtual}`}`, 'info')
+      } else {
+        // Se desmarcou modelo, voltar ao estado geral
+        this.limparVariaveisParaNovoModelo()
+        this.aplicarConfiguracaoGeralArmazem()
       }
     },
 
@@ -1226,16 +1270,84 @@ export default {
             metadados: {
               criadoEm: modelo.criadoEm || new Date().toISOString(),
               ultimaModificacao: new Date().toISOString(),
-              versaoModelo: '3.0'
+              versaoModelo: '4.0'
             },
-            quantidadePendulos: modelo.quantidadePendulos || 5, // Valor padrão para 5 pêndulos
-            sensoresPorPendulo: modelo.sensoresPorPendulo || {}, // Configuração de sensores por pêndulo
-            posicoesCabos: modelo.posicoesCabos || {} // Posições dos cabos/pêndulos
+            quantidadePendulos: modelo.quantidadePendulos || 3,
+            sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+            posicoesCabos: modelo.posicoesCabos || {},
+            // Incluir estado completo do modelo se disponível
+            estadoCompleto: modelo.estadoCompleto || null
           }
         }
       }
 
       return modelosPreparados
+    },
+
+    prepararDadosParaBanco() {
+      console.log('🔄 [prepararDadosParaBanco] Preparando dados completos para salvar no banco')
+
+      // Garantir que o modelo atual esteja salvo antes de preparar para o banco
+      if (this.modeloArcoAtual) {
+        this.salvarModeloAtualCompleto()
+      }
+
+      // Preparar estrutura completa para o campo dado_svg
+      const dadosCompletos = {
+        // Informações gerais
+        tipoConfiguracao: 'armazem_completo_v4',
+        nomeModelo: this.nomeConfiguracao || `Config_${Date.now()}`,
+        timestampCriacao: new Date().toISOString(),
+        versao: '4.0',
+
+        // Sistema de modelos
+        sistemaModelos: {
+          quantidadeModelos: this.quantidadeModelosArcos,
+          logicaDistribuicao: this.obterLogicaDistribuicaoCompleta(),
+          modelosDefinidos: this.prepararModelosParaSalvar()
+        },
+
+        // Configuração global (baseada no primeiro modelo ou padrão)
+        configuracaoGlobal: { ...this.configArmazem },
+
+        // Estrutura de dados exemplares
+        estruturaReferencia: {
+          totalArcos: this.analiseArcos?.totalArcos || 1,
+          estatisticas: this.analiseArcos?.estatisticas || { totalPendulos: 0, totalSensores: 0 }
+        },
+
+        // Layouts automáticos
+        layoutsAutomaticos: this.layoutsAutomaticos || {},
+
+        // Dimensões SVG
+        dimensoesSVG: {
+          largura: this.larguraSVG,
+          altura: this.alturaSVG
+        },
+
+        // Dados originais se disponíveis
+        dadosOriginais: {
+          dadosPortal: this.dadosPortal,
+          analiseArcos: this.analiseArcos
+        },
+
+        // Estado atual da aplicação
+        estadoAtual: {
+          arcoAtual: this.arcoAtual,
+          modeloArcoAtual: this.modeloArcoAtual,
+          dadosVindosDoPreview: this.dadosVindosDoPreview,
+          configuracaoPreviewSelecionada: this.configuracaoPreviewSelecionada
+        }
+      }
+
+      console.log('✅ [prepararDadosParaBanco] Dados preparados:', {
+        quantidadeModelos: this.quantidadeModelosArcos,
+        modelosSalvos: Object.keys(this.modelosSalvos).length,
+        tamanhoJSON: JSON.stringify(dadosCompletos).length,
+        versao: dadosCompletos.versao
+      })
+
+      return dadosCompletos
     },
 
     gerarMapeamentoArcos() {
@@ -1278,22 +1390,175 @@ export default {
         return
       }
 
-      // Salvar configuração atual no modelo
+      this.salvarModeloAtualCompleto()
+      this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${this.modelosArcos[this.modeloArcoAtual]?.nome}) salvo com sucesso!`, 'success')
+    },
+
+    salvarModeloAtualCompleto() {
+      if (!this.modeloArcoAtual) return
+
+      // Salvar configuração atual no modelo com TODOS os dados
       const modeloParaSalvar = {
         ...this.modelosArcos[this.modeloArcoAtual],
         config: { ...this.configArmazem },
-        quantidadePendulos: this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3,
-        sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo },
+        quantidadePendulos: this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3,
+        sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {} },
         posicoesCabos: { ...this.posicoesCabos },
-        timestampSalvamento: new Date().toISOString()
+        // Salvar estado completo das variáveis específicas do modelo
+        estadoCompleto: {
+          configArmazem: { ...this.configArmazem },
+          posicoesCabos: { ...this.posicoesCabos },
+          caboSelecionadoPosicionamento: this.caboSelecionadoPosicionamento,
+          // Outras variáveis específicas do modelador
+          modelagemIndividualAtiva: this.modelagemIndividualAtiva,
+          posicoesPendulosIndividuais: { ...this.posicoesPendulosIndividuais },
+          posicoesSensoresIndividuais: { ...this.posicoesSensoresIndividuais },
+          ajustesGlobaisSensores: { ...this.ajustesGlobaisSensores }
+        },
+        timestampSalvamento: new Date().toISOString(),
+        versaoModelo: '2.0'
       }
 
       this.modelosArcos[this.modeloArcoAtual] = modeloParaSalvar
       this.modelosSalvos[this.modeloArcoAtual] = true
 
-      this.salvarModelosAutomatico()
+      // Salvar no localStorage individualmente
+      this.salvarModeloNoLocalStorage(this.modeloArcoAtual, modeloParaSalvar)
 
-      this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${modeloParaSalvar.nome}) salvo com sucesso!`, 'success')
+      // Salvar estado geral dos modelos
+      this.salvarModelosAutomatico()
+    },
+
+    limparVariaveisParaNovoModelo() {
+      console.log('🧹 [limparVariaveisParaNovoModelo] Limpando variáveis para começar novo modelo')
+
+      // Resetar configuração do armazém para padrão
+      this.configArmazem = {
+        pb: 185,
+        lb: 350,
+        hb: 30,
+        hf: 5,
+        lf: 250,
+        le: 15,
+        ht: 50,
+        tipo_telhado: 1,
+        curvatura_topo: 30,
+        pontas_redondas: false,
+        raio_pontas: 15,
+        estilo_laterais: 'reta',
+        curvatura_laterais: 0,
+        tipo_fundo: 0,
+        altura_fundo_reto: 10,
+        altura_funil_v: 18,
+        posicao_ponta_v: 0,
+        inclinacao_funil_v: 1,
+        largura_abertura_v: 20,
+        altura_duplo_v: 22,
+        posicao_v_esquerdo: -1,
+        posicao_v_direito: 1,
+        largura_abertura_duplo_v: 2,
+        altura_plataforma_duplo_v: 0.3,
+        largura_plataforma_duplo_v: 10,
+        deslocamento_horizontal_fundo: 0,
+        deslocamento_vertical_fundo: -1,
+        escala_sensores: 16,
+        dist_y_sensores: 12,
+        dist_x_sensores: 0,
+        posicao_horizontal: 0,
+        posicao_vertical: 0,
+        afastamento_vertical_pendulo: 0
+      }
+
+      // Limpar posições de cabos
+      this.posicoesCabos = {}
+      this.caboSelecionadoPosicionamento = null
+
+      // Limpar modelagem individual
+      this.modelagemIndividualAtiva = false
+      this.penduloSelecionado = 1
+      this.posicoesPendulosIndividuais = {}
+      this.posicoesSensoresIndividuais = {}
+      this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
+      this.dadosPreviewDesvinculados = null
+
+      // Limpar configurações de preview aplicadas
+      this.configPreviewAplicada = null
+      this.configuracaoAplicada = null
+
+      console.log('✅ [limparVariaveisParaNovoModelo] Variáveis limpas - pronto para novo modelo')
+    },
+
+    carregarConfiguracaoModelo(numeroModelo) {
+      console.log(`🔄 [carregarConfiguracaoModelo] Carregando modelo ${numeroModelo}`)
+
+      const modelo = this.modelosArcos[numeroModelo]
+      if (!modelo) {
+        console.warn(`⚠️ [carregarConfiguracaoModelo] Modelo ${numeroModelo} não encontrado`)
+        return
+      }
+
+      // Carregar configuração básica do modelo
+      if (modelo.config) {
+        this.configArmazem = { ...modelo.config }
+      }
+
+      // Carregar estado completo se disponível
+      if (modelo.estadoCompleto) {
+        console.log(`📊 [carregarConfiguracaoModelo] Restaurando estado completo do modelo ${numeroModelo}`)
+
+        // Restaurar configuração do armazém
+        if (modelo.estadoCompleto.configArmazem) {
+          this.configArmazem = { ...modelo.estadoCompleto.configArmazem }
+        }
+
+        // Restaurar posições de cabos
+        if (modelo.estadoCompleto.posicoesCabos) {
+          this.posicoesCabos = { ...modelo.estadoCompleto.posicoesCabos }
+        }
+
+        // Restaurar cabo selecionado
+        this.caboSelecionadoPosicionamento = modelo.estadoCompleto.caboSelecionadoPosicionamento || null
+
+        // Restaurar modelagem individual se estava ativa
+        if (modelo.estadoCompleto.modelagemIndividualAtiva) {
+          this.modelagemIndividualAtiva = modelo.estadoCompleto.modelagemIndividualAtiva
+          this.posicoesPendulosIndividuais = { ...modelo.estadoCompleto.posicoesPendulosIndividuais || {} }
+          this.posicoesSensoresIndividuais = { ...modelo.estadoCompleto.posicoesSensoresIndividuais || {} }
+          this.ajustesGlobaisSensores = { ...modelo.estadoCompleto.ajustesGlobaisSensores || { horizontal: 0, vertical: 0 } }
+        }
+      } else {
+        // Fallback para modelos sem estado completo
+        if (modelo.posicoesCabos) {
+          this.posicoesCabos = { ...modelo.posicoesCabos }
+        }
+      }
+
+      console.log(`✅ [carregarConfiguracaoModelo] Modelo ${numeroModelo} carregado com sucesso`)
+    },
+
+    aplicarConfiguracaoGeralArmazem() {
+      // Quando não há modelo selecionado, usar configuração geral
+      const primeiroModelo = this.modelosArcos[1]
+      if (primeiroModelo?.config) {
+        this.configArmazem = { ...primeiroModelo.config }
+      }
+    },
+
+    salvarModeloNoLocalStorage(numeroModelo, dadosModelo) {
+      if (typeof localStorage !== 'undefined') {
+        try {
+          const chave = `modelo_arco_${numeroModelo}_${Date.now()}`
+          localStorage.setItem(chave, JSON.stringify({
+            numeroModelo,
+            dados: dadosModelo,
+            timestamp: new Date().toISOString(),
+            tipo: 'modelo_individual'
+          }))
+          console.log(`💾 [salvarModeloNoLocalStorage] Modelo ${numeroModelo} salvo individualmente no localStorage`)
+        } catch (error) {
+          console.error(`❌ [salvarModeloNoLocalStorage] Erro ao salvar modelo ${numeroModelo}:`, error)
+        }
+      }
     },
 
     salvarModelosAutomatico() {
@@ -1427,9 +1692,9 @@ export default {
           posicao: 'todos',
           config: { ...configPadrao },
           nome: 'Modelo Único',
-          quantidadePendulos: 3, // Padrão alterado para 3 pêndulos
+          quantidadePendulos: 3,
           sensoresPorPendulo: {
-            1: 4, 2: 3, 3: 5 // Configuração padrão de sensores para 3 pêndulos
+            1: 3, 2: 3, 3: 3 // Configuração padrão uniforme de 3 sensores para 3 pêndulos
           }
         }
       }
@@ -1519,7 +1784,7 @@ export default {
           localStorage.setItem('configArmazem', JSON.stringify(configCompleta))
           localStorage.setItem(`configArmazem_${this.nomeConfiguracao}`, JSON.stringify(configCompleta))
 
-          // Gerar mapeamento de como os arcos serão distribuídos
+          // Gerar preview do mapeamento
           const mapeamento = this.gerarMapeamentoDistribuicao()
 
           this.mostrarToast(
@@ -1700,11 +1965,11 @@ export default {
 
       const logica = sistemaModelos.logicaDistribuicao?.nome || 'Personalizada'
       this.mostrarToast(
-        `✅ Configuração "${nomeConfig}" carregada!\n\n` +
-        `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s)\n` +
+        `✅ Configuração v4.0 "${nomeConfig}" carregada!\n\n` +
+        `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s) com estado completo\n` +
         `🎯 Lógica: ${logica}\n` +
         `📐 Dimensões: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}\n\n` +
-        `💡 Todos os modelos foram restaurados com suas configurações originais!`,
+        `💡 Cada modelo foi restaurado com todas as configurações originais!`,
         'success'
       )
     },
@@ -3021,23 +3286,32 @@ export default {
     onQuantidadePendulosChange(event) {
       const modeloAtual = event.modeloArcoAtual || this.modeloArcoAtual
       if (modeloAtual) {
-        const novaQuantidade = parseInt(event.target.value) || 0
+        const novaQuantidade = parseInt(event.target.value) || 3
         this.modelosArcos[modeloAtual].quantidadePendulos = novaQuantidade
 
+        // Atualizar configuração de sensores por pêndulo para a nova quantidade
+        const sensoresPorPendulo = {}
+        for (let i = 1; i <= novaQuantidade; i++) {
+          // Manter sensores existentes se já configurados, senão usar 3 como padrão
+          const sensoresExistentes = this.modelosArcos[modeloAtual].sensoresPorPendulo?.[i]
+          sensoresPorPendulo[i] = sensoresExistentes || 3
+        }
+        this.modelosArcos[modeloAtual].sensoresPorPendulo = sensoresPorPendulo
+
         // Regenerar dados de exemplo com nova quantidade
-        this.criarDadosExemplaresComNovaQuantidadeSensores() // Renomeado para clareza
+        this.criarDadosExemplaresComNovaQuantidadeSensores()
         // Regenerar layouts automáticos com nova quantidade
         this.regenerarLayoutsAutomaticos()
         // Inicializar posições dos cabos
         this.inicializarPosicoesCabos()
-        // Salvar automaticamente a alteração no modelo
-        this.salvarModelosAutomatico()
+        // Salvar modelo completo imediatamente
+        this.salvarModeloAtualCompleto()
         // Atualizar preview automaticamente
         this.updateSVG()
       }
     },
 
-    // Novos métodos para controle de cabos
+    // Métodos para controle de cabos
     inicializarPosicoesCabos() {
       if (!this.modeloArcoAtual) return
 
@@ -3362,25 +3636,17 @@ export default {
       this.updateSVG()
     },
 
-    onAplicarSensoresUniformes() {
-      console.log('🔧 [ModeladorSVG] onAplicarSensoresUniformes')
+    onAplicarSensoresUniformes(dados) {
+      console.log('🔧 [ModeladorSVG] onAplicarSensoresUniformes recebido:', dados)
 
       if (!this.modeloArcoAtual) {
         this.mostrarToast('Selecione um modelo primeiro!', 'warning')
         return
       }
 
-      const quantidadePendulos = this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3
-      const sensoresPorPendulo = this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {}
-      const primeiroValorPadrao = Object.values(sensoresPorPendulo)[0] || 3
+      const { quantidade, totalPendulos } = dados
+      const numero = parseInt(quantidade)
 
-      const input = prompt(`Quantos sensores para todos os ${quantidadePendulos} pêndulos? (1-32)`, primeiroValorPadrao)
-      if (input === null) return // Usuário cancelou
-
-      const numero = parseInt(input)
-      // Validar limites
-      if (novaQtd < 1) novaQtd = 1
-      if (novaQtd > 32) novaQtd = 32
       if (isNaN(numero) || numero < 1 || numero > 32) {
         this.mostrarToast('Número inválido! Digite um valor entre 1 e 32.', 'error')
         return
@@ -3388,16 +3654,17 @@ export default {
 
       // Aplicar mesmo número de sensores para todos os pêndulos
       const sensoresUniformes = {}
-      for (let i = 1; i <= quantidadePendulos; i++) {
+      for (let i = 1; i <= totalPendulos; i++) {
         sensoresUniformes[i] = numero
       }
 
+      // Garantir que a atualização seja aplicada corretamente
       this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = sensoresUniformes
 
       console.log('✅ [ModeladorSVG] Sensores uniformizados:', sensoresUniformes)
 
-      // Regenerar dados com a nova configuração
-      this.criarDadosExemplaresComNovaQuantidadeSensores()
+      // Forçar atualização dos dados exemplares com a nova configuração
+      this.atualizarDadosExemplaresComNovaSensorConfig(numero, totalPendulos)
 
       // Regenerar layouts
       this.regenerarLayoutsAutomaticos()
@@ -3406,7 +3673,7 @@ export default {
       this.salvarModelosAutomatico()
       this.updateSVG()
 
-      this.mostrarToast(`Aplicado ${numero} sensores uniformemente para todos os ${quantidadePendulos} pêndulos!`, 'success')
+      this.mostrarToast(`Aplicado ${numero} sensores uniformemente para todos os ${totalPendulos} pêndulos!`, 'success')
     },
 
     // Métodos para controle de sensores por pêndulo (compatibilidade)
@@ -3564,6 +3831,48 @@ export default {
       this.updateSVG()
     },
 
+    // Método específico para atualizar dados exemplares com nova configuração de sensores
+    atualizarDadosExemplaresComNovaSensorConfig(numeroSensores, quantidadePendulos) {
+      console.log('🔄 [atualizarDadosExemplaresComNovaSensorConfig] Atualizando com:', { numeroSensores, quantidadePendulos })
+
+      if (!this.dadosPortal.arcos[this.arcoAtual]) {
+        this.dadosPortal.arcos[this.arcoAtual] = {}
+      }
+
+      // Limpar dados antigos
+      this.dadosPortal.arcos[this.arcoAtual] = {}
+
+      // Criar novos dados baseados na quantidade configurada
+      for (let p = 1; p <= quantidadePendulos; p++) {
+        this.dadosPortal.arcos[this.arcoAtual][p] = {}
+
+        for (let s = 1; s <= numeroSensores; s++) {
+          // Gerar temperatura aleatória entre 10°C e 40°C
+          const temperaturaAleatoria = Math.random() * 30 + 10 // 10 + (0 a 30)
+          const temp = Math.round(temperaturaAleatoria * 10) / 10 // Arredondar para 1 casa decimal
+
+          this.dadosPortal.arcos[this.arcoAtual][p][s] = [temp, false, false, false, true]
+        }
+      }
+
+      // Reanalisar estrutura
+      const novaAnalise = this.analisarEstruturaArcos(this.dadosPortal)
+      this.analiseArcos = novaAnalise
+
+      // Regenerar layouts com a nova estrutura
+      const layoutsAtualizados = LayoutManager.gerarLayoutAutomatico(novaAnalise)
+      this.layoutsAutomaticos = layoutsAtualizados
+
+      // Converter dados para renderização
+      const dadosConvertidos = this.converterDadosParaRenderizacao(this.dadosPortal, this.arcoAtual)
+      this.dados = dadosConvertidos
+
+      console.log('✅ [atualizarDadosExemplaresComNovaSensorConfig] Dados atualizados:', {
+        novaAnalise: novaAnalise.arcos[this.arcoAtual],
+        dadosConvertidos: dadosConvertidos.leitura
+      })
+    },
+
     onPosicaoSensorChange() {
       // Atualizar preview em tempo real quando posição de sensor mudar
       this.updateSVG()
@@ -3587,67 +3896,21 @@ export default {
         // Carregar configuração de Armazém
         this.tipoAtivo = 'armazem'
 
-        // Verificar se é uma configuração completa com sistema de modelos
-        if (tipoConfiguracao === 'configuracao_armazem_completa' && dados.quantidadeModelos) {
-          // Nova estrutura com sistema de modelos
-          this.quantidadeModelosArcos = dados.quantidadeModelos
-
-          // Restaurar modelos de arcos
-          const novosModelos = {}
-          const novosSalvos = {}
-
-          if (dados.modelosArcos) {
-            Object.keys(dados.modelosArcos).forEach(key => {
-              const modelo = dados.modelosArcos[key]
-              novosModelos[key] = {
-                posicao: modelo.posicao || this.determinarPosicaoDoModelo(parseInt(key), dados.quantidadeModelos),
-                config: { ...modelo.config },
-                nome: modelo.nome || `Modelo ${key}`,
-                quantidadePendulos: modelo.quantidadePendulos || 3,
-                sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-                posicoesCabos: modelo.posicoesCabos || {}
-              }
-              novosSalvos[key] = true
-            })
-
-            this.modelosArcos = novosModelos
-            this.modelosSalvos = novosSalvos
-          }
-
-          // Restaurar configuração global
-          if (dados.configuracaoGlobal) {
-            this.configArmazem = { ...dados.configuracaoGlobal }
-          }
-
-          // Restaurar dados originais se disponíveis
-          if (dados.dadosOriginais?.dadosPortal) {
-            this.dadosPortal = dados.dadosOriginais.dadosPortal
-            this.analiseArcos = this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
-          }
-
-          this.mostrarToast(`Configuração "${nome}" com ${dados.quantidadeModelos} modelo(s) carregada!`, 'success')
+        // Verificar tipo de configuração
+        if (dados.tipoConfiguracao === 'armazem_completo_v4' || dados.versao === '4.0') {
+          // Nova estrutura v4.0 com sistema completo de modelos
+          this.carregarConfiguracaoCompletaV4(dados, nome)
+        } else if (tipoConfiguracao === 'configuracao_armazem_completa' && dados.quantidadeModelos) {
+          // Estrutura v3.0 com sistema de modelos
+          this.carregarConfiguracaoCompletaV3(dados, nome)
         } else {
           // Configuração simples (compatibilidade)
-          this.quantidadeModelosArcos = 1
-          this.modelosArcos = {
-            1: {
-              posicao: 'todos',
-              config: { ...dados },
-              nome: 'Modelo Único',
-              quantidadePendulos: 3,
-              sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 }
-            }
-          }
-          this.modelosSalvos = { 1: true }
-          this.configArmazem = { ...dados }
-
-          this.mostrarToast(`Configuração simples "${nome}" convertida para novo formato!`, 'info')
+          this.carregarConfiguracaoSimplesCompatibilidade(dados, nome)
         }
 
         // Resetar estado de edição
         this.modeloArcoAtual = null
-        this.caboSelecionadoPosicionamento = null
-        this.posicoesCabos = {}
+        this.limparVariaveisParaNovoModelo()
 
         // Inicializar posições dos cabos
         this.inicializarPosicoesCabos()
@@ -3657,6 +3920,149 @@ export default {
 
         console.log(`✅ [ModeladorSVG] Configuração "${nome}" carregada com sucesso`)
       }
+    },
+
+    carregarConfiguracaoCompletaV4(dados, nome) {
+      console.log('📦 [carregarConfiguracaoCompletaV4] Carregando configuração v4.0 completa')
+
+      // Restaurar sistema de modelos
+      if (dados.sistemaModelos) {
+        this.quantidadeModelosArcos = dados.sistemaModelos.quantidadeModelos
+
+        // Restaurar modelos de arcos com estado completo
+        const novosModelos = {}
+        const novosSalvos = {}
+
+        if (dados.sistemaModelos.modelosDefinidos) {
+          Object.keys(dados.sistemaModelos.modelosDefinidos).forEach(key => {
+            const modelo = dados.sistemaModelos.modelosDefinidos[key]
+            novosModelos[key] = {
+              posicao: modelo.posicao || this.determinarPosicaoDoModelo(parseInt(key), this.quantidadeModelosArcos),
+              config: { ...modelo.configuracao },
+              nome: modelo.nome || `Modelo ${key}`,
+              quantidadePendulos: modelo.quantidadePendulos || 3,
+              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+              posicoesCabos: modelo.posicoesCabos || {},
+              // Restaurar estado completo se disponível
+              estadoCompleto: modelo.estadoCompleto || null,
+              timestampSalvamento: modelo.timestampUltimaEdicao || new Date().toISOString(),
+              versaoModelo: modelo.metadados?.versaoModelo || '4.0'
+            }
+            novosSalvos[key] = modelo.status === 'salvo'
+          })
+
+          this.modelosArcos = novosModelos
+          this.modelosSalvos = novosSalvos
+        }
+      }
+
+      // Restaurar configuração global
+      if (dados.configuracaoGlobal) {
+        this.configArmazem = { ...dados.configuracaoGlobal }
+      }
+
+      // Restaurar layouts automáticos
+      if (dados.layoutsAutomaticos) {
+        this.layoutsAutomaticos = dados.layoutsAutomaticos
+      }
+
+      // Restaurar dados originais se disponíveis
+      if (dados.dadosOriginais?.dadosPortal) {
+        this.dadosPortal = dados.dadosOriginais.dadosPortal
+        this.analiseArcos = dados.dadosOriginais.analiseArcos || this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
+      }
+
+      // Restaurar dimensões SVG
+      if (dados.dimensoesSVG) {
+        this.larguraSVG = dados.dimensoesSVG.largura || 350
+        this.alturaSVG = dados.dimensoesSVG.altura || 200
+      }
+
+      // Restaurar estado da aplicação se disponível
+      if (dados.estadoAtual) {
+        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
+        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
+        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
+      }
+
+      // Aplicar configuração do primeiro modelo no preview
+      setTimeout(() => {
+        const primeiroModelo = Object.values(this.modelosArcos)[0]
+        if (primeiroModelo) {
+          this.configArmazem = { ...primeiroModelo.config }
+          this.inicializarPosicoesCabos()
+        }
+      }, 100)
+
+      const logica = dados.sistemaModelos?.logicaDistribuicao?.nome || 'Personalizada'
+      this.mostrarToast(
+        `✅ Configuração v4.0 "${nome}" carregada!\n\n` +
+        `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s) com estado completo\n` +
+        `🎯 Lógica: ${logica}\n` +
+        `📐 Dimensões: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}\n\n` +
+        `💡 Cada modelo foi restaurado com todas as configurações originais!`,
+        'success'
+      )
+    },
+
+    carregarConfiguracaoCompletaV3(dados, nome) {
+      console.log('📦 [carregarConfiguracaoCompletaV3] Carregando configuração v3.0')
+
+      this.quantidadeModelosArcos = dados.quantidadeModelos || 1
+
+      // Restaurar modelos de arcos (compatibilidade v3.0)
+      const novosModelos = {}
+      const novosSalvos = {}
+
+      if (dados.modelosArcos) {
+        Object.keys(dados.modelosArcos).forEach(key => {
+          const modelo = dados.modelosArcos[key]
+          novosModelos[key] = {
+            posicao: modelo.posicao || this.determinarPosicaoDoModelo(parseInt(key), dados.quantidadeModelos),
+            config: { ...modelo.config },
+            nome: modelo.nome || `Modelo ${key}`,
+            quantidadePendulos: modelo.quantidadePendulos || 3,
+            sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+            posicoesCabos: modelo.posicoesCabos || {}
+          }
+          novosSalvos[key] = true
+        })
+
+        this.modelosArcos = novosModelos
+        this.modelosSalvos = novosSalvos
+      }
+
+      // Restaurar configuração global
+      if (dados.configuracaoGlobal) {
+        this.configArmazem = { ...dados.configuracaoGlobal }
+      }
+
+      // Restaurar dados originais se disponíveis
+      if (dados.dadosOriginais?.dadosPortal) {
+        this.dadosPortal = dados.dadosOriginais.dadosPortal
+        this.analiseArcos = this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
+      }
+
+      this.mostrarToast(`Configuração v3.0 "${nome}" com ${dados.quantidadeModelos} modelo(s) carregada!`, 'success')
+    },
+
+    carregarConfiguracaoSimplesCompatibilidade(dados, nome) {
+      console.log('📦 [carregarConfiguracaoSimplesCompatibilidade] Carregando configuração simples')
+
+      this.quantidadeModelosArcos = 1
+      this.modelosArcos = {
+        1: {
+          posicao: 'todos',
+          config: { ...dados },
+          nome: 'Modelo Único',
+          quantidadePendulos: 3,
+          sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 }
+        }
+      }
+      this.modelosSalvos = { 1: true }
+      this.configArmazem = { ...dados }
+
+      this.mostrarToast(`Configuração simples "${nome}" convertida para novo formato!`, 'info')
     },
 
     // Métodos do Gerenciador de Configurações
