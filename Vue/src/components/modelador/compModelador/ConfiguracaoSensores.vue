@@ -10,14 +10,13 @@
           <label class="small fw-bold text-primary">📊 Sensores por Pêndulo:</label>
           <button type="button" class="btn btn-outline-primary btn-sm"
             @click="abrirModalUniformizar" title="Aplicar mesma quantidade para todos">
-            ⚖️ Uniformizar
+            Uniformizar
           </button>
         </div>
 
         <!-- Sistema compacto com dropdown para seleção de pêndulo -->
         <div class="row g-2 mb-3">
           <div class="col-12">
-            <label class="form-label small fw-bold text-white">🎯 Selecionar Pêndulo:</label>
             <select class="form-select form-select-sm w-100" v-model="penduloSelecionado">
               <option v-for="pendulo in quantidadePendulos" :key="pendulo" :value="pendulo">
                 Pêndulo {{ pendulo }} - {{ getSensoresPendulo(pendulo) }} sensor{{ getSensoresPendulo(pendulo) > 1 ? 'es' : '' }}
@@ -25,9 +24,7 @@
             </select>
           </div>
           <div class="col-12">
-            <label class="form-label small fw-bold text-white">🔧 Quantidade de Sensores:</label>
             <div class="input-group input-group-sm">
-              <span class="input-group-text">🌡️</span>
               <button type="button" class="btn btn-outline-secondary"
                 @click="alterarSensoresPendulo(penduloSelecionado, -1)" 
                 :disabled="getSensoresPendulo(penduloSelecionado) <= 1">
@@ -58,9 +55,7 @@
               P{{ pendulo }}: {{ getSensoresPendulo(pendulo) }}
             </span>
           </div>
-          <small class="text-muted mt-1 d-block">
-            💡 Clique em um badge para selecionar o pêndulo
-          </small>
+          
         </div>
 
         <div class="mt-2 text-center">

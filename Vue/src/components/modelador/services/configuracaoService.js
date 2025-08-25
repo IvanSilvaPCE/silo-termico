@@ -413,6 +413,111 @@ const limparVariaveisModelo = () => {
   }
 }
 
+// Função para validar configuração antes do salvamento
+const validarConfiguracao = (configuracao, modelos, quantidadeModelos, tipo) => {
+  try {
+    console.log('🔍 [configuracaoService] Validando configuração:', {
+      tipo,
+      quantidadeModelos,
+      temConfiguracao: !!configuracao,
+      temModelos: !!modelos,
+      modelosKeys: modelos ? Object.keys(modelos) : []
+    })
+
+    const erros = []
+
+    // Validação para Silo
+    if (tipo === 'silo') {
+      if (!configuracao || Object.keys(configuracao).length === 0) {
+        erros.push('Configuração do silo não foi definida')
+      }
+      
+      return {
+        valido: erros.length === 0,
+        erros,
+        detalhes: {
+          tipo: 'silo',
+          temConfiguracao: !!configuracao
+        }
+      }
+    }
+
+    // Validação para Armazém
+    if (tipo === 'armazem') {
+      // Validar quantidade de modelos
+      if (!quantidadeModelos || quantidadeModelos < 1 || quantidadeModelos > 4) {
+        erros.push('Quantidade de modelos deve estar entre 1 e 4')
+      }
+
+      // Validar se existem modelos definidos
+      if (!modelos || Object.keys(modelos).length === 0) {
+        erros.push('Nenhum modelo de arco foi definido')
+      } else {
+        // Validar se a quantidade de modelos bate com os modelos definidos
+        const modelosDefinidos = Object.keys(modelos).length
+        if (modelosDefinidos !== quantidadeModelos) {
+          erros.push(`Quantidade de modelos (${quantidadeModelos}) não confere com modelos definidos (${modelosDefinidos})`)
+        }
+
+        // Validar cada modelo individualmente
+        for (let i = 1; i <= quantidadeModelos; i++) {
+          const modelo = modelos[i]
+          if (!modelo) {
+            erros.push(`Modelo ${i} não foi configurado`)
+            continue
+          }
+
+          if (!modelo.nome || modelo.nome.trim() === '') {
+            erros.push(`Modelo ${i} não possui nome definido`)
+          }
+
+          if (!modelo.configuracao || Object.keys(modelo.configuracao).length === 0) {
+            erros.push(`Modelo ${i} não possui configuração definida`)
+          }
+
+          if (!modelo.quantidadePendulos || modelo.quantidadePendulos < 1) {
+            erros.push(`Modelo ${i} não possui quantidade de pêndulos válida`)
+          }
+        }
+      }
+
+      // Validar configuração global
+      if (!configuracao || Object.keys(configuracao).length === 0) {
+        erros.push('Configuração global do armazém não foi definida')
+      }
+    }
+
+    const validacaoResultado = {
+      valido: erros.length === 0,
+      erros,
+      detalhes: {
+        tipo,
+        quantidadeModelos: quantidadeModelos || 0,
+        modelosDefinidos: modelos ? Object.keys(modelos).length : 0,
+        temConfiguracaoGlobal: !!(configuracao && Object.keys(configuracao).length > 0),
+        modelosValidos: modelos ? Object.values(modelos).filter(m => 
+          m && m.nome && m.configuracao && Object.keys(m.configuracao).length > 0
+        ).length : 0
+      }
+    }
+
+    if (validacaoResultado.valido) {
+      console.log('✅ [configuracaoService] Configuração validada com sucesso')
+    } else {
+      console.warn('⚠️ [configuracaoService] Configuração com problemas:', erros)
+    }
+
+    return validacaoResultado
+  } catch (error) {
+    console.error('❌ [configuracaoService] Erro na validação da configuração:', error)
+    return {
+      valido: false,
+      erros: ['Erro interno na validação da configuração'],
+      detalhes: null
+    }
+  }
+}
+
 export const configuracaoService = {
   salvarModelosArcos,
   carregarModelosArcos,
@@ -423,5 +528,6 @@ export const configuracaoService = {
   determinarLayoutArcos,
   aplicarConfiguracaoCompleta,
   prepararDadosParaBanco,
-  limparVariaveisModelo
+  limparVariaveisModelo,
+  validarConfiguracao
 }

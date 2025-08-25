@@ -4,13 +4,6 @@
     <InicializadorModelos :tipo-ativo="tipoAtivo" :tem-configuracao-atual="temConfiguracaoAtual"
       @modelo-inicializado="$emit('modelo-inicializado', $event)" @mostrar-toast="$emit('mostrar-toast', $event)" />
 
-    <div class="alert alert-info">
-      <h6 class="mb-2">💾 Sistema de Salvamento Local (localStorage)</h6>
-      <small>
-        Use o <strong>Gerenciador de Configurações (Banco de Dados)</strong> acima para
-        salvamento definitivo. Este componente é apenas para backup local.
-      </small>
-    </div>
 
     <!-- Informações sobre o Sistema -->
     <div class="alert alert-light">
