@@ -85,7 +85,7 @@ const validarDados = (dadosValidados) => {
     erros.push('Vista deve ser T (Topo) ou F (Frontal)')
   }
 
-  // Validar se dado_svg é um JSON válido
+  // Validar apenas se é JSON válido
   try {
     JSON.parse(dadosValidados.dado_svg)
   } catch (e) {
@@ -98,25 +98,19 @@ const validarDados = (dadosValidados) => {
 // POST - Salvar novo modelo
 const salvarModelo = async (dadosModelo) => {
   try {
-    // Normalizar e validar dados antes de enviar
-    let dadosSvg = dadosModelo.dados_svg || dadosModelo.dado_svg
-    
-    // Se dados_svg for objeto, converter para string
-    if (typeof dadosSvg === 'object' && dadosSvg !== null) {
-      dadosSvg = JSON.stringify(dadosSvg)
-    } else if (!dadosSvg || dadosSvg.trim() === '') {
-      dadosSvg = JSON.stringify({ erro: 'Dados SVG não fornecidos' })
-    }
-
-    const dadosValidados = {
+    // Preparar payload final com os dados exatos recebidos
+    const payload = {
       nm_modelo: dadosModelo.nm_modelo || '',
-      dado_svg: dadosSvg,
       ds_modelo: dadosModelo.ds_modelo || '',
-      tp_svg: dadosModelo.tp_svg || 'A', // 'A' para armazém, 'S' para silo
-      vista_svg: dadosModelo.vista_svg || 'F'
+      tp_svg: dadosModelo.tp_svg || 'A',
+      vista_svg: dadosModelo.vista_svg || 'F',
+      dado_svg: typeof dadosModelo.dado_svg === 'string' 
+        ? dadosModelo.dado_svg 
+        : JSON.stringify(dadosModelo.dado_svg || {}),
+      imagem: dadosModelo.imagem || ''
     }
 
-    const erros = validarDados(dadosValidados)
+    const erros = validarDados(payload)
 
     if (erros.length) {
       console.warn('⚠️ [modeloSvgService] Erros de validação:', erros)
@@ -129,11 +123,11 @@ const salvarModelo = async (dadosModelo) => {
     }
 
     console.log('🔄 [modeloSvgService] Salvando modelo:', {
-      nm_modelo: dadosValidados.nm_modelo,
-      tp_svg: dadosValidados.tp_svg,
-      vista_svg: dadosValidados.vista_svg,
-      ds_modelo: dadosValidados.ds_modelo,
-      tamanho_dados: dadosValidados.dado_svg?.length || 0
+      nm_modelo: payload.nm_modelo,
+      tp_svg: payload.tp_svg,
+      vista_svg: payload.vista_svg,
+      ds_modelo: payload.ds_modelo,
+      tamanho_dados: payload.dado_svg?.length || 0
     })
 
     const token = pegarToken()
@@ -145,7 +139,7 @@ const salvarModelo = async (dadosModelo) => {
       }
     }
 
-    const response = await client.post('/svg', dadosValidados, {
+    const response = await client.post('/svg', payload, {
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token

@@ -451,9 +451,7 @@ export default {
     }
   },
   created() {
-    // Criar versões com debounce dos métodos de salvamento
-    this.salvarModelosAutomaticoDebounced = this.debounce(this.salvarModelosAutomatico, 1000)
-    this.atualizarSVGDebounced = this.debounce(this.updateSVG, 300)
+    // Inicialização sem debounce
   },
 
   async mounted() {
@@ -1539,19 +1537,23 @@ export default {
     },
 
     salvarModelosAutomatico() {
-      if (typeof localStorage !== 'undefined') {
-        const estadoModelos = {
-          quantidadeModelos: this.quantidadeModelosArcos,
-          modelosArcos: this.modelosArcos,
-          modelosSalvos: this.modelosSalvos,
-          modeloAtual: this.modeloArcoAtual,
-          posicoesCabos: this.posicoesCabos,
-          timestamp: new Date().toISOString(),
-          versao: '3.0',
-          tipo: 'estado_modelos_arcos'
-        }
+      try {
+        if (typeof localStorage !== 'undefined') {
+          const estadoModelos = {
+            quantidadeModelos: this.quantidadeModelosArcos,
+            modelosArcos: this.modelosArcos,
+            modelosSalvos: this.modelosSalvos,
+            modeloAtual: this.modeloArcoAtual,
+            posicoesCabos: this.posicoesCabos,
+            timestamp: new Date().toISOString(),
+            versao: '3.0',
+            tipo: 'estado_modelos_arcos'
+          }
 
-        localStorage.setItem('estadoModelosArcos', JSON.stringify(estadoModelos))
+          localStorage.setItem('estadoModelosArcos', JSON.stringify(estadoModelos))
+        }
+      } catch (error) {
+        console.error('Erro ao salvar modelos automaticamente:', error)
       }
     },
 

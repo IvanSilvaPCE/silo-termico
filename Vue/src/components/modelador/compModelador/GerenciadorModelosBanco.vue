@@ -141,14 +141,12 @@
     </div>
 
     <!-- Modal de Confirmação de Exclusão -->
-    <div class="modal fade" id="modalExclusao" tabindex="-1" ref="modalExclusao" v-show="showModalExclusao">
-      <div class="modal-dialog modal-sm">
+    <div v-show="showModalExclusao" class="modal-overlay" @click="fecharModal">
+      <div class="modal-dialog modal-dialog-centered" role="document" @click.stop>
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Confirmar Exclusão</h5>
-            <button type="button" class="close" @click="fecharModal" aria-label="Close">
-              <span aria-hidden="true">&times;</span>
-            </button>
+            <button type="button" class="btn-close" @click="fecharModal" aria-label="Close">×</button>
           </div>
           <div class="modal-body">
             <p class="mb-2">Deseja excluir a configuração:</p>
@@ -160,17 +158,14 @@
               Cancelar
             </button>
             <button type="button" class="btn btn-danger btn-sm" @click="excluirConfiguracao" :disabled="isExcluindo">
-              <span v-if="!isExcluindo">Excluir</span>
-              <div v-else class="d-flex align-items-center">
-                <div class="spinner-border spinner-border-sm me-1" role="status"></div>
-                <span>Excluindo...</span>
-              </div>
+              <span v-if="isExcluindo" class="spinner-border spinner-border-sm me-1" role="status"></span>
+              <span>{{ isExcluindo ? 'Excluindo...' : 'Excluir' }}</span>
             </button>
           </div>
         </div>
       </div>
     </div>
-    
+
     <!-- Backdrop do Modal -->
     <div class="modal-backdrop fade" v-show="showModalExclusao" :class="{ 'show': showModalExclusao }" @click="fecharModal"></div>
   </div>
@@ -178,7 +173,6 @@
 
 <script>
 import { modeloSvgService } from '../services/modeloSvgService.js'
-import debounce from 'lodash.debounce'
 
 export default {
   name: 'GerenciadorModelosBanco',
@@ -354,19 +348,51 @@ export default {
         return
       }
 
+      // Validação adicional dos dados antes de enviar
+      const dadosCompletos = this.prepararDadosParaSalvar()
+      
+      // Verificar se os dados não estão vazios
+      if (!dadosCompletos || Object.keys(dadosCompletos).length === 0) {
+        this.$emit('mostrar-toast', 'Erro: Dados de configuração estão vazios!', 'error')
+        return
+      }
+
+      // Para armazém, verificar se tem modelos válidos
+      if (this.tipoAtivo === 'armazem') {
+        const temModelosValidos = dadosCompletos.sistemaModelos && 
+                                  dadosCompletos.sistemaModelos.modelosDefinidos &&
+                                  Object.keys(dadosCompletos.sistemaModelos.modelosDefinidos).length > 0
+        
+        if (!temModelosValidos) {
+          this.$emit('mostrar-toast', 'Erro: Nenhum modelo de arco configurado encontrado!', 'error')
+          return
+        }
+      }
+
+      // Para silo, verificar se tem configuração válida
+      if (this.tipoAtivo === 'silo') {
+        const temConfigValida = dadosCompletos.configuracao && 
+                               Object.keys(dadosCompletos.configuracao).length > 0
+        
+        if (!temConfigValida) {
+          this.$emit('mostrar-toast', 'Erro: Configuração do silo está vazia!', 'error')
+          return
+        }
+      }
+
       this.isSalvando = true
 
       try {
         // Preparar dados completos baseado no tipo
         const dadosCompletos = this.prepararDadosParaSalvar()
 
-        // Estrutura final para a API
+        // Estrutura final para a API - garantindo que todos os campos sejam enviados
         const dadosParaAPI = {
-          nm_modelo: this.nomeModelo.trim(),
+          nm_modelo: this.nomeModelo.trim() || 'Configuração sem nome',
           ds_modelo: this.descricaoModelo.trim() || this.gerarDescricaoConfiguracao(),
           tp_svg: this.tipoAtivo === 'silo' ? 'S' : 'A',
           vista_svg: 'F', // Frontal por padrão
-          dado_svg: JSON.stringify(dadosCompletos),
+          dado_svg: dadosCompletos, // Enviar o objeto diretamente, o serviço fará a conversão
           imagem: '' // Pode ser implementado futuramente
         }
 
@@ -374,7 +400,15 @@ export default {
           nome: dadosParaAPI.nm_modelo,
           tipo: dadosParaAPI.tp_svg,
           descricao: dadosParaAPI.ds_modelo,
-          tamanho_dados: dadosParaAPI.dado_svg.length
+          tamanho_dados: JSON.stringify(dadosParaAPI.dado_svg).length,
+          campos_enviados: {
+            nm_modelo: !!dadosParaAPI.nm_modelo,
+            ds_modelo: !!dadosParaAPI.ds_modelo,
+            tp_svg: !!dadosParaAPI.tp_svg,
+            vista_svg: !!dadosParaAPI.vista_svg,
+            dado_svg: !!dadosParaAPI.dado_svg,
+            imagem: dadosParaAPI.imagem !== undefined
+          }
         })
 
         const response = await modeloSvgService.salvarModelo(dadosParaAPI)
@@ -420,30 +454,79 @@ export default {
 
     prepararDadosParaSalvar() {
       if (this.tipoAtivo === 'silo') {
-        // Dados do silo
-        return {
-          tipoConfiguracao: 'silo_completo_v4',
-          nome: this.nomeModelo.trim(),
-          timestampCriacao: new Date().toISOString(),
-          versao: '4.0',
-          configuracao: { ...this.configSilo },
-          tipo: 'silo'
+        // Capturar TODAS as variáveis de configuração do silo
+        const dadosCompletos = {
+          // Configuração básica
+          ...this.configSilo,
+          
+          // Componentes específicos do silo
+          dimensoes: this.capturarDimensoesSilo(),
+          controles: this.capturarControlesSilo(),
+          sensores: this.capturarSensoresSilo(),
+          cabos: this.capturarCabosSilo(),
+          pendulos: this.capturarPendulosSilo(),
+          estrutura: this.capturarEstruturaSilo(),
+          posicionamento: this.capturarPosicionamentoSilo(),
+          parametrosDesenho: this.capturarParametrosDesenhoSilo(),
+          estadoModelagem: this.capturarEstadoModelagemSilo(),
+          
+          // Dados adicionais dos componentes SVG
+          componentesSVG: this.capturarComponentesSVGSilo(),
+          
+          // Metadados para controle
+          tipoEstrutura: 'silo',
+          versaoConfiguracao: '5.0',
+          timestampSalvamento: new Date().toISOString()
         }
+
+        console.log('📦 [prepararDadosParaSalvar] Dados completos do silo:', dadosCompletos)
+        return dadosCompletos
       } else {
-        // Dados do armazém - usar mesmo formato do ModeladorSVG
-        return {
-          tipoConfiguracao: 'armazem_completo_v4',
-          nome: this.nomeModelo.trim(),
-          timestampCriacao: new Date().toISOString(),
-          versao: '4.0',
-          sistemaModelos: {
-            quantidadeModelos: this.quantidadeModelosArcos,
-            logicaDistribuicao: this.obterLogicaDistribuicao(),
-            modelosDefinidos: this.prepararModelosCompletos()
-          },
+        // Capturar TODAS as variáveis de configuração do armazém
+        const modelosCompletos = this.prepararModelosCompletos()
+        
+        const dadosCompletos = {
+          // Configuração básica
+          quantidadeModelos: this.quantidadeModelosArcos,
+          modelosArcos: modelosCompletos,
           configuracaoGlobal: { ...this.configArmazem },
-          tipo: 'armazem'
+          
+          // Componentes específicos do armazém
+          dimensoes: this.capturarDimensoesArmazem(),
+          sensores: this.capturarSensoresArmazem(),
+          cabos: this.capturarCabosArmazem(),
+          telhado: this.capturarTelhadoArmazem(),
+          fundo: this.capturarFundoArmazem(),
+          pendulos: this.capturarPendulosArmazem(),
+          estrutura: this.capturarEstruturaArmazem(),
+          posicionamento: this.capturarPosicionamentoArmazem(),
+          parametrosDesenho: this.capturarParametrosDesenho(),
+          estadoModelagem: this.capturarEstadoModelagem(),
+          
+          // Dados específicos dos arcos
+          dadosArcos: this.capturarDadosArcos(),
+          posicoesCabos: this.capturarTodasPosicoesCabos(),
+          configuracaoSensores: this.capturarConfiguracaoSensores(),
+          layouts: this.capturarLayoutsArmazem(),
+          mapeamentos: this.capturarMapeamentosArmazem(),
+          
+          // Dados adicionais dos componentes SVG
+          componentesSVG: this.capturarComponentesSVGArmazem(),
+          
+          // Metadados para controle
+          tipoEstrutura: 'armazem',
+          versaoConfiguracao: '5.0',
+          timestampSalvamento: new Date().toISOString()
         }
+
+        console.log('📦 [prepararDadosParaSalvar] Dados completos do armazém:', {
+          quantidadeModelos: dadosCompletos.quantidadeModelos,
+          modelosConfigurados: Object.keys(dadosCompletos.modelosArcos || {}).length,
+          temConfigGlobal: !!dadosCompletos.configuracaoGlobal,
+          componentes: Object.keys(dadosCompletos).length
+        })
+        
+        return dadosCompletos
       }
     },
 
@@ -452,24 +535,58 @@ export default {
 
       for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
         const modelo = this.modelosArcos[i]
-        if (modelo) {
+        if (modelo && modelo.nome) {
+          // Capturar TODAS as configurações do modelo
+          const configuracao = modelo.configuracao || modelo.config || {}
+          
           modelos[i] = {
             numero: i,
-            nome: modelo.nome || `Modelo ${i}`,
-            posicao: modelo.posicao || 'todos',
-            configuracao: { ...(modelo.configuracao || modelo.config) },
+            nome: modelo.nome,
+            posicao: modelo.posicao || this.determinarPosicaoModelo(i, this.quantidadeModelosArcos),
+            
+            // Todas as configurações possíveis
+            configuracao: { ...configuracao },
             quantidadePendulos: modelo.quantidadePendulos || 3,
-            sensoresPorPendulo: { ...modelo.sensoresPorPendulo },
-            posicoesCabos: { ...modelo.posicoesCabos },
-            status: 'salvo',
-            timestampUltimaEdicao: new Date().toISOString(),
-            metadados: {
-              criadoEm: modelo.criadoEm || new Date().toISOString(),
-              versaoModelo: '4.0'
-            }
+            sensoresPorPendulo: { ...(modelo.sensoresPorPendulo || {}) },
+            posicoesCabos: { ...(modelo.posicoesCabos || {}) },
+            
+            // Dados adicionais se existirem
+            dimensoes: { ...(modelo.dimensoes || {}) },
+            parametros: { ...(modelo.parametros || {}) },
+            estados: { ...(modelo.estados || {}) },
+            variaveis: { ...(modelo.variaveis || {}) },
+            propriedades: { ...(modelo.propriedades || {}) },
+            
+            // Dados de componentes específicos
+            estrutura: modelo.estrutura || {},
+            desenho: modelo.desenho || {},
+            layout: modelo.layout || {},
+            coordenadas: modelo.coordenadas || {},
+            
+            // Metadados
+            timestampCriacao: modelo.timestampCriacao || new Date().toISOString(),
+            validado: Object.keys(configuracao).length > 0,
+            versao: '2.0'
           }
+          
+          console.log(`📦 Modelo ${i} capturado:`, {
+            nome: modelos[i].nome,
+            configKeys: Object.keys(configuracao).length,
+            pendulos: modelos[i].quantidadePendulos,
+            sensores: Object.keys(modelos[i].sensoresPorPendulo).length,
+            cabos: Object.keys(modelos[i].posicoesCabos).length
+          })
+        } else {
+          console.warn(`⚠️ Modelo ${i} não existe ou não tem nome:`, modelo)
         }
       }
+
+      console.log('📦 TODOS os modelos preparados:', {
+        total: Object.keys(modelos).length,
+        esperado: this.quantidadeModelosArcos,
+        modelosEncontrados: Object.keys(modelos),
+        dadosDetalhados: modelos
+      })
 
       return modelos
     },
@@ -668,68 +785,475 @@ export default {
       this.isSalvando = false
       this.$emit('mostrar-toast', 'Estado de salvamento resetado. Tente novamente.', 'info')
       console.log('🔄 [GerenciadorModelosBanco] Estado de salvamento resetado manualmente')
+    },
+
+    // Métodos para capturar TODOS os componentes do SILO
+    capturarComponentesSVGSilo() {
+      try {
+        const componentesSilo = {}
+        
+        // Tentar capturar dados de todos os componentes possíveis do silo
+        if (this.$parent && this.$parent.$refs) {
+          const refs = this.$parent.$refs
+          
+          // Controles do silo
+          if (refs.controlesSilo) {
+            componentesSilo.controles = refs.controlesSilo.obterDados ? refs.controlesSilo.obterDados() : {}
+          }
+          
+          // Dimensões básicas
+          if (refs.dimensoesBasicas) {
+            componentesSilo.dimensoes = refs.dimensoesBasicas.obterDados ? refs.dimensoesBasicas.obterDados() : {}
+          }
+          
+          // Configuração de sensores
+          if (refs.configuracaoSensores) {
+            componentesSilo.sensores = refs.configuracaoSensores.obterDados ? refs.configuracaoSensores.obterDados() : {}
+          }
+          
+          // Posicionamento de cabos
+          if (refs.posicionamentoCabos) {
+            componentesSilo.cabos = refs.posicionamentoCabos.obterDados ? refs.posicionamentoCabos.obterDados() : {}
+          }
+        }
+        
+        console.log('🎯 [capturarComponentesSVGSilo] Componentes capturados:', componentesSilo)
+        return componentesSilo
+      } catch (error) {
+        console.warn('⚠️ [capturarComponentesSVGSilo] Erro ao capturar componentes:', error)
+        return {}
+      }
+    },
+
+    capturarDimensoesSilo() {
+      try {
+        return {
+          largura: this.configSilo?.largura || 350,
+          altura: this.configSilo?.altura || 200,
+          raio: this.configSilo?.raio || 100,
+          alturaTotal: this.configSilo?.alturaTotal || 300
+        }
+      } catch (error) {
+        console.warn('⚠️ Erro ao capturar dimensões do silo:', error)
+        return {}
+      }
+    },
+
+    capturarPosicionamentoSilo() {
+      try {
+        return this.configSilo?.posicionamento || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarSensoresSilo() {
+      try {
+        return this.configSilo?.sensores || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarEstruturaSilo() {
+      try {
+        return this.configSilo?.estrutura || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    // Métodos para capturar TODOS os componentes do ARMAZÉM
+    capturarComponentesSVGArmazem() {
+      try {
+        const componentesArmazem = {}
+        
+        // Tentar capturar dados de todos os componentes possíveis do armazém
+        if (this.$parent && this.$parent.$refs) {
+          const refs = this.$parent.$refs
+          
+          // Modelos de arcos
+          if (refs.modelosArcos) {
+            componentesArmazem.modelosArcos = refs.modelosArcos.obterDados ? refs.modelosArcos.obterDados() : {}
+          }
+          
+          // Dimensões básicas
+          if (refs.dimensoesBasicas) {
+            componentesArmazem.dimensoes = refs.dimensoesBasicas.obterDados ? refs.dimensoesBasicas.obterDados() : {}
+          }
+          
+          // Configuração de sensores
+          if (refs.configuracaoSensores) {
+            componentesArmazem.sensores = refs.configuracaoSensores.obterDados ? refs.configuracaoSensores.obterDados() : {}
+          }
+          
+          // Posicionamento de cabos
+          if (refs.posicionamentoCabos) {
+            componentesArmazem.cabos = refs.posicionamentoCabos.obterDados ? refs.posicionamentoCabos.obterDados() : {}
+          }
+          
+          // Configuração do telhado
+          if (refs.configuracaoTelhado) {
+            componentesArmazem.telhado = refs.configuracaoTelhado.obterDados ? refs.configuracaoTelhado.obterDados() : {}
+          }
+          
+          // Configuração do fundo
+          if (refs.configuracaoFundo) {
+            componentesArmazem.fundo = refs.configuracaoFundo.obterDados ? refs.configuracaoFundo.obterDados() : {}
+          }
+          
+          // Controle de sensores por pêndulo
+          if (refs.controleSensoresPendulo) {
+            componentesArmazem.sensoresPendulo = refs.controleSensoresPendulo.obterDados ? refs.controleSensoresPendulo.obterDados() : {}
+          }
+          
+          // Inicializador de modelos
+          if (refs.inicializadorModelos) {
+            componentesArmazem.inicializador = refs.inicializadorModelos.obterDados ? refs.inicializadorModelos.obterDados() : {}
+          }
+        }
+        
+        console.log('🎯 [capturarComponentesSVGArmazem] Componentes capturados:', componentesArmazem)
+        return componentesArmazem
+      } catch (error) {
+        console.warn('⚠️ [capturarComponentesSVGArmazem] Erro ao capturar componentes:', error)
+        return {}
+      }
+    },
+
+    capturarDimensoesArmazem() {
+      try {
+        return {
+          largura: this.configArmazem?.largura || 350,
+          altura: this.configArmazem?.altura || 200,
+          totalArcos: this.configArmazem?.totalArcos || this.quantidadeModelosArcos,
+          larguraArco: this.configArmazem?.larguraArco || 50
+        }
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarPosicionamentoArmazem() {
+      try {
+        return this.configArmazem?.posicionamento || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarSensoresArmazem() {
+      try {
+        return this.configArmazem?.sensores || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarEstruturaArmazem() {
+      try {
+        return this.configArmazem?.estrutura || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarCabosArmazem() {
+      try {
+        return this.configArmazem?.cabos || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarTelhadoArmazem() {
+      try {
+        return this.configArmazem?.telhado || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarFundoArmazem() {
+      try {
+        return this.configArmazem?.fundo || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarPendulosArmazem() {
+      try {
+        const pendulos = {}
+        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+          const modelo = this.modelosArcos?.[i]
+          if (modelo && modelo.pendulos) {
+            pendulos[i] = modelo.pendulos
+          }
+        }
+        return pendulos
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarLayoutsArmazem() {
+      try {
+        return this.configArmazem?.layouts || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarMapeamentosArmazem() {
+      try {
+        return this.configArmazem?.mapeamentos || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    // Métodos para capturar TODOS os dados de modelagem do SILO
+    capturarControlesSilo() {
+      try {
+        return this.configSilo?.controles || this.configSilo?.configControles || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarCabosSilo() {
+      try {
+        return this.configSilo?.cabos || this.configSilo?.posicoesCabos || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarPendulosSilo() {
+      try {
+        return this.configSilo?.pendulos || this.configSilo?.quantidadePendulos || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarParametrosDesenhoSilo() {
+      try {
+        return this.configSilo?.parametrosDesenho || this.configSilo?.desenho || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarEstadoModelagemSilo() {
+      try {
+        return {
+          configurado: this.podeSerSalvo,
+          timestamp: new Date().toISOString(),
+          configCompleta: !!this.configSilo,
+          tamanhoConfig: Object.keys(this.configSilo || {}).length
+        }
+      } catch (error) {
+        return {}
+      }
+    },
+
+    // Métodos para capturar TODOS os dados de modelagem do ARMAZÉM
+    capturarDadosArcos() {
+      try {
+        const dadosArcos = {}
+        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+          const modelo = this.modelosArcos?.[i]
+          if (modelo) {
+            dadosArcos[i] = {
+              numero: i,
+              nome: modelo.nome,
+              configuracao: modelo.configuracao || modelo.config || {},
+              posicao: modelo.posicao,
+              quantidadePendulos: modelo.quantidadePendulos || 3,
+              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+              posicoesCabos: modelo.posicoesCabos || {},
+              dimensoes: modelo.dimensoes || {},
+              parametros: modelo.parametros || {},
+              validado: true
+            }
+          }
+        }
+        return dadosArcos
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarTodasPosicoesCabos() {
+      try {
+        const posicoesCabos = {}
+        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+          const modelo = this.modelosArcos?.[i]
+          if (modelo && modelo.posicoesCabos) {
+            posicoesCabos[i] = modelo.posicoesCabos
+          }
+        }
+        return posicoesCabos
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarConfiguracaoSensores() {
+      try {
+        return this.configArmazem?.sensores || this.configArmazem?.configuracaoSensores || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarParametrosDesenho() {
+      try {
+        return this.configArmazem?.parametrosDesenho || this.configArmazem?.desenho || {}
+      } catch (error) {
+        return {}
+      }
+    },
+
+    capturarEstadoModelagem() {
+      try {
+        return {
+          configurado: this.podeSerSalvo,
+          timestamp: new Date().toISOString(),
+          quantidadeModelos: this.quantidadeModelosArcos,
+          modelosConfigurados: this.modelosValidosCount,
+          configCompleta: !!this.configArmazem,
+          modelosCompletos: Object.keys(this.modelosArcos || {}).length,
+          podeSerSalvo: this.podeSerSalvo
+        }
+      } catch (error) {
+        return {}
+      }
     }
   }
 }
 </script>
 
 <style scoped>
-.list-group-item {
-  border: 1px solid #dee2e6;
-  margin-bottom: 2px;
+.form-label {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
 }
 
-.btn-group-sm .btn {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
-}
-
-.text-truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.progress-sm {
-  height: 0.375rem;
-}
-
-/* Estilos para o modal sem jQuery */
-.modal {
+/* Estilos para o modal de confirmação */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 1050;
   width: 100%;
   height: 100%;
-  overflow: hidden;
-  outline: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+
+.modal-dialog {
+  max-width: 500px;
+  width: 90%;
+  margin: 0;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  animation: modalFadeIn 0.15s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-header {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #dee2e6;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #6c757d;
+  padding: 0;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1040;
-  background-color: rgba(0, 0, 0, 0.5);
+.btn-close:hover {
+  color: #000;
 }
 
-.modal-backdrop.show {
-  opacity: 0.5;
+.modal-body {
+  padding: 1.5rem;
 }
 
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #dee2e6;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
+
+.small {
+  font-size: 0.875rem;
+}
+
+/* Responsividade para mobile */
 @media (max-width: 576px) {
-  .btn-group {
+  .modal-dialog {
+    width: 95%;
+    margin: 1rem;
+  }
+
+  .modal-header, .modal-body, .modal-footer {
+    padding: 1rem;
+  }
+
+  .modal-footer {
     flex-direction: column;
   }
 
-  .btn-group .btn {
-    margin-bottom: 2px;
+  .modal-footer .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .modal-footer .btn:last-child {
+    margin-bottom: 0;
   }
 }
 </style>
