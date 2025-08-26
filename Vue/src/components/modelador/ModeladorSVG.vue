@@ -70,8 +70,6 @@
         </div>
       </div>
 
-
-
       <!-- Área de Visualização -->
       <div class="col-xl-9 col-lg-8 col-md-7 col-sm-12" :style="{
         padding: '10px',
@@ -278,8 +276,14 @@ import BotoesControle from './compModelador/BotoesControle.vue'
 import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue'
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
+import debounce from 'lodash.debounce'
 
 export default {
+  created() {
+    this.__debouncedUpdateSVG = debounce(() => this.updateSVG(), 120)
+    this.__debouncedSalvar = debounce(() => this.salvarModelosAutomatico(), 300)
+  },
+        
   name: 'ModeladorSVG',
   components: {
     SeletorTipo,
@@ -430,7 +434,7 @@ export default {
       set(value) {
         if (this.modeloArcoAtual) {
           this.modelosArcos[this.modeloArcoAtual].nome = value
-          this.salvarModelosAutomatico()
+          this.agendarSalvarModelos()
         }
       }
     },
@@ -441,7 +445,7 @@ export default {
       set(value) {
         if (this.modeloArcoAtual) {
           this.modelosArcos[this.modeloArcoAtual].posicao = value
-          this.salvarModelosAutomatico()
+          this.agendarSalvarModelos()
         }
       }
     }
@@ -457,7 +461,7 @@ export default {
     }
 
     this.inicializarPosicoesCabos()
-    this.updateSVG()
+    this.agendarUpdateSVG()
 
 
   },
@@ -480,11 +484,25 @@ export default {
     },
     arcoAtual() {
       if (this.tipoAtivo === 'armazem') {
-        this.updateSVG()
+        this.agendarUpdateSVG()
       }
     }
   },
   methods: {
+      // ==== Agendadores com debounce (mantém nomes/fluxos originais) ====
+      agendarUpdateSVG() {
+        if (!this.__debouncedUpdateSVG) {
+          this.__debouncedUpdateSVG = debounce(() => this.agendarUpdateSVG(), 120)
+        }
+        this.__debouncedUpdateSVG()
+      },
+      agendarSalvarModelos() {
+        if (!this.__debouncedSalvar) {
+          this.__debouncedSalvar = debounce(() => this.agendarSalvarModelos(), 300)
+        }
+        this.__debouncedSalvar()
+      },
+    
     async verificarDadosArcoRecebidos() {
       try {
         if (typeof localStorage !== 'undefined') {
@@ -841,21 +859,21 @@ export default {
 
       // Forçar atualização do SVG
       this.$nextTick(() => {
-        this.updateSVG()
+        this.agendarUpdateSVG()
         console.log('✅ [onTipoChange] SVG atualizado para tipo:', this.tipoAtivo)
       })
     },
 
     onSiloChange() {
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     onArmazemChange() {
-      this.updateSVG()
+      this.agendarUpdateSVG()
       // Atualizar modelo atual se estiver selecionado
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].config = { ...this.configArmazem }
-        this.salvarModelosAutomatico()
+        this.agendarSalvarModelos()
       }
     },
 
@@ -935,7 +953,7 @@ export default {
         this.configArmazem = { ...this.modelosArcos[1].config }
       }
 
-      this.salvarModelosAutomatico()
+      this.agendarSalvarModelos()
     },
 
     onModeloArcoChange(event) {
@@ -958,7 +976,7 @@ export default {
         // Inicializar posições dos cabos para o modelo selecionado
         this.inicializarPosicoesCabos()
 
-        this.salvarModelosAutomatico()
+        this.agendarSalvarModelos()
 
         // Automação: navegar para arco representativo do modelo selecionado
         if (this.analiseArcos && this.modelosArcos[this.modeloArcoAtual]) {
@@ -1013,14 +1031,14 @@ export default {
     onNomeModeloChange(event) {
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].nome = event.target.value
-        this.salvarModelosAutomatico()
+        this.agendarSalvarModelos()
       }
     },
 
     onPosicaoArcoChange(event) {
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].posicao = event.target.value
-        this.salvarModelosAutomatico()
+        this.agendarSalvarModelos()
       }
     },
 
@@ -1179,7 +1197,7 @@ export default {
       }
 
       // Atualizar o SVG com o novo arco
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     obterDeslocamentoVerticalPadrao(tipoFundo) {
@@ -1426,7 +1444,7 @@ export default {
       this.salvarModeloNoLocalStorage(this.modeloArcoAtual, modeloParaSalvar)
 
       // Salvar estado geral dos modelos
-      this.salvarModelosAutomatico()
+      this.agendarSalvarModelos()
     },
 
     limparVariaveisParaNovoModelo() {
@@ -1615,12 +1633,12 @@ export default {
 
     resetSiloField(campo, valor) {
       this.configSilo[campo] = valor
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     resetArmazemField(campo, valor) {
       this.configArmazem[campo] = valor
-      this.updateSVG()
+      this.agendarUpdateSVG()
       this.onArmazemChange()
     },
 
@@ -1645,7 +1663,7 @@ export default {
       } else {
         this.resetarModelosParaPadrao()
       }
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     resetarModelosParaPadrao() {
@@ -1878,7 +1896,7 @@ export default {
           if (!nome) {
             this.nomeConfiguracao = nomeConfig
           }
-          this.updateSVG()
+          this.agendarUpdateSVG()
         } else {
           this.mostrarToast('Configuração não encontrada!', 'error')
         }
@@ -2333,7 +2351,7 @@ export default {
 
               console.log('🎨 [aplicarModeloBancoNoPreview] Configuração aplicada:', this.configPreviewAplicada)
               this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
-              this.updateSVG()
+              this.agendarUpdateSVG()
             } else {
               console.warn('⚠️ [aplicarModeloBancoNoPreview] Erro ao processar configuração:', resultado.message)
               this.mostrarToast(resultado.message, 'warning')
@@ -2361,7 +2379,7 @@ export default {
     limparConfiguracaoPreview() {
       this.configuracaoPreviewSelecionada = ''
       this.configPreviewAplicada = null
-      this.updateSVG()
+      this.agendarUpdateSVG()
       this.mostrarToast('Preview voltou ao padrão', 'info')
     },
 
@@ -3307,7 +3325,7 @@ export default {
         // Salvar modelo completo imediatamente
         this.salvarModeloAtualCompleto()
         // Atualizar preview automaticamente
-        this.updateSVG()
+        this.agendarUpdateSVG()
       }
     },
 
@@ -3357,11 +3375,11 @@ export default {
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
         // Salvar as posições dos cabos no modelo
         this.modelosArcos[this.modeloArcoAtual].posicoesCabos = { ...this.posicoesCabos }
-        this.salvarModelosAutomatico()
+        this.agendarSalvarModelos()
       }
       // Atualizar preview em tempo real
       this.$nextTick(() => {
-        this.updateSVG()
+        this.agendarUpdateSVG()
       })
     },
 
@@ -3386,12 +3404,12 @@ export default {
           break
       }
 
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     resetarPosicoesCabos() {
       this.inicializarPosicoesCabos()
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     criarDadosExemplaresComNovaQuantidadeSensores() {
@@ -3514,7 +3532,7 @@ export default {
         this.dadosPreviewDesvinculados = null
         this.penduloSelecionado = 1
       }
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     inicializarPosicoesPendulos() {
@@ -3565,12 +3583,12 @@ export default {
 
     onPenduloSelecionadoChange() {
       // Atualizar SVG para destacar pêndulo selecionado
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     onPosicaoPenduloChange() {
       // Atualizar preview em tempo real
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     moverPendulo(direcao) {
@@ -3594,12 +3612,12 @@ export default {
           break
       }
 
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     resetarPosicoesPendulos() {
       this.inicializarPosicoesPendulos()
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     // Métodos para controle de sensores por pêndulo
@@ -3630,10 +3648,10 @@ export default {
       this.regenerarLayoutsAutomaticos()
 
       // Salvar modelo automaticamente
-      this.salvarModelosAutomatico()
+      this.agendarSalvarModelos()
 
       // Atualizar visualização
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     onAplicarSensoresUniformes(dados) {
@@ -3670,8 +3688,8 @@ export default {
       this.regenerarLayoutsAutomaticos()
 
       // Salvar e atualizar
-      this.salvarModelosAutomatico()
-      this.updateSVG()
+      this.agendarSalvarModelos()
+      this.agendarUpdateSVG()
 
       this.mostrarToast(`Aplicado ${numero} sensores uniformemente para todos os ${totalPendulos} pêndulos!`, 'success')
     },
@@ -3697,7 +3715,7 @@ export default {
 
     onSensoresPenduloChange() {
       // Método mantido para compatibilidade - redireciona para updateSVG
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     aplicarSensoresUniformes() {
@@ -3774,7 +3792,7 @@ export default {
           break
       }
 
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     moverSensoresGlobal(direcao) {
@@ -3813,14 +3831,14 @@ export default {
         this.posicoesSensoresIndividuais[chave].y = this.ajustesGlobaisSensores.vertical
       }
 
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     resetarPosicaoSensor(pendulo, sensor) {
       const chave = `${pendulo}-${sensor}`
       if (this.posicoesSensoresIndividuais[chave]) {
         this.posicoesSensoresIndividuais[chave] = { x: 0, y: 0 }
-        this.updateSVG()
+        this.agendarUpdateSVG()
       }
     },
 
@@ -3828,7 +3846,7 @@ export default {
       this.posicoesSensoresIndividuais = {}
       this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
       this.inicializarPosicoesSensores()
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     // Método específico para atualizar dados exemplares com nova configuração de sensores
@@ -3875,7 +3893,7 @@ export default {
 
     onPosicaoSensorChange() {
       // Atualizar preview em tempo real quando posição de sensor mudar
-      this.updateSVG()
+      this.agendarUpdateSVG()
     },
 
     // Métodos para carregar configuração do banco
@@ -3891,7 +3909,7 @@ export default {
           this.configSilo = { ...dados.configuracao }
         }
         this.mostrarToast(`Silo "${nome}" carregado do banco!`, 'success')
-        this.updateSVG()
+        this.agendarUpdateSVG()
       } else if (tipo === 'A') {
         // Carregar configuração de Armazém
         this.tipoAtivo = 'armazem'
@@ -3916,7 +3934,7 @@ export default {
         this.inicializarPosicoesCabos()
 
         // Atualizar preview
-        this.updateSVG()
+        this.agendarUpdateSVG()
 
         console.log(`✅ [ModeladorSVG] Configuração "${nome}" carregada com sucesso`)
       }
@@ -4143,7 +4161,7 @@ export default {
           this.configArmazem = { ...primeiroModelo.config };
           this.inicializarPosicoesCabos(); // Re-inicializar cabos com base no modelo carregado
         }
-        this.updateSVG(); // Atualizar visualização
+        this.agendarUpdateSVG(); // Atualizar visualização
       }, 100);
 
       this.mostrarToast(`Configuração "${dadosConfig.nome}" carregada!`, 'success');
@@ -4158,8 +4176,7 @@ export default {
       this.mostrarToast('Configuração Legado carregada. Modelos resetados para o padrão.', 'info');
     }
   }
-}
-</script>
+}</script>
 
 <style scoped>
 .bg-light {

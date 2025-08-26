@@ -1,50 +1,90 @@
+// src/servicos/modeloSvgService.js
 import client from '@/api.js'
 
-// Função auxiliar para pegar o token
-const pegarToken = () => {
-  return localStorage.getItem('token') || ''
+// Helpers
+const pegarToken = () => localStorage.getItem('token') || ''
+
+const normalizarModelo = (dados = {}) => {
+  const nome = (dados.nm_modelo || dados.nome || '').trim()
+  const descricao = (dados.ds_modelo || dados.descricao || '').trim()
+
+  // Tipo: A (Armazém) | S (Silo)
+  let tipo = (dados.tp_svg || dados.tipo || '').toString().trim().toUpperCase()
+  if (!['A', 'S'].includes(tipo)) {
+    if (/arma/i.test(tipo)) tipo = 'A'
+    else if (/silo/i.test(tipo)) tipo = 'S'
+    else tipo = 'A' // Padrão para armazém
+  }
+
+  // Vista: T (Topo) | F (Frontal)
+  let vista = (dados.vista_svg || dados.vista || dados.vistaSvg || 'F').toString().trim().toUpperCase()
+  if (!['T', 'F'].includes(vista)) {
+    if (/top/i.test(vista)) vista = 'T'
+    else vista = 'F' // Padrão para frontal
+  }
+
+  // Dado SVG (string ou objeto) - SEMPRE converter para string JSON
+  let dadoSvg = dados.dado_svg || dados.dadosSvg || dados.dados
+  if (typeof dadoSvg === 'object' && dadoSvg !== null) {
+    dadoSvg = JSON.stringify(dadoSvg)
+  } else if (typeof dadoSvg !== 'string') {
+    dadoSvg = JSON.stringify(dadoSvg || {})
+  }
+  
+  // Garantir que não é string vazia
+  if (!dadoSvg || dadoSvg.trim() === '' || dadoSvg === '{}') {
+    dadoSvg = JSON.stringify({ erro: 'Dados SVG não fornecidos' })
+  }
+
+  // Imagem (base64/URL string)
+  const imagem = (dados.imagem || dados.imagemBase64 || '').toString().trim()
+
+  return {
+    nm_modelo: nome,
+    dado_svg: dadoSvg,
+    ds_modelo: descricao,
+    tp_svg: tipo,
+    vista_svg: vista,
+    imagem
+  }
 }
 
-// Função auxiliar para converter para string
-const paraString = (valor) => {
-  if (typeof valor === 'string') {
-    return valor
+const validarDados = (dadosValidados) => {
+  const erros = []
+  
+  // Validações obrigatórias conforme API
+  if (!dadosValidados.nm_modelo || dadosValidados.nm_modelo.trim() === '') {
+    erros.push('Nome do modelo (nm_modelo) é obrigatório')
   }
-  return JSON.stringify(valor || {})
+  
+  if (!dadosValidados.dado_svg || dadosValidados.dado_svg.trim() === '') {
+    erros.push('Dados do modelo (dado_svg) são obrigatórios')
+  }
+  
+  if (!['A', 'S'].includes(dadosValidados.tp_svg)) {
+    erros.push('Tipo deve ser A (Armazém) ou S (Silo)')
+  }
+  
+  if (!['T', 'F'].includes(dadosValidados.vista_svg)) {
+    erros.push('Vista deve ser T (Topo) ou F (Frontal)')
+  }
+  
+  return erros
 }
 
 // POST - Salvar novo modelo
 const salvarModelo = async (dadosModelo) => {
   try {
-    const dadosValidados = {
-      nm_modelo: (dadosModelo.nm_modelo || dadosModelo.nome || '').trim(),
-      dado_svg: paraString(dadosModelo.dado_svg),
-      ds_modelo: (dadosModelo.ds_modelo || dadosModelo.descricao || '').trim(),
-      tp_svg: (dadosModelo.tp_svg || dadosModelo.tipo || '').trim(),
-      vista_svg: (dadosModelo.vista_svg || 'F').trim()
-    }
-
-    // Validação básica
-    const camposFaltando = []
-    if (!dadosValidados.nm_modelo) {
-      camposFaltando.push('Nome do modelo é obrigatório')
-    }
-    if (!dadosValidados.dado_svg || dadosValidados.dado_svg === '{}') {
-      camposFaltando.push('Dados do modelo são obrigatórios')
-    }
-    if (!dadosValidados.tp_svg || !['A', 'S'].includes(dadosValidados.tp_svg)) {
-      camposFaltando.push('Tipo deve ser A (Armazém) ou S (Silo)')
-    }
-    if (!dadosValidados.vista_svg || !['T', 'F'].includes(dadosValidados.vista_svg)) {
-      camposFaltando.push('Vista deve ser T (Topo) ou F (Frontal)')
-    }
-
-    if (camposFaltando.length > 0) {
-      return {
-        status: 422,
-        success: false,
-        message: 'Erro de validação',
-        error: { erros: camposFaltando }
+    const dadosValidados = normalizarModelo(dadosModelo)
+    const erros = validarDados(dadosValidados)
+    
+    if (erros.length) {
+      console.warn('⚠️ [modeloSvgService] Erros de validação:', erros)
+      return { 
+        status: 422, 
+        success: false, 
+        message: 'Erro de validação: ' + erros.join(', '), 
+        error: { erros } 
       }
     }
 
@@ -52,7 +92,9 @@ const salvarModelo = async (dadosModelo) => {
       nm_modelo: dadosValidados.nm_modelo,
       tp_svg: dadosValidados.tp_svg,
       vista_svg: dadosValidados.vista_svg,
-      tamanho_dados: dadosValidados.dado_svg.length
+      ds_modelo: dadosValidados.ds_modelo,
+      tamanho_dados: dadosValidados.dado_svg?.length || 0,
+      tem_imagem: !!dadosValidados.imagem
     })
 
     const response = await client.post('/svg', dadosValidados, {
@@ -72,45 +114,44 @@ const salvarModelo = async (dadosModelo) => {
     }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao salvar modelo:', error)
-
+    
     const status = error.response?.status || 500
     let mensagem = 'Erro ao salvar modelo'
-
-    if (error.response?.data?.message) {
-      mensagem = error.response.data.message
-    } else if (error.response?.data?.error) {
-      mensagem = error.response.data.error
+    
+    if (error.response?.data) {
+      if (typeof error.response.data === 'string') {
+        mensagem = error.response.data
+      } else if (error.response.data.message) {
+        mensagem = error.response.data.message
+      } else if (error.response.data.error) {
+        mensagem = error.response.data.error
+      }
+    } else if (error.message) {
+      mensagem = error.message
     }
-
-    return {
-      status,
-      success: false,
-      message: mensagem,
-      error: error.response?.data || error
+    
+    return { 
+      status, 
+      success: false, 
+      message: mensagem, 
+      error: error.response?.data || error.message || error 
     }
   }
 }
 
-// GET - Buscar modelos com filtro opcional por tipo
+// GET - Buscar modelos (opcional filtro tp_svg = 'A' | 'S')
 const buscarModelos = async (tipo = null) => {
   try {
-    const url = tipo ? `/svg?tp_svg=${tipo}` : '/svg'
-
+    const url = tipo ? `/svg?tp_svg=${encodeURIComponent(tipo)}` : '/svg'
     console.log('🔄 [modeloSvgService] Buscando modelos:', { tipo, url })
 
     const response = await client.get(url, {
-      headers: { 
-        'Authorization': `Bearer ${pegarToken()}` 
-      }
+      headers: { 'Authorization': `Bearer ${pegarToken()}` }
     })
 
-    console.log('✅ [modeloSvgService] Modelos encontrados:', response.data?.length || 0)
+    console.log('✅ [modeloSvgService] Modelos encontrados:', Array.isArray(response.data) ? response.data.length : 1)
 
-    return {
-      status: response.status,
-      data: response.data,
-      success: true
-    }
+    return { status: response.status, data: response.data, success: true }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao buscar modelos:', error)
     return {
@@ -128,18 +169,12 @@ const buscarModeloPorId = async (id) => {
     console.log('🔄 [modeloSvgService] Buscando modelo por ID:', id)
 
     const response = await client.get(`/svg/${id}`, {
-      headers: { 
-        'Authorization': `Bearer ${pegarToken()}` 
-      }
+      headers: { 'Authorization': `Bearer ${pegarToken()}` }
     })
 
     console.log('✅ [modeloSvgService] Modelo encontrado:', response.data?.nm_modelo)
 
-    return {
-      status: response.status,
-      data: response.data,
-      success: true
-    }
+    return { status: response.status, data: response.data, success: true }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao buscar modelo por ID:', error)
     return {
@@ -151,21 +186,16 @@ const buscarModeloPorId = async (id) => {
   }
 }
 
-// PUT - Atualizar modelo existente
+// PUT - Atualizar modelo
 const atualizarModelo = async (id, dadosModelo) => {
   try {
-    const dadosValidados = {
-      nm_modelo: (dadosModelo.nm_modelo || '').trim(),
-      dado_svg: paraString(dadosModelo.dado_svg),
-      ds_modelo: (dadosModelo.ds_modelo || '').trim(),
-      tp_svg: (dadosModelo.tp_svg || '').trim(),
-      vista_svg: (dadosModelo.vista_svg || 'F').trim()
+    const dadosValidados = normalizarModelo(dadosModelo)
+    const erros = validarDados(dadosValidados)
+    if (erros.length) {
+      return { status: 422, success: false, message: 'Erro de validação', error: { erros } }
     }
 
-    console.log('🔄 [modeloSvgService] Atualizando modelo:', {
-      id,
-      nm_modelo: dadosValidados.nm_modelo
-    })
+    console.log('🔄 [modeloSvgService] Atualizando modelo:', { id, nm_modelo: dadosValidados.nm_modelo })
 
     const response = await client.put(`/svg/${id}`, dadosValidados, {
       headers: {
@@ -174,7 +204,7 @@ const atualizarModelo = async (id, dadosModelo) => {
       }
     })
 
-    console.log('✅ [modeloSvgService] Modelo atualizado com sucesso')
+    console.log('✅ [modeloSvgService] Modelo atualizado')
 
     return {
       status: response.status,
@@ -184,12 +214,9 @@ const atualizarModelo = async (id, dadosModelo) => {
     }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao atualizar modelo:', error)
-    return {
-      status: error.response?.status || 500,
-      success: false,
-      message: 'Erro ao atualizar modelo',
-      error: error.response?.data || error
-    }
+    const status = error.response?.status || 500
+    const mensagem = error.response?.data?.message || error.response?.data?.error || 'Erro ao atualizar modelo'
+    return { status, success: false, message: mensagem, error: error.response?.data || error }
   }
 }
 
@@ -199,12 +226,10 @@ const excluirModelo = async (id) => {
     console.log('🔄 [modeloSvgService] Excluindo modelo:', id)
 
     const response = await client.delete(`/svg/${id}`, {
-      headers: { 
-        'Authorization': `Bearer ${pegarToken()}` 
-      }
+      headers: { 'Authorization': `Bearer ${pegarToken()}` }
     })
 
-    console.log('✅ [modeloSvgService] Modelo excluído com sucesso')
+    console.log('✅ [modeloSvgService] Modelo excluído')
 
     return {
       status: response.status,
@@ -214,12 +239,9 @@ const excluirModelo = async (id) => {
     }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao excluir modelo:', error)
-    return {
-      status: error.response?.status || 500,
-      success: false,
-      message: 'Erro ao excluir modelo',
-      error: error.response?.data || error
-    }
+    const status = error.response?.status || 500
+    const mensagem = error.response?.data?.message || error.response?.data?.error || 'Erro ao excluir modelo'
+    return { status, success: false, message: mensagem, error: error.response?.data || error }
   }
 }
 

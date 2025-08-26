@@ -65,9 +65,12 @@
         </div>
 
         <!-- Toggle Debug -->
-        <div class="mb-2">
+        <div class="mb-2 d-flex gap-2">
           <button class="btn btn-outline-secondary btn-sm" @click="debugMode = !debugMode">
             {{ debugMode ? 'Ocultar' : 'Mostrar' }} Debug
+          </button>
+          <button v-if="isSalvando" class="btn btn-outline-danger btn-sm" @click="resetarEstadoSalvamento">
+            🔄 Reset
           </button>
         </div>
 
@@ -207,7 +210,10 @@ export default {
       let count = 0
       for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
         const modelo = this.modelosArcos?.[i]
-        if (modelo && modelo.nome && modelo.configuracao && Object.keys(modelo.configuracao).length > 0) {
+        // Verificar se o modelo existe E tem configuração válida (seja 'config' ou 'configuracao')
+        if (modelo && modelo.nome && 
+            ((modelo.config && Object.keys(modelo.config).length > 0) || 
+             (modelo.configuracao && Object.keys(modelo.configuracao).length > 0))) {
           count++
         }
       }
@@ -224,6 +230,13 @@ export default {
       // Para armazém, verificar se todos os modelos estão configurados
       const modelosConfigurados = this.modelosValidosCount
       const temConfigGlobal = this.configArmazem && Object.keys(this.configArmazem).length > 0
+
+      console.log('🔍 [podeSerSalvo] Debug:', {
+        modelosConfigurados,
+        quantidadeEsperada: this.quantidadeModelosArcos,
+        temConfigGlobal,
+        modelos: this.modelosArcos
+      })
 
       return modelosConfigurados === this.quantidadeModelosArcos &&
         modelosConfigurados > 0 &&
@@ -317,16 +330,18 @@ export default {
     },
 
     async salvarConfiguracaoCompleta() {
+      // Validações básicas
       if (!this.nomeModelo.trim()) {
-        this.mostrarToast('Digite um nome para a configuração', 'warning')
+        this.$emit('mostrar-toast', 'Digite um nome para a configuração!', 'warning')
         return
       }
 
+      // Validar se pode salvar baseado nas regras de negócio
       if (!this.podeSerSalvo) {
         if (this.tipoAtivo === 'armazem') {
-          this.mostrarToast(`Configure todos os ${this.quantidadeModelosArcos} modelos de arcos antes de salvar. Configurados: ${this.modelosValidosCount}/${this.quantidadeModelosArcos}`, 'warning')
+          this.$emit('mostrar-toast', `Configure todos os ${this.quantidadeModelosArcos} modelos de arco antes de salvar!`, 'warning')
         } else {
-          this.mostrarToast('Configure o silo antes de salvar', 'warning')
+          this.$emit('mostrar-toast', 'Configure o silo antes de salvar!', 'warning')
         }
         return
       }
@@ -334,50 +349,143 @@ export default {
       this.isSalvando = true
 
       try {
-        console.log('🔄 [GerenciadorModelosBanco] Iniciando salvamento:', {
-          nome: this.nomeModelo,
-          tipo: this.tipoAtivo,
-          quantidadeModelos: this.quantidadeModelosArcos,
-          modelosConfigurados: this.modelosValidosCount,
-          dadosCompletos: this.dadosParaSalvar
-        })
+        // Preparar dados completos baseado no tipo
+        const dadosCompletos = this.prepararDadosParaSalvar()
 
-        const configuracaoParaSalvar = {
+        // Estrutura final para a API
+        const dadosParaAPI = {
           nm_modelo: this.nomeModelo.trim(),
-          dado_svg: JSON.stringify(this.dadosParaSalvar),
-          ds_modelo: this.descricaoModelo.trim() || '',
-          tp_svg: this.tipoParaSalvar,
-          vista_svg: 'F'
+          ds_modelo: this.descricaoModelo.trim() || this.gerarDescricaoConfiguracao(),
+          tp_svg: this.tipoAtivo === 'silo' ? 'S' : 'A',
+          vista_svg: 'F', // Frontal por padrão
+          dado_svg: JSON.stringify(dadosCompletos),
+          imagem: '' // Pode ser implementado futuramente
         }
 
-        console.log('📝 [GerenciadorModelosBanco] Dados para API:', {
-          nm_modelo: configuracaoParaSalvar.nm_modelo,
-          tp_svg: configuracaoParaSalvar.tp_svg,
-          vista_svg: configuracaoParaSalvar.vista_svg,
-          ds_modelo: configuracaoParaSalvar.ds_modelo,
-          dado_svg_length: configuracaoParaSalvar.dado_svg.length,
-          dado_svg_preview: configuracaoParaSalvar.dado_svg.substring(0, 200) + '...'
+        console.log('📤 [GerenciadorModelosBanco] Salvando configuração:', {
+          nome: dadosParaAPI.nm_modelo,
+          tipo: dadosParaAPI.tp_svg,
+          descricao: dadosParaAPI.ds_modelo,
+          tamanho_dados: dadosParaAPI.dado_svg.length
         })
 
-        const response = await modeloSvgService.salvarModelo(configuracaoParaSalvar)
-
-        console.log('📋 [GerenciadorModelosBanco] Resposta da API:', response)
+        const response = await modeloSvgService.salvarModelo(dadosParaAPI)
 
         if (response.success) {
-          console.log('✅ [GerenciadorModelosBanco] Configuração salva com sucesso!')
-          this.mostrarToast(`Configuração "${this.nomeModelo}" salva com sucesso no banco!`, 'success')
+          console.log('✅ [GerenciadorModelosBanco] Configuração salva com sucesso')
+
+          // Recarregar lista de modelos
+          await this.carregarConfiguracoesGerais()
+
+          // Notificar sucesso
+          const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
+          this.$emit('mostrar-toast',
+            `🎉 Configuração "${this.nomeModelo}" salva no banco!\n\n` +
+            `🆔 ID: ${idSalvo}\n` +
+            `📊 Tipo: ${this.tipoAtivo === 'silo' ? 'Silo' : 'Armazém'}\n` +
+            `🔧 ${this.tipoAtivo === 'armazem' ? this.quantidadeModelosArcos + ' modelo(s) de arco' : 'Configuração completa'}`,
+            'success'
+          )
+
+          // Limpar campos
           this.nomeModelo = ''
           this.descricaoModelo = ''
-          await this.carregarConfiguracoesGerais()
+
         } else {
-          console.error('❌ [GerenciadorModelosBanco] Erro no salvamento:', response)
-          this.mostrarToast(response.message || 'Erro ao salvar configuração', 'error')
+          console.error('❌ [GerenciadorModelosBanco] Erro ao salvar:', response)
+
+          let mensagemErro = response.message || 'Erro desconhecido'
+          if (response.error?.erros) {
+            mensagemErro = response.error.erros.join('\n')
+          }
+
+          this.$emit('mostrar-toast', `❌ Erro ao salvar:\n\n${mensagemErro}`, 'error')
         }
+
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro ao salvar configuração:', error)
-        this.mostrarToast('Erro ao conectar com o servidor', 'error')
+        console.error('❌ [GerenciadorModelosBanco] Erro inesperado:', error)
+        this.$emit('mostrar-toast', `❌ Erro inesperado:\n\n${error.message || error}`, 'error')
       } finally {
         this.isSalvando = false
+      }
+    },
+
+    prepararDadosParaSalvar() {
+      if (this.tipoAtivo === 'silo') {
+        // Dados do silo
+        return {
+          tipoConfiguracao: 'silo_completo_v4',
+          nome: this.nomeModelo.trim(),
+          timestampCriacao: new Date().toISOString(),
+          versao: '4.0',
+          configuracao: { ...this.configSilo },
+          tipo: 'silo'
+        }
+      } else {
+        // Dados do armazém - usar mesmo formato do ModeladorSVG
+        return {
+          tipoConfiguracao: 'armazem_completo_v4',
+          nome: this.nomeModelo.trim(),
+          timestampCriacao: new Date().toISOString(),
+          versao: '4.0',
+          sistemaModelos: {
+            quantidadeModelos: this.quantidadeModelosArcos,
+            logicaDistribuicao: this.obterLogicaDistribuicao(),
+            modelosDefinidos: this.prepararModelosCompletos()
+          },
+          configuracaoGlobal: { ...this.configArmazem },
+          tipo: 'armazem'
+        }
+      }
+    },
+
+    prepararModelosCompletos() {
+      const modelos = {}
+
+      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+        const modelo = this.modelosArcos[i]
+        if (modelo) {
+          modelos[i] = {
+            numero: i,
+            nome: modelo.nome || `Modelo ${i}`,
+            posicao: modelo.posicao || 'todos',
+            configuracao: { ...(modelo.configuracao || modelo.config) },
+            quantidadePendulos: modelo.quantidadePendulos || 3,
+            sensoresPorPendulo: { ...modelo.sensoresPorPendulo },
+            posicoesCabos: { ...modelo.posicoesCabos },
+            status: 'salvo',
+            timestampUltimaEdicao: new Date().toISOString(),
+            metadados: {
+              criadoEm: modelo.criadoEm || new Date().toISOString(),
+              versaoModelo: '4.0'
+            }
+          }
+        }
+      }
+
+      return modelos
+    },
+
+    obterLogicaDistribuicao() {
+      const logicas = {
+        1: { nome: 'Modelo Único', aplicacao: 'todos_arcos' },
+        2: { nome: 'Par/Ímpar', aplicacao: 'par_impar' },
+        3: { nome: 'Frente/Fundo + Par/Ímpar', aplicacao: 'frente_fundo_par_impar' },
+        4: { nome: 'Frente/Par/Ímpar/Fundo', aplicacao: 'frente_par_impar_fundo' }
+      }
+      return logicas[this.quantidadeModelosArcos] || logicas[1]
+    },
+
+    gerarDescricaoConfiguracao() {
+      const tipo = this.tipoAtivo === 'silo' ? 'Silo' : 'Armazém'
+      const data = new Date().toLocaleDateString('pt-BR')
+      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+      if (this.tipoAtivo === 'silo') {
+        return `Configuração de ${tipo} criada em ${data} às ${hora}`
+      } else {
+        const logica = this.obterLogicaDistribuicao().nome
+        return `Configuração de ${tipo} com ${this.quantidadeModelosArcos} modelo(s) - ${logica} - ${data} ${hora}`
       }
     },
 
@@ -512,6 +620,12 @@ export default {
           else return 'Modelo Fundo'
         default: return `Modelo ${numeroModelo}`
       }
+    },
+
+    resetarEstadoSalvamento() {
+      this.isSalvando = false
+      this.$emit('mostrar-toast', 'Estado de salvamento resetado. Tente novamente.', 'info')
+      console.log('🔄 [GerenciadorModelosBanco] Estado de salvamento resetado manualmente')
     }
   }
 }
