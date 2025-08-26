@@ -3,21 +3,31 @@
     <div class="card-header bg-dark text-white">
       <h6 class="mb-0">🏗️ Modelos de Arcos do Armazém</h6>
     </div>
+
     <div class="card-body p-2">
       <!-- Layout responsivo com grid -->
       <div class="row g-2 mb-3">
         <div class="col-12 col-md-6">
           <label class="form-label small fw-bold">Quantidade de Modelos:</label>
-          <select class="form-select form-select-sm w-100" :value="quantidadeModelosArcos" @change="$emit('quantidade-modelos-change', $event)">
+          <select
+            class="form-select form-select-sm w-100"
+            :value="quantidadeModelosArcos"
+            @change="$emit('quantidade-modelos-change', $event)"
+          >
             <option :value="1">1 Modelo</option>
             <option :value="2">2 Modelos</option>
             <option :value="3">3 Modelos</option>
             <option :value="4">4 Modelos</option>
           </select>
         </div>
+
         <div class="col-12 col-md-6">
           <label class="form-label small fw-bold">Modelo Atual:</label>
-          <select class="form-select form-select-sm w-100" :value="modeloArcoAtual" @change="$emit('modelo-arco-change', $event)">
+          <select
+            class="form-select form-select-sm w-100"
+            :value="modeloArcoAtual"
+            @change="$emit('modelo-arco-change', $event)"
+          >
             <option :value="null">Selecione Modelo</option>
             <option v-for="i in quantidadeModelosArcos" :key="i" :value="i">
               Modelo {{ i }} - {{ getDescricaoModelo(i) }}
@@ -29,16 +39,26 @@
       <div class="row g-2 mb-3">
         <div class="col-12">
           <label class="form-label small fw-bold">Nome do Modelo:</label>
-          <input type="text" class="form-control form-control-sm w-100" :value="modeloNome" @input="$emit('nome-modelo-change', $event)"
-            placeholder="Nome do modelo" :disabled="!modeloArcoAtual" />
+          <input
+            type="text"
+            class="form-control form-control-sm w-100"
+            :value="modeloNome"
+            @input="$emit('nome-modelo-change', $event)"
+            placeholder="Nome do modelo"
+            :disabled="!modeloArcoAtual"
+          />
         </div>
       </div>
 
       <div class="row g-2 mb-3">
         <div class="col-12">
           <label class="form-label small fw-bold">Posição no Armazém:</label>
-          <select class="form-select form-select-sm w-100" :value="modeloPosicao" @change="$emit('posicao-arco-change', $event)"
-            :disabled="!modeloArcoAtual">
+          <select
+            class="form-select form-select-sm w-100"
+            :value="modeloPosicao"
+            @change="$emit('posicao-arco-change', $event)"
+            :disabled="!modeloArcoAtual"
+          >
             <template v-if="quantidadeModelosArcos === 1">
               <option value="todos">Todos os Arcos</option>
             </template>
@@ -64,38 +84,47 @@
       <!-- Controle de Quantidade de Pêndulos por Modelo -->
       <div v-if="modeloArcoAtual" class="mb-3">
         <label class="form-label small fw-bold">Quantidade de Pêndulos/Cabos:</label>
+
         <div class="d-flex align-items-center justify-content-center mb-2">
-          <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm flex-shrink-0"
             @click="alterarQuantidadePendulos(-1)"
-            :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3) <= 0"
-            title="Diminuir quantidade">
+            :disabled="(modelosArcosLocal[modeloArcoAtual]?.quantidadePendulos || 3) <= 0"
+            title="Diminuir quantidade"
+          >
             -
           </button>
-          <input type="number" class="form-control form-control-sm text-center mx-2"
+
+          <input
+            type="number"
+            class="form-control form-control-sm text-center mx-2"
             style="max-width: 70px; min-width: 60px;"
-            :value="modelosArcos[modeloArcoAtual].quantidadePendulos"
+            :value="modelosArcosLocal[modeloArcoAtual]?.quantidadePendulos"
             @input="onQuantidadePendulosChange"
-            min="0" max="50" />
-          <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0"
+            min="0" max="50"
+          />
+
+          <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm flex-shrink-0"
             @click="alterarQuantidadePendulos(1)"
-            :disabled="(modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3) >= 50"
-            title="Aumentar quantidade">
+            :disabled="(modelosArcosLocal[modeloArcoAtual]?.quantidadePendulos || 3) >= 50"
+            title="Aumentar quantidade"
+          >
             +
           </button>
         </div>
+
         <div class="text-center">
-          <small class="text-muted d-block">
-            (0 a 50 pêndulos)
-          </small>
-          <small class="text-info d-block">
-            💡 Aplicado automaticamente no preview
-          </small>
+          <small class="text-muted d-block">(0 a 50 pêndulos)</small>
+          <small class="text-info d-block">💡 Aplicado automaticamente no preview</small>
         </div>
 
         <!-- Controles de Posicionamento dos Pêndulos/Cabos -->
-        <PosicionamentoCabos 
+        <PosicionamentoCabos
           :modelo-arco-atual="modeloArcoAtual"
-          :modelos-arcos="modelosArcos"
+          :modelos-arcos="modelosArcosLocal"
           :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
           :posicoes-cabos="posicoesCabos"
           @update:cabo-selecionado-posicionamento="$emit('update:cabo-selecionado-posicionamento', $event)"
@@ -108,28 +137,32 @@
       <div v-if="modeloArcoAtual" class="alert alert-info p-2">
         <div class="text-center mb-2">
           <strong class="d-block">EDITANDO:</strong>
-          <span class="d-block small">{{ modelosArcos[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` }}</span>
+          <span class="d-block small">{{ modelosArcosLocal[modeloArcoAtual]?.nome || `Modelo ${modeloArcoAtual}` }}</span>
         </div>
+
         <div class="d-flex flex-wrap justify-content-center gap-1 mb-2">
           <span class="badge bg-primary">
-            {{ modelosArcos[modeloArcoAtual]?.posicao || '' }}
+            {{ modelosArcosLocal[modeloArcoAtual]?.posicao || '' }}
           </span>
           <span class="badge bg-info">
-            {{ modelosArcos[modeloArcoAtual]?.quantidadePendulos || 3 }}P
+            {{ modelosArcosLocal[modeloArcoAtual]?.quantidadePendulos || 3 }}P
           </span>
-          <span v-if="modelosSalvos[modeloArcoAtual]" class="badge bg-success">
-            SALVO
-          </span>
+          <span v-if="modelosSalvos[modeloArcoAtual]" class="badge bg-success">SALVO</span>
         </div>
+
         <div class="d-grid">
-          <button type="button" class="btn btn-success btn-sm" @click="$emit('salvar-modelo-atual')"
-            title="Salvar este modelo">
+          <button
+            type="button"
+            class="btn btn-success btn-sm"
+            @click="$emit('salvar-modelo-atual')"
+            title="Salvar este modelo"
+          >
             💾 Salvar Modelo
           </button>
         </div>
       </div>
 
-      <div v-if="!modeloArcoAtual" class="alert alert-warning p-2 text-center">
+      <div v-else class="alert alert-warning p-2 text-center">
         <strong class="small">⚠️ Nenhum modelo selecionado</strong>
       </div>
 
@@ -144,25 +177,27 @@
                   <div class="flex-grow-1 me-2">
                     <small class="fw-bold d-block">Modelo {{ i }}</small>
                     <small class="text-muted d-block text-truncate" style="max-width: 120px;">
-                      {{ modelosArcos[i]?.posicao || 'N/A' }}
+                      {{ modelosArcosLocal[i]?.posicao || 'N/A' }}
                     </small>
                     <small class="text-muted d-block text-truncate" style="max-width: 120px;">
-                      {{ modelosArcos[i]?.nome || 'Sem nome' }}
+                      {{ modelosArcosLocal[i]?.nome || 'Sem nome' }}
                     </small>
                   </div>
                   <div class="text-end">
                     <span v-if="modelosSalvos[i]" class="badge bg-success badge-sm mb-1">✓</span>
-                    <small class="d-block text-muted">{{ modelosArcos[i]?.quantidadePendulos || 3 }}P</small>
+                    <small class="d-block text-muted">
+                      {{ modelosArcosLocal[i]?.quantidadePendulos || 3 }}P
+                    </small>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
         <div class="mt-2 text-center">
           <small class="text-muted">
-            <strong>Status:</strong> {{ Object.keys(modelosSalvos).length }} de {{ quantidadeModelosArcos }}
-            modelos salvos
+            <strong>Status:</strong> {{ Object.keys(modelosSalvos).length }} de {{ quantidadeModelosArcos }} modelos salvos
           </small>
         </div>
       </div>
@@ -175,9 +210,8 @@ import PosicionamentoCabos from './PosicionamentoCabos.vue'
 
 export default {
   name: 'ModelosArcos',
-  components: {
-    PosicionamentoCabos
-  },
+  components: { PosicionamentoCabos },
+
   props: {
     quantidadeModelosArcos: Number,
     modeloArcoAtual: [Number, null],
@@ -188,60 +222,85 @@ export default {
     caboSelecionadoPosicionamento: [Number, null],
     posicoesCabos: Object
   },
-  emits: [
-    'quantidade-modelos-change',
-    'modelo-arco-change', 
-    'nome-modelo-change',
-    'posicao-arco-change',
-    'alterar-quantidade-pendulos',
-    'quantidade-pendulos-change',
-    'update:cabo-selecionado-posicionamento',
-    'posicao-cabo-change',
-    'resetar-posicoes-cabos',
-    'salvar-modelo-atual'
-  ],
-  methods: {
-    getDescricaoModelo(modeloNum) {
-      if (this.quantidadeModelosArcos === 1) {
-        return 'todos'
-      } else if (this.quantidadeModelosArcos === 2) {
-        return modeloNum === 1 ? 'par' : 'impar'
-      } else if (this.quantidadeModelosArcos === 3) {
-        if (modeloNum === 1) return 'frente/fundo'
-        else if (modeloNum === 2) return 'par'
-        else return 'impar'
-      } else if (this.quantidadeModelosArcos === 4) {
-        if (modeloNum === 1) return 'frente'
-        else if (modeloNum === 2) return 'par'
-        else if (modeloNum === 3) return 'impar'
-        else return 'fundo'
+
+  data() {
+    return {
+      modelosArcosLocal: {},
+      travadoExterno: false,
+      emitirDebounce: null
+    }
+  },
+
+  created() {
+    this.emitirDebounce = this.debounce((payload) => {
+      this.$emit('modelo-dados-atualizados', payload)
+    }, 150)
+  },
+
+  watch: {
+    // sincronia do pai -> local (sem loop)
+    modelosArcos: {
+      immediate: true,
+      deep: true,
+      handler(novo) {
+        this.travadoExterno = true
+        this.modelosArcosLocal = this.clonar(novo || {})
+        this.$nextTick(() => { this.travadoExterno = false })
       }
+    },
+
+    // edições locais -> emite para o pai (tempo real, com debounce)
+    modelosArcosLocal: {
+      deep: true,
+      handler(novo) {
+        if (this.travadoExterno || !this.modeloArcoAtual) return
+        const dados = novo[this.modeloArcoAtual]
+        if (!dados) return
+        this.emitirDebounce({
+          modeloAtual: this.modeloArcoAtual,
+          dadosModelo: this.clonar(dados)
+        })
+      }
+    }
+  },
+
+  methods: {
+    // util
+    clonar(v) { return JSON.parse(JSON.stringify(v)) },
+    debounce(fn, espera = 150) {
+      let t
+      return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), espera) }
+    },
+
+    getDescricaoModelo(modeloNum) {
+      if (this.quantidadeModelosArcos === 1) return 'todos'
+      if (this.quantidadeModelosArcos === 2) return modeloNum === 1 ? 'par' : 'impar'
+      if (this.quantidadeModelosArcos === 3) return modeloNum === 1 ? 'frente/fundo' : (modeloNum === 2 ? 'par' : 'impar')
+      if (this.quantidadeModelosArcos === 4) return ['frente', 'par', 'impar', 'fundo'][modeloNum - 1] || ''
       return ''
     },
+
+    // usa SEMPRE o estado local
     onQuantidadePendulosChange(event) {
-      if (this.modeloArcoAtual) {
-        const novaQuantidade = parseInt(event.target.value) || 0
-        this.$emit('quantidade-pendulos-change', {
-          target: { value: novaQuantidade },
-          modeloArcoAtual: this.modeloArcoAtual
-        })
-      }
+      if (!this.modeloArcoAtual) return
+      const nova = Math.max(0, Math.min(50, parseInt(event.target.value) || 0))
+      const m = this.obterModeloLocal(this.modeloArcoAtual)
+      this.$set(m, 'quantidadePendulos', nova)
+      this.$emit('quantidade-pendulos-change', { target: { value: nova }, modeloArcoAtual: this.modeloArcoAtual })
     },
+
     alterarQuantidadePendulos(incremento) {
-      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
-        const qtdAtual = this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3
-        let novaQtd = qtdAtual + incremento
+      if (!this.modeloArcoAtual) return
+      const m = this.obterModeloLocal(this.modeloArcoAtual)
+      const atual = m.quantidadePendulos || 3
+      const nova = Math.max(0, Math.min(50, atual + incremento))
+      this.$set(m, 'quantidadePendulos', nova)
+      this.$emit('alterar-quantidade-pendulos', { incremento, novaQuantidade: nova, modeloArcoAtual: this.modeloArcoAtual })
+    },
 
-        // Validar limites
-        if (novaQtd < 0) novaQtd = 0
-        if (novaQtd > 50) novaQtd = 50
-
-        this.$emit('alterar-quantidade-pendulos', {
-          incremento,
-          novaQuantidade: novaQtd,
-          modeloArcoAtual: this.modeloArcoAtual
-        })
-      }
+    obterModeloLocal(indice) {
+      if (!this.modelosArcosLocal[indice]) this.$set(this.modelosArcosLocal, indice, {})
+      return this.modelosArcosLocal[indice]
     }
   }
 }

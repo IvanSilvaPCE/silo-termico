@@ -141,12 +141,14 @@
     </div>
 
     <!-- Modal de Confirmação de Exclusão -->
-    <div class="modal fade" id="modalExclusao" tabindex="-1" ref="modalExclusao">
+    <div class="modal fade" id="modalExclusao" tabindex="-1" ref="modalExclusao" v-show="showModalExclusao">
       <div class="modal-dialog modal-sm">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title">Confirmar Exclusão</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <button type="button" class="close" @click="fecharModal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
           </div>
           <div class="modal-body">
             <p class="mb-2">Deseja excluir a configuração:</p>
@@ -154,7 +156,7 @@
             <p class="text-muted small mt-2">Esta ação não pode ser desfeita.</p>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal" :disabled="isExcluindo">
+            <button type="button" class="btn btn-secondary btn-sm" @click="fecharModal" :disabled="isExcluindo">
               Cancelar
             </button>
             <button type="button" class="btn btn-danger btn-sm" @click="excluirConfiguracao" :disabled="isExcluindo">
@@ -168,6 +170,9 @@
         </div>
       </div>
     </div>
+    
+    <!-- Backdrop do Modal -->
+    <div class="modal-backdrop fade" v-show="showModalExclusao" :class="{ 'show': showModalExclusao }" @click="fecharModal"></div>
   </div>
 </template>
 
@@ -199,7 +204,8 @@ export default {
       isExcluindo: false,
       modeloParaExcluir: null,
       debugMode: false,
-      carregandoModelos: false // Adicionado para indicar carregamento na exclusão
+      carregandoModelos: false, // Adicionado para indicar carregamento na exclusão
+      showModalExclusao: false // Controle do modal sem jQuery
     }
   },
   computed: {
@@ -523,16 +529,9 @@ export default {
 
     confirmarExclusao(configuracao) {
       this.modeloParaExcluir = configuracao
-      // A inicialização do Bootstrap deve ser feita no mounted ou similar para garantir que o DOM esteja pronto.
-      // Usar $refs é a forma correta de acessar o elemento do modal.
-      // Verifique se `this.$refs.modalExclusao` está corretamente associado ao elemento do modal no template.
-      // É importante que o modal seja inicializado apenas uma vez.
-      if (this.$refs.modalExclusao) {
-        const modal = new bootstrap.Modal(this.$refs.modalExclusao)
-        modal.show()
-      } else {
-        console.error("Erro: Elemento do modal 'modalExclusao' não encontrado via $refs.")
-      }
+      this.showModalExclusao = true
+      // Adicionar classe ao body para evitar scroll
+      document.body.classList.add('modal-open')
     },
 
     async excluirConfiguracao() {
@@ -584,14 +583,15 @@ export default {
       } finally {
         this.isExcluindo = false
         this.modeloParaExcluir = null
-        // Fechar o modal caso ele ainda esteja aberto
-        if (this.$refs.modalExclusao) {
-          const modal = bootstrap.Modal.getInstance(this.$refs.modalExclusao)
-          if (modal) {
-            modal.hide()
-          }
-        }
+        this.fecharModal()
       }
+    },
+
+    fecharModal() {
+      this.showModalExclusao = false
+      this.modeloParaExcluir = null
+      // Remover classe do body
+      document.body.classList.remove('modal-open')
     },
 
     formatarData(dataString) {
@@ -692,6 +692,35 @@ export default {
 
 .progress-sm {
   height: 0.375rem;
+}
+
+/* Estilos para o modal sem jQuery */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1050;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  outline: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1040;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop.show {
+  opacity: 0.5;
 }
 
 @media (max-width: 576px) {

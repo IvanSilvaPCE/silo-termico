@@ -198,8 +198,7 @@
                     </span>
                   </div>
                   <small class="text-muted d-block mobile-model-name">{{
-                    determinarModeloParaArco(arcoAtual)?.nome
-                    || 'Modelo Padrão' }}</small>
+                    determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}</small>
                 </div>
               </div>
 
@@ -406,7 +405,12 @@ export default {
         vertical: 0
       },
 
-
+      // NOVOS ESTADOS REATIVOS ADICIONADOS PARA CORREÇÃO DE ERRO
+      modelosAtualizados: false, // Indica se houve alterações nos modelos que precisam ser salvas
+      modelosConfigurados: {}, // Armazena configurações de modelos individuais
+      quantidadeEsperada: 1, // Quantidade esperada de modelos
+      temConfigGlobal: true, // Flag para indicar se há configuração global
+      modelos: {} // Armazena os dados dos modelos
     }
   },
   computed: {
@@ -548,7 +552,7 @@ export default {
 
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpbyI6W3siaWRfcGVyZmlsIjoxMCwibm1fcGVyZmlsIjoiQWRtaW5pc3RyYWRvIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpby8xNzI5NzcyMDc5X3JjXzQ3MDcucG5nIiwiZXh0ZW5zYW8iOiJwbmciXX19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg',
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1NjAxOTM4LCJleHAiOjE3NTY4MTE1MzgsIm5iZiI6MTc1NTYwMTkzOCwianRpIjoid2xsMU1DQlV6ZUlPUjBpQSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.17k5NPdmmKvNtUEJ1GmCNYuYSFtayYedzESRU-Vta50',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -1289,67 +1293,36 @@ export default {
     },
 
     prepararDadosParaBanco() {
-      console.log('🔄 [prepararDadosParaBanco] Preparando dados completos para salvar no banco')
+      console.log('🔄 [prepararDadosParaBanco] Preparando dados para salvar no banco')
 
-      // Garantir que o modelo atual esteja salvo antes de preparar para o banco
       if (this.modeloArcoAtual) {
         this.salvarModeloAtualCompleto()
       }
 
-      // Preparar estrutura completa para o campo dado_svg
+      // Estrutura simples conforme especificação
       const dadosCompletos = {
-        // Informações gerais
-        tipoConfiguracao: 'armazem_completo_v4',
-        nomeModelo: this.nomeConfiguracao || `Config_${Date.now()}`,
-        timestampCriacao: new Date().toISOString(),
-        versao: '4.0',
-
-        // Sistema de modelos
-        sistemaModelos: {
-          quantidadeModelos: this.quantidadeModelosArcos,
-          logicaDistribuicao: this.obterLogicaDistribuicaoCompleta(),
-          modelosDefinidos: this.prepararModelosParaSalvar()
-        },
-
-        // Configuração global (baseada no primeiro modelo ou padrão)
+        quantidadeModelos: this.quantidadeModelosArcos,
+        modelos: {},
         configuracaoGlobal: { ...this.configArmazem },
-
-        // Estrutura de dados exemplares
-        estruturaReferencia: {
-          totalArcos: this.analiseArcos?.totalArcos || 1,
-          estatisticas: this.analiseArcos?.estatisticas || { totalPendulos: 0, totalSensores: 0 }
-        },
-
-        // Layouts automáticos
-        layoutsAutomaticos: this.layoutsAutomaticos || {},
-
-        // Dimensões SVG
         dimensoesSVG: {
           largura: this.larguraSVG,
           altura: this.alturaSVG
-        },
-
-        // Dados originais se disponíveis
-        dadosOriginais: {
-          dadosPortal: this.dadosPortal,
-          analiseArcos: this.analiseArcos
-        },
-
-        // Estado atual da aplicação
-        estadoAtual: {
-          arcoAtual: this.arcoAtual,
-          modeloArcoAtual: this.modeloArcoAtual,
-          dadosVindosDoPreview: this.dadosVindosDoPreview,
-          configuracaoPreviewSelecionada: this.configuracaoPreviewSelecionada
         }
       }
 
-      console.log('✅ [prepararDadosParaBanco] Dados preparados:', {
-        quantidadeModelos: this.quantidadeModelosArcos,
-        modelosSalvos: Object.keys(this.modelosSalvos).length,
-        tamanhoJSON: JSON.stringify(dadosCompletos).length,
-        versao: dadosCompletos.versao
-      })
+      // Preparar modelos individuais
+      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
+        const modelo = this.modelosArcos[i]
+        if (modelo) {
+          dadosCompletos.modelos[i] = {
+            nome: modelo.nome,
+            posicao: modelo.posicao,
+            config: modelo.config || this.configArmazem,
+            quantidadePendulos: modelo.quantidadePendulos || 3,
+            sensoresPorPendulo: modelo.sensoresPorPendulo || {}
+          }
+        }
+      }
 
       return dadosCompletos
     },
@@ -3315,6 +3288,26 @@ export default {
       }
     },
 
+    onModeloDadosAtualizados(dados) {
+      console.log('📊 [ModeladorSVG] onModeloDadosAtualizados recebido:', dados)
+      
+      if (dados.modeloAtual && this.modelosArcos[dados.modeloAtual]) {
+        // Atualizar modelo com novos dados
+        this.modelosArcos[dados.modeloAtual] = {
+          ...this.modelosArcos[dados.modeloAtual],
+          ...dados.dadosModelo
+        }
+        
+        // Salvar automaticamente
+        this.salvarModelosAutomatico()
+        
+        // Atualizar preview se necessário
+        if (this.modeloArcoAtual === dados.modeloAtual) {
+          this.updateSVG()
+        }
+      }
+    },
+
     // Métodos para controle de cabos
     inicializarPosicoesCabos() {
       if (!this.modeloArcoAtual) return
@@ -3941,9 +3934,8 @@ export default {
           Object.keys(dados.sistemaModelos.modelosDefinidos).forEach(key => {
             const modelo = dados.sistemaModelos.modelosDefinidos[key]
             novosModelos[key] = {
-              posicao: modelo.posicao || this.determinarPosicaoDoModelo(parseInt(key), this.quantidadeModelosArcos),
-              config: { ...modelo.configuracao },
-              nome: modelo.nome || `Modelo ${key}`,
+              ...modelo,
+              config: modelo.configuracao || {}, // Usar 'configuracao' da v4.0
               quantidadePendulos: modelo.quantidadePendulos || 3,
               sensoresPorPendulo: modelo.sensoresPorPendulo || {},
               posicoesCabos: modelo.posicoesCabos || {},
@@ -4047,7 +4039,38 @@ export default {
         this.analiseArcos = this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
       }
 
-      this.mostrarToast(`Configuração v3.0 "${nome}" com ${dados.quantidadeModelos} modelo(s) carregada!`, 'success')
+      // Restaurar dimensões SVG se disponíveis
+      if (dados.dimensoesSVG) {
+        this.larguraSVG = dados.dimensoesSVG.largura
+        this.alturaSVG = dados.dimensoesSVG.altura
+      }
+
+      // Restaurar estado da aplicação se disponível
+      if (dados.estadoAtual) {
+        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
+        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
+        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
+      }
+
+      // Aplicar configuração inicial (geralmente do primeiro modelo)
+      setTimeout(() => {
+        const primeiroModelo = Object.values(this.modelosArcos)[0]
+        if (primeiroModelo) {
+          this.configArmazem = { ...primeiroModelo.config }
+          this.inicializarPosicoesCabos() // Re-inicializar cabos com base no modelo carregado
+        }
+      }, 100)
+
+      const totalArcos = dados.estruturaArmazem?.totalArcos || 'N/A'
+      const logica = dados.configModelos?.logicaDistribuicao?.nome || 'Padrão'
+
+      this.mostrarToast(
+        `Configuração hierárquica "${nome}" carregada!\n` +
+        `📊 ${totalArcos} arcos, ${this.quantidadeModelosArcos} modelo(s)\n` +
+        `🎯 Lógica: ${logica}\n` +
+        `📐 Dimensões SVG: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}`,
+        'success'
+      )
     },
 
     carregarConfiguracaoSimplesCompatibilidade(dados, nome) {

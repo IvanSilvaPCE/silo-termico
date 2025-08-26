@@ -4,12 +4,20 @@ import client from '@/api.js'
 // Helpers
 const pegarToken = () => {
   const token = localStorage.getItem('token') || ''
+  
+  // Verificar se o token existe e não é vazio
+  if (!token || token.trim() === '') {
+    console.warn('⚠️ [modeloSvgService] Token não encontrado no localStorage')
+    return ''
+  }
+  
   // Se o token já incluir "Bearer", não adicionar novamente
-  if (token && token.startsWith('Bearer ')) {
+  if (token.startsWith('Bearer ')) {
     return token
   }
+  
   // Se o token existir mas não tiver "Bearer", adicionar
-  return token ? `Bearer ${token}` : ''
+  return `Bearer ${token}`
 }
 
 const normalizarModelo = (dados = {}) => {
@@ -38,7 +46,7 @@ const normalizarModelo = (dados = {}) => {
   } else if (typeof dadoSvg !== 'string') {
     dadoSvg = JSON.stringify(dadoSvg || {})
   }
-  
+
   // Garantir que não é string vazia
   if (!dadoSvg || dadoSvg.trim() === '' || dadoSvg === '{}') {
     dadoSvg = JSON.stringify({ erro: 'Dados SVG não fornecidos' })
@@ -59,33 +67,57 @@ const normalizarModelo = (dados = {}) => {
 
 const validarDados = (dadosValidados) => {
   const erros = []
-  
+
   // Validações obrigatórias conforme API
   if (!dadosValidados.nm_modelo || dadosValidados.nm_modelo.trim() === '') {
     erros.push('Nome do modelo (nm_modelo) é obrigatório')
   }
-  
-  if (!dadosValidados.dado_svg || dadosValidados.dado_svg.trim() === '') {
+
+  if (!dadosValidados.dado_svg || dadosValidados.dado_svg.trim() === '' || dadosValidados.dado_svg === '{}') {
     erros.push('Dados do modelo (dado_svg) são obrigatórios')
   }
-  
+
   if (!['A', 'S'].includes(dadosValidados.tp_svg)) {
     erros.push('Tipo deve ser A (Armazém) ou S (Silo)')
   }
-  
+
   if (!['T', 'F'].includes(dadosValidados.vista_svg)) {
     erros.push('Vista deve ser T (Topo) ou F (Frontal)')
   }
-  
+
+  // Validar se dado_svg é um JSON válido
+  try {
+    JSON.parse(dadosValidados.dado_svg)
+  } catch (e) {
+    erros.push('Dados SVG devem estar em formato JSON válido')
+  }
+
   return erros
 }
 
 // POST - Salvar novo modelo
 const salvarModelo = async (dadosModelo) => {
   try {
-    const dadosValidados = normalizarModelo(dadosModelo)
-    const erros = validarDados(dadosValidados)
+    // Normalizar e validar dados antes de enviar
+    let dadosSvg = dadosModelo.dados_svg || dadosModelo.dado_svg
     
+    // Se dados_svg for objeto, converter para string
+    if (typeof dadosSvg === 'object' && dadosSvg !== null) {
+      dadosSvg = JSON.stringify(dadosSvg)
+    } else if (!dadosSvg || dadosSvg.trim() === '') {
+      dadosSvg = JSON.stringify({ erro: 'Dados SVG não fornecidos' })
+    }
+
+    const dadosValidados = {
+      nm_modelo: dadosModelo.nm_modelo || '',
+      dado_svg: dadosSvg,
+      ds_modelo: dadosModelo.ds_modelo || '',
+      tp_svg: dadosModelo.tp_svg || 'A', // 'A' para armazém, 'S' para silo
+      vista_svg: dadosModelo.vista_svg || 'F'
+    }
+
+    const erros = validarDados(dadosValidados)
+
     if (erros.length) {
       console.warn('⚠️ [modeloSvgService] Erros de validação:', erros)
       return { 
@@ -101,19 +133,27 @@ const salvarModelo = async (dadosModelo) => {
       tp_svg: dadosValidados.tp_svg,
       vista_svg: dadosValidados.vista_svg,
       ds_modelo: dadosValidados.ds_modelo,
-      tamanho_dados: dadosValidados.dado_svg?.length || 0,
-      tem_imagem: !!dadosValidados.imagem
+      tamanho_dados: dadosValidados.dado_svg?.length || 0
     })
+
+    const token = pegarToken()
+    if (!token) {
+      return {
+        status: 401,
+        success: false,
+        message: 'Token de autenticação não encontrado'
+      }
+    }
 
     const response = await client.post('/svg', dadosValidados, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': pegarToken()
+        'Authorization': token
       }
     })
 
-    console.log('✅ [modeloSvgService] Modelo salvo com sucesso:', response.data)
-
+    console.log('✅ [modeloSvgService] Modelo salvo com sucesso!')
+    
     return {
       status: response.status,
       data: response.data,
@@ -122,10 +162,10 @@ const salvarModelo = async (dadosModelo) => {
     }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao salvar modelo:', error)
-    
+
     const status = error.response?.status || 500
     let mensagem = 'Erro ao salvar modelo'
-    
+
     if (error.response?.data) {
       if (typeof error.response.data === 'string') {
         mensagem = error.response.data
@@ -137,7 +177,7 @@ const salvarModelo = async (dadosModelo) => {
     } else if (error.message) {
       mensagem = error.message
     }
-    
+
     return { 
       status, 
       success: false, 
@@ -150,23 +190,51 @@ const salvarModelo = async (dadosModelo) => {
 // GET - Buscar modelos (opcional filtro tp_svg = 'A' | 'S')
 const buscarModelos = async (tipo = null) => {
   try {
+    const token = pegarToken()
+    if (!token) {
+      console.error('❌ [modeloSvgService] Token não encontrado para buscar modelos')
+      return {
+        status: 401,
+        data: [],
+        success: false,
+        error: 'Token de autenticação não encontrado'
+      }
+    }
+
     const url = tipo ? `/svg?tp_svg=${encodeURIComponent(tipo)}` : '/svg'
     console.log('🔄 [modeloSvgService] Buscando modelos:', { tipo, url })
 
     const response = await client.get(url, {
-      headers: { 'Authorization': pegarToken() }
+      headers: { 
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      }
     })
 
     console.log('✅ [modeloSvgService] Modelos encontrados:', Array.isArray(response.data) ? response.data.length : 1)
 
-    return { status: response.status, data: response.data, success: true }
+    return { 
+      status: response.status, 
+      data: response.data || [], 
+      success: true 
+    }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao buscar modelos:', error)
+    
+    let mensagem = 'Erro ao buscar modelos'
+    if (error.response?.status === 401) {
+      mensagem = 'Token de autenticação inválido ou expirado'
+    } else if (error.response?.status === 403) {
+      mensagem = 'Permissão negada para buscar modelos'
+    } else if (error.response?.data?.message) {
+      mensagem = error.response.data.message
+    }
+
     return {
       status: error.response?.status || 500,
       data: [],
       success: false,
-      error: error.response?.data || error
+      error: mensagem
     }
   }
 }
@@ -262,10 +330,10 @@ const excluirModelo = async (id) => {
     }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao excluir modelo:', error)
-    
+
     const status = error.response?.status || 500
     let mensagem = 'Erro ao excluir modelo'
-    
+
     if (error.response?.status === 401) {
       mensagem = 'Token de autenticação inválido ou expirado'
     } else if (error.response?.status === 403) {
@@ -283,7 +351,7 @@ const excluirModelo = async (id) => {
     } else if (error.message) {
       mensagem = error.message
     }
-    
+
     return { 
       status, 
       success: false, 
