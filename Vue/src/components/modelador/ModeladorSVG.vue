@@ -24,16 +24,16 @@
           <!-- Controles para Armazém -->
           <template v-if="tipoAtivo === 'armazem'">
             <!-- Seção 0: Configuração de Modelos de Arcos -->
-            <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
-              :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
-              :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
-              :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
-              @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
-              @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
-              @quantidade-pendulos-change="onQuantidadePendulosChange"
-              @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
-              @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
-              @salvar-modelo-atual="salvarModeloAtual" />
+          <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
+            :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
+            :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
+            :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
+            @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
+            @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
+            @quantidade-pendulos-change="onQuantidadePendulosChange"
+            @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
+            @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
+            @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
 
 
 
@@ -69,6 +69,8 @@
           <GerenciadorConfiguracoes />
         </div>
       </div>
+
+
 
       <!-- Área de Visualização -->
       <div class="col-xl-9 col-lg-8 col-md-7 col-sm-12" :style="{
@@ -276,14 +278,8 @@ import BotoesControle from './compModelador/BotoesControle.vue'
 import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue'
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
-import debounce from 'lodash.debounce'
 
 export default {
-  created() {
-    this.__debouncedUpdateSVG = debounce(() => this.updateSVG(), 120)
-    this.__debouncedSalvar = debounce(() => this.salvarModelosAutomatico(), 300)
-  },
-        
   name: 'ModeladorSVG',
   components: {
     SeletorTipo,
@@ -434,7 +430,7 @@ export default {
       set(value) {
         if (this.modeloArcoAtual) {
           this.modelosArcos[this.modeloArcoAtual].nome = value
-          this.agendarSalvarModelos()
+          this.salvarModelosAutomatico()
         }
       }
     },
@@ -445,11 +441,17 @@ export default {
       set(value) {
         if (this.modeloArcoAtual) {
           this.modelosArcos[this.modeloArcoAtual].posicao = value
-          this.agendarSalvarModelos()
+          this.salvarModelosAutomatico()
         }
       }
     }
   },
+  created() {
+    // Criar versões com debounce dos métodos de salvamento
+    this.salvarModelosAutomaticoDebounced = this.debounce(this.salvarModelosAutomatico, 1000)
+    this.atualizarSVGDebounced = this.debounce(this.updateSVG, 300)
+  },
+
   async mounted() {
     await this.verificarDadosArcoRecebidos()
     await this.carregarDadosAPI()
@@ -461,9 +463,7 @@ export default {
     }
 
     this.inicializarPosicoesCabos()
-    this.agendarUpdateSVG()
-
-
+    this.updateSVG()
   },
   watch: {
     'configArmazem.tipo_fundo': {
@@ -484,25 +484,11 @@ export default {
     },
     arcoAtual() {
       if (this.tipoAtivo === 'armazem') {
-        this.agendarUpdateSVG()
+        this.updateSVG()
       }
     }
   },
   methods: {
-      // ==== Agendadores com debounce (mantém nomes/fluxos originais) ====
-      agendarUpdateSVG() {
-        if (!this.__debouncedUpdateSVG) {
-          this.__debouncedUpdateSVG = debounce(() => this.agendarUpdateSVG(), 120)
-        }
-        this.__debouncedUpdateSVG()
-      },
-      agendarSalvarModelos() {
-        if (!this.__debouncedSalvar) {
-          this.__debouncedSalvar = debounce(() => this.agendarSalvarModelos(), 300)
-        }
-        this.__debouncedSalvar()
-      },
-    
     async verificarDadosArcoRecebidos() {
       try {
         if (typeof localStorage !== 'undefined') {
@@ -562,7 +548,7 @@ export default {
 
         const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpby8xNzI5NzcyMDc5X3JjXzQ3MDcucG5nIiwiZXh0ZW5zYW8iOiJwbmciXX19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg',
+            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpbyI6W3siaWRfcGVyZmlsIjoxMCwibm1fcGVyZmlsIjoiQWRtaW5pc3RyYWRvIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpby8xNzI5NzcyMDc5X3JjXzQ3MDcucG5nIiwiZXh0ZW5zYW8iOiJwbmciXX19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -859,21 +845,21 @@ export default {
 
       // Forçar atualização do SVG
       this.$nextTick(() => {
-        this.agendarUpdateSVG()
+        this.updateSVG()
         console.log('✅ [onTipoChange] SVG atualizado para tipo:', this.tipoAtivo)
       })
     },
 
     onSiloChange() {
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     onArmazemChange() {
-      this.agendarUpdateSVG()
+      this.updateSVG()
       // Atualizar modelo atual se estiver selecionado
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].config = { ...this.configArmazem }
-        this.agendarSalvarModelos()
+        this.salvarModelosAutomatico()
       }
     },
 
@@ -953,7 +939,7 @@ export default {
         this.configArmazem = { ...this.modelosArcos[1].config }
       }
 
-      this.agendarSalvarModelos()
+      this.salvarModelosAutomatico()
     },
 
     onModeloArcoChange(event) {
@@ -976,7 +962,7 @@ export default {
         // Inicializar posições dos cabos para o modelo selecionado
         this.inicializarPosicoesCabos()
 
-        this.agendarSalvarModelos()
+        this.salvarModelosAutomatico()
 
         // Automação: navegar para arco representativo do modelo selecionado
         if (this.analiseArcos && this.modelosArcos[this.modeloArcoAtual]) {
@@ -1031,14 +1017,14 @@ export default {
     onNomeModeloChange(event) {
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].nome = event.target.value
-        this.agendarSalvarModelos()
+        this.salvarModelosAutomatico()
       }
     },
 
     onPosicaoArcoChange(event) {
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].posicao = event.target.value
-        this.agendarSalvarModelos()
+        this.salvarModelosAutomatico()
       }
     },
 
@@ -1197,7 +1183,7 @@ export default {
       }
 
       // Atualizar o SVG com o novo arco
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     obterDeslocamentoVerticalPadrao(tipoFundo) {
@@ -1444,7 +1430,7 @@ export default {
       this.salvarModeloNoLocalStorage(this.modeloArcoAtual, modeloParaSalvar)
 
       // Salvar estado geral dos modelos
-      this.agendarSalvarModelos()
+      this.salvarModelosAutomatico()
     },
 
     limparVariaveisParaNovoModelo() {
@@ -1633,12 +1619,12 @@ export default {
 
     resetSiloField(campo, valor) {
       this.configSilo[campo] = valor
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     resetArmazemField(campo, valor) {
       this.configArmazem[campo] = valor
-      this.agendarUpdateSVG()
+      this.updateSVG()
       this.onArmazemChange()
     },
 
@@ -1663,7 +1649,7 @@ export default {
       } else {
         this.resetarModelosParaPadrao()
       }
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     resetarModelosParaPadrao() {
@@ -1896,7 +1882,7 @@ export default {
           if (!nome) {
             this.nomeConfiguracao = nomeConfig
           }
-          this.agendarUpdateSVG()
+          this.updateSVG()
         } else {
           this.mostrarToast('Configuração não encontrada!', 'error')
         }
@@ -2351,7 +2337,7 @@ export default {
 
               console.log('🎨 [aplicarModeloBancoNoPreview] Configuração aplicada:', this.configPreviewAplicada)
               this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
-              this.agendarUpdateSVG()
+              this.updateSVG()
             } else {
               console.warn('⚠️ [aplicarModeloBancoNoPreview] Erro ao processar configuração:', resultado.message)
               this.mostrarToast(resultado.message, 'warning')
@@ -2379,7 +2365,7 @@ export default {
     limparConfiguracaoPreview() {
       this.configuracaoPreviewSelecionada = ''
       this.configPreviewAplicada = null
-      this.agendarUpdateSVG()
+      this.updateSVG()
       this.mostrarToast('Preview voltou ao padrão', 'info')
     },
 
@@ -3325,7 +3311,7 @@ export default {
         // Salvar modelo completo imediatamente
         this.salvarModeloAtualCompleto()
         // Atualizar preview automaticamente
-        this.agendarUpdateSVG()
+        this.updateSVG()
       }
     },
 
@@ -3375,11 +3361,11 @@ export default {
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
         // Salvar as posições dos cabos no modelo
         this.modelosArcos[this.modeloArcoAtual].posicoesCabos = { ...this.posicoesCabos }
-        this.agendarSalvarModelos()
+        this.salvarModelosAutomatico()
       }
       // Atualizar preview em tempo real
       this.$nextTick(() => {
-        this.agendarUpdateSVG()
+        this.updateSVG()
       })
     },
 
@@ -3404,12 +3390,12 @@ export default {
           break
       }
 
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     resetarPosicoesCabos() {
       this.inicializarPosicoesCabos()
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     criarDadosExemplaresComNovaQuantidadeSensores() {
@@ -3532,7 +3518,7 @@ export default {
         this.dadosPreviewDesvinculados = null
         this.penduloSelecionado = 1
       }
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     inicializarPosicoesPendulos() {
@@ -3583,12 +3569,12 @@ export default {
 
     onPenduloSelecionadoChange() {
       // Atualizar SVG para destacar pêndulo selecionado
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     onPosicaoPenduloChange() {
       // Atualizar preview em tempo real
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     moverPendulo(direcao) {
@@ -3612,12 +3598,12 @@ export default {
           break
       }
 
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     resetarPosicoesPendulos() {
       this.inicializarPosicoesPendulos()
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     // Métodos para controle de sensores por pêndulo
@@ -3648,10 +3634,10 @@ export default {
       this.regenerarLayoutsAutomaticos()
 
       // Salvar modelo automaticamente
-      this.agendarSalvarModelos()
+      this.salvarModelosAutomatico()
 
       // Atualizar visualização
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     onAplicarSensoresUniformes(dados) {
@@ -3688,8 +3674,8 @@ export default {
       this.regenerarLayoutsAutomaticos()
 
       // Salvar e atualizar
-      this.agendarSalvarModelos()
-      this.agendarUpdateSVG()
+      this.salvarModelosAutomatico()
+      this.updateSVG()
 
       this.mostrarToast(`Aplicado ${numero} sensores uniformemente para todos os ${totalPendulos} pêndulos!`, 'success')
     },
@@ -3715,7 +3701,7 @@ export default {
 
     onSensoresPenduloChange() {
       // Método mantido para compatibilidade - redireciona para updateSVG
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     aplicarSensoresUniformes() {
@@ -3792,7 +3778,7 @@ export default {
           break
       }
 
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     moverSensoresGlobal(direcao) {
@@ -3831,14 +3817,14 @@ export default {
         this.posicoesSensoresIndividuais[chave].y = this.ajustesGlobaisSensores.vertical
       }
 
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     resetarPosicaoSensor(pendulo, sensor) {
       const chave = `${pendulo}-${sensor}`
       if (this.posicoesSensoresIndividuais[chave]) {
         this.posicoesSensoresIndividuais[chave] = { x: 0, y: 0 }
-        this.agendarUpdateSVG()
+        this.updateSVG()
       }
     },
 
@@ -3846,7 +3832,7 @@ export default {
       this.posicoesSensoresIndividuais = {}
       this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
       this.inicializarPosicoesSensores()
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     // Método específico para atualizar dados exemplares com nova configuração de sensores
@@ -3893,7 +3879,7 @@ export default {
 
     onPosicaoSensorChange() {
       // Atualizar preview em tempo real quando posição de sensor mudar
-      this.agendarUpdateSVG()
+      this.updateSVG()
     },
 
     // Métodos para carregar configuração do banco
@@ -3909,7 +3895,7 @@ export default {
           this.configSilo = { ...dados.configuracao }
         }
         this.mostrarToast(`Silo "${nome}" carregado do banco!`, 'success')
-        this.agendarUpdateSVG()
+        this.updateSVG()
       } else if (tipo === 'A') {
         // Carregar configuração de Armazém
         this.tipoAtivo = 'armazem'
@@ -3934,7 +3920,7 @@ export default {
         this.inicializarPosicoesCabos()
 
         // Atualizar preview
-        this.agendarUpdateSVG()
+        this.updateSVG()
 
         console.log(`✅ [ModeladorSVG] Configuração "${nome}" carregada com sucesso`)
       }
@@ -4161,7 +4147,7 @@ export default {
           this.configArmazem = { ...primeiroModelo.config };
           this.inicializarPosicoesCabos(); // Re-inicializar cabos com base no modelo carregado
         }
-        this.agendarUpdateSVG(); // Atualizar visualização
+        this.updateSVG(); // Atualizar visualização
       }, 100);
 
       this.mostrarToast(`Configuração "${dadosConfig.nome}" carregada!`, 'success');
@@ -4176,7 +4162,8 @@ export default {
       this.mostrarToast('Configuração Legado carregada. Modelos resetados para o padrão.', 'info');
     }
   }
-}</script>
+}
+</script>
 
 <style scoped>
 .bg-light {
@@ -4346,6 +4333,338 @@ export default {
 
   .form-control.text-center {
     text-align: center !important;
+  }
+}
+
+/* Estilos para SVG */
+.svg-container-responsive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Estilos específicos para navegação mobile */
+.mobile-navigation {
+  background: rgba(248, 249, 250, 0.95);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 4px 0;
+  border: 1px solid #dee2e6;
+}
+
+.mobile-nav-buttons {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-btn {
+  min-width: 36px !important;
+  height: 32px;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.mobile-select {
+  max-width: 90px !important;
+  min-width: 75px !important;
+  height: 32px;
+  font-size: 13px;
+}
+
+.mobile-info {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-badge {
+  font-size: 0.65rem !important;
+  padding: 2px 4px !important;
+}
+
+.mobile-badges {
+  margin-bottom: 4px;
+}
+
+.mobile-model-name {
+  font-size: 0.7rem !important;
+  line-height: 1.2;
+}
+
+@media (max-width: 767.98px) {
+  .svg-container-responsive {
+    min-height: 180px;
+    padding: 0.5rem;
+  }
+
+  .card-body {
+    padding: 0.5rem !important;
+  }
+
+  .card-footer {
+    padding: 0.5rem !important;
+    position: relative;
+    z-index: 100;
+    background: #f8f9fa !important;
+    border-top: 2px solid #dee2e6;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .svg-container-responsive {
+    min-height: 150px;
+    padding: 0.25rem;
+  }
+
+  .mobile-navigation {
+    margin: 2px -2px;
+    padding: 6px;
+  }
+
+  .mobile-nav-buttons {
+    gap: 2px !important;
+    justify-content: space-between;
+  }
+
+  .nav-btn {
+    min-width: 32px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 70px !important;
+    min-width: 60px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 4px !important;
+  }
+
+  .mobile-info {
+    padding: 4px;
+  }
+
+  .mobile-badge {
+    font-size: 0.6rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.65rem !important;
+  }
+
+  .card-footer {
+    padding: 0.25rem !important;
+    position: sticky;
+    bottom: 0;
+    z-index: 150;
+    background: rgba(248, 249, 250, 0.98) !important;
+    backdrop-filter: blur(4px);
+    border-top: 2px solid #007bff;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 420px) {
+  .mobile-nav-buttons {
+    gap: 2px !important;
+  }
+
+  .nav-btn {
+    min-width: 28px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 55px !important;
+    min-width: 50px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 2px !important;
+  }
+
+  .mobile-badge {
+    font-size: 0.55rem !important;
+    padding: 1px 2px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.6rem !important;
+  }
+}
+
+/* Estilos para SVG */
+.svg-container-responsive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Estilos específicos para navegação mobile */
+.mobile-navigation {
+  background: rgba(248, 249, 250, 0.95);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 4px 0;
+  border: 1px solid #dee2e6;
+}
+
+.mobile-nav-buttons {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-btn {
+  min-width: 36px !important;
+  height: 32px;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.mobile-select {
+  max-width: 90px !important;
+  min-width: 75px !important;
+  height: 32px;
+  font-size: 13px;
+}
+
+.mobile-info {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-badge {
+  font-size: 0.65rem !important;
+  padding: 2px 4px !important;
+}
+
+.mobile-badges {
+  margin-bottom: 4px;
+}
+
+.mobile-model-name {
+  font-size: 0.7rem !important;
+  line-height: 1.2;
+}
+
+@media (max-width: 767.98px) {
+  .svg-container-responsive {
+    min-height: 180px;
+    padding: 0.5rem;
+  }
+
+  .card-body {
+    padding: 0.5rem !important;
+  }
+
+  .card-footer {
+    padding: 0.5rem !important;
+    position: relative;
+    z-index: 100;
+    background: #f8f9fa !important;
+    border-top: 2px solid #dee2e6;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .svg-container-responsive {
+    min-height: 150px;
+    padding: 0.25rem;
+  }
+
+  .mobile-navigation {
+    margin: 2px -2px;
+    padding: 6px;
+  }
+
+  .mobile-nav-buttons {
+    gap: 2px !important;
+    justify-content: space-between;
+  }
+
+  .nav-btn {
+    min-width: 32px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 70px !important;
+    min-width: 60px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 4px !important;
+  }
+
+  .mobile-info {
+    padding: 4px;
+  }
+
+  .mobile-badge {
+    font-size: 0.6rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.65rem !important;
+  }
+
+  .card-footer {
+    padding: 0.25rem !important;
+    position: sticky;
+    bottom: 0;
+    z-index: 150;
+    background: rgba(248, 249, 250, 0.98) !important;
+    backdrop-filter: blur(4px);
+    border-top: 2px solid #007bff;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 420px) {
+  .mobile-nav-buttons {
+    gap: 2px !important;
+  }
+
+  .nav-btn {
+    min-width: 28px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 55px !important;
+    min-width: 50px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 2px !important;
+  }
+
+  .mobile-badge {
+    font-size: 0.55rem !important;
+    padding: 1px 2px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.6rem !important;
   }
 }
 

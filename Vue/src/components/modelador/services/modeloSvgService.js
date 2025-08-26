@@ -2,7 +2,15 @@
 import client from '@/api.js'
 
 // Helpers
-const pegarToken = () => localStorage.getItem('token') || ''
+const pegarToken = () => {
+  const token = localStorage.getItem('token') || ''
+  // Se o token já incluir "Bearer", não adicionar novamente
+  if (token && token.startsWith('Bearer ')) {
+    return token
+  }
+  // Se o token existir mas não tiver "Bearer", adicionar
+  return token ? `Bearer ${token}` : ''
+}
 
 const normalizarModelo = (dados = {}) => {
   const nome = (dados.nm_modelo || dados.nome || '').trim()
@@ -100,7 +108,7 @@ const salvarModelo = async (dadosModelo) => {
     const response = await client.post('/svg', dadosValidados, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${pegarToken()}`
+        'Authorization': pegarToken()
       }
     })
 
@@ -146,7 +154,7 @@ const buscarModelos = async (tipo = null) => {
     console.log('🔄 [modeloSvgService] Buscando modelos:', { tipo, url })
 
     const response = await client.get(url, {
-      headers: { 'Authorization': `Bearer ${pegarToken()}` }
+      headers: { 'Authorization': pegarToken() }
     })
 
     console.log('✅ [modeloSvgService] Modelos encontrados:', Array.isArray(response.data) ? response.data.length : 1)
@@ -169,7 +177,7 @@ const buscarModeloPorId = async (id) => {
     console.log('🔄 [modeloSvgService] Buscando modelo por ID:', id)
 
     const response = await client.get(`/svg/${id}`, {
-      headers: { 'Authorization': `Bearer ${pegarToken()}` }
+      headers: { 'Authorization': pegarToken() }
     })
 
     console.log('✅ [modeloSvgService] Modelo encontrado:', response.data?.nm_modelo)
@@ -200,7 +208,7 @@ const atualizarModelo = async (id, dadosModelo) => {
     const response = await client.put(`/svg/${id}`, dadosValidados, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${pegarToken()}`
+        'Authorization': pegarToken()
       }
     })
 
@@ -225,11 +233,26 @@ const excluirModelo = async (id) => {
   try {
     console.log('🔄 [modeloSvgService] Excluindo modelo:', id)
 
+    const token = pegarToken()
+    if (!token) {
+      return {
+        status: 401,
+        success: false,
+        message: 'Token de autenticação não encontrado',
+        error: 'NO_TOKEN'
+      }
+    }
+
+    console.log('🔑 [modeloSvgService] Token para exclusão:', token.substring(0, 20) + '...')
+
     const response = await client.delete(`/svg/${id}`, {
-      headers: { 'Authorization': `Bearer ${pegarToken()}` }
+      headers: { 
+        'Authorization': token,
+        'Content-Type': 'application/json'
+      }
     })
 
-    console.log('✅ [modeloSvgService] Modelo excluído')
+    console.log('✅ [modeloSvgService] Modelo excluído com sucesso')
 
     return {
       status: response.status,
@@ -239,9 +262,34 @@ const excluirModelo = async (id) => {
     }
   } catch (error) {
     console.error('❌ [modeloSvgService] Erro ao excluir modelo:', error)
+    
     const status = error.response?.status || 500
-    const mensagem = error.response?.data?.message || error.response?.data?.error || 'Erro ao excluir modelo'
-    return { status, success: false, message: mensagem, error: error.response?.data || error }
+    let mensagem = 'Erro ao excluir modelo'
+    
+    if (error.response?.status === 401) {
+      mensagem = 'Token de autenticação inválido ou expirado'
+    } else if (error.response?.status === 403) {
+      mensagem = 'Permissão negada para excluir este modelo'
+    } else if (error.response?.status === 404) {
+      mensagem = 'Modelo não encontrado'
+    } else if (error.response?.data) {
+      if (typeof error.response.data === 'string') {
+        mensagem = error.response.data
+      } else if (error.response.data.message) {
+        mensagem = error.response.data.message
+      } else if (error.response.data.error) {
+        mensagem = error.response.data.error
+      }
+    } else if (error.message) {
+      mensagem = error.message
+    }
+    
+    return { 
+      status, 
+      success: false, 
+      message: mensagem, 
+      error: error.response?.data || error.message || error 
+    }
   }
 }
 

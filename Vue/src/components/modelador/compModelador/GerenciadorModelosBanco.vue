@@ -30,8 +30,7 @@
         <div v-if="debugMode" class="alert alert-secondary p-2 small">
           <strong>Debug Info:</strong><br>
           Quantidade esperada: {{ quantidadeModelosArcos }}<br>
-          Modelos configurados: {{ Object.keys(modelosArcos || {}).length }}<br>
-          Modelos válidos: {{ modelosValidosCount }}<br>
+          Modelos configurados: {{ modelosValidosCount }}<br>
           Config Armazém existe: {{ !!configArmazem }}<br>
           Pode salvar: {{ podeSerSalvo }}
         </div>
@@ -173,7 +172,8 @@
 </template>
 
 <script>
-import { modeloSvgService } from '../services/modeloSvgService'
+import { modeloSvgService } from '../services/modeloSvgService.js'
+import debounce from 'lodash.debounce'
 
 export default {
   name: 'GerenciadorModelosBanco',
@@ -186,7 +186,8 @@ export default {
   },
   emits: [
     'configuracao-carregada',
-    'mostrar-toast'
+    'mostrar-toast',
+    'modelo-deletado'
   ],
   data() {
     return {
@@ -197,7 +198,8 @@ export default {
       isCarregando: false,
       isExcluindo: false,
       modeloParaExcluir: null,
-      debugMode: false
+      debugMode: false,
+      carregandoModelos: false // Adicionado para indicar carregamento na exclusão
     }
   },
   computed: {
@@ -211,8 +213,8 @@ export default {
       for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
         const modelo = this.modelosArcos?.[i]
         // Verificar se o modelo existe E tem configuração válida (seja 'config' ou 'configuracao')
-        if (modelo && modelo.nome && 
-            ((modelo.config && Object.keys(modelo.config).length > 0) || 
+        if (modelo && modelo.nome &&
+            ((modelo.config && Object.keys(modelo.config).length > 0) ||
              (modelo.configuracao && Object.keys(modelo.configuracao).length > 0))) {
           count++
         }
@@ -521,8 +523,16 @@ export default {
 
     confirmarExclusao(configuracao) {
       this.modeloParaExcluir = configuracao
-      const modal = new bootstrap.Modal(this.$refs.modalExclusao)
-      modal.show()
+      // A inicialização do Bootstrap deve ser feita no mounted ou similar para garantir que o DOM esteja pronto.
+      // Usar $refs é a forma correta de acessar o elemento do modal.
+      // Verifique se `this.$refs.modalExclusao` está corretamente associado ao elemento do modal no template.
+      // É importante que o modal seja inicializado apenas uma vez.
+      if (this.$refs.modalExclusao) {
+        const modal = new bootstrap.Modal(this.$refs.modalExclusao)
+        modal.show()
+      } else {
+        console.error("Erro: Elemento do modal 'modalExclusao' não encontrado via $refs.")
+      }
     },
 
     async excluirConfiguracao() {
@@ -531,24 +541,56 @@ export default {
       this.isExcluindo = true
 
       try {
+        console.log('🗑️ [GerenciadorModelosBanco] Iniciando exclusão do modelo:', this.modeloParaExcluir.id_svg)
+
         const response = await modeloSvgService.excluirModelo(this.modeloParaExcluir.id_svg)
 
-        if (response.success) {
-          console.log('🗑️ [GerenciadorModelosBanco] Configuração excluída:', this.modeloParaExcluir.nm_modelo)
-          this.mostrarToast(`Configuração "${this.modeloParaExcluir.nm_modelo}" excluída com sucesso!`, 'success')
-          await this.carregarConfiguracoesGerais()
+        console.log('📝 [GerenciadorModelosBanco] Resposta da exclusão:', response)
 
-          const modal = bootstrap.Modal.getInstance(this.$refs.modalExclusao)
-          modal.hide()
+        if (response && response.success) {
+          // Remover da lista local imediatamente
+          this.configuracoesGerais = this.configuracoesGerais.filter(m => m.id_svg !== this.modeloParaExcluir.id_svg)
+
+          // Emitir evento para o componente pai
+          this.$emit('modelo-deletado', this.modeloParaExcluir.id_svg)
+          this.mostrarToast(`Configuração "${this.modeloParaExcluir.nm_modelo}" excluída com sucesso!`, 'success')
+
+          console.log('✅ [GerenciadorModelosBanco] Modelo deletado com sucesso')
+
+          // Recarregar lista para garantir sincronização
+          // Adicionado um pequeno delay para dar tempo para a UI atualizar antes do reload.
+          setTimeout(() => {
+            this.carregarConfiguracoesGerais()
+          }, 500)
         } else {
-          this.mostrarToast('Erro ao excluir configuração', 'error')
+          console.error('❌ [GerenciadorModelosBanco] Erro na resposta do serviço:', response)
+
+          let mensagemErro = response?.message || 'Erro ao excluir configuração'
+
+          // Tratar erros específicos
+          if (response?.status === 401) {
+            mensagemErro = 'Token de autenticação expirado. Faça login novamente.'
+          } else if (response?.status === 403) {
+            mensagemErro = 'Você não tem permissão para deletar esta configuração.'
+          } else if (response?.status === 404) {
+            mensagemErro = 'Configuração não encontrada. Pode já ter sido deletada.'
+          }
+
+          this.mostrarToast(mensagemErro, 'error')
         }
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro ao excluir configuração:', error)
-        this.mostrarToast('Erro ao conectar com o servidor', 'error')
+        console.error('❌ [GerenciadorModelosBanco] Erro interno ao excluir configuração:', error)
+        this.mostrarToast('Erro interno ao excluir configuração. Verifique sua conexão.', 'error')
       } finally {
         this.isExcluindo = false
         this.modeloParaExcluir = null
+        // Fechar o modal caso ele ainda esteja aberto
+        if (this.$refs.modalExclusao) {
+          const modal = bootstrap.Modal.getInstance(this.$refs.modalExclusao)
+          if (modal) {
+            modal.hide()
+          }
+        }
       }
     },
 
