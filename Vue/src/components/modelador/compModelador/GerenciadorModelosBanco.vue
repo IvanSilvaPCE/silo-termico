@@ -332,6 +332,14 @@ export default {
     },
 
     async salvarConfiguracaoCompleta() {
+      console.log('🚀 [GerenciadorModelosBanco] Iniciando salvamento no banco:', {
+        nome: this.nomeModelo,
+        tipo: this.tipoAtivo,
+        quantidadeModelos: this.quantidadeModelosArcos,
+        podeSerSalvo: this.podeSerSalvo,
+        modelosValidos: this.modelosValidosCount
+      })
+
       // Validações básicas
       if (!this.nomeModelo.trim()) {
         this.$emit('mostrar-toast', 'Digite um nome para a configuração!', 'warning')
@@ -341,107 +349,108 @@ export default {
       // Validar se pode salvar baseado nas regras de negócio
       if (!this.podeSerSalvo) {
         if (this.tipoAtivo === 'armazem') {
-          this.$emit('mostrar-toast', `Configure todos os ${this.quantidadeModelosArcos} modelos de arco antes de salvar!`, 'warning')
+          this.$emit('mostrar-toast', `Configure todos os ${this.quantidadeModelosArcos} modelos de arco antes de salvar!\n\nStatus: ${this.modelosValidosCount}/${this.quantidadeModelosArcos} configurados`, 'warning')
         } else {
           this.$emit('mostrar-toast', 'Configure o silo antes de salvar!', 'warning')
         }
         return
       }
 
-      // Validação adicional dos dados antes de enviar
-      const dadosCompletos = this.prepararDadosParaSalvar()
-      
-      // Verificar se os dados não estão vazios
-      if (!dadosCompletos || Object.keys(dadosCompletos).length === 0) {
-        this.$emit('mostrar-toast', 'Erro: Dados de configuração estão vazios!', 'error')
-        return
-      }
-
-      // Para armazém, verificar se tem modelos válidos
-      if (this.tipoAtivo === 'armazem') {
-        const temModelosValidos = dadosCompletos.sistemaModelos && 
-                                  dadosCompletos.sistemaModelos.modelosDefinidos &&
-                                  Object.keys(dadosCompletos.sistemaModelos.modelosDefinidos).length > 0
-        
-        if (!temModelosValidos) {
-          this.$emit('mostrar-toast', 'Erro: Nenhum modelo de arco configurado encontrado!', 'error')
-          return
-        }
-      }
-
-      // Para silo, verificar se tem configuração válida
-      if (this.tipoAtivo === 'silo') {
-        const temConfigValida = dadosCompletos.configuracao && 
-                               Object.keys(dadosCompletos.configuracao).length > 0
-        
-        if (!temConfigValida) {
-          this.$emit('mostrar-toast', 'Erro: Configuração do silo está vazia!', 'error')
-          return
-        }
-      }
-
       this.isSalvando = true
 
       try {
-        // Preparar dados completos baseado no tipo
-        const dadosCompletos = this.prepararDadosParaSalvar()
-
-        // Estrutura final para a API - garantindo que todos os campos sejam enviados
-        const dadosParaAPI = {
-          nm_modelo: this.nomeModelo.trim() || 'Configuração sem nome',
-          ds_modelo: this.descricaoModelo.trim() || this.gerarDescricaoConfiguracao(),
-          tp_svg: this.tipoAtivo === 'silo' ? 'S' : 'A',
-          vista_svg: 'F', // Frontal por padrão
-          dado_svg: dadosCompletos, // Enviar o objeto diretamente, o serviço fará a conversão
-          imagem: '' // Pode ser implementado futuramente
-        }
-
-        console.log('📤 [GerenciadorModelosBanco] Salvando configuração:', {
-          nome: dadosParaAPI.nm_modelo,
-          tipo: dadosParaAPI.tp_svg,
-          descricao: dadosParaAPI.ds_modelo,
-          tamanho_dados: JSON.stringify(dadosParaAPI.dado_svg).length,
-          campos_enviados: {
-            nm_modelo: !!dadosParaAPI.nm_modelo,
-            ds_modelo: !!dadosParaAPI.ds_modelo,
-            tp_svg: !!dadosParaAPI.tp_svg,
-            vista_svg: !!dadosParaAPI.vista_svg,
-            dado_svg: !!dadosParaAPI.dado_svg,
-            imagem: dadosParaAPI.imagem !== undefined
-          }
-        })
-
-        const response = await modeloSvgService.salvarModelo(dadosParaAPI)
-
-        if (response.success) {
-          console.log('✅ [GerenciadorModelosBanco] Configuração salva com sucesso')
-
-          // Recarregar lista de modelos
-          await this.carregarConfiguracoesGerais()
-
-          // Notificar sucesso
-          const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
-          this.$emit('mostrar-toast',
-            `🎉 Configuração "${this.nomeModelo}" salva no banco!\n\n` +
-            `🆔 ID: ${idSalvo}\n` +
-            `📊 Tipo: ${this.tipoAtivo === 'silo' ? 'Silo' : 'Armazém'}\n` +
-            `🔧 ${this.tipoAtivo === 'armazem' ? this.quantidadeModelosArcos + ' modelo(s) de arco' : 'Configuração completa'}`,
-            'success'
+        // Para armazém, usar consolidação baseada no localStorage
+        if (this.tipoAtivo === 'armazem') {
+          console.log('🔄 [GerenciadorModelosBanco] Consolidando modelos do localStorage...')
+          
+          // Consolidar todos os modelos salvos no localStorage para o formato do banco
+          const { configuracaoService } = await import('../services/configuracaoService')
+          const dadosConsolidados = configuracaoService.consolidarModelosParaBanco(
+            this.quantidadeModelosArcos,
+            this.nomeModelo
           )
 
-          // Limpar campos
-          this.nomeModelo = ''
-          this.descricaoModelo = ''
+          console.log('📦 [GerenciadorModelosBanco] Resultado da consolidação:', dadosConsolidados)
 
-        } else {
-          console.error('❌ [GerenciadorModelosBanco] Erro ao salvar:', response)
-
-          let mensagemErro = response.message || 'Erro desconhecido'
-          if (response.error?.erros) {
-            mensagemErro = response.error.erros.join('\n')
+          if (!dadosConsolidados.success) {
+            this.$emit('mostrar-toast', dadosConsolidados.message || 'Erro ao consolidar configurações', 'error')
+            return
           }
 
-          this.$emit('mostrar-toast', `❌ Erro ao salvar:\n\n${mensagemErro}`, 'error')
+          // Salvar no banco de dados usando dados consolidados
+          const response = await modeloSvgService.salvarModelo(dadosConsolidados.dados)
+
+          if (response.success) {
+            console.log('✅ [GerenciadorModelosBanco] Configuração salva com sucesso')
+
+            // Recarregar lista de modelos
+            await this.carregarConfiguracoesGerais()
+
+            // Notificar sucesso
+            const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
+            this.$emit('mostrar-toast',
+              `🎉 Configuração "${this.nomeModelo}" salva no banco!\n\n` +
+              `🆔 ID: ${idSalvo}\n` +
+              `📊 ${this.quantidadeModelosArcos} modelo(s) de arco consolidado(s)\n` +
+              `✅ Salvamento realizado com sucesso!`,
+              'success'
+            )
+
+            // Limpar campos
+            this.nomeModelo = ''
+            this.descricaoModelo = ''
+
+          } else {
+            console.error('❌ [GerenciadorModelosBanco] Erro ao salvar:', response)
+
+            let mensagemErro = response.message || 'Erro desconhecido'
+            if (response.error?.erros) {
+              mensagemErro = response.error.erros.join('\n')
+            }
+
+            this.$emit('mostrar-toast', `❌ Erro ao salvar no banco:\n\n${mensagemErro}`, 'error')
+          }
+
+        } else {
+          // Para silo, usar dados diretos
+          console.log('🔄 [GerenciadorModelosBanco] Preparando dados do silo...')
+          
+          const dadosCompletos = this.prepararDadosParaSalvar()
+
+          if (!dadosCompletos || Object.keys(dadosCompletos).length === 0) {
+            this.$emit('mostrar-toast', 'Erro: Dados de configuração do silo estão vazios!', 'error')
+            return
+          }
+
+          const dadosParaBanco = {
+            nm_modelo: this.nomeModelo,
+            tp_svg: 'S',
+            vista_svg: 'F',
+            ds_modelo: this.descricaoModelo || `Configuração de Silo - ${new Date().toLocaleDateString('pt-BR')}`,
+            dado_svg: dadosCompletos
+          }
+
+          const response = await modeloSvgService.salvarModelo(dadosParaBanco)
+
+          if (response.success) {
+            console.log('✅ [GerenciadorModelosBanco] Silo salvo com sucesso')
+
+            await this.carregarConfiguracoesGerais()
+
+            const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
+            this.$emit('mostrar-toast',
+              `🎉 Configuração do Silo "${this.nomeModelo}" salva!\n\n` +
+              `🆔 ID: ${idSalvo}`,
+              'success'
+            )
+
+            this.nomeModelo = ''
+            this.descricaoModelo = ''
+
+          } else {
+            console.error('❌ [GerenciadorModelosBanco] Erro ao salvar silo:', response)
+            this.$emit('mostrar-toast', `❌ Erro ao salvar silo:\n\n${response.message || 'Erro desconhecido'}`, 'error')
+          }
         }
 
       } catch (error) {
@@ -458,7 +467,7 @@ export default {
         const dadosCompletos = {
           // Configuração básica
           ...this.configSilo,
-          
+
           // Componentes específicos do silo
           dimensoes: this.capturarDimensoesSilo(),
           controles: this.capturarControlesSilo(),
@@ -469,10 +478,10 @@ export default {
           posicionamento: this.capturarPosicionamentoSilo(),
           parametrosDesenho: this.capturarParametrosDesenhoSilo(),
           estadoModelagem: this.capturarEstadoModelagemSilo(),
-          
+
           // Dados adicionais dos componentes SVG
           componentesSVG: this.capturarComponentesSVGSilo(),
-          
+
           // Metadados para controle
           tipoEstrutura: 'silo',
           versaoConfiguracao: '5.0',
@@ -484,13 +493,13 @@ export default {
       } else {
         // Capturar TODAS as variáveis de configuração do armazém
         const modelosCompletos = this.prepararModelosCompletos()
-        
+
         const dadosCompletos = {
           // Configuração básica
           quantidadeModelos: this.quantidadeModelosArcos,
           modelosArcos: modelosCompletos,
           configuracaoGlobal: { ...this.configArmazem },
-          
+
           // Componentes específicos do armazém
           dimensoes: this.capturarDimensoesArmazem(),
           sensores: this.capturarSensoresArmazem(),
@@ -502,17 +511,17 @@ export default {
           posicionamento: this.capturarPosicionamentoArmazem(),
           parametrosDesenho: this.capturarParametrosDesenho(),
           estadoModelagem: this.capturarEstadoModelagem(),
-          
+
           // Dados específicos dos arcos
           dadosArcos: this.capturarDadosArcos(),
           posicoesCabos: this.capturarTodasPosicoesCabos(),
           configuracaoSensores: this.capturarConfiguracaoSensores(),
           layouts: this.capturarLayoutsArmazem(),
           mapeamentos: this.capturarMapeamentosArmazem(),
-          
+
           // Dados adicionais dos componentes SVG
           componentesSVG: this.capturarComponentesSVGArmazem(),
-          
+
           // Metadados para controle
           tipoEstrutura: 'armazem',
           versaoConfiguracao: '5.0',
@@ -525,7 +534,7 @@ export default {
           temConfigGlobal: !!dadosCompletos.configuracaoGlobal,
           componentes: Object.keys(dadosCompletos).length
         })
-        
+
         return dadosCompletos
       }
     },
@@ -538,37 +547,37 @@ export default {
         if (modelo && modelo.nome) {
           // Capturar TODAS as configurações do modelo
           const configuracao = modelo.configuracao || modelo.config || {}
-          
+
           modelos[i] = {
             numero: i,
             nome: modelo.nome,
             posicao: modelo.posicao || this.determinarPosicaoModelo(i, this.quantidadeModelosArcos),
-            
+
             // Todas as configurações possíveis
             configuracao: { ...configuracao },
             quantidadePendulos: modelo.quantidadePendulos || 3,
             sensoresPorPendulo: { ...(modelo.sensoresPorPendulo || {}) },
             posicoesCabos: { ...(modelo.posicoesCabos || {}) },
-            
+
             // Dados adicionais se existirem
             dimensoes: { ...(modelo.dimensoes || {}) },
             parametros: { ...(modelo.parametros || {}) },
             estados: { ...(modelo.estados || {}) },
             variaveis: { ...(modelo.variaveis || {}) },
             propriedades: { ...(modelo.propriedades || {}) },
-            
+
             // Dados de componentes específicos
             estrutura: modelo.estrutura || {},
             desenho: modelo.desenho || {},
             layout: modelo.layout || {},
             coordenadas: modelo.coordenadas || {},
-            
+
             // Metadados
             timestampCriacao: modelo.timestampCriacao || new Date().toISOString(),
             validado: Object.keys(configuracao).length > 0,
             versao: '2.0'
           }
-          
+
           console.log(`📦 Modelo ${i} capturado:`, {
             nome: modelos[i].nome,
             configKeys: Object.keys(configuracao).length,
@@ -791,32 +800,32 @@ export default {
     capturarComponentesSVGSilo() {
       try {
         const componentesSilo = {}
-        
+
         // Tentar capturar dados de todos os componentes possíveis do silo
         if (this.$parent && this.$parent.$refs) {
           const refs = this.$parent.$refs
-          
+
           // Controles do silo
           if (refs.controlesSilo) {
             componentesSilo.controles = refs.controlesSilo.obterDados ? refs.controlesSilo.obterDados() : {}
           }
-          
+
           // Dimensões básicas
           if (refs.dimensoesBasicas) {
             componentesSilo.dimensoes = refs.dimensoesBasicas.obterDados ? refs.dimensoesBasicas.obterDados() : {}
           }
-          
+
           // Configuração de sensores
           if (refs.configuracaoSensores) {
             componentesSilo.sensores = refs.configuracaoSensores.obterDados ? refs.configuracaoSensores.obterDados() : {}
           }
-          
+
           // Posicionamento de cabos
           if (refs.posicionamentoCabos) {
             componentesSilo.cabos = refs.posicionamentoCabos.obterDados ? refs.posicionamentoCabos.obterDados() : {}
           }
         }
-        
+
         console.log('🎯 [capturarComponentesSVGSilo] Componentes capturados:', componentesSilo)
         return componentesSilo
       } catch (error) {
@@ -867,52 +876,52 @@ export default {
     capturarComponentesSVGArmazem() {
       try {
         const componentesArmazem = {}
-        
+
         // Tentar capturar dados de todos os componentes possíveis do armazém
         if (this.$parent && this.$parent.$refs) {
           const refs = this.$parent.$refs
-          
+
           // Modelos de arcos
           if (refs.modelosArcos) {
             componentesArmazem.modelosArcos = refs.modelosArcos.obterDados ? refs.modelosArcos.obterDados() : {}
           }
-          
+
           // Dimensões básicas
           if (refs.dimensoesBasicas) {
             componentesArmazem.dimensoes = refs.dimensoesBasicas.obterDados ? refs.dimensoesBasicas.obterDados() : {}
           }
-          
+
           // Configuração de sensores
           if (refs.configuracaoSensores) {
             componentesArmazem.sensores = refs.configuracaoSensores.obterDados ? refs.configuracaoSensores.obterDados() : {}
           }
-          
+
           // Posicionamento de cabos
           if (refs.posicionamentoCabos) {
             componentesArmazem.cabos = refs.posicionamentoCabos.obterDados ? refs.posicionamentoCabos.obterDados() : {}
           }
-          
+
           // Configuração do telhado
           if (refs.configuracaoTelhado) {
             componentesArmazem.telhado = refs.configuracaoTelhado.obterDados ? refs.configuracaoTelhado.obterDados() : {}
           }
-          
+
           // Configuração do fundo
           if (refs.configuracaoFundo) {
             componentesArmazem.fundo = refs.configuracaoFundo.obterDados ? refs.configuracaoFundo.obterDados() : {}
           }
-          
+
           // Controle de sensores por pêndulo
           if (refs.controleSensoresPendulo) {
             componentesArmazem.sensoresPendulo = refs.controleSensoresPendulo.obterDados ? refs.controleSensoresPendulo.obterDados() : {}
           }
-          
+
           // Inicializador de modelos
           if (refs.inicializadorModelos) {
             componentesArmazem.inicializador = refs.inicializadorModelos.obterDados ? refs.inicializadorModelos.obterDados() : {}
           }
         }
-        
+
         console.log('🎯 [capturarComponentesSVGArmazem] Componentes capturados:', componentesArmazem)
         return componentesArmazem
       } catch (error) {

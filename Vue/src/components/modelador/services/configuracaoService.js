@@ -1,29 +1,37 @@
 import client from '@/api.js'
 
-// Serviço para gerenciar configurações de armazém no localStorage
-const salvarModelosArcos = (modelos, quantidadeModelos) => {
+// Serviço simplificado para gerenciar configurações de armazém
+const salvarModeloIndividual = (numeroModelo, configuracaoModelo) => {
   try {
-    const dadosModelos = {
-      quantidadeModelos,
-      modelos,
+    const chaveModelo = `modelo_${numeroModelo}`
+    const dadosModelo = {
+      numero: numeroModelo,
+      configuracao: configuracaoModelo,
       timestamp: Date.now(),
-      tipo: 'modelos_arcos'
+      tipo: 'modelo_individual'
     }
 
-    console.log('🔄 [configuracaoService] Salvando modelos de arcos:', {
-      quantidadeModelos,
-      modelosKeys: Object.keys(modelos),
-      tamanhoJSON: JSON.stringify(dadosModelos).length
-    })
+    localStorage.setItem(chaveModelo, JSON.stringify(dadosModelo))
 
-    localStorage.setItem('modelosArcosSalvos', JSON.stringify(dadosModelos))
-
-    console.log('✅ [configuracaoService] Modelos de arcos salvos no localStorage com sucesso!')
-
-    return { success: true, message: 'Modelos de arcos salvos com sucesso!' }
+    console.log(`✅ [configuracaoService] Modelo ${numeroModelo} salvo no localStorage`)
+    return { success: true, message: `Modelo ${numeroModelo} salvo com sucesso!` }
   } catch (error) {
-    console.error('❌ [configuracaoService] Erro ao salvar modelos de arcos:', error)
-    return { success: false, message: 'Erro ao salvar modelos de arcos' }
+    console.error(`❌ [configuracaoService] Erro ao salvar modelo ${numeroModelo}:`, error)
+    return { success: false, message: `Erro ao salvar modelo ${numeroModelo}` }
+  }
+}
+
+const carregarModeloIndividual = (numeroModelo) => {
+  try {
+    const chaveModelo = `modelo_${numeroModelo}`
+    const dados = localStorage.getItem(chaveModelo)
+    if (dados) {
+      return JSON.parse(dados)
+    }
+    return null
+  } catch (error) {
+    console.error(`❌ [configuracaoService] Erro ao carregar modelo ${numeroModelo}:`, error)
+    return null
   }
 }
 
@@ -40,84 +48,149 @@ const carregarModelosArcos = () => {
   }
 }
 
-const salvarConfiguracaoCompleta = (nomeConfiguracao, dadosCompletos, manterEstado = true) => {
+const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
   try {
-    const chave = `configArmazem_${nomeConfiguracao}`
+    const modelosConsolidados = {}
+    let modelosEncontrados = 0
     
-    // Estrutura completa v4.0 que inclui TODOS os dados necessários
-    const configuracaoFinal = {
-      tipo: 'armazem_completo_v4',
-      nomeConfiguracao,
-      versao: '4.0',
-      timestamp: Date.now(),
+    console.log(`🔄 [consolidarModelosParaBanco] Iniciando consolidação de ${quantidadeModelos} modelos`)
+    
+    // Coletar todos os modelos salvos individualmente
+    for (let i = 1; i <= quantidadeModelos; i++) {
+      const modelo = carregarModeloIndividual(i)
+      console.log(`🔍 [consolidarModelosParaBanco] Verificando modelo ${i}:`, modelo)
       
-      // Sistema de modelos completo
-      sistemaModelos: {
-        quantidadeModelos: dadosCompletos.quantidadeModelos || 1,
-        modelosDefinidos: dadosCompletos.modelosArcos || {},
-        logicaDistribuicao: dadosCompletos.logicaDistribuicao || null,
-        historicoCriacao: dadosCompletos.historicoCriacao || []
-      },
-      
-      // Configuração global do SVG
-      configuracaoGlobal: dadosCompletos.configuracao || {},
-      
-      // Layouts automáticos gerados
-      layoutsAutomaticos: dadosCompletos.layoutsAutomaticos || {},
-      
-      // Dimensões do SVG
-      dimensoesSVG: dadosCompletos.dimensoesSVG || { largura: 350, altura: 200 },
-      
-      // Dados originais preservados
-      dadosOriginais: dadosCompletos.dadosOriginais || null,
-      
-      // Estado atual do modelador
-      estadoAtual: {
-        modeloAtivo: dadosCompletos.modeloAtivo || 1,
-        variaveis: dadosCompletos.variaveis || {},
-        configuracaoAtiva: dadosCompletos.configuracaoAtiva || {},
-        ultimaAlteracao: Date.now()
-      },
-      
-      // Metadados adicionais
-      metadados: {
-        totalArcos: dadosCompletos.totalArcos || 0,
-        totalPendulos: dadosCompletos.totalPendulos || 0,
-        totalSensores: dadosCompletos.totalSensores || 0,
-        estruturaDados: dadosCompletos.estruturaDados || null
+      if (modelo && modelo.configuracao) {
+        modelosEncontrados++
+        
+        // Extrair todas as configurações do modelo
+        const config = modelo.configuracao
+        
+        modelosConsolidados[i] = {
+          // Informações básicas do modelo
+          numeroModelo: i,
+          nome: config.nome || `Modelo ${i}`,
+          posicao: config.posicao || (quantidadeModelos === 1 ? 'todos' : 
+                   quantidadeModelos === 2 ? (i === 1 ? 'impar' : 'par') :
+                   quantidadeModelos === 3 ? (i === 1 ? 'frente_fundo' : i === 2 ? 'par' : 'impar') :
+                   i === 1 ? 'frente' : i === quantidadeModelos ? 'fundo' : (i % 2 === 0 ? 'par' : 'impar')),
+          
+          // Quantidade de Pêndulos
+          quantidadePendulos: config.quantidadePendulos || 3,
+          sensoresPorPendulo: config.sensoresPorPendulo || {},
+          
+          // Posição dos cabos separados
+          posicoesCabos: config.posicoesCabos || {},
+          
+          // Configuração completa do armazém (todas as propriedades)
+          configuracao: {
+            // Dimensões Básicas
+            pb: config.pb || 185,
+            lb: config.lb || 350,
+            hb: config.hb || 30,
+            hf: config.hf || 5,
+            lf: config.lf || 250,
+            le: config.le || 15,
+            
+            // Telhado
+            tipo_telhado: config.tipo_telhado || 1,
+            ht: config.ht || 50,
+            curvatura_topo: config.curvatura_topo || 30,
+            pontas_redondas: config.pontas_redondas || false,
+            raio_pontas: config.raio_pontas || 15,
+            estilo_laterais: config.estilo_laterais || 'reta',
+            curvatura_laterais: config.curvatura_laterais || 0,
+            
+            // Fundo
+            tipo_fundo: config.tipo_fundo || 0,
+            altura_fundo_reto: config.altura_fundo_reto || 10,
+            altura_funil_v: config.altura_funil_v || 18,
+            posicao_ponta_v: config.posicao_ponta_v || 0,
+            inclinacao_funil_v: config.inclinacao_funil_v || 1,
+            largura_abertura_v: config.largura_abertura_v || 20,
+            altura_duplo_v: config.altura_duplo_v || 22,
+            posicao_v_esquerdo: config.posicao_v_esquerdo || -1,
+            posicao_v_direito: config.posicao_v_direito || 1,
+            largura_abertura_duplo_v: config.largura_abertura_duplo_v || 2,
+            altura_plataforma_duplo_v: config.altura_plataforma_duplo_v || 0.3,
+            largura_plataforma_duplo_v: config.largura_plataforma_duplo_v || 10,
+            deslocamento_horizontal_fundo: config.deslocamento_horizontal_fundo || 0,
+            deslocamento_vertical_fundo: config.deslocamento_vertical_fundo || -1,
+            
+            // Sensores
+            escala_sensores: config.escala_sensores || 16,
+            dist_y_sensores: config.dist_y_sensores || 12,
+            dist_x_sensores: config.dist_x_sensores || 0,
+            posicao_horizontal: config.posicao_horizontal || 0,
+            posicao_vertical: config.posicao_vertical || 0,
+            afastamento_vertical_pendulo: config.afastamento_vertical_pendulo || 0
+          },
+          
+          // Metadados
+          timestampSalvamento: config.timestampSalvamento || Date.now(),
+          validado: true
+        }
+      } else {
+        console.warn(`⚠️ [consolidarModelosParaBanco] Modelo ${i} não encontrado ou sem configuração`)
       }
     }
 
-    console.log('🔄 [configuracaoService] Salvando configuração completa v4.0:', {
-      nome: nomeConfiguracao,
-      chave,
-      quantidadeModelos: configuracaoFinal.sistemaModelos.quantidadeModelos,
-      modelosKeys: Object.keys(configuracaoFinal.sistemaModelos.modelosDefinidos),
-      tamanhoJSON: JSON.stringify(configuracaoFinal).length,
-      totalPropriedades: Object.keys(configuracaoFinal.configuracaoGlobal).length
+    // Validar se encontrou todos os modelos esperados
+    if (modelosEncontrados === 0) {
+      console.error('❌ [consolidarModelosParaBanco] Nenhum modelo encontrado!')
+      return { success: false, message: 'Nenhum modelo de arco configurado encontrado. Salve os modelos individualmente antes de salvar no banco.' }
+    }
+    
+    if (modelosEncontrados < quantidadeModelos) {
+      console.warn(`⚠️ [consolidarModelosParaBanco] Encontrados ${modelosEncontrados}/${quantidadeModelos} modelos`)
+      return { success: false, message: `Apenas ${modelosEncontrados} de ${quantidadeModelos} modelos foram encontrados. Configure e salve todos os modelos antes de salvar no banco.` }
+    }
+
+    // Criar estrutura final para salvar no banco
+    const dadosSvgFinal = {
+      nm_modelo: nomeConfiguracao,
+      tp_svg: 'A', // Armazém
+      vista_svg: 'F', // Frontal
+      ds_modelo: `Configuração com ${quantidadeModelos} modelo(s) de arco - ${new Date().toLocaleDateString('pt-BR')}`,
+      dado_svg: JSON.stringify({
+        versao: '5.0',
+        tipo: 'armazem_completo',
+        tipoConfiguracao: 'armazem_completo_v5',
+        quantidadeModelos: quantidadeModelos,
+        modelosDefinidos: modelosConsolidados,
+        sistemaModelos: {
+          quantidadeModelos: quantidadeModelos,
+          modelosDefinidos: modelosConsolidados,
+          logicaDistribuicao: {
+            nome: quantidadeModelos === 1 ? 'Modelo Único' : 
+                  quantidadeModelos === 2 ? 'Par/Ímpar' :
+                  quantidadeModelos === 3 ? 'Frente/Fundo + Par/Ímpar' : 'Frente/Par/Ímpar/Fundo',
+            aplicacao: quantidadeModelos === 1 ? 'todos_arcos' :
+                      quantidadeModelos === 2 ? 'par_impar' :
+                      quantidadeModelos === 3 ? 'frente_fundo_par_impar' : 'frente_par_impar_fundo'
+          }
+        },
+        timestamp: Date.now(),
+        consolidado: true,
+        dadosOriginais: {
+          modelosEncontrados: modelosEncontrados,
+          quantidadeEsperada: quantidadeModelos
+        }
+      })
+    }
+
+    console.log('✅ [consolidarModelosParaBanco] Consolidação concluída:', {
+      nomeConfiguracao,
+      quantidadeModelos,
+      modelosEncontrados,
+      modelosProcessados: Object.keys(modelosConsolidados).length,
+      tamanhoFinal: JSON.stringify(dadosSvgFinal.dado_svg).length
     })
 
-    localStorage.setItem(chave, JSON.stringify(configuracaoFinal))
-
-    // Manter os modelos ativos no localStorage se solicitado
-    if (manterEstado) {
-      const estadoAtivo = {
-        quantidadeModelos: configuracaoFinal.sistemaModelos.quantidadeModelos,
-        modelos: configuracaoFinal.sistemaModelos.modelosDefinidos,
-        timestamp: Date.now(),
-        tipo: 'modelos_arcos_ativo',
-        versao: '4.0'
-      }
-      localStorage.setItem('modelosArcosSalvos', JSON.stringify(estadoAtivo))
-      console.log('💾 [configuracaoService] Estado ativo mantido no localStorage')
-    }
-
-    console.log('✅ [configuracaoService] Configuração completa v4.0 salva:', chave)
-
-    return { success: true, message: 'Configuração completa salva com sucesso!' }
+    return { success: true, dados: dadosSvgFinal }
   } catch (error) {
-    console.error('❌ [configuracaoService] Erro ao salvar configuração completa:', error)
-    return { success: false, message: 'Erro ao salvar configuração completa' }
+    console.error('❌ [configuracaoService] Erro ao consolidar modelos para banco:', error)
+    return { success: false, message: `Erro interno ao consolidar configurações: ${error.message}` }
   }
 }
 
@@ -519,9 +592,9 @@ const validarConfiguracao = (configuracao, modelos, quantidadeModelos, tipo) => 
 }
 
 export const configuracaoService = {
-  salvarModelosArcos,
-  carregarModelosArcos,
-  salvarConfiguracaoCompleta,
+  salvarModeloIndividual,
+  carregarModeloIndividual,
+  consolidarModelosParaBanco,
   carregarConfiguracaoCompleta,
   listarConfiguracoesSalvas,
   deletarConfiguracao,

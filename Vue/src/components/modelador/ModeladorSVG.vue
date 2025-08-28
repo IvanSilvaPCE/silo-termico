@@ -24,16 +24,16 @@
           <!-- Controles para Armazém -->
           <template v-if="tipoAtivo === 'armazem'">
             <!-- Seção 0: Configuração de Modelos de Arcos -->
-          <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
-            :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
-            :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
-            :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
-            @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
-            @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
-            @quantidade-pendulos-change="onQuantidadePendulosChange"
-            @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
-            @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
-            @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
+            <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
+              :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
+              :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
+              :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
+              @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
+              @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
+              @quantidade-pendulos-change="onQuantidadePendulosChange"
+              @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
+              @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
+              @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
 
 
 
@@ -235,7 +235,7 @@
                       <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1">BANCO</span>
                     </div>
                     <small class="text-muted d-block">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'
-                      }}</small>
+                    }}</small>
                   </div>
 
                   <!-- Badges de Contadores -->
@@ -1372,36 +1372,35 @@ export default {
     salvarModeloAtualCompleto() {
       if (!this.modeloArcoAtual) return
 
-      // Salvar configuração atual no modelo com TODOS os dados
-      const modeloParaSalvar = {
-        ...this.modelosArcos[this.modeloArcoAtual],
-        config: { ...this.configArmazem },
+      // Criar configuração consolidada do modelo atual
+      const configuracaoModelo = {
+        // Dados básicos do modelo
+        nome: this.modelosArcos[this.modeloArcoAtual]?.nome || `Modelo ${this.modeloArcoAtual}`,
+        posicao: this.modelosArcos[this.modeloArcoAtual]?.posicao || 'todos',
         quantidadePendulos: this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3,
         sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {} },
+
+        // Posição dos cabos separados
         posicoesCabos: { ...this.posicoesCabos },
-        // Salvar estado completo das variáveis específicas do modelo
-        estadoCompleto: {
-          configArmazem: { ...this.configArmazem },
-          posicoesCabos: { ...this.posicoesCabos },
-          caboSelecionadoPosicionamento: this.caboSelecionadoPosicionamento,
-          // Outras variáveis específicas do modelador
-          modelagemIndividualAtiva: this.modelagemIndividualAtiva,
-          posicoesPendulosIndividuais: { ...this.posicoesPendulosIndividuais },
-          posicoesSensoresIndividuais: { ...this.posicoesSensoresIndividuais },
-          ajustesGlobaisSensores: { ...this.ajustesGlobaisSensores }
-        },
-        timestampSalvamento: new Date().toISOString(),
-        versaoModelo: '2.0'
+
+        // Todas as configurações do armazém (inclui dimensões, telhado, fundo, sensores)
+        ...this.configArmazem,
+
+        // Estado adicional se necessário
+        caboSelecionadoPosicionamento: this.caboSelecionadoPosicionamento,
+        timestampSalvamento: new Date().toISOString()
       }
 
-      this.modelosArcos[this.modeloArcoAtual] = modeloParaSalvar
-      this.modelosSalvos[this.modeloArcoAtual] = true
+      // Salvar usando o serviço simplificado
+      const { configuracaoService } = require('./services/configuracaoService')
+      const resultado = configuracaoService.salvarModeloIndividual(this.modeloArcoAtual, configuracaoModelo)
 
-      // Salvar no localStorage individualmente
-      this.salvarModeloNoLocalStorage(this.modeloArcoAtual, modeloParaSalvar)
-
-      // Salvar estado geral dos modelos
-      this.salvarModelosAutomatico()
+      if (resultado.success) {
+        this.modelosSalvos[this.modeloArcoAtual] = true
+        console.log(`✅ Modelo ${this.modeloArcoAtual} salvo no localStorage`)
+      } else {
+        console.error(`❌ Erro ao salvar modelo ${this.modeloArcoAtual}:`, resultado.message)
+      }
     },
 
     limparVariaveisParaNovoModelo() {
@@ -2285,38 +2284,50 @@ export default {
               return
             }
 
-            // Aplicar configuração baseada no tipo usando o serviço de configuração
-            const { configuracaoService } = await import('./services/configuracaoService')
+            console.log('📦 [aplicarModeloBancoNoPreview] Dados SVG parseados:', dadosSVG)
 
-            const resultado = configuracaoService.aplicarConfiguracaoCompleta({
-              nome: modeloCarregado.nm_modelo,
-              dados: dadosSVG
-            }, this.tipoAtivo)
+            // Aplicar configuração mesclando com valores padrão
+            if (this.tipoAtivo === 'silo') {
+              // Para silo, mesclar configuração salva com configuração padrão
+              const configPadrao = { ...this.configSilo }
+              const configSalva = dadosSVG.configuracao || dadosSVG
 
-            if (resultado.success) {
-              console.log('✅ [aplicarModeloBancoNoPreview] Configuração processada pelo serviço')
+              this.configPreviewAplicada = this.mesclarConfiguracaoComPadrao(configPadrao, configSalva)
 
-              // Para preview, aplicar configuração do modelo apropriado para o arco atual
-              if (this.tipoAtivo === 'silo') {
-                this.configPreviewAplicada = resultado.dados.configuracaoGlobal
-              } else {
-                // Para armazém, determinar qual modelo usar para o arco atual
-                const modeloParaArco = this.determinarModeloParaArcoAtual(resultado.dados)
-                if (modeloParaArco && modeloParaArco.config) {
-                  this.configPreviewAplicada = modeloParaArco.config
-                } else {
-                  // Fallback para configuração global
-                  this.configPreviewAplicada = resultado.dados.configuracaoGlobal
-                }
-              }
+              console.log('🎨 [aplicarModeloBancoNoPreview] Configuração silo aplicada:', {
+                configPadrao: Object.keys(configPadrao).length,
+                configSalva: Object.keys(configSalva).length,
+                configFinal: Object.keys(this.configPreviewAplicada).length
+              })
 
-              console.log('🎨 [aplicarModeloBancoNoPreview] Configuração aplicada:', this.configPreviewAplicada)
-              this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
-              this.updateSVG()
             } else {
-              console.warn('⚠️ [aplicarModeloBancoNoPreview] Erro ao processar configuração:', resultado.message)
-              this.mostrarToast(resultado.message, 'warning')
+              // Para armazém, determinar modelo para o arco atual e mesclar configurações
+              const modeloParaArco = this.determinarModeloParaArcoAtual(dadosSVG)
+              const configPadrao = { ...this.configArmazem }
+
+              if (modeloParaArco && (modeloParaArco.config || modeloParaArco.configuracao)) {
+                const configSalva = modeloParaArco.config || modeloParaArco.configuracao
+                this.configPreviewAplicada = this.mesclarConfiguracaoComPadrao(configPadrao, configSalva)
+
+                console.log('🎨 [aplicarModeloBancoNoPreview] Configuração armazém aplicada:', {
+                  modeloUtilizado: modeloParaArco.nome || 'Sem nome',
+                  arcoAtual: this.arcoAtual,
+                  configPadrao: Object.keys(configPadrao).length,
+                  configSalva: Object.keys(configSalva).length,
+                  configFinal: Object.keys(this.configPreviewAplicada).length
+                })
+              } else {
+                // Fallback para configuração global se disponível
+                const configGlobal = dadosSVG.configuracaoGlobal || dadosSVG
+                this.configPreviewAplicada = this.mesclarConfiguracaoComPadrao(configPadrao, configGlobal)
+
+                console.log('🎨 [aplicarModeloBancoNoPreview] Configuração global aplicada (fallback)')
+              }
             }
+
+            this.mostrarToast(`Preview: ${modeloCarregado.nm_modelo} aplicado`, 'info')
+            this.updateSVG()
+
           } else {
             console.warn('⚠️ [aplicarModeloBancoNoPreview] Modelo não possui dados SVG')
             this.mostrarToast('Modelo não possui dados SVG', 'warning')
@@ -2344,17 +2355,102 @@ export default {
       this.mostrarToast('Preview voltou ao padrão', 'info')
     },
 
+    // Método para mesclar configuração salva com configuração padrão
+    mesclarConfiguracaoComPadrao(configPadrao, configSalva) {
+      console.log('🔄 [mesclarConfiguracaoComPadrao] Mesclando configurações:', {
+        configPadrao: Object.keys(configPadrao || {}).length + ' chaves',
+        configSalva: Object.keys(configSalva || {}).length + ' chaves'
+      })
+
+      if (!configSalva || typeof configSalva !== 'object') {
+        console.warn('⚠️ [mesclarConfiguracaoComPadrao] Configuração salva inválida, usando padrão')
+        return { ...configPadrao }
+      }
+
+      // Começar com configuração padrão
+      const configMesclada = { ...configPadrao }
+
+      // Aplicar apenas as variáveis que foram especificamente salvas no modelo
+      Object.keys(configSalva).forEach(chave => {
+        const valorSalvo = configSalva[chave]
+
+        // Aplicar valor salvo apenas se for diferente de undefined/null e se a chave existe no padrão
+        if (valorSalvo !== undefined && valorSalvo !== null && configPadrao.hasOwnProperty(chave)) {
+          // Verificar se o valor salvo é realmente diferente do padrão
+          if (valorSalvo !== configPadrao[chave]) {
+            configMesclada[chave] = valorSalvo
+            console.log(`✅ [mesclarConfiguracaoComPadrao] Aplicando ${chave}: ${configPadrao[chave]} → ${valorSalvo}`)
+          } else {
+            console.log(`➡️ [mesclarConfiguracaoComPadrao] Mantendo ${chave}: ${valorSalvo} (igual ao padrão)`)
+          }
+        } else if (!configPadrao.hasOwnProperty(chave)) {
+          // Se a chave não existe no padrão, adicionar mesmo assim (nova funcionalidade)
+          configMesclada[chave] = valorSalvo
+          console.log(`🆕 [mesclarConfiguracaoComPadrao] Nova variável ${chave}: ${valorSalvo}`)
+        }
+      })
+
+      console.log('✅ [mesclarConfiguracaoComPadrao] Configuração mesclada criada:', {
+        totalChaves: Object.keys(configMesclada).length,
+        chavesAlteradas: Object.keys(configSalva).filter(k =>
+          configSalva[k] !== undefined &&
+          configSalva[k] !== null &&
+          configPadrao[k] !== configSalva[k]
+        ).length
+      })
+
+      return configMesclada
+    },
+
     determinarModeloParaArcoAtual(dadosProcessados) {
-      if (!dadosProcessados || !dadosProcessados.modelos) {
+      console.log('🔍 [determinarModeloParaArcoAtual] Dados recebidos:', {
+        dadosProcessados: !!dadosProcessados,
+        tiposDados: dadosProcessados ? Object.keys(dadosProcessados) : 'null'
+      })
+
+      if (!dadosProcessados) {
+        console.warn('⚠️ [determinarModeloParaArcoAtual] Dados processados não fornecidos')
         return null
       }
 
-      const quantidadeModelos = dadosProcessados.quantidadeModelos || 1
-      const modelos = dadosProcessados.modelos
+      // Verificar diferentes estruturas possíveis
+      let modelos = null
+      let quantidadeModelos = 1
+
+      // Estrutura v5.0 (nova)
+      if (dadosProcessados.modelosDefinidos) {
+        modelos = dadosProcessados.modelosDefinidos
+        quantidadeModelos = dadosProcessados.quantidadeModelos || Object.keys(modelos).length
+        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v5.0')
+      }
+      // Estrutura v4.0 (sistemaModelos)
+      else if (dadosProcessados.sistemaModelos && dadosProcessados.sistemaModelos.modelosDefinidos) {
+        modelos = dadosProcessados.sistemaModelos.modelosDefinidos
+        quantidadeModelos = dadosProcessados.sistemaModelos.quantidadeModelos || Object.keys(modelos).length
+        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v4.0 (sistemaModelos)')
+      }
+      // Estrutura v3.0 (modelos)
+      else if (dadosProcessados.modelos) {
+        modelos = dadosProcessados.modelos
+        quantidadeModelos = dadosProcessados.quantidadeModelos || Object.keys(modelos).length
+        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v3.0 (modelos)')
+      }
+      // Estrutura v2.0 (modelosArcos)
+      else if (dadosProcessados.modelosArcos) {
+        modelos = dadosProcessados.modelosArcos
+        quantidadeModelos = dadosProcessados.quantidadeModelos || Object.keys(modelos).length
+        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v2.0 (modelosArcos)')
+      }
+
+      if (!modelos || Object.keys(modelos).length === 0) {
+        console.warn('⚠️ [determinarModeloParaArcoAtual] Nenhum modelo encontrado')
+        return null
+      }
+
       const numeroArco = this.arcoAtual
       const totalArcos = this.analiseArcos?.totalArcos || 1
 
-      console.log('🔍 [determinarModeloParaArcoAtual]:', {
+      console.log('🔍 [determinarModeloParaArcoAtual] Parâmetros:', {
         numeroArco,
         quantidadeModelos,
         totalArcos,
@@ -2363,30 +2459,53 @@ export default {
 
       // Aplicar mesma lógica de distribuição de modelos
       if (quantidadeModelos === 1) {
-        return modelos[1] || modelos['1'] || Object.values(modelos)[0]
+        const modelo = modelos[1] || modelos['1'] || Object.values(modelos)[0]
+        console.log('✅ [determinarModeloParaArcoAtual] Modelo único selecionado:', modelo?.nome || 'Sem nome')
+        return modelo
       }
 
       if (quantidadeModelos === 2) {
         const isImpar = numeroArco % 2 === 1
+        const posicaoProcurada = isImpar ? 'impar' : 'par'
+
         // Procurar por posição primeiro
-        const modeloEncontrado = Object.values(modelos).find(modelo => {
-          return modelo.posicao === (isImpar ? 'impar' : 'par')
+        let modeloEncontrado = Object.values(modelos).find(modelo => {
+          return modelo.posicao === posicaoProcurada
         })
-        return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
+
+        if (!modeloEncontrado) {
+          // Fallback por número
+          modeloEncontrado = modelos[isImpar ? 1 : 2] || Object.values(modelos)[0]
+        }
+
+        console.log('✅ [determinarModeloParaArcoAtual] Modelo 2x selecionado:', {
+          posicaoProcurada,
+          modeloNome: modeloEncontrado?.nome || 'Sem nome'
+        })
+        return modeloEncontrado
       }
 
       if (quantidadeModelos === 3) {
         if (numeroArco === 1 || numeroArco === totalArcos) {
           const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === 'frente_fundo'
-          )
-          return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
+          ) || modelos[1] || Object.values(modelos)[0]
+
+          console.log('✅ [determinarModeloParaArcoAtual] Modelo 3x frente/fundo selecionado:', modeloEncontrado?.nome || 'Sem nome')
+          return modeloEncontrado
         } else {
           const isParIntermediario = numeroArco % 2 === 0
+          const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+
           const modeloEncontrado = Object.values(modelos).find(modelo =>
-            modelo.posicao === (isParIntermediario ? 'par' : 'impar')
-          )
-          return modeloEncontrado || modelos[2] || Object.values(modelos)[0]
+            modelo.posicao === posicaoProcurada
+          ) || modelos[isParIntermediario ? 2 : 3] || Object.values(modelos)[0]
+
+          console.log('✅ [determinarModeloParaArcoAtual] Modelo 3x intermediário selecionado:', {
+            posicaoProcurada,
+            modeloNome: modeloEncontrado?.nome || 'Sem nome'
+          })
+          return modeloEncontrado
         }
       }
 
@@ -2394,23 +2513,36 @@ export default {
         if (numeroArco === 1) {
           const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === 'frente'
-          )
-          return modeloEncontrado || modelos[1] || Object.values(modelos)[0]
+          ) || modelos[1] || Object.values(modelos)[0]
+
+          console.log('✅ [determinarModeloParaArcoAtual] Modelo 4x frente selecionado:', modeloEncontrado?.nome || 'Sem nome')
+          return modeloEncontrado
         }
         if (numeroArco === totalArcos) {
           const modeloEncontrado = Object.values(modelos).find(modelo =>
             modelo.posicao === 'fundo'
-          )
-          return modeloEncontrado || modelos[4] || Object.values(modelos)[0]
+          ) || modelos[4] || Object.values(modelos)[0]
+
+          console.log('✅ [determinarModeloParaArcoAtual] Modelo 4x fundo selecionado:', modeloEncontrado?.nome || 'Sem nome')
+          return modeloEncontrado
         }
         const isParIntermediario = numeroArco % 2 === 0
+        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
+
         const modeloEncontrado = Object.values(modelos).find(modelo =>
-          modelo.posicao === (isParIntermediario ? 'par' : 'impar')
-        )
-        return modeloEncontrado || modelos[2] || Object.values(modelos)[0]
+          modelo.posicao === posicaoProcurada
+        ) || modelos[isParIntermediario ? 2 : 3] || Object.values(modelos)[0]
+
+        console.log('✅ [determinarModeloParaArcoAtual] Modelo 4x intermediário selecionado:', {
+          posicaoProcurada,
+          modeloNome: modeloEncontrado?.nome || 'Sem nome'
+        })
+        return modeloEncontrado
       }
 
-      return modelos[1] || Object.values(modelos)[0]
+      const modeloPadrao = modelos[1] || Object.values(modelos)[0]
+      console.log('✅ [determinarModeloParaArcoAtual] Modelo padrão selecionado:', modeloPadrao?.nome || 'Sem nome')
+      return modeloPadrao
     },
 
     corFaixaExata(t) {
@@ -3292,17 +3424,17 @@ export default {
 
     onModeloDadosAtualizados(dados) {
       console.log('📊 [ModeladorSVG] onModeloDadosAtualizados recebido:', dados)
-      
+
       if (dados.modeloAtual && this.modelosArcos[dados.modeloAtual]) {
         // Atualizar modelo com novos dados
         this.modelosArcos[dados.modeloAtual] = {
           ...this.modelosArcos[dados.modeloAtual],
           ...dados.dadosModelo
         }
-        
+
         // Salvar automaticamente
         this.salvarModelosAutomatico()
-        
+
         // Atualizar preview se necessário
         if (this.modeloArcoAtual === dados.modeloAtual) {
           this.updateSVG()
