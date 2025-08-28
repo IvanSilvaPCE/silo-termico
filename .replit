@@ -1,11 +1,10 @@
-modules = ["nodejs-20", "vue-node-20", "web"]
+modules = ["vue-node-20", "web", "nodejs-20"]
 run = "npm run dev"
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 
-[deployment]
-run = ["sh", "-c", "npm run dev"]
+
 
 [workflows]
 runButton = "Vue Dev"
@@ -54,12 +53,3 @@ mode = "sequential"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "cd Vue && rm -rf node_modules package-lock.json && npm cache clean --force && npm install --legacy-peer-deps"
-
-[[ports]]
-localPort = 5000
-externalPort = 80
-
-[[ports]]
-localPort = 5173
-externalPort = 3000
-exposeLocalhost = true

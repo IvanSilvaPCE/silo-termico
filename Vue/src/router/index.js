@@ -1,6 +1,6 @@
 import Vue from 'vue'
 import VueRouter from 'vue-router'
-import { jwtDecode } from 'jwt-decode'
+// import { jwtDecode } from 'jwt-decode' // Removido temporariamente
 
 Vue.use(VueRouter)
 
@@ -234,6 +234,16 @@ const routes = [
                 path: '/teste3d',
                 name: 'Teste3D',
                 component: () => import(/* webpackChunkName: "Teste3D" */ '../components/modelador/teste3d/Teste3D.vue')
+              },
+              {
+                path: 'silo-comp',
+                name: 'SiloComp',
+                component: () => import(/* webpackChunkName: "SiloComp" */ '../components/modelador/compModelador/SiloComponente.vue')
+              },
+              {
+                path: 'armazem-comp',
+                name: 'ArmazemComp',
+                component: () => import(/* webpackChunkName: "ArmazemComp" */ '../components/modelador/compModelador/ArmazemComponente.vue')
               }
             ]
           }

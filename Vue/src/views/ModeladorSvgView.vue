@@ -43,6 +43,18 @@
               </button>
             </li>
             <li class="nav-item">
+              <button :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'silocomp' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('silocomp')">
+                SiloComp
+              </button>
+            </li>
+            <li class="nav-item">
+              <button :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'armazemcomp' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('armazemcomp')">
+                ArmazemComp
+              </button>
+            </li>
+            <li class="nav-item">
               <button :class="['btn', 'btn-sm', telaAtiva === 'teste3d' ? 'btn-light' : 'btn-outline-light']"
                 @click="mudarTela('teste3d')">
                 Teste 3D
@@ -67,6 +79,8 @@ import Silo3D from '@/components/modelador/Silo3D.vue'
 import Armazem2D from '@/components/modelador/Armazem2D.vue'
 import Armazem3D from '@/components/modelador/Armazem3D.vue'
 import Teste3D from '@/components/modelador/teste3d/Teste3D.vue'
+import SiloComponente from '@/components/modelador/compModelador/SiloComponente.vue'
+import ArmazemComponente from '@/components/modelador/compModelador/ArmazemComponente.vue'
 
 export default {
   name: 'App',
@@ -76,7 +90,9 @@ export default {
     Silo3D,
     Armazem2D,
     Armazem3D,
-    Teste3D
+    Teste3D,
+    SiloComponente,
+    ArmazemComponente
   },
   data() {
     return {
@@ -92,7 +108,9 @@ export default {
         'silo3d': 'Silo3D',
         'armazem2d': 'Armazem2D',
         'armazem3d': 'Armazem3D',
-        'teste3d': 'Teste3D'
+        'teste3d': 'Teste3D',
+        'silocomp': 'SiloComponente',
+        'armazemcomp': 'ArmazemComponente'
       }
       return componentes[this.telaAtiva] || 'ModeladorSVG'
     }

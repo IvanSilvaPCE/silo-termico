@@ -14,15 +14,12 @@ import VueApexCharts from 'vue-apexcharts'
 import html2pdf from "html2pdf.js"
 
 
-import 'bootstrap'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap-vue/dist/bootstrap-vue.css'
 import './assets/css/style.css'
 import './assets/css/responsive.css'
 import './assets/css/bootstrap-select.css'
 import './assets/css/perfect-scrollbar.css'
-import 'popper.js'
-import 'jquery'
 import 'vue-select/dist/vue-select.css'
 import 'leaflet/dist/leaflet.css'
 import 'leaflet.markercluster/dist/MarkerCluster.css'
