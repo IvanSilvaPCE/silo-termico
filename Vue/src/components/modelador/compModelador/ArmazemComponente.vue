@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-0" :style="{
     height: '100vh',
@@ -24,8 +23,8 @@
           </div>
           <div class="col-md-8">
             <div class="d-flex align-items-center">
-              <select 
-                v-model="modeloSelecionado" 
+              <select
+                v-model="modeloSelecionado"
                 @change="carregarModeloSelecionado"
                 class="form-control form-control-sm me-2"
                 :disabled="carregandoModelos"
@@ -35,16 +34,16 @@
                   {{ modelo.nm_modelo }} - {{ getDescricaoModelo(modelo) }}
                 </option>
               </select>
-              <button 
-                @click="buscarModelosSalvos" 
+              <button
+                @click="buscarModelosSalvos"
                 class="btn btn-sm btn-outline-light me-2"
                 :disabled="carregandoModelos"
                 title="Atualizar lista">
                 <i class="fa fa-refresh" :class="{ 'fa-spin': carregandoModelos }"></i>
               </button>
-              <button 
+              <button
                 v-if="modeloSelecionado"
-                @click="limparModelo" 
+                @click="limparModelo"
                 class="btn btn-sm btn-outline-light"
                 title="Limpar seleção">
                 ×
@@ -52,7 +51,7 @@
             </div>
           </div>
         </div>
-        
+
         <!-- Informações do modelo carregado -->
         <div v-if="modeloCarregado" class="row mt-2">
           <div class="col-12">
@@ -76,7 +75,7 @@
         height: 'calc(90vh - 120px)',
         minHeight: '400px'
       }">
-        <ArmazemSvg 
+        <ArmazemSvg
           :config="configAtual"
           :dados-sensores="dadosSensores"
           :modelo-atual="modeloAtual"
@@ -141,13 +140,17 @@ export default {
       modeloSelecionado: '',
       modelosDisponiveis: [],
       carregandoModelos: false,
-      
+
       // Dados do modelo carregado
       modeloCarregado: null,
       modelosCarregados: [],
       modeloAtualIndex: 0,
       modeloAtual: null,
-      
+
+      // Dimensões SVG
+      larguraSVG: 350,
+      alturaSVG: 300,
+
       // Configuração base padrão
       configPadrao: {
         pb: 185,
@@ -182,21 +185,33 @@ export default {
         dist_x_sensores: 0,
         posicao_horizontal: 0,
         posicao_vertical: 0,
-        afastamento_vertical_pendulo: 0
+        afastamento_vertical_pendulo: 0,
+        posicoesCabos: {}, // Inicializar como objeto vazio
+        distancia_entre_cabos: [0] // Inicializar com um array padrão
       },
-      
+
       // Dados para renderização de sensores (simulados)
       dadosSensores: null,
-      
-      // Dimensões SVG
-      larguraSVG: 350,
-      alturaSVG: 300
+
+      // Variáveis para controle de modelos em v4.0 (para futuro uso, se necessário)
+      quantidadeModelosArcos: 0,
+      modelosArcos: {},
+      modelosSalvos: {},
+      tipoAtivo: 'armazem'
     }
   },
   computed: {
     configAtual() {
       if (this.modeloAtual?.configuracao) {
-        return { ...this.configPadrao, ...this.modeloAtual.configuracao }
+        // Garante que as propriedades padrão sejam mescladas corretamente
+        // e que as posições dos cabos sejam tratadas
+        const configComCabos = {
+          ...this.configPadrao,
+          ...this.modeloAtual.configuracao,
+          posicoesCabos: this.modeloAtual.configuracao.posicoesCabos || this.configPadrao.posicoesCabos,
+          distancia_entre_cabos: this.modeloAtual.configuracao.distancia_entre_cabos || this.configPadrao.distancia_entre_cabos
+        }
+        return configComCabos
       }
       return this.configPadrao
     }
@@ -204,18 +219,21 @@ export default {
   mounted() {
     this.buscarModelosSalvos()
     this.gerarDadosSensoresSimulados()
+    // Chamada para inicializar posições dos cabos com base na configuração padrão
+    // Isso garante que as propriedades existam desde o início
+    this.inicializarPosicoesCabos()
   },
   methods: {
     async buscarModelosSalvos() {
       this.carregandoModelos = true
       try {
         const resultado = await modeloSvgService.buscarModelos('A')
-        
+
         if (resultado.success && Array.isArray(resultado.data)) {
-          this.modelosDisponiveis = resultado.data.filter(modelo => 
+          this.modelosDisponiveis = resultado.data.filter(modelo =>
             modelo.tp_svg === 'A' && modelo.nm_modelo && modelo.dado_svg
           )
-          
+
           if (this.modelosDisponiveis.length === 0) {
             this.mostrarToast('Nenhum modelo de armazém encontrado', 'info')
           }
@@ -239,7 +257,7 @@ export default {
 
       try {
         const resultado = await modeloSvgService.buscarModeloPorId(this.modeloSelecionado)
-        
+
         if (resultado.success && resultado.data) {
           const modelo = resultado.data
           await this.processarModeloCarregado(modelo)
@@ -273,7 +291,7 @@ export default {
 
         // Extrair modelos individuais
         this.modelosCarregados = this.extrairModelosIndividuais(dadosSvg)
-        
+
         // Inicializar com primeiro modelo
         this.modeloAtualIndex = 0
         this.aplicarModeloAtual()
@@ -295,11 +313,11 @@ export default {
       if (dadosSvg.logicaDistribuicao?.nome) {
         return dadosSvg.logicaDistribuicao.nome
       }
-      
+
       const qtd = dadosSvg.quantidadeModelos || 1
       const logicas = {
         1: 'Modelo Único',
-        2: 'Par/Ímpar', 
+        2: 'Par/Ímpar',
         3: 'Frente/Fundo + Par/Ímpar',
         4: 'Frente/Par/Ímpar/Fundo'
       }
@@ -308,9 +326,9 @@ export default {
 
     extrairModelosIndividuais(dadosSvg) {
       const modelos = []
-      
+
       let modelosDefinidos = null
-      
+
       if (dadosSvg.modelosDefinidos) {
         modelosDefinidos = dadosSvg.modelosDefinidos
       } else if (dadosSvg.sistemaModelos?.modelosDefinidos) {
@@ -324,27 +342,41 @@ export default {
       if (modelosDefinidos) {
         Object.keys(modelosDefinidos).forEach(key => {
           const modelo = modelosDefinidos[key]
+          // Garantir que configuração existe e tem estrutura correta
+          const configuracao = modelo.configuracao || modelo.config || {}
+
+          // Certificar que posicoesCabos exista e seja um objeto
+          if (!configuracao.posicoesCabos || typeof configuracao.posicoesCabos !== 'object') {
+            configuracao.posicoesCabos = {}
+          }
+
           modelos.push({
             numero: parseInt(key),
             nome: modelo.nome || `Modelo ${key}`,
             posicao: modelo.posicao || 'todos',
-            configuracao: modelo.configuracao || modelo.config || {},
+            configuracao: configuracao,
             quantidadePendulos: modelo.quantidadePendulos || 3,
             sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-            posicoesCabos: modelo.posicoesCabos || {},
-            timestampSalvamento: modelo.timestampSalvamento || null
+            timestampSalvamento: modelo.timestampSalvamento || configuracao.timestampPosicoesCabos || null
           })
         })
       } else {
+        // Para modelo único, garantir estrutura de configuração
+        const configuracao = dadosSvg.configuracao || dadosSvg
+
+        // Garantir que posicoesCabos exista e seja um objeto
+        if (!configuracao.posicoesCabos || typeof configuracao.posicoesCabos !== 'object') {
+          configuracao.posicoesCabos = {}
+        }
+
         modelos.push({
           numero: 1,
           nome: 'Modelo Único',
           posicao: 'todos',
-          configuracao: dadosSvg.configuracao || dadosSvg,
+          configuracao: configuracao,
           quantidadePendulos: 3,
           sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 },
-          posicoesCabos: {},
-          timestampSalvamento: null
+          timestampSalvamento: configuracao.timestampPosicoesCabos || null
         })
       }
 
@@ -358,15 +390,34 @@ export default {
         return
       }
 
+      const modeloAnterior = this.modeloAtual
       this.modeloAtual = this.modelosCarregados[this.modeloAtualIndex] || this.modelosCarregados[0]
-      
-      // Aplicar dimensões SVG se disponíveis
-      if (this.modeloCarregado.dimensoesSVG) {
+
+      const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
+      console.log(`🔄 [APLICAR] Aplicando Modelo ${numeroModelo}:`, {
+        anteriorIndex: modeloAnterior ? (this.modelosCarregados.findIndex(m => m.numero === modeloAnterior.numero) + 1) : 'nenhum',
+        novoIndex: this.modeloAtualIndex + 1,
+        quantidadePendulos: this.modeloAtual.quantidadePendulos,
+        configLargura: this.modeloAtual.configuracao?.lb,
+        posicoesExistentes: this.modeloAtual.configuracao?.pos_x_cabo
+      })
+
+      // Aplicar dimensões SVG baseadas na configuração específica deste modelo
+      if (this.modeloAtual.configuracao && (this.modeloAtual.configuracao.lb || this.modeloAtual.configuracao.largura)) {
+        // Usar dimensões específicas deste modelo
+        const larguraModelo = this.modeloAtual.configuracao.lb || this.modeloAtual.configuracao.largura
+        this.larguraSVG = larguraModelo
+        console.log(`📐 [APLICAR] Modelo ${numeroModelo} - Usando largura específica: ${larguraModelo}`)
+      } else if (this.modeloCarregado.dimensoesSVG) {
+        // Fallback para dimensões globais
         this.larguraSVG = this.modeloCarregado.dimensoesSVG.largura || 350
         this.alturaSVG = this.modeloCarregado.dimensoesSVG.altura || 300
       } else {
         this.calcularDimensoesSVG()
       }
+
+      // Sempre preservar posições salvas sem validação/correção
+      this.preservarPosicoesCabos()
 
       // Gerar dados de sensores simulados para o modelo atual
       this.gerarDadosSensoresSimulados()
@@ -419,7 +470,7 @@ export default {
       const larguraBase = Math.max(this.configAtual.lb || 350, 300)
       const pb = this.configAtual.pb || 185
       const alturaTopoNecessaria = 80
-      
+
       // Calcular extensão do fundo baseado no tipo
       let extensaoFundo = 0
       if (this.configAtual.tipo_fundo === 1) {
@@ -427,20 +478,184 @@ export default {
       } else if (this.configAtual.tipo_fundo === 2) {
         extensaoFundo = this.configAtual.altura_duplo_v || 35
       }
-      
+
       // Altura mínima para sensores (considerando pêndulos e sensores)
       const alturaMinimaSensores = 60
-      
+
       // Altura total ajustada para remover espaço desnecessário
       const alturaTotal = pb + extensaoFundo + alturaMinimaSensores
 
       this.larguraSVG = larguraBase
       this.alturaSVG = Math.max(alturaTotal, 250)
+
+      // Recalcular posições dos cabos quando as dimensões mudam
+      this.recalcularPosicoesCabos()
+    },
+
+    preservarPosicoesCabos() {
+      if (!this.modeloAtual || !this.modeloAtual.configuracao) return
+
+      const config = this.modeloAtual.configuracao
+      const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
+      const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
+
+      console.log(`💾 [PRESERVAÇÃO] Preservando posições exatas do Modelo ${numeroModelo}:`, {
+        quantidadePendulos,
+        posicoesCabosIndividuais: config.posicoesCabos
+      })
+
+      // Garantir estrutura de posições individuais sem alterá-las
+      if (!config.posicoesCabos) {
+        config.posicoesCabos = {}
+      }
+
+      // Apenas garantir que a estrutura existe para cada cabo
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        if (!config.posicoesCabos[i]) {
+          config.posicoesCabos[i] = {
+            x: 0, // Posição horizontal personalizada 
+            y: 0, // Posição vertical personalizada
+            offsetX: 0,
+            offsetY: 0,
+            altura: 0,
+            distanciaHorizontal: 0,
+            numeroSensores: 3,
+            timestampAlteracao: Date.now()
+          }
+        }
+      }
+
+      // Construir array pos_x_cabo baseado nas posições individuais PRESERVADAS
+      const posicoesArray = []
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        if (config.posicoesCabos[i]) {
+          const posicaoFinal = (config.posicoesCabos[i].x || 0) + (config.posicoesCabos[i].offsetX || 0)
+          posicoesArray.push(posicaoFinal)
+        } else {
+          posicoesArray.push(0)
+        }
+      }
+      config.pos_x_cabo = posicoesArray
+
+      console.log(`✅ [PRESERVAÇÃO] Modelo ${numeroModelo} - Posições preservadas:`, {
+        pos_x_cabo: config.pos_x_cabo,
+        posicoesCabos: config.posicoesCabos
+      })
+    },
+
+    
+
+    // Método para garantir a existência da estrutura de posições individuais dos cabos
+    inicializarPosicoesCabos() {
+      // Verifica se já estamos em um modelo carregado
+      if (!this.modeloAtual) {
+        // Se não houver modelo atual, usa a configuração padrão
+        const config = this.configPadrao;
+        if (!config.posicoesCabos || typeof config.posicoesCabos !== 'object') {
+          config.posicoesCabos = {};
+        }
+        // Define uma quantidade padrão de pêndulos se não houver modelos carregados
+        const quantidadePendulos = 3;
+        for (let i = 1; i <= quantidadePendulos; i++) {
+          if (!config.posicoesCabos[i]) {
+            config.posicoesCabos[i] = {
+              x: 0, y: 0, offsetX: 0, offsetY: 0, timestampAlteracao: Date.now()
+            };
+          }
+        }
+        console.log("✅ [Inicialização] Posições de cabos inicializadas na configuração padrão.");
+        return;
+      }
+
+      // Se há um modelo atual, garante a estrutura para ele
+      const config = this.modeloAtual.configuracao
+      const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
+      const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
+
+      if (!config.posicoesCabos || typeof config.posicoesCabos !== 'object') {
+        config.posicoesCabos = {}
+      }
+
+      const posicoesCabosExistentes = config.posicoesCabos
+
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        if (!posicoesCabosExistentes[i]) {
+          // Se a posição individual não existe, cria com base na posição X do array
+          // ou usa um valor padrão se o array também não existir ou for inválido
+          const posXBase = (config.pos_x_cabo && config.pos_x_cabo[i - 1]) ? config.pos_x_cabo[i - 1] : 0;
+          config.posicoesCabos[i] = {
+            x: posXBase, // Posição horizontal base
+            y: 0, // Posição vertical (altura do cabo)
+            offsetX: 0, // Ajuste fino horizontal
+            offsetY: 0, // Ajuste fino vertical
+            timestampAlteracao: Date.now()
+          };
+          console.log(`🆕 [Inicialização] Modelo ${numeroModelo} - Criada posição para Cabo ${i}:`, config.posicoesCabos[i]);
+        } else {
+          // Se a posição individual já existe, garante que os campos obrigatórios estejam presentes
+          if (posicoesCabosExistentes[i].y === undefined) posicoesCabosExistentes[i].y = 0
+          if (posicoesCabosExistentes[i].offsetX === undefined) posicoesCabosExistentes[i].offsetX = 0
+          if (posicoesCabosExistentes[i].offsetY === undefined) posicoesCabosExistentes[i].offsetY = 0
+          if (!posicoesCabosExistentes[i].timestampAlteracao) posicoesCabosExistentes[i].timestampAlteracao = Date.now()
+
+          // Garante que a posição X individual esteja sincronizada com o array pos_x_cabo se existir
+          if (config.pos_x_cabo && config.pos_x_cabo[i - 1] !== undefined) {
+            posicoesCabosExistentes[i].x = config.pos_x_cabo[i - 1];
+          }
+          console.log(`✅ [Inicialização] Modelo ${numeroModelo} - Posição preservada para Cabo ${i}:`, posicoesCabosExistentes[i]);
+        }
+      }
+      console.log(`✅ [Inicialização] Modelo ${numeroModelo} - Estrutura de posições de cabos garantida.`);
+    },
+
+
+    garantirPosicoesCabosIndividuais() {
+      if (!this.modeloAtual || !this.modeloAtual.configuracao) return
+
+      const config = this.modeloAtual.configuracao
+      const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
+      const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
+
+      // Garantir que posições individuais dos cabos existam
+      if (!config.posicoesCabos) {
+        config.posicoesCabos = {};
+      }
+
+      // Sincronizar posições individuais com o array pos_x_cabo APENAS se não existirem
+      const posicoesCabos = config.pos_x_cabo || []
+
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        if (!config.posicoesCabos[i]) {
+          // Criar nova posição individual apenas se não existir
+          config.posicoesCabos[i] = {
+            x: posicoesCabos[i-1] || 0, // Posição horizontal base
+            y: 0, // Posição vertical (altura do cabo)
+            offsetX: 0, // Ajuste fino horizontal
+            offsetY: 0, // Ajuste fino vertical
+            timestampAlteracao: Date.now()
+          };
+          console.log(`🆕 [CABOS] Modelo ${numeroModelo} - Criada nova posição para Cabo ${i}:`, config.posicoesCabos[i])
+        } else {
+          // Se já existe, PRESERVAR as posições salvas e apenas garantir campos
+          if (config.posicoesCabos[i].y === undefined) config.posicoesCabos[i].y = 0
+          if (config.posicoesCabos[i].offsetX === undefined) config.posicoesCabos[i].offsetX = 0
+          if (config.posicoesCabos[i].offsetY === undefined) config.posicoesCabos[i].offsetY = 0
+          if (!config.posicoesCabos[i].timestampAlteracao) config.posicoesCabos[i].timestampAlteracao = Date.now()
+
+          // IMPORTANTE: NÃO sobrescrever a posição X se já foi customizada
+          console.log(`✅ [CABOS] Modelo ${numeroModelo} - Posição preservada para Cabo ${i}:`, config.posicoesCabos[i])
+        }
+      }
+
+      console.log(`🎯 [CABOS] Modelo ${numeroModelo} - Estrutura final garantida:`, {
+        pos_x_cabo: config.pos_x_cabo,
+        posicoesCabos: config.posicoesCabos
+      });
     },
 
     calcularTotalSensores() {
       if (!this.modeloAtual || !this.modeloAtual.sensoresPorPendulo) return 0
-      
+
       return Object.values(this.modeloAtual.sensoresPorPendulo).reduce((total, num) => total + (num || 0), 0)
     },
 
@@ -474,11 +689,11 @@ export default {
 
     getBadgeClassModelo() {
       if (!this.modeloAtual) return 'badge bg-secondary'
-      
+
       const posicao = this.modeloAtual.posicao
       const classes = {
         'todos': 'badge bg-info',
-        'par': 'badge bg-primary', 
+        'par': 'badge bg-primary',
         'impar': 'badge bg-warning',
         'frente': 'badge bg-success',
         'fundo': 'badge bg-danger',
@@ -487,11 +702,113 @@ export default {
       return classes[posicao] || 'badge bg-secondary'
     },
 
+    atualizarPosicaoIndividualCabo(numeroCabo, propriedade, valor) {
+      if (!this.modeloAtual || !this.modeloAtual.configuracao) return
+
+      const config = this.modeloAtual.configuracao
+      const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
+
+      // Garantir que estrutura existe
+      if (!config.posicoesCabos) {
+        config.posicoesCabos = {}
+      }
+
+      if (!config.posicoesCabos[numeroCabo]) {
+        config.posicoesCabos[numeroCabo] = {
+          x: 0, // Posição horizontal personalizada
+          y: 0, // Posição vertical personalizada  
+          offsetX: 0,
+          offsetY: 0,
+          altura: 0,
+          distanciaHorizontal: 0,
+          numeroSensores: 3,
+          timestampAlteracao: Date.now()
+        }
+      }
+
+      // Converter valor para número
+      const valorNumerico = parseFloat(valor) || 0
+
+      // Atualizar propriedade específica EXATAMENTE como definido pelo usuário
+      config.posicoesCabos[numeroCabo][propriedade] = valorNumerico
+      config.posicoesCabos[numeroCabo].timestampAlteracao = Date.now()
+
+      // Sempre atualizar o array pos_x_cabo com as posições personalizadas
+      if (!config.pos_x_cabo) config.pos_x_cabo = []
+      
+      // Usar posições individuais como fonte de verdade
+      const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        if (config.posicoesCabos[i]) {
+          const posicaoFinal = (config.posicoesCabos[i].x || 0) + (config.posicoesCabos[i].offsetX || 0)
+          config.pos_x_cabo[i - 1] = posicaoFinal
+        }
+      }
+
+      // Recalcular distâncias entre cabos baseadas nas posições reais
+      if (config.pos_x_cabo.length > 1) {
+        const distancias = []
+        for (let i = 1; i < config.pos_x_cabo.length; i++) {
+          distancias.push(Math.round((config.pos_x_cabo[i] - config.pos_x_cabo[i-1]) * 10) / 10)
+        }
+        config.distancia_entre_cabos = distancias
+      }
+
+      // Marcar timestamp de alteração
+      config.timestampPosicoesCabos = Date.now()
+      config.posicionamentoPersonalizado = true // Flag para indicar que foi personalizado
+
+      // Salvar no localStorage após cada alteração
+      this.salvarPosicionamentoLocalStorage()
+
+      console.log(`🎯 [POSIÇÃO EXATA] Modelo ${numeroModelo} - Cabo ${numeroCabo} - ${propriedade}: ${valorNumerico}`, {
+        posicaoCompleta: config.posicoesCabos[numeroCabo],
+        arrayPosicoes: config.pos_x_cabo,
+        personalizado: true
+      })
+
+      // Forçar atualização reativa do Vue
+      this.$forceUpdate()
+    },
+
+    salvarPosicionamentoLocalStorage() {
+      if (!this.modeloCarregado || !this.modelosCarregados) return
+
+      try {
+        const dadosCompletos = {
+          nomeConfiguracao: this.modeloCarregado.nome,
+          quantidadeModelos: this.modeloCarregado.quantidadeModelos,
+          logica: this.modeloCarregado.logica,
+          modelos: this.modelosCarregados.map(modelo => ({
+            numero: modelo.numero,
+            nome: modelo.nome,
+            posicao: modelo.posicao,
+            quantidadePendulos: modelo.quantidadePendulos,
+            configuracao: modelo.configuracao,
+            posicoesCabosDetalhadas: modelo.configuracao?.posicoesCabos || {},
+            sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+            timestampSalvamento: Date.now()
+          })),
+          timestamp: Date.now(),
+          versao: '5.1',
+          tipo: 'configuracao_completa_com_posicionamento'
+        }
+
+        const chave = `config_posicionamento_${this.modeloCarregado.nome}_${Date.now()}`
+        localStorage.setItem(chave, JSON.stringify(dadosCompletos))
+        
+        console.log('💾 [LOCALSTORAGE] Posicionamento salvo:', chave, dadosCompletos)
+        
+      } catch (error) {
+        console.error('❌ [LOCALSTORAGE] Erro ao salvar posicionamento:', error)
+      }
+    },
+
     mostrarToast(mensagem, tipo = 'info') {
       const toast = document.createElement('div')
       const icones = {
         success: '✅',
-        error: '❌', 
+        error: '❌',
         warning: '⚠️',
         info: 'ℹ️'
       }
@@ -525,7 +842,162 @@ export default {
           toast.remove()
         }
       }, 4000)
-    }
+    },
+
+    // Método auxiliar para determinar a posição do modelo (par/ímpar, etc.)
+    determinarPosicaoDoModelo(numeroModelo, quantidadeTotal) {
+      if (quantidadeTotal === 1) return 'todos';
+      if (quantidadeTotal % 2 === 0) {
+        if (numeroModelo % 2 === 0) return 'par';
+        else return 'impar';
+      } else {
+        // Lógica mais complexa para quantidades ímpares se necessário
+        // Por enquanto, um fallback genérico
+        return 'todos';
+      }
+    },
+
+    // Métodos de carregamento de configuração (mantidos para referência, mas não chamados diretamente aqui)
+    carregarConfiguracaoCompletaV4(dados, nome) {
+      console.log('📦 [carregarConfiguracaoCompletaV4] Carregando configuração v4.0 completa')
+
+      // Restaurar sistema de modelos
+      if (dados.sistemaModelos || dados.modelosDefinidos) {
+        const modelosDefinidos = dados.sistemaModelos?.modelosDefinidos || dados.modelosDefinidos
+        this.quantidadeModelosArcos = dados.sistemaModelos?.quantidadeModelos || dados.quantidadeModelos || Object.keys(modelosDefinidos).length
+
+        // Restaurar modelos de arcos com estado completo
+        const novosModelos = {}
+        const novosSalvos = {}
+
+        if (modelosDefinidos) {
+          Object.keys(modelosDefinidos).forEach(key => {
+            const modelo = modelosDefinidos[key]
+            const numeroModelo = parseInt(key)
+
+            // Construir configuração completa preservando posições dos cabos
+            const configuracaoModelo = {
+              ...this.configPadrao, // Começar com valores padrão
+              ...modelo.configuracao // Sobrescrever com valores salvos
+            }
+
+            // IMPORTANTE: Preservar posições individuais dos cabos se existirem
+            if (modelo.configuracao?.posicoesCabos && typeof modelo.configuracao.posicoesCabos === 'object') {
+              configuracaoModelo.posicoesCabos = { ...modelo.configuracao.posicoesCabos }
+              console.log(`🎯 [carregarConfiguracaoCompletaV4] Modelo ${key} - Posições dos cabos preservadas:`, configuracaoModelo.posicoesCabos)
+            } else {
+              // Se não existem posições salvas, inicializa com base nas posições do array pos_x_cabo (se houver)
+              configuracaoModelo.posicoesCabos = {}
+              if (configuracaoModelo.pos_x_cabo && Array.isArray(configuracaoModelo.pos_x_cabo)) {
+                configuracaoModelo.pos_x_cabo.forEach((posX, index) => {
+                  configuracaoModelo.posicoesCabos[index + 1] = {
+                    x: posX,
+                    y: 0,
+                    offsetX: 0,
+                    offsetY: 0,
+                    timestampAlteracao: Date.now()
+                  };
+                });
+              }
+            }
+            // Garantir que a propriedade distancia_entre_cabos também exista
+            if (!configuracaoModelo.distancia_entre_cabos) {
+              configuracaoModelo.distancia_entre_cabos = this.configPadrao.distancia_entre_cabos;
+            }
+
+            novosModelos[key] = {
+              numero: numeroModelo,
+              nome: modelo.nome || `Modelo ${key}`,
+              posicao: modelo.posicao || this.determinarPosicaoDoModelo(numeroModelo, this.quantidadeModelosArcos),
+              configuracao: configuracaoModelo,
+              quantidadePendulos: modelo.quantidadePendulos || 3,
+              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+              timestampSalvamento: modelo.timestampSalvamento || modelo.timestampUltimaEdicao || new Date().toISOString()
+            }
+            novosSalvos[key] = true
+          })
+
+          this.modelosCarregados = Object.values(novosModelos)
+          this.modeloCarregado = {
+            nome: nome,
+            quantidadeModelos: this.quantidadeModelosArcos,
+            logica: dados.sistemaModelos?.logicaDistribuicao?.nome || 'Personalizada'
+          }
+        }
+      }
+    },
+
+    carregarConfiguracaoCompletaV3(dados, nome) {
+      console.log('📦 [carregarConfiguracaoCompletaV3] Carregando configuração v3.0 completa')
+      this.modeloCarregado = {
+        nome: nome,
+        quantidadeModelos: dados.quantidadeModelos || 1,
+        logica: this.extrairLogicaDistribuicao(dados),
+        dimensoesSVG: dados.dimensoesSVG || { largura: 350, altura: 300 }
+      }
+
+      this.modelosCarregados = this.extrairModelosIndividuais(dados)
+
+      // Inicializar com o primeiro modelo
+      this.modeloAtualIndex = 0
+      this.aplicarModeloAtual()
+
+      this.gerarDadosSensoresSimulados()
+    },
+
+    carregarConfiguracaoSimplesCompatibilidade(dados, nome) {
+      console.log('📦 [carregarConfiguracaoSimplesCompatibilidade] Carregando configuração simples')
+      this.modeloCarregado = {
+        nome: nome,
+        quantidadeModelos: 1,
+        logica: 'Modelo Único',
+        dimensoesSVG: dados.dimensoesSVG || { largura: 350, altura: 300 }
+      }
+
+      // Criar um único modelo com a configuração fornecida
+      const configuracaoUnica = {
+        ...this.configPadrao,
+        ...dados
+      }
+
+      // Garantir que posicoesCabos exista e seja um objeto
+      if (!configuracaoUnica.posicoesCabos || typeof configuracaoUnica.posicoesCabos !== 'object') {
+        configuracaoUnica.posicoesCabos = {}
+      }
+
+      // Se pos_x_cabo existe, usa para popular posicoesCabos
+      if (configuracaoUnica.pos_x_cabo && Array.isArray(configuracaoUnica.pos_x_cabo)) {
+        configuracaoUnica.pos_x_cabo.forEach((posX, index) => {
+          configuracaoUnica.posicoesCabos[index + 1] = {
+            x: posX,
+            y: 0,
+            offsetX: 0,
+            offsetY: 0,
+            timestampAlteracao: Date.now()
+          };
+        });
+      }
+      // Garantir que a propriedade distancia_entre_cabos também exista
+      if (!configuracaoUnica.distancia_entre_cabos) {
+        configuracaoUnica.distancia_entre_cabos = this.configPadrao.distancia_entre_cabos;
+      }
+
+
+      this.modelosCarregados = [{
+        numero: 1,
+        nome: 'Modelo Padrão',
+        posicao: 'todos',
+        configuracao: configuracaoUnica,
+        quantidadePendulos: 3,
+        sensoresPorPendulo: {}, // Sem informação específica para modelo simples
+        timestampSalvamento: null
+      }]
+
+      // Inicializar com o modelo único
+      this.modeloAtualIndex = 0
+      this.aplicarModeloAtual()
+      this.gerarDadosSensoresSimulados()
+    },
   }
 }
 </script>
@@ -540,17 +1012,17 @@ export default {
   .card-header .row {
     flex-direction: column;
   }
-  
+
   .card-header .col-md-4,
   .card-header .col-md-8 {
     margin-bottom: 0.5rem;
   }
-  
+
   .card-footer .row {
     flex-direction: column;
     gap: 0.5rem;
   }
-  
+
   .badge {
     font-size: 0.65rem;
     margin: 1px;

@@ -1,8 +1,7 @@
-
 <template>
   <div class="svg-container-responsive w-100 h-100">
-    <svg 
-      :viewBox="`0 0 ${larguraSvg} ${alturaSvg}`" 
+    <svg
+      :viewBox="`0 0 ${larguraSvg} ${alturaSvg}`"
       :style="{
         width: '100%',
         height: '100%',
@@ -14,9 +13,9 @@
         shapeRendering: 'geometricPrecision',
         textRendering: 'geometricPrecision',
         imageRendering: 'optimizeQuality'
-      }" 
-      preserveAspectRatio="xMidYMid meet" 
-      xmlns="http://www.w3.org/2000/svg" 
+      }"
+      preserveAspectRatio="xMidYMid meet"
+      xmlns="http://www.w3.org/2000/svg"
       v-html="svgContent">
     </svg>
   </div>
@@ -62,7 +61,8 @@ export default {
         dist_x_sensores: 0,
         posicao_horizontal: 0,
         posicao_vertical: 0,
-        afastamento_vertical_pendulo: 0
+        afastamento_vertical_pendulo: 0,
+        posicoesCabos: {}
       })
     },
     dadosSensores: {
@@ -160,7 +160,7 @@ export default {
 
         if (pontas_redondas || estilo_laterais !== 'reta') {
           let pathTelhado = `M ${p1[0]} ${p1[1]} L ${p2[0]} ${p2[1]} L ${p3[0]} ${p3[1]}`
-          
+
           if (estilo_laterais === 'curvatura_lateral' && curvatura_laterais !== 0) {
             if (curvatura_laterais < 0) {
               pathTelhado += ` Q ${p3[0] + Math.abs(curvatura_laterais)} ${(p3[1] + p4[1]) / 2} ${p4[0]} ${p4[1]}`
@@ -174,7 +174,7 @@ export default {
           if (pontas_redondas) {
             const pontoControle1X = p4[0] - (raio_pontas || 15)
             const pontoControle2X = p4[0] + (raio_pontas || 15)
-            pathTelhado = pathTelhado.replace(`L ${p4[0]} ${p4[1]}`, 
+            pathTelhado = pathTelhado.replace(`L ${p4[0]} ${p4[1]}`,
               `Q ${pontoControle1X} ${p4[1] - (raio_pontas || 15)} ${p4[0]} ${p4[1]} Q ${pontoControle2X} ${p4[1] - (raio_pontas || 15)} ${p5[0]} ${p5[1]}`)
           } else {
             if (estilo_laterais === 'curvatura_lateral' && curvatura_laterais !== 0) {
@@ -255,7 +255,7 @@ export default {
       const ajuste_horizontal = deslocamento_horizontal_fundo
 
       const p1 = [lb + ajuste_horizontal, pb - hb + ajuste_base]
-      const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]  
+      const p2 = [lb - le + ajuste_horizontal, pb - hb + ajuste_base]
       const p3 = [lb - (lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_reto + ajuste_base]
       const p4 = [(lb - lf) / 2 + ajuste_horizontal, pb - altura_fundo_reto + ajuste_base]
       const p5 = [le + ajuste_horizontal, pb - hb + ajuste_base]
@@ -337,24 +337,76 @@ export default {
 
       const escala_sensores = this.config.escala_sensores || 16
       const dist_y_sensores = this.config.dist_y_sensores || 12
-      const posicao_horizontal = this.config.posicao_horizontal || 0
-      const posicao_vertical = this.config.posicao_vertical || 0
+      const posicao_horizontal_global = this.config.posicao_horizontal || 0
+      const posicao_vertical_global = this.config.posicao_vertical || 0
       const afastamento_vertical_pendulo = this.config.afastamento_vertical_pendulo || 0
 
       const pb = this.config.pb || 185
-      const yPendulo = pb + 15 + posicao_vertical
+      const yPenduloBase = pb + 15
 
       let elementos = ''
       const posicoesCabos = this.calcularPosicoesCabos()
 
-      Object.entries(this.dadosSensores.leitura).forEach(([numeroPendulo, sensores], index) => {
-        const xCabo = posicoesCabos[index] + posicao_horizontal
+      Object.entries(this.dadosSensores.leitura).forEach(([numeroPenduloStr, sensores], index) => {
+        const pendulo = { numero: parseInt(numeroPenduloStr), sensores: sensores }
+        const yPendulo = yPenduloBase + posicao_vertical_global + afastamento_vertical_pendulo
+
+        // Usar posições validadas do modelo ou calcular baseado na quantidade de pêndulos
+        const larguraTotal = this.config.lb || 350
+        const margemLateral = Math.max(50, larguraTotal * 0.12)
+        const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+
+        let xCaboBase
+        let offsetIndividualX = 0
+        let offsetIndividualY = 0
+
+        // PRIORIDADE 1: Verificar se há posição individual salva para este cabo
+        if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
+          const posicaoCabo = this.config.posicoesCabos[pendulo.numero]
+          
+          // Usar posição X absoluta se foi customizada
+          if (posicaoCabo.x !== undefined && posicaoCabo.x !== null) {
+            xCaboBase = parseFloat(posicaoCabo.x) || 0
+            console.log(`🎯 [RENDER] Cabo ${pendulo.numero} - Usando posição X customizada: ${xCaboBase}`)
+          } else {
+            // Fallback para posição do array pos_x_cabo
+            xCaboBase = this.config.pos_x_cabo?.[index] || (larguraTotal / 2)
+          }
+
+          // Aplicar offsets adicionais
+          offsetIndividualX = parseFloat(posicaoCabo.offsetX) || 0
+          offsetIndividualY = parseFloat(posicaoCabo.offsetY) || 0
+          
+          // Posição Y customizada (altura do cabo)
+          if (posicaoCabo.y !== undefined && posicaoCabo.y !== null) {
+            offsetIndividualY += parseFloat(posicaoCabo.y) || 0
+          }
+
+          console.log(`🎯 [RENDER] Cabo ${pendulo.numero} - Posições: base=${xCaboBase}, offsetX=${offsetIndividualX}, offsetY=${offsetIndividualY}`)
+        } 
+        // PRIORIDADE 2: Usar array pos_x_cabo se disponível
+        else if (this.config.pos_x_cabo && this.config.pos_x_cabo[index] !== undefined) {
+          xCaboBase = this.config.pos_x_cabo[index]
+        } 
+        // PRIORIDADE 3: Calcular posição padrão
+        else {
+          if (this.modeloAtual?.quantidadePendulos === 1) {
+            xCaboBase = larguraTotal / 2
+          } else {
+            const espacamento = larguraUtilizavel / (this.modeloAtual?.quantidadePendulos - 1)
+            xCaboBase = margemLateral + (index * espacamento)
+          }
+        }
+
+        const xCabo = xCaboBase + posicao_horizontal_global + offsetIndividualX
+        const yPenduloFinal = yPendulo + offsetIndividualY
+        const xCaboFinal = xCabo
 
         // Retângulo do pêndulo
         elementos += `
           <rect
-            x="${xCabo - escala_sensores / 2}"
-            y="${yPendulo}"
+            x="${xCaboFinal - escala_sensores / 2}"
+            y="${yPenduloFinal}"
             width="${escala_sensores}"
             height="${escala_sensores / 2}"
             rx="2" ry="2"
@@ -366,8 +418,8 @@ export default {
         // Texto do pêndulo
         elementos += `
           <text
-            x="${xCabo}"
-            y="${yPendulo + escala_sensores / 4}"
+            x="${xCaboFinal}"
+            y="${yPenduloFinal + escala_sensores / 4}"
             text-anchor="middle"
             dominant-baseline="central"
             font-weight="bold"
@@ -375,24 +427,29 @@ export default {
             font-family="Arial"
             fill="white"
           >
-            P${numeroPendulo}
+            P${pendulo.numero}
           </text>
         `
 
         // Sensores
-        Object.entries(sensores).forEach(([numeroSensor, dadosSensor]) => {
+        Object.entries(pendulo.sensores).forEach(([numeroSensor, dadosSensor]) => {
           const s = parseInt(numeroSensor)
-          const ySensor = yPendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
-          
-          if (ySensor > 10 && ySensor < (this.alturaSvg - 60)) {
+          const ySensorBase = yPendulo - dist_y_sensores * s - 25
+          const offsetSensorX = this.config.dist_x_sensores || 0
+          const offsetSensorY = this.config.dist_y_sensores_offset || 0
+
+          const xSensorFinal = xCaboFinal + offsetSensorX
+          const ySensorFinal = ySensorBase + offsetSensorY
+
+          if (ySensorFinal > 10 && ySensorFinal < (this.alturaSvg - 60)) {
             const [temp] = dadosSensor
             const cor = this.corFaixaExata(temp)
 
             // Retângulo do sensor
             elementos += `
               <rect
-                x="${xCabo - escala_sensores / 2}"
-                y="${ySensor}"
+                x="${xSensorFinal - escala_sensores / 2}"
+                y="${ySensorFinal}"
                 width="${escala_sensores}"
                 height="${escala_sensores / 2}"
                 rx="2" ry="2"
@@ -405,8 +462,8 @@ export default {
             // Texto do valor
             elementos += `
               <text
-                x="${xCabo}"
-                y="${ySensor + escala_sensores / 4}"
+                x="${xSensorFinal}"
+                y="${ySensorFinal + escala_sensores / 4}"
                 text-anchor="middle"
                 dominant-baseline="central"
                 font-size="${escala_sensores * 0.4 - 0.5}"
@@ -420,8 +477,8 @@ export default {
             // Nome do sensor
             elementos += `
               <text
-                x="${xCabo - escala_sensores / 2 - 2}"
-                y="${ySensor + escala_sensores / 4}"
+                x="${xSensorFinal - escala_sensores / 2 - 2}"
+                y="${ySensorFinal + escala_sensores / 4}"
                 text-anchor="end"
                 dominant-baseline="central"
                 font-size="${escala_sensores * 0.4 - 1.5}"
@@ -442,7 +499,7 @@ export default {
       const quantidadePendulos = this.modeloAtual?.quantidadePendulos || 3
       const larguraTotal = this.config.lb || 350
       const centroArmazem = larguraTotal / 2
-      
+
       const margemMinima = 15
       const larguraUtilizavel = larguraTotal - (2 * margemMinima)
       const posicoes = []
@@ -451,31 +508,33 @@ export default {
         posicoes.push(centroArmazem)
       } else {
         const espacamento = larguraUtilizavel / (quantidadePendulos - 1)
-        
+
         for (let i = 0; i < quantidadePendulos; i++) {
           const posicaoX = margemMinima + (i * espacamento)
           posicoes.push(posicaoX)
         }
-        
+
         const primeiroCabo = posicoes[0]
         const ultimoCabo = posicoes[posicoes.length - 1]
         const centroConjunto = (primeiroCabo + ultimoCabo) / 2
         const ajusteCentralizacao = centroArmazem - centroConjunto
-        
+
         for (let i = 0; i < posicoes.length; i++) {
           posicoes[i] += ajusteCentralizacao
         }
       }
 
+      // Aplica os offsets definidos no config.posicoesCabos
       if (this.modeloAtual?.posicoesCabos) {
-        Object.keys(this.modeloAtual.posicoesCabos).forEach(pendulo => {
-          const index = parseInt(pendulo) - 1
-          if (index >= 0 && index < posicoes.length) {
-            const offset = this.modeloAtual.posicoesCabos[pendulo]
-            let novaPosicao = posicoes[index] + (parseFloat(offset.x) || 0)
-            
+        Object.keys(this.modeloAtual.posicoesCabos).forEach(penduloKey => {
+          const penduloIndex = parseInt(penduloKey) - 1 // Ajusta para índice baseado em 0
+          if (penduloIndex >= 0 && penduloIndex < posicoes.length) {
+            const offset = this.modeloAtual.posicoesCabos[penduloKey]
+            let novaPosicao = posicoes[penduloIndex] + (parseFloat(offset.x) || 0)
+
+            // Garante que a posição não saia dos limites do armazém
             novaPosicao = Math.max(margemMinima, Math.min(novaPosicao, larguraTotal - margemMinima))
-            posicoes[index] = novaPosicao
+            posicoes[penduloIndex] = novaPosicao
           }
         })
       }

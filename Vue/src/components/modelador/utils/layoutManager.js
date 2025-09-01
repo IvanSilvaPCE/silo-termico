@@ -1,4 +1,3 @@
-
 const LayoutManager = {
   // Analisar estrutura dos arcos baseada na nova estrutura da API
   analisarEstruturaArcos(dados) {
@@ -89,23 +88,25 @@ const LayoutManager = {
 
   gerarLayoutParaArco(infoArco) {
     const totalPendulos = infoArco.totalPendulos || infoArco.pendulos?.length || 1
-    
-    // Calcular largura baseada na quantidade de pêndulos
+
+    // Calcular largura baseada na quantidade de pêndulos  
     const larguraMinima = 350
-    const larguraCalculada = Math.max(larguraMinima, totalPendulos * 60 + 100)
-    
-    const margemLateral = Math.max(35, larguraCalculada * 0.1)
+    const larguraCalculada = Math.max(larguraMinima, totalPendulos * 80 + 120)
+
+    // Margem mais generosa para garantir que os cabos fiquem bem centralizados
+    const margemLateral = Math.max(50, larguraCalculada * 0.12)
     const larguraUtilizavel = larguraCalculada - (2 * margemLateral)
 
     // Calcular posições dos cabos distribuídas uniformemente
     const posicoesCabos = []
-    
+
     if (totalPendulos === 1) {
       posicoesCabos.push(larguraCalculada / 2)
     } else {
       const espacamento = larguraUtilizavel / (totalPendulos - 1)
       for (let i = 0; i < totalPendulos; i++) {
-        posicoesCabos.push(margemLateral + (i * espacamento))
+        const posicao = margemLateral + (i * espacamento)
+        posicoesCabos.push(Math.round(posicao * 10) / 10) // Arredondar para 1 casa decimal
       }
     }
 
