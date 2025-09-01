@@ -345,34 +345,23 @@ export default {
       const yPenduloBase = pb + 15
 
       let elementos = ''
-      const posicoesCabos = this.calcularPosicoesCabos()
+      
+      // Usar posições calculadas e validadas
+      const posicoesCabosValidadas = this.calcularPosicoesCabos()
 
       Object.entries(this.dadosSensores.leitura).forEach(([numeroPenduloStr, sensores], index) => {
         const pendulo = { numero: parseInt(numeroPenduloStr), sensores: sensores }
         const yPendulo = yPenduloBase + posicao_vertical_global + afastamento_vertical_pendulo
 
-        // Usar posições validadas do modelo ou calcular baseado na quantidade de pêndulos
-        const larguraTotal = this.config.lb || 350
-        const margemLateral = Math.max(50, larguraTotal * 0.12)
-        const larguraUtilizavel = larguraTotal - (2 * margemLateral)
-
-        let xCaboBase
+        // Usar posição validada ou fallback
+        let xCaboBase = posicoesCabosValidadas[index] || (this.config.lb || 350) / 2
         let offsetIndividualX = 0
         let offsetIndividualY = 0
 
-        // PRIORIDADE 1: Verificar se há posição individual salva para este cabo
+        // Aplicar offsets individuais se existirem
         if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
           const posicaoCabo = this.config.posicoesCabos[pendulo.numero]
           
-          // Usar posição X absoluta se foi customizada
-          if (posicaoCabo.x !== undefined && posicaoCabo.x !== null) {
-            xCaboBase = parseFloat(posicaoCabo.x) || 0
-            console.log(`🎯 [RENDER] Cabo ${pendulo.numero} - Usando posição X customizada: ${xCaboBase}`)
-          } else {
-            // Fallback para posição do array pos_x_cabo
-            xCaboBase = this.config.pos_x_cabo?.[index] || (larguraTotal / 2)
-          }
-
           // Aplicar offsets adicionais
           offsetIndividualX = parseFloat(posicaoCabo.offsetX) || 0
           offsetIndividualY = parseFloat(posicaoCabo.offsetY) || 0
@@ -383,29 +372,20 @@ export default {
           }
 
           console.log(`🎯 [RENDER] Cabo ${pendulo.numero} - Posições: base=${xCaboBase}, offsetX=${offsetIndividualX}, offsetY=${offsetIndividualY}`)
-        } 
-        // PRIORIDADE 2: Usar array pos_x_cabo se disponível
-        else if (this.config.pos_x_cabo && this.config.pos_x_cabo[index] !== undefined) {
-          xCaboBase = this.config.pos_x_cabo[index]
-        } 
-        // PRIORIDADE 3: Calcular posição padrão
-        else {
-          if (this.modeloAtual?.quantidadePendulos === 1) {
-            xCaboBase = larguraTotal / 2
-          } else {
-            const espacamento = larguraUtilizavel / (this.modeloAtual?.quantidadePendulos - 1)
-            xCaboBase = margemLateral + (index * espacamento)
-          }
         }
 
-        const xCabo = xCaboBase + posicao_horizontal_global + offsetIndividualX
+        // Posições finais
+        const xCaboFinal = xCaboBase + posicao_horizontal_global + offsetIndividualX
         const yPenduloFinal = yPendulo + offsetIndividualY
-        const xCaboFinal = xCabo
+
+        // Validação final da posição horizontal
+        const posicaoValidada = this.validarPosicaoDentroDoFundo(xCaboFinal)
+        const xCabo = posicaoValidada
 
         // Retângulo do pêndulo
         elementos += `
           <rect
-            x="${xCaboFinal - escala_sensores / 2}"
+            x="${xCabo - escala_sensores / 2}"
             y="${yPenduloFinal}"
             width="${escala_sensores}"
             height="${escala_sensores / 2}"
@@ -418,7 +398,7 @@ export default {
         // Texto do pêndulo
         elementos += `
           <text
-            x="${xCaboFinal}"
+            x="${xCabo}"
             y="${yPenduloFinal + escala_sensores / 4}"
             text-anchor="middle"
             dominant-baseline="central"
@@ -438,7 +418,7 @@ export default {
           const offsetSensorX = this.config.dist_x_sensores || 0
           const offsetSensorY = this.config.dist_y_sensores_offset || 0
 
-          const xSensorFinal = xCaboFinal + offsetSensorX
+          const xSensorFinal = xCabo + offsetSensorX
           const ySensorFinal = ySensorBase + offsetSensorY
 
           if (ySensorFinal > 10 && ySensorFinal < (this.alturaSvg - 60)) {
@@ -495,50 +475,125 @@ export default {
       return elementos
     },
 
+    // Função para calcular limites do fundo do armazém
+    calcularLimitesFundoArmazem() {
+      const lb = this.config.lb || 350 // Largura do armazém
+      const lf = this.config.lf || 250 // Largura do fundo
+      const le = this.config.le || 15  // Espessura lateral
+      
+      // Calcular limites do fundo baseado no tipo de fundo
+      const inicioFundo = (lb - lf) / 2 // Posição X onde começa o fundo
+      const fimFundo = inicioFundo + lf // Posição X onde termina o fundo
+      
+      // Margem de segurança ajustada para diferentes quantidades de pêndulos
+      const quantidadePendulos = this.modeloAtual?.quantidadePendulos || 3
+      const escala_sensores = this.config.escala_sensores || 16
+      const metadeEscala = escala_sensores / 2
+      
+      // Margem adaptativa: menor margem para mais pêndulos
+      let margemSeguranca = 15
+      if (quantidadePendulos >= 10) {
+        margemSeguranca = 8
+      } else if (quantidadePendulos >= 5) {
+        margemSeguranca = 10
+      }
+      
+      const xMinimo = inicioFundo + margemSeguranca + metadeEscala
+      const xMaximo = fimFundo - margemSeguranca - metadeEscala
+      const larguraUtil = xMaximo - xMinimo
+      
+      return {
+        xMinimo,
+        xMaximo,
+        larguraUtil,
+        centro: lb / 2,
+        inicioFundo,
+        fimFundo,
+        margemSeguranca,
+        quantidadePendulos
+      }
+    },
+
+    // Função para validar posição dentro dos limites do fundo
+    validarPosicaoDentroDoFundo(posicao) {
+      const limites = this.calcularLimitesFundoArmazem()
+      
+      if (posicao < limites.xMinimo) {
+        console.warn(`⚠️ [RENDER] Posição ${posicao} ajustada para ${limites.xMinimo} (limite mínimo do fundo)`)
+        return limites.xMinimo
+      }
+      
+      if (posicao > limites.xMaximo) {
+        console.warn(`⚠️ [RENDER] Posição ${posicao} ajustada para ${limites.xMaximo} (limite máximo do fundo)`)
+        return limites.xMaximo
+      }
+      
+      return posicao
+    },
+
     calcularPosicoesCabos() {
       const quantidadePendulos = this.modeloAtual?.quantidadePendulos || 3
-      const larguraTotal = this.config.lb || 350
-      const centroArmazem = larguraTotal / 2
-
-      const margemMinima = 15
-      const larguraUtilizavel = larguraTotal - (2 * margemMinima)
+      const limitesFundo = this.calcularLimitesFundoArmazem()
+      
+      console.log(`📐 [RENDER] Limites do fundo calculados:`, limitesFundo)
+      
       const posicoes = []
 
+      // Distribuir sempre dentro do fundo, independente da quantidade
       if (quantidadePendulos === 1) {
-        posicoes.push(centroArmazem)
+        posicoes.push(limitesFundo.centro)
       } else {
-        const espacamento = larguraUtilizavel / (quantidadePendulos - 1)
+        // Calcular espaçamento dentro dos limites do fundo com margem de segurança
+        const margemInterna = 15 // Margem adicional para garantir que não fique muito na borda
+        const larguraUtil = limitesFundo.larguraUtil - (2 * margemInterna)
+        const espacamento = larguraUtil / (quantidadePendulos - 1)
 
         for (let i = 0; i < quantidadePendulos; i++) {
-          const posicaoX = margemMinima + (i * espacamento)
+          const posicaoX = limitesFundo.xMinimo + margemInterna + (i * espacamento)
           posicoes.push(posicaoX)
-        }
-
-        const primeiroCabo = posicoes[0]
-        const ultimoCabo = posicoes[posicoes.length - 1]
-        const centroConjunto = (primeiroCabo + ultimoCabo) / 2
-        const ajusteCentralizacao = centroArmazem - centroConjunto
-
-        for (let i = 0; i < posicoes.length; i++) {
-          posicoes[i] += ajusteCentralizacao
         }
       }
 
-      // Aplica os offsets definidos no config.posicoesCabos
-      if (this.modeloAtual?.posicoesCabos) {
-        Object.keys(this.modeloAtual.posicoesCabos).forEach(penduloKey => {
-          const penduloIndex = parseInt(penduloKey) - 1 // Ajusta para índice baseado em 0
+      // Aplicar posições customizadas se existirem, mas sempre validando
+      if (this.config.posicoesCabos) {
+        Object.keys(this.config.posicoesCabos).forEach(penduloKey => {
+          const penduloIndex = parseInt(penduloKey) - 1
           if (penduloIndex >= 0 && penduloIndex < posicoes.length) {
-            const offset = this.modeloAtual.posicoesCabos[penduloKey]
-            let novaPosicao = posicoes[penduloIndex] + (parseFloat(offset.x) || 0)
+            const posicaoCabo = this.config.posicoesCabos[penduloKey]
+            
+            let novaPosicao = posicoes[penduloIndex] // Começar com posição padrão
+            
+            // Aplicar posição customizada se válida
+            if (posicaoCabo.x !== undefined && posicaoCabo.x !== null) {
+              const posicaoCustomizada = parseFloat(posicaoCabo.x)
+              if (!isNaN(posicaoCustomizada)) {
+                novaPosicao = posicaoCustomizada
+              }
+            }
+            
+            // Aplicar offset se existir
+            if (posicaoCabo.offsetX !== undefined && posicaoCabo.offsetX !== null) {
+              const offset = parseFloat(posicaoCabo.offsetX)
+              if (!isNaN(offset)) {
+                novaPosicao += offset
+              }
+            }
 
-            // Garante que a posição não saia dos limites do armazém
-            novaPosicao = Math.max(margemMinima, Math.min(novaPosicao, larguraTotal - margemMinima))
+            // SEMPRE validar que a posição final está dentro do fundo
+            novaPosicao = this.validarPosicaoDentroDoFundo(novaPosicao)
             posicoes[penduloIndex] = novaPosicao
+            
+            console.log(`🎯 [RENDER] Cabo ${penduloKey} - Posição aplicada: ${novaPosicao}`)
           }
         })
       }
 
+      // Validação final: garantir que todas as posições estão dentro do fundo
+      for (let i = 0; i < posicoes.length; i++) {
+        posicoes[i] = this.validarPosicaoDentroDoFundo(posicoes[i])
+      }
+
+      console.log(`✅ [RENDER] ${quantidadePendulos} pêndulos finalizados dentro do fundo:`, posicoes)
       return posicoes
     },
 

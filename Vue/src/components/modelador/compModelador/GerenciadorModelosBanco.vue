@@ -362,7 +362,7 @@ export default {
         // Para armazém, usar consolidação baseada no localStorage
         if (this.tipoAtivo === 'armazem') {
           console.log('🔄 [GerenciadorModelosBanco] Consolidando modelos do localStorage...')
-          
+
           // Consolidar todos os modelos salvos no localStorage para o formato do banco
           const { configuracaoService } = await import('../services/configuracaoService')
           const dadosConsolidados = configuracaoService.consolidarModelosParaBanco(
@@ -414,7 +414,7 @@ export default {
         } else {
           // Para silo, usar dados diretos
           console.log('🔄 [GerenciadorModelosBanco] Preparando dados do silo...')
-          
+
           const dadosCompletos = this.prepararDadosParaSalvar()
 
           if (!dadosCompletos || Object.keys(dadosCompletos).length === 0) {
@@ -548,16 +548,41 @@ export default {
           // Capturar TODAS as configurações do modelo
           const configuracao = modelo.configuracao || modelo.config || {}
 
+          // CORREÇÃO: Garantir que posições dos cabos sejam preservadas
+          const posicoesCabosOriginais = modelo.posicoesCabos || {}
+
+          // CORREÇÃO: Carregar TODOS os dados do localStorage (posições E sensores)
+          const dadosLocalStorage = this.carregarDadosCompletosDoLocalStorage(i)
+          const posicoesCabosCompletas = { ...posicoesCabosOriginais, ...dadosLocalStorage.posicoesCabos }
+          const sensoresCompletos = { ...modelo.sensoresPorPendulo, ...dadosLocalStorage.sensoresPorPendulo }
+          const alturasCompletas = { ...dadosLocalStorage.alturasSensores }
+
+          console.log(`📦 [prepararModelosCompletos] Modelo ${i} - Dados completos integrados:`, {
+            posicoesCabos: Object.keys(posicoesCabosCompletas).length,
+            sensoresPorPendulo: sensoresCompletos,
+            alturasSensores: alturasCompletas,
+            quantidadePendulos: dadosLocalStorage.quantidadePendulos
+          })
+
           modelos[i] = {
             numero: i,
             nome: modelo.nome,
             posicao: modelo.posicao || this.determinarPosicaoModelo(i, this.quantidadeModelosArcos),
 
             // Todas as configurações possíveis
-            configuracao: { ...configuracao },
-            quantidadePendulos: modelo.quantidadePendulos || 3,
-            sensoresPorPendulo: { ...(modelo.sensoresPorPendulo || {}) },
-            posicoesCabos: { ...(modelo.posicoesCabos || {}) },
+            configuracao: { 
+              ...configuracao,
+              // CORREÇÃO: Incluir TODOS os dados na configuração principal
+              posicoesCabos: posicoesCabosCompletas,
+              posicoesCabosPersonalizadas: posicoesCabosCompletas,
+              sensoresPorPendulo: sensoresCompletos,
+              alturasSensores: alturasCompletas,
+              quantidadePendulos: dadosLocalStorage.quantidadePendulos
+            },
+            quantidadePendulos: dadosLocalStorage.quantidadePendulos,
+            sensoresPorPendulo: { ...sensoresCompletos },
+            alturasSensores: { ...alturasCompletas },
+            posicoesCabos: { ...posicoesCabosCompletas },
 
             // Dados adicionais se existirem
             dimensoes: { ...(modelo.dimensoes || {}) },
@@ -788,6 +813,57 @@ export default {
           else return 'Modelo Fundo'
         default: return `Modelo ${numeroModelo}`
       }
+    },
+
+    // CORREÇÃO: Método para carregar TODOS os dados do localStorage (posições E sensores)
+    carregarDadosCompletosDoLocalStorage(numeroModelo) {
+      try {
+        const chaveModelo = `modelo_${numeroModelo}`
+        const dadosModelo = localStorage.getItem(chaveModelo)
+
+        if (dadosModelo) {
+          const modeloParsed = JSON.parse(dadosModelo)
+
+          if (modeloParsed.configuracao) {
+            const dadosCompletos = {
+              posicoesCabos: modeloParsed.configuracao.posicoesCabos || {},
+              sensoresPorPendulo: modeloParsed.configuracao.sensoresPorPendulo || {},
+              alturasSensores: modeloParsed.configuracao.alturasSensores || {},
+              quantidadePendulos: modeloParsed.configuracao.quantidadePendulos || 3
+            }
+
+            console.log(`🎯 [carregarDadosCompletosDoLocalStorage] Modelo ${numeroModelo} - Dados completos:`, {
+              posicoesCabos: Object.keys(dadosCompletos.posicoesCabos).length,
+              sensoresPorPendulo: dadosCompletos.sensoresPorPendulo,
+              alturasSensores: dadosCompletos.alturasSensores,
+              quantidadePendulos: dadosCompletos.quantidadePendulos
+            })
+
+            return dadosCompletos
+          }
+        }
+
+        return {
+          posicoesCabos: {},
+          sensoresPorPendulo: {},
+          alturasSensores: {},
+          quantidadePendulos: 3
+        }
+      } catch (error) {
+        console.warn(`⚠️ [carregarDadosCompletosDoLocalStorage] Erro ao carregar dados do modelo ${numeroModelo}:`, error)
+        return {
+          posicoesCabos: {},
+          sensoresPorPendulo: {},
+          alturasSensores: {},
+          quantidadePendulos: 3
+        }
+      }
+    },
+
+    // MANTÉM compatibilidade com método antigo
+    carregarPosicoesCabosDoLocalStorage(numeroModelo) {
+      const dadosCompletos = this.carregarDadosCompletosDoLocalStorage(numeroModelo)
+      return dadosCompletos.posicoesCabos
     },
 
     resetarEstadoSalvamento() {
@@ -1098,14 +1174,100 @@ export default {
     capturarTodasPosicoesCabos() {
       try {
         const posicoesCabos = {}
+
+        console.log('🔍 [capturarTodasPosicoesCabos] Iniciando captura EXATA das posições dos cabos...')
+
         for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
           const modelo = this.modelosArcos?.[i]
-          if (modelo && modelo.posicoesCabos) {
-            posicoesCabos[i] = modelo.posicoesCabos
+
+          if (!modelo) {
+            console.warn(`⚠️ [capturarTodasPosicoesCabos] Modelo ${i} não encontrado`)
+            continue
+          }
+
+          // CORREÇÃO CRÍTICA: Priorizar localStorage para capturar posições EXATAS
+          const posicoesLocalStorage = this.carregarPosicoesCabosDoLocalStorage(i)
+          let posicoesDoCaboFinal = {}
+
+          if (Object.keys(posicoesLocalStorage).length > 0) {
+            // PRIORIDADE 1: localStorage tem as posições mais atualizadas e exatas
+            posicoesDoCaboFinal = { ...posicoesLocalStorage }
+            console.log(`🎯 [capturarTodasPosicoesCabos] Modelo ${i} - Usando posições EXATAS do localStorage:`, posicoesLocalStorage)
+          } else {
+            // PRIORIDADE 2: Buscar nas configurações do modelo
+            const fontesPosicoes = [
+              modelo.posicoesCabos,
+              modelo.configuracao?.posicoesCabos,
+              modelo.configuracao?.posicoesCabosIndividuais,
+              modelo.configuracao?.posicoesCabosPersonalizadas
+            ]
+
+            fontesPosicoes.forEach((fonte, index) => {
+              if (fonte && Object.keys(fonte).length > 0) {
+                Object.assign(posicoesDoCaboFinal, fonte)
+                console.log(`📍 [capturarTodasPosicoesCabos] Modelo ${i} - Fonte ${index + 1}:`, fonte)
+              }
+            })
+          }
+
+          // Validar e preservar EXATAMENTE as coordenadas
+          if (Object.keys(posicoesDoCaboFinal).length > 0) {
+            const cabosPreservados = {}
+            
+            Object.keys(posicoesDoCaboFinal).forEach(cabo => {
+              const posicao = posicoesDoCaboFinal[cabo]
+              
+              if (posicao && typeof posicao === 'object') {
+                // PRESERVAR EXATAMENTE todos os valores de posição sem alteração
+                cabosPreservados[cabo] = {
+                  x: posicao.x !== undefined ? posicao.x : 0,
+                  y: posicao.y !== undefined ? posicao.y : 0,
+                  dx: posicao.dx !== undefined ? posicao.dx : 0,
+                  dy: posicao.dy !== undefined ? posicao.dy : 0,
+                  offsetX: posicao.offsetX !== undefined ? posicao.offsetX : 0,
+                  offsetY: posicao.offsetY !== undefined ? posicao.offsetY : 0,
+                  altura: posicao.altura !== undefined ? posicao.altura : 0,
+                  distanciaHorizontal: posicao.distanciaHorizontal !== undefined ? posicao.distanciaHorizontal : 0,
+                  numeroSensores: posicao.numeroSensores !== undefined ? posicao.numeroSensores : 3,
+                  timestampAlteracao: posicao.timestampAlteracao || Date.now()
+                }
+                
+                console.log(`🎯 [capturarTodasPosicoesCabos] Modelo ${i} - Cabo ${cabo} preservado EXATO:`, cabosPreservados[cabo])
+              }
+            })
+
+            if (Object.keys(cabosPreservados).length > 0) {
+              posicoesCabos[i] = cabosPreservados
+
+              console.log(`✅ [capturarTodasPosicoesCabos] Modelo ${i} - Posições EXATAS capturadas:`, {
+                quantidadeCabos: Object.keys(cabosPreservados).length,
+                cabos: Object.keys(cabosPreservados),
+                coordenadasExatas: cabosPreservados
+              })
+            }
+          } else {
+            console.warn(`⚠️ [capturarTodasPosicoesCabos] Modelo ${i} - Nenhuma posição encontrada`)
           }
         }
+
+        console.log('🎯 [capturarTodasPosicoesCabos] RESULTADO FINAL - Posições EXATAS capturadas:', {
+          totalModelos: Object.keys(posicoesCabos).length,
+          modelosComPosicoes: Object.keys(posicoesCabos),
+          resumoDetalhado: Object.keys(posicoesCabos).reduce((acc, modelo) => {
+            const cabosDoModelo = posicoesCabos[modelo]
+            acc[`modelo_${modelo}`] = {
+              totalCabos: Object.keys(cabosDoModelo).length,
+              cabos: Object.keys(cabosDoModelo),
+              coordenadas: cabosDoModelo
+            }
+            return acc
+          }, {}),
+          dadosCompletos: posicoesCabos
+        })
+
         return posicoesCabos
       } catch (error) {
+        console.error('❌ [capturarTodasPosicoesCabos] Erro:', error)
         return {}
       }
     },
