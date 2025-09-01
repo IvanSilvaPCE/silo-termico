@@ -1,7 +1,7 @@
 <template>
   <div class="svg-container-responsive w-100 h-100">
     <svg
-      :viewBox="`0 0 ${larguraSvg} ${alturaSvg}`"
+      :viewBox="`0 0 ${dimensoesCalculadas.largura} ${dimensoesCalculadas.altura}`"
       :style="{
         width: '100%',
         height: '100%',
@@ -62,7 +62,13 @@ export default {
         posicao_horizontal: 0,
         posicao_vertical: 0,
         afastamento_vertical_pendulo: 0,
-        posicoesCabos: {}
+        posicoesCabos: {},
+        // Dimensões específicas baseadas no fundo
+        dimensoesSvgFundo: {
+          largura: null,
+          altura: null,
+          baseadoEm: 'config_fundo'
+        }
       })
     },
     dadosSensores: {
@@ -84,11 +90,38 @@ export default {
     alturaSvg: {
       type: Number,
       default: 300
+    },
+    // Nova prop para forçar dimensões específicas
+    dimensoesPersonalizadas: {
+      type: Object,
+      default: null
     }
   },
   data() {
     return {
       svgContent: ''
+    }
+  },
+  computed: {
+    dimensoesCalculadas() {
+      // Se há dimensões personalizadas vindas do banco, usar essas
+      if (this.dimensoesPersonalizadas) {
+        return {
+          largura: this.dimensoesPersonalizadas.largura || this.calcularDimensoesBaseadoNoFundo().largura,
+          altura: this.dimensoesPersonalizadas.altura || this.calcularDimensoesBaseadoNoFundo().altura
+        }
+      }
+
+      // Se há dimensões salvas na configuração, usar essas
+      if (this.config.dimensoesSvgFundo && this.config.dimensoesSvgFundo.largura && this.config.dimensoesSvgFundo.altura) {
+        return {
+          largura: this.config.dimensoesSvgFundo.largura,
+          altura: this.config.dimensoesSvgFundo.altura
+        }
+      }
+
+      // Caso contrário, calcular baseado no fundo
+      return this.calcularDimensoesBaseadoNoFundo()
     }
   },
   watch: {
@@ -124,6 +157,56 @@ export default {
   methods: {
     updateSVG() {
       this.svgContent = this.renderArmazem() + this.renderSensores()
+    },
+
+    calcularDimensoesBaseadoNoFundo() {
+      const config = this.config
+      
+      // USAR EXATAMENTE A MESMA LÓGICA DO MODELADORSVG
+      const larguraBase = Math.max(config.lb || 350, 300)
+      
+      // Altura baseada no fundo IGUAL AO MODELADORSVG
+      const alturaFundo = config.pb + 20  // Altura base + margem
+      const alturaTopoNecessaria = 80     // Espaço adequado para o topo
+      const alturaTotal = alturaFundo + alturaTopoNecessaria
+
+      // Para diferentes tipos de fundo, ajustar altura IGUAL AO MODELADORSVG
+      let extensaoFundo = 0
+      if (config.tipo_fundo === 1) {
+        extensaoFundo = config.altura_funil_v || 40
+      } else if (config.tipo_fundo === 2) {
+        extensaoFundo = config.altura_duplo_v || 35
+      }
+
+      const alturaFinal = Math.max(alturaTotal + extensaoFundo, 280)
+
+      // Se há sensores, calcular espaço necessário IGUAL AO MODELADORSVG
+      if (this.modeloAtual && this.modeloAtual.quantidadePendulos) {
+        const maxSensores = Math.max(...Object.values(this.modeloAtual.sensoresPorPendulo || {}))
+        const escala_sensores = config.escala_sensores || 16
+        const dist_y_sensores = config.dist_y_sensores || 12
+        const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
+        
+        const alturaSensores = maxSensores * dist_y_sensores + escala_sensores
+        const margemSuperior = 30
+        const margemInferior = 50
+        const margemPendulo = 20
+
+        const alturaComSensores = Math.max(
+          alturaFinal,
+          margemSuperior + alturaSensores + margemInferior + margemPendulo
+        )
+        
+        return {
+          largura: larguraBase,
+          altura: Math.max(alturaComSensores, 280)
+        }
+      }
+      
+      return {
+        largura: larguraBase,
+        altura: Math.max(alturaFinal, 250)
+      }
     },
 
     renderArmazem() {
@@ -337,55 +420,75 @@ export default {
 
       const escala_sensores = this.config.escala_sensores || 16
       const dist_y_sensores = this.config.dist_y_sensores || 12
-      const posicao_horizontal_global = this.config.posicao_horizontal || 0
-      const posicao_vertical_global = this.config.posicao_vertical || 0
+      const dist_x_sensores = this.config.dist_x_sensores || 0
+      const posicao_horizontal = this.config.posicao_horizontal || 0
+      const posicao_vertical = this.config.posicao_vertical || 0
       const afastamento_vertical_pendulo = this.config.afastamento_vertical_pendulo || 0
 
-      const pb = this.config.pb || 185
-      const yPenduloBase = pb + 15
+      // USAR EXATAMENTE A MESMA LÓGICA DO MODELADORSVG
+      const pb = (this.config.pb || this.dimensoesCalculadas.altura - 50) + (this.dimensoesCalculadas.altura < 300 ? 0 : 50)
+      const yPenduloBase = pb + 15 + posicao_vertical
+
+      const totalCabos = Object.keys(this.dadosSensores.leitura).length
+      const indiceCentral = Math.floor((totalCabos - 1) / 2)
+
+      // Calcular posições automáticas EXATAMENTE igual ao ModeladorSVG
+      const larguraTotal = this.config.lb || 350
+      const margemLateral = 35
+      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+      const posicoesCabos = []
+
+      if (totalCabos === 1) {
+        posicoesCabos.push(larguraTotal / 2)
+      } else {
+        const espacamento = larguraUtilizavel / (totalCabos - 1)
+        for (let i = 0; i < totalCabos; i++) {
+          posicoesCabos.push(margemLateral + (i * espacamento))
+        }
+      }
 
       let elementos = ''
-      
-      // Usar posições calculadas e validadas
-      const posicoesCabosValidadas = this.calcularPosicoesCabos()
 
       Object.entries(this.dadosSensores.leitura).forEach(([numeroPenduloStr, sensores], index) => {
-        const pendulo = { numero: parseInt(numeroPenduloStr), sensores: sensores }
-        const yPendulo = yPenduloBase + posicao_vertical_global + afastamento_vertical_pendulo
+        const numeroPendulo = parseInt(numeroPenduloStr)
+        
+        // USAR POSIÇÕES INDIVIDUAIS SALVAS DO MODELO
+        let xCaboFinal = posicoesCabos[index] || larguraTotal / 2
+        let yPenduloFinal = yPenduloBase
 
-        // Usar posição validada ou fallback
-        let xCaboBase = posicoesCabosValidadas[index] || (this.config.lb || 350) / 2
-        let offsetIndividualX = 0
-        let offsetIndividualY = 0
-
-        // Aplicar offsets individuais se existirem
-        if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
-          const posicaoCabo = this.config.posicoesCabos[pendulo.numero]
+        // Aplicar posições individuais salvas - PRIORIDADE MÁXIMA
+        if (this.config.posicoesCabos && this.config.posicoesCabos[numeroPendulo]) {
+          const posicaoCabo = this.config.posicoesCabos[numeroPendulo]
           
-          // Aplicar offsets adicionais
-          offsetIndividualX = parseFloat(posicaoCabo.offsetX) || 0
-          offsetIndividualY = parseFloat(posicaoCabo.offsetY) || 0
-          
-          // Posição Y customizada (altura do cabo)
-          if (posicaoCabo.y !== undefined && posicaoCabo.y !== null) {
-            offsetIndividualY += parseFloat(posicaoCabo.y) || 0
+          // USAR POSIÇÕES SALVAS DIRETAMENTE
+          if (posicaoCabo.x !== undefined && posicaoCabo.x !== null) {
+            xCaboFinal = parseFloat(posicaoCabo.x)
           }
-
-          console.log(`🎯 [RENDER] Cabo ${pendulo.numero} - Posições: base=${xCaboBase}, offsetX=${offsetIndividualX}, offsetY=${offsetIndividualY}`)
+          
+          if (posicaoCabo.y !== undefined && posicaoCabo.y !== null) {
+            yPenduloFinal = yPenduloBase + parseFloat(posicaoCabo.y)
+          }
+          
+          // Aplicar offsets adicionais se existirem
+          if (posicaoCabo.offsetX) {
+            xCaboFinal += parseFloat(posicaoCabo.offsetX)
+          }
+          
+          if (posicaoCabo.offsetY) {
+            yPenduloFinal += parseFloat(posicaoCabo.offsetY)
+          }
+        } else {
+          // Fallback para cálculo automático apenas se não houver posição salva
+          const distanciaDoMeio = index - indiceCentral
+          const deslocamentoX = distanciaDoMeio * dist_x_sensores
+          xCaboFinal = posicoesCabos[index] + posicao_horizontal + deslocamentoX
+          yPenduloFinal = yPenduloBase + posicao_vertical
         }
 
-        // Posições finais
-        const xCaboFinal = xCaboBase + posicao_horizontal_global + offsetIndividualX
-        const yPenduloFinal = yPendulo + offsetIndividualY
-
-        // Validação final da posição horizontal
-        const posicaoValidada = this.validarPosicaoDentroDoFundo(xCaboFinal)
-        const xCabo = posicaoValidada
-
-        // Retângulo do pêndulo
+        // Retângulo do pêndulo - MESMO ESTILO DO MODELADORSVG
         elementos += `
           <rect
-            x="${xCabo - escala_sensores / 2}"
+            x="${xCaboFinal - escala_sensores / 2}"
             y="${yPenduloFinal}"
             width="${escala_sensores}"
             height="${escala_sensores / 2}"
@@ -395,10 +498,10 @@ export default {
           />
         `
 
-        // Texto do pêndulo
+        // Texto do pêndulo - MESMO ESTILO DO MODELADORSVG
         elementos += `
           <text
-            x="${xCabo}"
+            x="${xCaboFinal}"
             y="${yPenduloFinal + escala_sensores / 4}"
             text-anchor="middle"
             dominant-baseline="central"
@@ -407,25 +510,33 @@ export default {
             font-family="Arial"
             fill="white"
           >
-            P${pendulo.numero}
+            P${numeroPendulo}
           </text>
         `
 
-        // Sensores
-        Object.entries(pendulo.sensores).forEach(([numeroSensor, dadosSensor]) => {
+        // Sensores - USAR MESMA FÓRMULA DE POSICIONAMENTO DO MODELADORSVG
+        Object.entries(sensores).forEach(([numeroSensor, dadosSensor]) => {
           const s = parseInt(numeroSensor)
-          const ySensorBase = yPendulo - dist_y_sensores * s - 25
-          const offsetSensorX = this.config.dist_x_sensores || 0
-          const offsetSensorY = this.config.dist_y_sensores_offset || 0
+          // MESMA FÓRMULA DO MODELADORSVG: yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+          const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
+          const xSensorFinal = xCaboFinal
+          const ySensorFinal = ySensorBase
 
-          const xSensorFinal = xCabo + offsetSensorX
-          const ySensorFinal = ySensorBase + offsetSensorY
+          // VERIFICAÇÃO DE LIMITES IGUAL AO MODELADORSVG
+          if (ySensorFinal > 50 && ySensorFinal < (pb - 10)) {
+            const [temp, pontoQuente, preAlarme, falha, nivel] = dadosSensor
+            let cor = "#ccc"
+            let valorSensor = "0"
 
-          if (ySensorFinal > 10 && ySensorFinal < (this.alturaSvg - 60)) {
-            const [temp] = dadosSensor
-            const cor = this.corFaixaExata(temp)
+            if (!nivel || temp == 0) {
+              cor = "#e6e6e6"
+              valorSensor = "0"
+            } else {
+              cor = this.corFaixaExata(parseFloat(temp) || 0)
+              valorSensor = falha ? "ERRO" : (parseFloat(temp) || 0).toFixed(1)
+            }
 
-            // Retângulo do sensor
+            // Retângulo do sensor - MESMO ESTILO DO MODELADORSVG
             elementos += `
               <rect
                 x="${xSensorFinal - escala_sensores / 2}"
@@ -439,7 +550,7 @@ export default {
               />
             `
 
-            // Texto do valor
+            // Texto do valor - MESMO ESTILO DO MODELADORSVG
             elementos += `
               <text
                 x="${xSensorFinal}"
@@ -450,11 +561,11 @@ export default {
                 font-family="Arial"
                 fill="${cor === "#ff2200" ? "white" : "black"}"
               >
-                ${temp.toFixed(1)}
+                ${valorSensor}
               </text>
             `
 
-            // Nome do sensor
+            // Nome do sensor - MESMO ESTILO DO MODELADORSVG
             elementos += `
               <text
                 x="${xSensorFinal - escala_sensores / 2 - 2}"
@@ -475,127 +586,7 @@ export default {
       return elementos
     },
 
-    // Função para calcular limites do fundo do armazém
-    calcularLimitesFundoArmazem() {
-      const lb = this.config.lb || 350 // Largura do armazém
-      const lf = this.config.lf || 250 // Largura do fundo
-      const le = this.config.le || 15  // Espessura lateral
-      
-      // Calcular limites do fundo baseado no tipo de fundo
-      const inicioFundo = (lb - lf) / 2 // Posição X onde começa o fundo
-      const fimFundo = inicioFundo + lf // Posição X onde termina o fundo
-      
-      // Margem de segurança ajustada para diferentes quantidades de pêndulos
-      const quantidadePendulos = this.modeloAtual?.quantidadePendulos || 3
-      const escala_sensores = this.config.escala_sensores || 16
-      const metadeEscala = escala_sensores / 2
-      
-      // Margem adaptativa: menor margem para mais pêndulos
-      let margemSeguranca = 15
-      if (quantidadePendulos >= 10) {
-        margemSeguranca = 8
-      } else if (quantidadePendulos >= 5) {
-        margemSeguranca = 10
-      }
-      
-      const xMinimo = inicioFundo + margemSeguranca + metadeEscala
-      const xMaximo = fimFundo - margemSeguranca - metadeEscala
-      const larguraUtil = xMaximo - xMinimo
-      
-      return {
-        xMinimo,
-        xMaximo,
-        larguraUtil,
-        centro: lb / 2,
-        inicioFundo,
-        fimFundo,
-        margemSeguranca,
-        quantidadePendulos
-      }
-    },
-
-    // Função para validar posição dentro dos limites do fundo
-    validarPosicaoDentroDoFundo(posicao) {
-      const limites = this.calcularLimitesFundoArmazem()
-      
-      if (posicao < limites.xMinimo) {
-        console.warn(`⚠️ [RENDER] Posição ${posicao} ajustada para ${limites.xMinimo} (limite mínimo do fundo)`)
-        return limites.xMinimo
-      }
-      
-      if (posicao > limites.xMaximo) {
-        console.warn(`⚠️ [RENDER] Posição ${posicao} ajustada para ${limites.xMaximo} (limite máximo do fundo)`)
-        return limites.xMaximo
-      }
-      
-      return posicao
-    },
-
-    calcularPosicoesCabos() {
-      const quantidadePendulos = this.modeloAtual?.quantidadePendulos || 3
-      const limitesFundo = this.calcularLimitesFundoArmazem()
-      
-      console.log(`📐 [RENDER] Limites do fundo calculados:`, limitesFundo)
-      
-      const posicoes = []
-
-      // Distribuir sempre dentro do fundo, independente da quantidade
-      if (quantidadePendulos === 1) {
-        posicoes.push(limitesFundo.centro)
-      } else {
-        // Calcular espaçamento dentro dos limites do fundo com margem de segurança
-        const margemInterna = 15 // Margem adicional para garantir que não fique muito na borda
-        const larguraUtil = limitesFundo.larguraUtil - (2 * margemInterna)
-        const espacamento = larguraUtil / (quantidadePendulos - 1)
-
-        for (let i = 0; i < quantidadePendulos; i++) {
-          const posicaoX = limitesFundo.xMinimo + margemInterna + (i * espacamento)
-          posicoes.push(posicaoX)
-        }
-      }
-
-      // Aplicar posições customizadas se existirem, mas sempre validando
-      if (this.config.posicoesCabos) {
-        Object.keys(this.config.posicoesCabos).forEach(penduloKey => {
-          const penduloIndex = parseInt(penduloKey) - 1
-          if (penduloIndex >= 0 && penduloIndex < posicoes.length) {
-            const posicaoCabo = this.config.posicoesCabos[penduloKey]
-            
-            let novaPosicao = posicoes[penduloIndex] // Começar com posição padrão
-            
-            // Aplicar posição customizada se válida
-            if (posicaoCabo.x !== undefined && posicaoCabo.x !== null) {
-              const posicaoCustomizada = parseFloat(posicaoCabo.x)
-              if (!isNaN(posicaoCustomizada)) {
-                novaPosicao = posicaoCustomizada
-              }
-            }
-            
-            // Aplicar offset se existir
-            if (posicaoCabo.offsetX !== undefined && posicaoCabo.offsetX !== null) {
-              const offset = parseFloat(posicaoCabo.offsetX)
-              if (!isNaN(offset)) {
-                novaPosicao += offset
-              }
-            }
-
-            // SEMPRE validar que a posição final está dentro do fundo
-            novaPosicao = this.validarPosicaoDentroDoFundo(novaPosicao)
-            posicoes[penduloIndex] = novaPosicao
-            
-            console.log(`🎯 [RENDER] Cabo ${penduloKey} - Posição aplicada: ${novaPosicao}`)
-          }
-        })
-      }
-
-      // Validação final: garantir que todas as posições estão dentro do fundo
-      for (let i = 0; i < posicoes.length; i++) {
-        posicoes[i] = this.validarPosicaoDentroDoFundo(posicoes[i])
-      }
-
-      console.log(`✅ [RENDER] ${quantidadePendulos} pêndulos finalizados dentro do fundo:`, posicoes)
-      return posicoes
-    },
+    
 
     corFaixaExata(temp) {
       if (temp < 12) return '#0384fc'
@@ -608,6 +599,24 @@ export default {
       else if (temp < 35) return '#ff2200'
       else if (temp < 50) return '#ff0090'
       else return '#f700ff'
+    },
+
+    // Método para forçar recálculo de dimensões
+    recalcularDimensoes() {
+      const novasDimensoes = this.calcularDimensoesBaseadoNoFundo()
+      this.$emit('dimensoes-atualizadas', novasDimensoes)
+      return novasDimensoes
+    },
+
+    // Método para aplicar dimensões específicas vindas do banco
+    aplicarDimensoesDoBanco(dimensoes) {
+      if (dimensoes && dimensoes.largura && dimensoes.altura) {
+        this.$emit('dimensoes-aplicadas', {
+          largura: dimensoes.largura,
+          altura: dimensoes.altura,
+          origem: 'banco_dados'
+        })
+      }
     }
   }
 }
