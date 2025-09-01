@@ -318,7 +318,7 @@ export default {
         pb: 185,
         lb: 350,
         hb: 30,
-        hf: 5,
+        hf: 6,
         lf: 250,
         le: 15,
         ht: 50,
@@ -455,14 +455,11 @@ export default {
   },
 
   async mounted() {
+    this.resetarModelosParaPadrao()
+    
     await this.verificarDadosArcoRecebidos()
     await this.carregarDadosAPI()
     await this.carregarModelosDoBanco()
-
-    // Tentar carregar estado dos modelos salvo anteriormente
-    if (!this.carregarEstadoModelosSalvo()) {
-      this.resetarModelosParaPadrao()
-    }
 
     this.inicializarPosicoesCabos()
     this.updateSVG()
@@ -1223,141 +1220,7 @@ export default {
       return logicas[this.quantidadeModelosArcos] || logicas[1]
     },
 
-    prepararModelosParaSalvar() {
-      const modelosPreparados = {}
-
-      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
-        const modelo = this.modelosArcos[i]
-        if (modelo) {
-          const configCompleta = modelo.config || this.configArmazem
-          modelosPreparados[i] = {
-            numero: i,
-            nome: modelo.nome || `Modelo ${i}`,
-            posicao: modelo.posicao || this.determinarPosicaoDoModelo(i, this.quantidadeModelosArcos),
-            configuracao: {
-              // Garantir que TODAS as propriedades sejam salvas, mesmo as não alteradas
-              pb: configCompleta.pb || 185,
-              lb: configCompleta.lb || 350,
-              hb: configCompleta.hb || 30,
-              hf: configCompleta.hf || 5,
-              lf: configCompleta.lf || 250,
-              le: configCompleta.le || 15,
-              ht: configCompleta.ht || 50,
-              tipo_telhado: configCompleta.tipo_telhado || 1,
-              curvatura_topo: configCompleta.curvatura_topo || 30,
-              pontas_redondas: configCompleta.pontas_redondas || false,
-              raio_pontas: configCompleta.raio_pontas || 15,
-              estilo_laterais: configCompleta.estilo_laterais || 'reta',
-              curvatura_laterais: configCompleta.curvatura_laterais || 0,
-              tipo_fundo: configCompleta.tipo_fundo || 0,
-              altura_fundo_reto: configCompleta.altura_fundo_reto || 10,
-              altura_funil_v: configCompleta.altura_funil_v || 18,
-              posicao_ponta_v: configCompleta.posicao_ponta_v || 0,
-              inclinacao_funil_v: configCompleta.inclinacao_funil_v || 1,
-              largura_abertura_v: configCompleta.largura_abertura_v || 20,
-              altura_duplo_v: configCompleta.altura_duplo_v || 22,
-              posicao_v_esquerdo: configCompleta.posicao_v_esquerdo || -1,
-              posicao_v_direito: configCompleta.posicao_v_direito || 1,
-              largura_abertura_duplo_v: configCompleta.largura_abertura_duplo_v || 2,
-              altura_plataforma_duplo_v: configCompleta.altura_plataforma_duplo_v || 0.3,
-              largura_plataforma_duplo_v: configCompleta.largura_plataforma_duplo_v || 10,
-              deslocamento_horizontal_fundo: configCompleta.deslocamento_horizontal_fundo || 0,
-              deslocamento_vertical_fundo: configCompleta.deslocamento_vertical_fundo || -1,
-              escala_sensores: configCompleta.escala_sensores || 16,
-              dist_y_sensores: configCompleta.dist_y_sensores || 12,
-              dist_x_sensores: configCompleta.dist_x_sensores || 0,
-              posicao_horizontal: configCompleta.posicao_horizontal || 0,
-              posicao_vertical: configCompleta.posicao_vertical || 0,
-              afastamento_vertical_pendulo: configCompleta.afastamento_vertical_pendulo || 0
-            },
-            status: this.modelosSalvos[i] ? 'salvo' : 'pendente',
-            timestampUltimaEdicao: new Date().toISOString(),
-            // Incluir informações adicionais do modelo
-            metadados: {
-              criadoEm: modelo.criadoEm || new Date().toISOString(),
-              ultimaModificacao: new Date().toISOString(),
-              versaoModelo: '4.0'
-            },
-            quantidadePendulos: modelo.quantidadePendulos || 3,
-            sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-            posicoesCabos: modelo.posicoesCabos || {},
-            // Incluir estado completo do modelo se disponível
-            estadoCompleto: modelo.estadoCompleto || null
-          }
-        }
-      }
-
-      return modelosPreparados
-    },
-
-    prepararDadosParaBanco() {
-      console.log('🔄 [prepararDadosParaBanco] Preparando dados para salvar no banco')
-
-      if (this.modeloArcoAtual) {
-        this.salvarModeloAtualCompleto()
-      }
-
-      // Estrutura simples conforme especificação
-      const dadosCompletos = {
-        quantidadeModelos: this.quantidadeModelosArcos,
-        modelos: {},
-        configuracaoGlobal: { ...this.configArmazem },
-        dimensoesSVG: {
-          largura: this.larguraSVG,
-          altura: this.alturaSVG
-        }
-      }
-
-      // Preparar modelos individuais
-      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
-        const modelo = this.modelosArcos[i]
-        if (modelo) {
-          dadosCompletos.modelos[i] = {
-            nome: modelo.nome,
-            posicao: modelo.posicao,
-            config: modelo.config || this.configArmazem,
-            quantidadePendulos: modelo.quantidadePendulos || 3,
-            sensoresPorPendulo: modelo.sensoresPorPendulo || {}
-          }
-        }
-      }
-
-      return dadosCompletos
-    },
-
-    gerarMapeamentoArcos() {
-      const mapeamento = {}
-      const totalArcos = this.analiseArcos?.totalArcos || 1
-
-      for (let arco = 1; arco <= totalArcos; arco++) {
-        const modeloParaArco = this.determinarModeloParaArco(arco)
-        mapeamento[arco] = {
-          numeroArco: arco,
-          modeloUtilizado: modeloParaArco ? {
-            numero: Object.keys(this.modelosArcos).find(key =>
-              this.modelosArcos[key] === modeloParaArco
-            ),
-            nome: modeloParaArco.nome,
-            posicao: modeloParaArco.posicao
-          } : null,
-          pendulos: this.analiseArcos?.arcos[arco]?.totalPendulos || 0,
-          sensores: this.analiseArcos?.arcos[arco]?.totalSensores || 0
-        }
-      }
-
-      return mapeamento
-    },
-
-    gerarResumoConfiguracao(config) {
-      const totalArcos = config.estruturaArmazem.totalArcos
-      const totalModelos = config.configModelos.quantidadeModelos
-      const logica = config.configModelos.logicaDistribuicao.nome
-
-      return `Armazém "${config.nome}" salvo!\n\n` +
-        `📊 Estrutura: ${totalArcos} arcos, ${totalModelos} modelo(s)\n` +
-        `🎯 Lógica: ${logica}\n` +
-        `⚙️ Mapeamento completo gerado para todos os arcos`
-    },
+    
 
     salvarModeloAtual() {
       if (!this.modeloArcoAtual) {
@@ -1411,7 +1274,7 @@ export default {
         pb: 185,
         lb: 350,
         hb: 30,
-        hf: 5,
+        hf: 6,
         lf: 250,
         le: 15,
         ht: 50,
@@ -1536,60 +1399,24 @@ export default {
     },
 
     salvarModelosAutomatico() {
-      try {
-        if (typeof localStorage !== 'undefined') {
+      if (typeof localStorage !== 'undefined') {
+        try {
           const estadoModelos = {
             quantidadeModelos: this.quantidadeModelosArcos,
             modelosArcos: this.modelosArcos,
             modelosSalvos: this.modelosSalvos,
             modeloAtual: this.modeloArcoAtual,
             posicoesCabos: this.posicoesCabos,
-            timestamp: new Date().toISOString(),
-            versao: '3.0',
-            tipo: 'estado_modelos_arcos'
+            timestamp: new Date().toISOString()
           }
-
           localStorage.setItem('estadoModelosArcos', JSON.stringify(estadoModelos))
+        } catch (error) {
+          console.error('Erro ao salvar modelos:', error)
         }
-      } catch (error) {
-        console.error('Erro ao salvar modelos automaticamente:', error)
       }
     },
 
-    // Sistema de validação antes de salvar configuração final
-    validarModelosParaSalvar() {
-      const modelosValidados = {}
-      let todosValidados = true
-
-      for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
-        const modelo = this.modelosArcos[i]
-        if (!modelo || !this.modelosSalvos[i]) {
-          todosValidados = false
-          this.mostrarToast(`Modelo ${i} não foi salvo ainda! Salve todos os modelos antes de salvar a configuração.`, 'warning')
-          break
-        }
-
-        // Validar se o modelo tem configuração completa
-        if (!modelo.config || !modelo.nome || !modelo.posicao) {
-          todosValidados = false
-          this.mostrarToast(`Modelo ${i} está incompleto! Configure nome, posição e configurações.`, 'warning')
-          break
-        }
-
-        modelosValidados[i] = {
-          numero: i,
-          nome: modelo.nome,
-          posicao: modelo.posicao,
-          quantidadePendulos: modelo.quantidadePendulos || 3,
-          sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-          posicoesCabos: modelo.posicoesCabos || {},
-          configuracao: { ...modelo.config },
-          timestampSalvamento: modelo.timestampSalvamento || new Date().toISOString()
-        }
-      }
-
-      return todosValidados ? modelosValidados : null
-    },
+    
 
     resetSiloField(campo, valor) {
       this.configSilo[campo] = valor
@@ -1631,7 +1458,7 @@ export default {
         pb: 185,
         lb: 350,
         hb: 30,
-        hf: 5,
+        hf: 6,
         lf: 250,
         le: 15,
         ht: 50,
@@ -1961,36 +1788,9 @@ export default {
       this.caboSelecionadoPosicionamento = null
     },
 
-    // Carregar estado dos modelos salvos automaticamente
-    carregarEstadoModelosSalvo() {
-      if (typeof localStorage !== 'undefined') {
-        const estadoSalvo = localStorage.getItem('estadoModelosArcos')
-        if (estadoSalvo) {
-          try {
-            const estado = JSON.parse(estadoSalvo)
+    
 
-            // Verificar se é uma sessão recente (menos de 1 hora)
-            const agora = new Date().getTime()
-            const timestampEstado = new Date(estado.timestamp).getTime()
-            const umaHora = 60 * 60 * 1000
-
-            if ((agora - timestampEstado) < umaHora) {
-              this.quantidadeModelosArcos = estado.quantidadeModelos || 1
-              this.modelosArcos = estado.modelosArcos || {}
-              this.modelosSalvos = estado.modelosSalvos || {}
-              this.modeloArcoAtual = estado.modeloAtual || null
-              this.posicoesCabos = estado.posicoesCabos || {}
-
-              console.log('Estado dos modelos restaurado da sessão anterior')
-              return true
-            }
-          } catch (error) {
-            console.warn('Erro ao carregar estado dos modelos:', error)
-          }
-        }
-      }
-      return false
-    },
+    
 
     // Carregar configuração hierárquica v3.0
     carregarConfiguracaoHierarquica(dados, nomeConfig) {

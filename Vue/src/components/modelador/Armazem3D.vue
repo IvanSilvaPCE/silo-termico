@@ -2386,7 +2386,7 @@ export default {
       if (!this.configuracaoModelador) {
         return {
           // Configuração padrão
-          pb: 185, lb: 350, hb: 30, hf: 5, lf: 250, le: 15, ht: 50,
+          pb: 185, lb: 350, hb: 30, hf: 6, lf: 250, le: 15, ht: 50,
           tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false,
           raio_pontas: 15, estilo_laterais: 'reta', curvatura_laterais: 0,
           tipo_fundo: 0, altura_fundo_reto: 10
