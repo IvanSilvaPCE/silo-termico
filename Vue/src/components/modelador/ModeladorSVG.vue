@@ -35,8 +35,6 @@
               @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
               @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
 
-
-
             <!-- Seção 1: Dimensões Básicas -->
             <DimensoesBasicas :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
 
@@ -69,8 +67,6 @@
           <GerenciadorConfiguracoes />
         </div>
       </div>
-
-
 
       <!-- Área de Visualização -->
       <div class="col-xl-9 col-lg-8 col-md-7 col-sm-12" :style="{

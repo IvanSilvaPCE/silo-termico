@@ -48,7 +48,7 @@ const consolidarDadosSensores = (config, quantidadePendulos) => {
   return sensoresOtimizados
 }
 
-// 🎯 ESTRUTURA OTIMIZADA v6.0: Eliminar redundâncias
+// 🎯 ESTRUTURA CORRIGIDA v6.1: Dados separados por modelo corretamente
 const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSensores) => {
   return {
     // Informações básicas do modelo
@@ -96,13 +96,17 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
       deslocamento_vertical_fundo: config.deslocamento_vertical_fundo || -1
     },
 
-    // 🎯 OTIMIZAÇÃO: Dados dos pêndulos (SEM redundâncias) - PRESERVANDO POSIÇÕES INDIVIDUAIS
-    pendulos: Object.keys(posicoesCabos).reduce((acc, numeroPendulo) => {
-      const posicao = posicoesCabos[numeroPendulo]
-      const dadosSensor = dadosSensores[numeroPendulo] || { quantidade: 3, alturas: [] }
-
-      acc[numeroPendulo] = {
-        posicao: {
+    // 🎯 ESTRUTURA CORRIGIDA: Dados separados por modelo
+    modeloEspecifico: {
+      quantidadePendulos: config.quantidadePendulos || 3,
+      
+      // Quantidade de sensores para cada pêndulo
+      sensoresPorPendulo: config.sensoresPorPendulo || {},
+      
+      // Posições individuais de cada pêndulo
+      posicoesPendulos: Object.keys(posicoesCabos).reduce((acc, numeroPendulo) => {
+        const posicao = posicoesCabos[numeroPendulo]
+        acc[numeroPendulo] = {
           x: posicao.x || 0, // Posição horizontal específica
           y: posicao.y || 0, // Posição vertical específica
           offsetX: posicao.offsetX || 0, // Offset adicional X
@@ -110,28 +114,27 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
           altura: posicao.altura || 0, // Altura específica
           distanciaHorizontal: posicao.distanciaHorizontal || 0, // Distância horizontal específica
           timestampAlteracao: posicao.timestampAlteracao || Date.now()
-        },
-        sensores: {
-          quantidade: dadosSensor.quantidade,
-          alturas: dadosSensor.alturas
         }
+        return acc
+      }, {}),
+      
+      // Alturas personalizadas dos sensores por pêndulo
+      alturasSensores: config.alturasSensores || {},
+      
+      // Configurações específicas de posicionamento
+      configuracaoGlobal: {
+        escala_sensores: config.escala_sensores || 16,
+        dist_y_sensores: config.dist_y_sensores || 12,
+        dist_x_sensores: config.dist_x_sensores || 0,
+        posicao_horizontal: config.posicao_horizontal || 0,
+        posicao_vertical: config.posicao_vertical || 0,
+        afastamento_vertical_pendulo: config.afastamento_vertical_pendulo || 0
       }
-      return acc
-    }, {}),
-
-    // Configuração global dos sensores
-    configuracaoSensores: {
-      escala: config.escala_sensores || 16,
-      distancia_y: config.dist_y_sensores || 12,
-      distancia_x: config.dist_x_sensores || 0,
-      posicao_horizontal: config.posicao_horizontal || 0,
-      posicao_vertical: config.posicao_vertical || 0,
-      afastamento_vertical_pendulo: config.afastamento_vertical_pendulo || 0
     },
 
     // Metadados
     timestamp: Date.now(),
-    versao: '6.0'
+    versao: '6.1'
   }
 }
 

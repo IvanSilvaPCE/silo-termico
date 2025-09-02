@@ -203,13 +203,35 @@ export default {
   computed: {
     configAtual() {
       if (this.modeloAtual?.configuracao) {
-        // Garante que as propriedades padrão sejam mescladas corretamente
-        // e que as posições dos cabos sejam tratadas
+        const config = this.modeloAtual.configuracao
+        
+        // 🎯 ESTRUTURA V6.0: Passar modeloEspecifico diretamente para ArmazemSvg
+        if (config.modeloEspecifico) {
+          console.log('🎯 [configAtual] Estrutura v6.0 detectada - usando modeloEspecifico')
+          
+          const configComV6 = {
+            ...this.configPadrao,
+            ...config,
+            // 🎯 MANTER modeloEspecifico intacto para ArmazemSvg processar
+            modeloEspecifico: config.modeloEspecifico
+          }
+          
+          console.log('📊 [configAtual] Config v6.0 preparada:', {
+            temModeloEspecifico: !!configComV6.modeloEspecifico,
+            quantidadePendulos: configComV6.modeloEspecifico?.quantidadePendulos,
+            sensoresPorPendulo: configComV6.modeloEspecifico?.sensoresPorPendulo,
+            posicoesPendulos: Object.keys(configComV6.modeloEspecifico?.posicoesPendulos || {}).length
+          })
+          
+          return configComV6
+        }
+        
+        // Estrutura legado
         const configComCabos = {
           ...this.configPadrao,
-          ...this.modeloAtual.configuracao,
-          posicoesCabos: this.modeloAtual.configuracao.posicoesCabos || this.configPadrao.posicoesCabos,
-          distancia_entre_cabos: this.modeloAtual.configuracao.distancia_entre_cabos || this.configPadrao.distancia_entre_cabos
+          ...config,
+          posicoesCabos: config.posicoesCabos || this.configPadrao.posicoesCabos,
+          distancia_entre_cabos: config.distancia_entre_cabos || this.configPadrao.distancia_entre_cabos
         }
         return configComCabos
       }
@@ -327,60 +349,145 @@ export default {
     extrairModelosIndividuais(dadosSvg) {
       const modelos = []
 
-      let modelosDefinidos = null
+      console.log('🔍 [extrairModelosIndividuais] Processando dadosSvg:', {
+        versao: dadosSvg.versao,
+        tipo: dadosSvg.tipo,
+        chavesDisponíveis: Object.keys(dadosSvg),
+        temModelos: !!dadosSvg.modelos,
+        temModelosDefinidos: !!dadosSvg.modelosDefinidos
+      })
 
-      if (dadosSvg.modelosDefinidos) {
-        modelosDefinidos = dadosSvg.modelosDefinidos
-      } else if (dadosSvg.sistemaModelos?.modelosDefinidos) {
-        modelosDefinidos = dadosSvg.sistemaModelos.modelosDefinidos
-      } else if (dadosSvg.modelos) {
-        modelosDefinidos = dadosSvg.modelos
-      } else if (dadosSvg.modelosArcos) {
-        modelosDefinidos = dadosSvg.modelosArcos
+      // 🎯 DETECTAR E PROCESSAR ESTRUTURA V6.0 CORRETAMENTE
+      if (dadosSvg.versao === '6.0' && dadosSvg.tipo === 'armazem_completo_otimizado' && dadosSvg.modelos) {
+        console.log('✅ [extrairModelosIndividuais] Estrutura v6.0 detectada - processando modelos')
+        
+        Object.keys(dadosSvg.modelos).forEach(key => {
+          const modeloV6 = dadosSvg.modelos[key]
+          
+          console.log(`🔧 [extrairModelosIndividuais] Processando modelo v6.0 - ${key}:`, {
+            modeloCompleto: modeloV6,
+            temModeloEspecifico: !!modeloV6.modeloEspecifico,
+            quantidadePendulos: modeloV6.modeloEspecifico?.quantidadePendulos,
+            sensoresPorPendulo: modeloV6.modeloEspecifico?.sensoresPorPendulo,
+            posicoesPendulos: modeloV6.modeloEspecifico?.posicoesPendulos
+          })
+
+          // 🎯 CONSTRUIR configuração compatível combinando dados v6.0
+          const configuracao = {
+            // Dimensões básicas
+            pb: modeloV6.dimensoes?.pb || 185,
+            lb: modeloV6.dimensoes?.lb || 350,
+            hb: modeloV6.dimensoes?.hb || 30,
+            hf: modeloV6.dimensoes?.hf || 6,
+            lf: modeloV6.dimensoes?.lf || 250,
+            le: modeloV6.dimensoes?.le || 15,
+            ht: modeloV6.dimensoes?.ht || 50,
+
+            // Telhado
+            tipo_telhado: modeloV6.telhado?.tipo || 1,
+            curvatura_topo: modeloV6.telhado?.curvatura_topo || 30,
+            pontas_redondas: modeloV6.telhado?.pontas_redondas || false,
+            raio_pontas: modeloV6.telhado?.raio_pontas || 15,
+            estilo_laterais: modeloV6.telhado?.estilo_laterais || 'reta',
+            curvatura_laterais: modeloV6.telhado?.curvatura_laterais || 0,
+
+            // Fundo
+            tipo_fundo: modeloV6.fundo?.tipo || 0,
+            altura_fundo_reto: modeloV6.fundo?.altura_fundo_reto || 10,
+            altura_funil_v: modeloV6.fundo?.altura_funil_v || 18,
+            posicao_ponta_v: modeloV6.fundo?.posicao_ponta_v || 0,
+            inclinacao_funil_v: modeloV6.fundo?.inclinacao_funil_v || 1,
+            largura_abertura_v: modeloV6.fundo?.largura_abertura_v || 20,
+            altura_duplo_v: modeloV6.fundo?.altura_duplo_v || 22,
+            posicao_v_esquerdo: modeloV6.fundo?.posicao_v_esquerdo || -1,
+            posicao_v_direito: modeloV6.fundo?.posicao_v_direito || 1,
+            largura_abertura_duplo_v: modeloV6.fundo?.largura_abertura_duplo_v || 2,
+            altura_plataforma_duplo_v: modeloV6.fundo?.altura_plataforma_duplo_v || 0.3,
+            largura_plataforma_duplo_v: modeloV6.fundo?.largura_plataforma_duplo_v || 10,
+            deslocamento_horizontal_fundo: modeloV6.fundo?.deslocamento_horizontal_fundo || 0,
+            deslocamento_vertical_fundo: modeloV6.fundo?.deslocamento_vertical_fundo || -1,
+
+            // 🎯 ESTRUTURA V6.0: Dados dos sensores e pêndulos
+            modeloEspecifico: modeloV6.modeloEspecifico
+          }
+
+          // 🎯 EXTRAIR dados corretos do modeloEspecifico v6.0
+          const modeloEspec = modeloV6.modeloEspecifico || {}
+          const quantidadePendulos = modeloEspec.quantidadePendulos || 3
+          const sensoresPorPendulo = modeloEspec.sensoresPorPendulo || {}
+          const posicoesPendulos = modeloEspec.posicoesPendulos || {}
+
+          console.log(`📊 [extrairModelosIndividuais] Modelo ${key} v6.0 - Dados extraídos:`, {
+            quantidadePendulos,
+            sensoresPorPendulo,
+            posicoesPendulos,
+            totalPosicoesDefinidas: Object.keys(posicoesPendulos).length
+          })
+
+          modelos.push({
+            numero: parseInt(key),
+            nome: modeloV6.nome || `Modelo ${key}`,
+            posicao: modeloV6.posicao || 'todos',
+            configuracao: configuracao,
+            quantidadePendulos: quantidadePendulos,
+            sensoresPorPendulo: sensoresPorPendulo,
+            timestampSalvamento: modeloV6.timestamp || Date.now()
+          })
+        })
       }
+      // Estruturas legado (v4.0, v3.0, etc.)
+      else {
+        let modelosDefinidos = null
 
-      if (modelosDefinidos) {
-        Object.keys(modelosDefinidos).forEach(key => {
-          const modelo = modelosDefinidos[key]
-          // Garantir que configuração existe e tem estrutura correta
-          const configuracao = modelo.configuracao || modelo.config || {}
+        if (dadosSvg.modelosDefinidos) {
+          modelosDefinidos = dadosSvg.modelosDefinidos
+        } else if (dadosSvg.sistemaModelos?.modelosDefinidos) {
+          modelosDefinidos = dadosSvg.sistemaModelos.modelosDefinidos
+        } else if (dadosSvg.modelosArcos) {
+          modelosDefinidos = dadosSvg.modelosArcos
+        }
 
-          // Certificar que posicoesCabos exista e seja um objeto
+        if (modelosDefinidos) {
+          Object.keys(modelosDefinidos).forEach(key => {
+            const modelo = modelosDefinidos[key]
+            const configuracao = modelo.configuracao || modelo.config || {}
+
+            if (!configuracao.posicoesCabos || typeof configuracao.posicoesCabos !== 'object') {
+              configuracao.posicoesCabos = {}
+            }
+
+            modelos.push({
+              numero: parseInt(key),
+              nome: modelo.nome || `Modelo ${key}`,
+              posicao: modelo.posicao || 'todos',
+              configuracao: configuracao,
+              quantidadePendulos: modelo.quantidadePendulos || 3,
+              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+              timestampSalvamento: modelo.timestampSalvamento || configuracao.timestampPosicoesCabos || null
+            })
+          })
+        } else {
+          // Para modelo único legado
+          const configuracao = dadosSvg.configuracao || dadosSvg
+
           if (!configuracao.posicoesCabos || typeof configuracao.posicoesCabos !== 'object') {
             configuracao.posicoesCabos = {}
           }
 
           modelos.push({
-            numero: parseInt(key),
-            nome: modelo.nome || `Modelo ${key}`,
-            posicao: modelo.posicao || 'todos',
+            numero: 1,
+            nome: 'Modelo Único',
+            posicao: 'todos',
             configuracao: configuracao,
-            quantidadePendulos: modelo.quantidadePendulos || 3,
-            sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-            timestampSalvamento: modelo.timestampSalvamento || configuracao.timestampPosicoesCabos || null
+            quantidadePendulos: 3,
+            sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 },
+            timestampSalvamento: configuracao.timestampPosicoesCabos || null
           })
-        })
-      } else {
-        // Para modelo único, garantir estrutura de configuração
-        const configuracao = dadosSvg.configuracao || dadosSvg
-
-        // Garantir que posicoesCabos exista e seja um objeto
-        if (!configuracao.posicoesCabos || typeof configuracao.posicoesCabos !== 'object') {
-          configuracao.posicoesCabos = {}
         }
-
-        modelos.push({
-          numero: 1,
-          nome: 'Modelo Único',
-          posicao: 'todos',
-          configuracao: configuracao,
-          quantidadePendulos: 3,
-          sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 },
-          timestampSalvamento: configuracao.timestampPosicoesCabos || null
-        })
       }
 
       modelos.sort((a, b) => a.numero - b.numero)
+      console.log('📋 [extrairModelosIndividuais] Modelos extraídos:', modelos)
       return modelos
     },
 
@@ -427,12 +534,33 @@ export default {
       if (!this.modeloAtual) return
 
       const dadosSimulados = {}
-      const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
-      const sensoresPorPendulo = this.modeloAtual.sensoresPorPendulo || {}
+      let quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
+      let sensoresPorPendulo = this.modeloAtual.sensoresPorPendulo || {}
+
+      // 🎯 ESTRUTURA V6.0: Usar dados do modeloEspecifico se disponível
+      if (this.modeloAtual.configuracao?.modeloEspecifico) {
+        const modeloEspec = this.modeloAtual.configuracao.modeloEspecifico
+        quantidadePendulos = modeloEspec.quantidadePendulos || 3
+        sensoresPorPendulo = modeloEspec.sensoresPorPendulo || {}
+        
+        console.log('🎯 [gerarDadosSensoresSimulados] Usando dados v6.0:', {
+          quantidadePendulos,
+          sensoresPorPendulo
+        })
+      }
 
       for (let p = 1; p <= quantidadePendulos; p++) {
         dadosSimulados[p] = {}
-        const numSensores = sensoresPorPendulo[p] || Math.floor(Math.random() * 4) + 2
+        
+        // 🎯 USAR quantidade correta salva para cada pêndulo
+        let numSensores = 3 // padrão
+        if (sensoresPorPendulo[p]) {
+          numSensores = parseInt(sensoresPorPendulo[p]) || 3
+        } else if (sensoresPorPendulo[p.toString()]) {
+          numSensores = parseInt(sensoresPorPendulo[p.toString()]) || 3
+        }
+
+        console.log(`📊 [gerarDadosSensoresSimulados] Pêndulo ${p} - ${numSensores} sensores`)
 
         for (let s = 1; s <= numSensores; s++) {
           const temp = Math.round((Math.random() * 20 + 15) * 10) / 10
@@ -441,6 +569,11 @@ export default {
       }
 
       this.dadosSensores = { leitura: dadosSimulados }
+      
+      console.log('📊 [gerarDadosSensoresSimulados] Dados simulados gerados:', {
+        totalPendulos: Object.keys(dadosSimulados).length,
+        dadosSimulados
+      })
     },
 
     navegarModelo(direcao) {
@@ -654,9 +787,24 @@ export default {
     },
 
     calcularTotalSensores() {
-      if (!this.modeloAtual || !this.modeloAtual.sensoresPorPendulo) return 0
+      if (!this.modeloAtual) return 0
 
-      return Object.values(this.modeloAtual.sensoresPorPendulo).reduce((total, num) => total + (num || 0), 0)
+      let sensoresPorPendulo = this.modeloAtual.sensoresPorPendulo || {}
+
+      // 🎯 ESTRUTURA V6.0: Usar dados do modeloEspecifico se disponível
+      if (this.modeloAtual.configuracao?.modeloEspecifico) {
+        sensoresPorPendulo = this.modeloAtual.configuracao.modeloEspecifico.sensoresPorPendulo || {}
+      }
+
+      const total = Object.values(sensoresPorPendulo).reduce((sum, num) => sum + (parseInt(num) || 0), 0)
+      
+      console.log('🔢 [calcularTotalSensores] Total calculado:', {
+        sensoresPorPendulo,
+        total,
+        estruturaV6: !!this.modeloAtual.configuracao?.modeloEspecifico
+      })
+
+      return total
     },
 
     getDescricaoConfiguracaoAtual() {
