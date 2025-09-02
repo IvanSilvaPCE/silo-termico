@@ -600,29 +600,65 @@ export default {
     },
 
     calcularDimensoesSVG() {
-      const larguraBase = Math.max(this.configAtual.lb || 350, 300)
-      const pb = this.configAtual.pb || 185
-      const alturaTopoNecessaria = 80
+      // 🎯 USAR EXATAMENTE A MESMA LÓGICA DO ModeladorSVG.vue calcularDimensoesSVG()
+      const config = this.configAtual
+      const larguraBase = Math.max(config.lb, 300)
 
-      // Calcular extensão do fundo baseado no tipo
+      // Calcular altura necessária considerando todos os elementos (igual ModeladorSVG)
+      const alturaFundo = config.pb + 20  // Altura base + margem
+      const alturaTopoNecessaria = 80     // Espaço adequado para o topo
+      const alturaTotal = alturaFundo + alturaTopoNecessaria
+
+      // Para diferentes tipos de fundo, ajustar altura (igual ModeladorSVG)
       let extensaoFundo = 0
-      if (this.configAtual.tipo_fundo === 1) {
-        extensaoFundo = this.configAtual.altura_funil_v || 40
-      } else if (this.configAtual.tipo_fundo === 2) {
-        extensaoFundo = this.configAtual.altura_duplo_v || 35
+      if (config.tipo_fundo === 1) {
+        extensaoFundo = config.altura_funil_v || 40
+      } else if (config.tipo_fundo === 2) {
+        extensaoFundo = config.altura_duplo_v || 35
       }
 
-      // Altura mínima para sensores (considerando pêndulos e sensores)
-      const alturaMinimaSensores = 60
+      const alturaFinal = Math.max(alturaTotal + extensaoFundo, 280)
 
-      // Altura total ajustada para remover espaço desnecessário
-      const alturaTotal = pb + extensaoFundo + alturaMinimaSensores
+      // Ajustar para mobile se necessário (igual ModeladorSVG)
+      const isMobile = typeof window !== 'undefined' && window.innerWidth <= 576
+      if (isMobile) {
+        const aspectRatio = larguraBase / alturaFinal
+        if (aspectRatio > 2) {
+          this.larguraSVG = larguraBase
+          this.alturaSVG = Math.max(alturaFinal, larguraBase / 1.8)
+        } else {
+          this.larguraSVG = larguraBase
+          this.alturaSVG = alturaFinal
+        }
+      } else {
+        this.larguraSVG = larguraBase
+        this.alturaSVG = alturaFinal
+      }
 
-      this.larguraSVG = larguraBase
-      this.alturaSVG = Math.max(alturaTotal, 250)
+      console.log(`📐 [DIMENSÕES] Calculadas igual ModeladorSVG:`, {
+        larguraBase,
+        alturaFinal: this.alturaSVG,
+        extensaoFundo,
+        isMobile
+      })
+    },
 
-      // Recalcular posições dos cabos quando as dimensões mudam
-      this.recalcularPosicoesCabos()
+    recalcularPosicoesCabos() {
+      if (!this.modeloAtual || !this.modeloAtual.configuracao) return
+
+      const config = this.modeloAtual.configuracao
+      const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
+      const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
+
+      console.log(`🔄 [RECÁLCULO] Modelo ${numeroModelo} - Recalculando posições para nova largura: ${config.lb}`)
+
+      // Preservar posições mantendo proporções e offsets personalizados
+      this.preservarPosicoesCabos()
+
+      // Forçar atualização do SVG
+      this.$nextTick(() => {
+        this.$forceUpdate()
+      })
     },
 
     preservarPosicoesCabos() {
@@ -632,22 +668,51 @@ export default {
       const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
       const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
 
-      console.log(`💾 [PRESERVAÇÃO] Preservando posições exatas do Modelo ${numeroModelo}:`, {
+      console.log(`💾 [PRESERVAÇÃO] Modelo ${numeroModelo} - Aplicando lógica EXATA do ModeladorSVG:`, {
         quantidadePendulos,
-        posicoesCabosIndividuais: config.posicoesCabos
+        larguraConfig: config.lb,
+        posicoesSalvas: config.posicoesCabos
       })
 
-      // Garantir estrutura de posições individuais sem alterá-las
+      // 🎯 APLICAR EXATAMENTE A MESMA LÓGICA DE DISTRIBUIÇÃO DO ModeladorSVG.vue
+      const larguraTotal = config.lb || 350
+      const margemLateral = 35  // EXATAMENTE igual ModeladorSVG
+      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+
+      // Garantir estrutura de posições individuais
       if (!config.posicoesCabos) {
         config.posicoesCabos = {}
       }
 
-      // Apenas garantir que a estrutura existe para cada cabo
+      // 📐 CALCULAR POSIÇÕES BASE EXATAMENTE IGUAL ModeladorSVG
+      const posicoesCabosCalculadas = []
+
+      if (quantidadePendulos === 1) {
+        posicoesCabosCalculadas.push(larguraTotal / 2)
+      } else {
+        const espacamento = larguraUtilizavel / (quantidadePendulos - 1)
+        for (let i = 0; i < quantidadePendulos; i++) {
+          posicoesCabosCalculadas.push(margemLateral + (i * espacamento))
+        }
+      }
+
+      console.log(`📏 [PRESERVAÇÃO] Posições base calculadas (igual ModeladorSVG):`, {
+        larguraTotal,
+        margemLateral,
+        larguraUtilizavel,
+        espacamento: quantidadePendulos > 1 ? larguraUtilizavel / (quantidadePendulos - 1) : 0,
+        posicoesCabosCalculadas
+      })
+
+      // 🎯 PRESERVAR/CRIAR posições individuais mantendo a estrutura EXATA do ModeladorSVG
       for (let i = 1; i <= quantidadePendulos; i++) {
+        const xBaseCalculado = posicoesCabosCalculadas[i - 1]
+
         if (!config.posicoesCabos[i]) {
+          // Criar nova posição usando posição base calculada
           config.posicoesCabos[i] = {
-            x: 0, // Posição horizontal personalizada 
-            y: 0, // Posição vertical personalizada
+            x: Math.round(xBaseCalculado * 10) / 10,
+            y: 0,
             offsetX: 0,
             offsetY: 0,
             altura: 0,
@@ -655,23 +720,54 @@ export default {
             numeroSensores: 3,
             timestampAlteracao: Date.now()
           }
+          
+          console.log(`🆕 [PRESERVAÇÃO] P${i} - Nova posição criada: ${xBaseCalculado}`)
+        } else {
+          // 🔧 PRESERVAR posições personalizadas EXATAMENTE como salvas (igual ModeladorSVG)
+          const posicaoExistente = config.posicoesCabos[i]
+          
+          // NÃO alterar posições customizadas - apenas garantir campos obrigatórios
+          if (posicaoExistente.y === undefined) posicaoExistente.y = 0
+          if (posicaoExistente.offsetX === undefined) posicaoExistente.offsetX = 0
+          if (posicaoExistente.offsetY === undefined) posicaoExistente.offsetY = 0
+          if (posicaoExistente.altura === undefined) posicaoExistente.altura = 0
+          if (posicaoExistente.distanciaHorizontal === undefined) posicaoExistente.distanciaHorizontal = 0
+          if (posicaoExistente.numeroSensores === undefined) posicaoExistente.numeroSensores = 3
+          if (!posicaoExistente.timestampAlteracao) posicaoExistente.timestampAlteracao = Date.now()
+
+          console.log(`✅ [PRESERVAÇÃO] P${i} - Posição preservada EXATA: x=${posicaoExistente.x}, y=${posicaoExistente.y}`)
         }
       }
 
-      // Construir array pos_x_cabo baseado nas posições individuais PRESERVADAS
+      // 🎯 CONSTRUIR ARRAY pos_x_cabo baseado nas posições finais EXATAMENTE igual ModeladorSVG
       const posicoesArray = []
       for (let i = 1; i <= quantidadePendulos; i++) {
         if (config.posicoesCabos[i]) {
           const posicaoFinal = (config.posicoesCabos[i].x || 0) + (config.posicoesCabos[i].offsetX || 0)
-          posicoesArray.push(posicaoFinal)
+          posicoesArray.push(Math.round(posicaoFinal * 10) / 10)
         } else {
-          posicoesArray.push(0)
+          posicoesArray.push(posicoesCabosCalculadas[i - 1] || 0)
         }
       }
       config.pos_x_cabo = posicoesArray
 
-      console.log(`✅ [PRESERVAÇÃO] Modelo ${numeroModelo} - Posições preservadas:`, {
+      // 🎯 RECALCULAR distâncias entre cabos EXATAMENTE igual ModeladorSVG
+      if (posicoesArray.length > 1) {
+        const distancias = []
+        for (let i = 1; i < posicoesArray.length; i++) {
+          const distancia = Math.abs(posicoesArray[i] - posicoesArray[i-1])
+          distancias.push(Math.round(distancia * 10) / 10)
+        }
+        config.distancia_entre_cabos = distancias
+      } else {
+        config.distancia_entre_cabos = [0]
+      }
+
+      console.log(`✅ [PRESERVAÇÃO] Modelo ${numeroModelo} - Distribuição ESPELHADA do ModeladorSVG:`, {
+        larguraTotal,
+        margemLateral,
         pos_x_cabo: config.pos_x_cabo,
+        distancia_entre_cabos: config.distancia_entre_cabos,
         posicoesCabos: config.posicoesCabos
       })
     },

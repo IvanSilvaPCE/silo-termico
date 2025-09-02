@@ -476,49 +476,38 @@ export default {
     },
 
     renderSensores() {
-      // 🎯 SISTEMA DINÂMICO: Detectar e usar estrutura v6.0 corretamente SEM LIMITAÇÕES
-      let config, quantidadePendulos, sensoresPorPendulo, posicoesCabos, alturasSensores
+      // 🎯 REPLICAR EXATAMENTE A LÓGICA DO ModeladorSVG.vue
+      let elementos = ''
 
-      // Verificar se é estrutura v6.0 (modeloEspecifico)
-      if (this.config.modeloEspecifico) {
-        console.log('🎯 [ArmazemSvg] Estrutura v6.0 detectada - Sistema DINÂMICO ativado')
+      // Determinar estrutura dos pêndulos baseada no modelo atual (igual ModeladorSVG)
+      let estruturaPendulos
+      const modeloAtual = this.modeloAtual
 
-        const modeloEspec = this.config.modeloEspecifico
-        config = modeloEspec.configuracaoGlobal || {}
-        quantidadePendulos = modeloEspec.quantidadePendulos || 0
-        sensoresPorPendulo = modeloEspec.sensoresPorPendulo || {}
-        posicoesCabos = modeloEspec.posicoesPendulos || {} // v6.0 usa 'posicoesPendulos'
-        alturasSensores = modeloEspec.alturasSensores || {}
+      if (modeloAtual && (modeloAtual.quantidadePendulos || modeloAtual.sensoresPorPendulo)) {
+        // Usar configuração do modelo para o arco
+        const quantidade = modeloAtual.quantidadePendulos || 3
+        const sensoresPorPendulo = modeloAtual.sensoresPorPendulo || {}
 
-        console.log('📊 [ArmazemSvg] DINÂMICO v6.0 - Dados extraídos:', {
-          quantidadePendulos,
-          totalSensoresPorPendulo: Object.keys(sensoresPorPendulo).length,
-          totalPosicoesSalvas: Object.keys(posicoesCabos).length,
-          estrutura: 'v6.0_dinamica'
-        })
+        estruturaPendulos = {
+          pendulos: Array.from({ length: quantidade }, (_, i) => ({
+            numero: i + 1,
+            totalSensores: sensoresPorPendulo[i + 1] || 1
+          }))
+        }
       } else {
-        console.log('🎯 [ArmazemSvg] Estrutura legado - Sistema DINÂMICO ativado')
-
-        config = this.config
-        quantidadePendulos = config.quantidadePendulos || this.modeloAtual?.quantidadePendulos || 0
-        sensoresPorPendulo = config.sensoresPorPendulo || this.modeloAtual?.sensoresPorPendulo || {}
-        posicoesCabos = config.posicoesCabos || {}
-        alturasSensores = config.alturasSensores || {}
+        // Fallback para estrutura mínima
+        estruturaPendulos = {
+          pendulos: Array.from({ length: 3 }, (_, i) => ({
+            numero: i + 1,
+            totalSensores: 3
+          }))
+        }
       }
 
-      // 🚀 VALIDAÇÃO DINÂMICA: Se não há quantidade definida, extrair dos dados salvos
-      if (quantidadePendulos === 0) {
-        const pendulosComDados = Math.max(
-          Object.keys(sensoresPorPendulo).length,
-          Object.keys(posicoesCabos).length,
-          ...Object.keys(sensoresPorPendulo).map(p => parseInt(p) || 0),
-          ...Object.keys(posicoesCabos).map(p => parseInt(p) || 0)
-        )
-        quantidadePendulos = pendulosComDados || 3
+      if (!estruturaPendulos) return ''
 
-        console.log(`🔄 [ArmazemSvg] DINÂMICO - Quantidade extraída dos dados: ${quantidadePendulos}`)
-      }
-
+      // Usar configuração aplicada (igual ModeladorSVG)
+      const config = this.config
       const escala_sensores = config.escala_sensores || 16
       const dist_y_sensores = config.dist_y_sensores || 12
       const dist_x_sensores = config.dist_x_sensores || 0
@@ -526,76 +515,76 @@ export default {
       const posicao_vertical = config.posicao_vertical || 0
       const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
-      console.log(`🚀 [ArmazemSvg] SISTEMA DINÂMICO - Renderizando ${quantidadePendulos} pêndulos:`, {
-        quantidadePendulos,
-        totalConfigurações: Object.keys(sensoresPorPendulo).length,
-        totalPosições: Object.keys(posicoesCabos).length,
-        semLimitações: true
-      })
-
-      // 📐 CÁLCULO DE POSIÇÃO BASE (exatamente igual ModeladorSVG)
-      const pb = config.pb || 185
+      const pb = (config.pb || this.dimensoesCalculadas.altura - 50) + (this.dimensoesCalculadas.altura < 300 ? 0 : 50)
       const yPendulo = pb + 15 + posicao_vertical
-      const totalCabos = quantidadePendulos
+
+      const totalCabos = estruturaPendulos.pendulos.length
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
-      let elementos = ''
+      // 🎯 CALCULAR POSIÇÕES DOS CABOS DINAMICAMENTE IGUAL ModeladorSVG.vue
+      const larguraTotal = config.lb || this.dimensoesCalculadas.largura || 350
+      const margemLateral = 35  // EXATAMENTE igual ModeladorSVG
+      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+      const posicoesCabosCalculadas = []
 
-      // 🎯 RENDERIZAÇÃO DINÂMICA: Sem limitações de quantidade (igual ModeladorSVG)
-      for (let index = 0; index < quantidadePendulos; index++) {
-        const numeroPendulo = index + 1
-
-        // 📏 CÁLCULO DE POSIÇÃO HORIZONTAL (exatamente igual ModeladorSVG)
-        const larguraTotal = config.lb || 350
-        const margemLateral = 35
-        const larguraUtilizavel = larguraTotal - (2 * margemLateral)
-
-        let xCaboBase
-        if (totalCabos === 1) {
-          xCaboBase = larguraTotal / 2
-        } else {
-          const espacamento = larguraUtilizavel / (totalCabos - 1)
-          xCaboBase = margemLateral + (index * espacamento)
+      if (totalCabos === 1) {
+        posicoesCabosCalculadas.push(larguraTotal / 2)
+      } else {
+        const espacamento = larguraUtilizavel / (totalCabos - 1)
+        for (let i = 0; i < totalCabos; i++) {
+          posicoesCabosCalculadas.push(margemLateral + (i * espacamento))
         }
+      }
 
+      console.log(`🎯 [ArmazemSvg] Cálculo DINÂMICO igual ModeladorSVG:`, {
+        larguraTotal,
+        margemLateral,
+        larguraUtilizavel,
+        totalCabos,
+        espacamento: totalCabos > 1 ? larguraUtilizavel / (totalCabos - 1) : 0,
+        posicoesCabosCalculadas
+      })
+
+      estruturaPendulos.pendulos.forEach((pendulo, index) => {
+        // 📏 USAR POSIÇÕES CALCULADAS DINAMICAMENTE (igual ModeladorSVG)
+        const xCaboBase = posicoesCabosCalculadas[index]
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
 
-        // 🎯 APLICAR POSIÇÕES INDIVIDUAIS SALVAS (v6.0 ou legado) - igual ModeladorSVG
+        // 🎯 APLICAR OFFSET INDIVIDUAL SE EXISTIR (igual ModeladorSVG)
         let offsetIndividualX = 0
         let offsetIndividualY = 0
 
-        const chavePendulo = numeroPendulo.toString()
-        const posicaoIndividual = posicoesCabos[numeroPendulo] || posicoesCabos[chavePendulo]
+        // Verificar se há estrutura v6.0 com posições específicas
+        if (config.modeloEspecifico?.posicoesPendulos?.[pendulo.numero]) {
+          const posicaoV6 = config.modeloEspecifico.posicoesPendulos[pendulo.numero]
+          offsetIndividualX = parseFloat(posicaoV6.x) || 0
+          offsetIndividualY = parseFloat(posicaoV6.y) || 0
+          
+          console.log(`🎯 [ArmazemSvg] P${pendulo.numero} - Offset v6.0:`, posicaoV6)
+        }
+        // Fallback para estrutura legado
+        else if (config.posicoesCabos && config.posicoesCabos[pendulo.numero]) {
+          const posicaoSalva = config.posicoesCabos[pendulo.numero]
+          offsetIndividualX = parseFloat(posicaoSalva.x) || 0
+          offsetIndividualY = parseFloat(posicaoSalva.y) || 0
 
-        if (posicaoIndividual) {
-          if (this.config.modeloEspecifico) {
-            // Estrutura v6.0: posições diretas
-            offsetIndividualX = parseFloat(posicaoIndividual.x) || 0
-            offsetIndividualY = parseFloat(posicaoIndividual.y) || 0
-          } else {
-            // Estrutura legado: usar offsets
-            offsetIndividualX = parseFloat(posicaoIndividual.offsetX || posicaoIndividual.x) || 0
-            offsetIndividualY = parseFloat(posicaoIndividual.offsetY || posicaoIndividual.y) || 0
-          }
-
-          console.log(`🎯 [ArmazemSvg] P${numeroPendulo} - Posição aplicada:`, {
-            estrutura: this.config.modeloEspecifico ? 'v6.0' : 'legado',
-            offsetX: offsetIndividualX,
-            offsetY: offsetIndividualY,
-            xFinal: xCaboBase + posicao_horizontal + deslocamentoX + offsetIndividualX
-          })
+          console.log(`🎯 [ArmazemSvg] P${pendulo.numero} - Offset legado:`, posicaoSalva)
         }
 
         const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetIndividualX
         const yPenduloFinal = yPendulo + offsetIndividualY
+        const numSensores = pendulo.totalSensores
 
-        // 🎨 RENDERIZAR PÊNDULO (exatamente igual ModeladorSVG)
+        // 🎨 DETERMINAR COR DO PÊNDULO (igual ModeladorSVG)
         const corPendulo = "#3A78FD"
+        const strokePendulo = "none"
+        const strokeWidth = "0"
 
+        // 📦 RETÂNGULO DO NOME DO PÊNDULO (igual ModeladorSVG)
         elementos += `
           <rect
-            id="C${numeroPendulo}"
+            id="C${index + 1}"
             x="${xCabo - escala_sensores / 2}"
             y="${yPenduloFinal}"
             width="${escala_sensores}"
@@ -603,11 +592,15 @@ export default {
             rx="2"
             ry="2"
             fill="${corPendulo}"
-            stroke="none"
-            stroke-width="0"
+            stroke="${strokePendulo}"
+            stroke-width="${strokeWidth}"
           />
+        `
+
+        // 📝 TEXTO DO NOME DO PÊNDULO (igual ModeladorSVG)
+        elementos += `
           <text
-            id="TC${numeroPendulo}"
+            id="TC${index + 1}"
             x="${xCabo}"
             y="${yPenduloFinal + escala_sensores / 4}"
             text-anchor="middle"
@@ -617,65 +610,44 @@ export default {
             font-family="Arial"
             fill="white"
           >
-            P${numeroPendulo}
+            P${pendulo.numero}
           </text>
         `
 
-        // 🔢 DETECTAR QUANTIDADE DE SENSORES DINÂMICAMENTE (igual ModeladorSVG)
-        let quantidadeSensores = 3 // padrão
-
-        if (sensoresPorPendulo[numeroPendulo] !== undefined) {
-          quantidadeSensores = parseInt(sensoresPorPendulo[numeroPendulo]) || 0
-        } else if (sensoresPorPendulo[chavePendulo] !== undefined) {
-          quantidadeSensores = parseInt(sensoresPorPendulo[chavePendulo]) || 0
-        }
-
-        console.log(`🔍 [ArmazemSvg] P${numeroPendulo} - ${quantidadeSensores} sensores detectados`)
-
-        // 🎨 RENDERIZAR SENSORES DINAMICAMENTE (igual ModeladorSVG)
-        for (let s = 1; s <= quantidadeSensores; s++) {
-          let ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
-
-          // 📏 APLICAR ALTURA PERSONALIZADA (compatível v6.0 e legado) - igual ModeladorSVG
-          let alturaPersonalizada = null
-
-          if (alturasSensores[numeroPendulo]) {
-            if (Array.isArray(alturasSensores[numeroPendulo])) {
-              alturaPersonalizada = parseFloat(alturasSensores[numeroPendulo][s - 1]) || null
-            } else if (typeof alturasSensores[numeroPendulo] === 'object') {
-              alturaPersonalizada = parseFloat(alturasSensores[numeroPendulo][s]) || null
-            }
-          }
-
-          if (alturaPersonalizada && alturaPersonalizada > 0) {
-            ySensorBase = yPenduloFinal - alturaPersonalizada - 25 - afastamento_vertical_pendulo
-          }
+        // 🌡️ SENSORES (igual ModeladorSVG)
+        for (let s = 1; s <= numSensores; s++) {
+          const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
           const xSensorFinal = xCabo
           const ySensorFinal = ySensorBase
 
-          // ✅ VERIFICAR SE SENSOR ESTÁ NA ÁREA VISÍVEL (igual ModeladorSVG)
           if (ySensorFinal > 10 && ySensorFinal < (this.dimensoesCalculadas.altura - 60)) {
-            // 🌡️ BUSCAR DADOS DO SENSOR
+            // 🌡️ DETERMINAR COR DO SENSOR (igual ModeladorSVG)
             let corSensor = "#ccc"
             let valorSensor = "0"
 
-            if (this.dadosSensores?.leitura?.[numeroPendulo]?.[s]) {
-              const [temp, pontoQuente, preAlarme, falha, nivel] = this.dadosSensores.leitura[numeroPendulo][s]
+            if (this.dadosSensores?.leitura?.[pendulo.numero]?.[s]) {
+              const dadosSensor = this.dadosSensores.leitura[pendulo.numero][s]
+              const temp = parseFloat(dadosSensor[0])
+              const falha = dadosSensor[3]
+              const nivel = dadosSensor[4]
 
               if (!nivel || temp == 0) {
                 corSensor = "#e6e6e6"
                 valorSensor = "0"
               } else {
-                corSensor = this.corFaixaExata(parseFloat(temp) || 0)
-                valorSensor = falha ? "ERRO" : (parseFloat(temp) || 0).toFixed(1)
+                corSensor = this.corFaixaExata(temp)
+                valorSensor = falha ? "ERRO" : temp.toFixed(1)
               }
             }
 
-            // 🎨 RENDERIZAR SENSOR (exatamente igual ModeladorSVG)
+            const strokeSensor = "black"
+            const strokeWidthSensor = "1"
+
+            // 📦 RETÂNGULO DO SENSOR (igual ModeladorSVG)
             elementos += `
               <rect
-                id="C${numeroPendulo}S${s}"
+                id="C${index + 1}S${s}"
                 x="${xSensorFinal - escala_sensores / 2}"
                 y="${ySensorFinal}"
                 width="${escala_sensores}"
@@ -683,11 +655,15 @@ export default {
                 rx="2"
                 ry="2"
                 fill="${corSensor}"
-                stroke="black"
-                stroke-width="1"
+                stroke="${strokeSensor}"
+                stroke-width="${strokeWidthSensor}"
               />
+            `
+
+            // 📝 TEXTO DO VALOR DO SENSOR (igual ModeladorSVG)
+            elementos += `
               <text
-                id="TC${numeroPendulo}S${s}"
+                id="TC${index + 1}S${s}"
                 x="${xSensorFinal}"
                 y="${ySensorFinal + escala_sensores / 4}"
                 text-anchor="middle"
@@ -698,8 +674,12 @@ export default {
               >
                 ${valorSensor}
               </text>
+            `
+
+            // 📝 NOME DO SENSOR (igual ModeladorSVG)
+            elementos += `
               <text
-                id="TIND${numeroPendulo}S${s}"
+                id="TIND${index + 1}S${s}"
                 x="${xSensorFinal - escala_sensores / 2 - 2}"
                 y="${ySensorFinal + escala_sensores / 4}"
                 text-anchor="end"
@@ -713,9 +693,9 @@ export default {
             `
           }
         }
-      }
+      })
 
-      console.log(`✅ [ArmazemSvg] DINÂMICO - Renderização concluída: ${quantidadePendulos} pêndulos sem limitações`)
+      console.log(`✅ [ArmazemSvg] Renderização DINÂMICA concluída: ${totalCabos} pêndulos distribuídos conforme largura ${larguraTotal}px`)
       return elementos
     },
 
