@@ -102,216 +102,14 @@
                     modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
                     }}
                   </small>
-                  <!-- Botão de Imagem de Fundo -->
-                  <div class="position-relative">
-                    <button 
-                      type="button" 
-                      class="btn btn-sm btn-outline-light border-0" 
-                      :class="{ 'btn-warning': imagemFundo.url }"
-                      @click="toggleControlesImagem"
-                      title="Imagem de fundo"
-                      style="padding: 0.25rem 0.5rem;">
-                      <i class="fa fa-image" style="font-size: 0.875rem;"></i>
-                    </button>
-                    
-                    <!-- Controles da Imagem -->
-                    <div v-if="mostrarControlesImagem" class="position-absolute bg-white border rounded shadow-lg"
-                         style="top: 100%; right: 0; z-index: 1050; min-width: 250px; max-width: 300px; margin-top: 2px; max-height: 400px; overflow-y: auto; scroll-behavior: smooth;">
-                      
-                      <div class="p-3" style="padding: 12px;">
-                        <!-- Upload de Imagem -->
-                        <div class="mb-3 text-center">
-                          <label class="form-label small text-muted mb-2 d-block">📸 Selecionar Imagem</label>
-                          <input 
-                            type="file" 
-                            ref="inputImagem"
-                            @change="carregarImagem"
-                            accept="image/*"
-                            class="form-control form-control-sm text-center"
-                            style="font-size: 0.75rem;">
-                        </div>
-                        
-                        <div v-if="imagemFundo.url">
-                          <!-- Controles de Posição -->
-                          <div class="mb-3">
-                            <label class="form-label small text-muted mb-2 d-flex align-items-center justify-content-center">
-                              <i class="fa fa-arrows-alt me-1"></i>
-                              Posição
-                            </label>
-                            
-                            <!-- Controles de movimento com botões direcionais -->
-                            <div class="d-flex justify-content-center mb-2">
-                              <div class="text-center">
-                                <button 
-                                  type="button" 
-                                  class="btn btn-outline-primary btn-sm d-block mx-auto mb-1"
-                                  @click="moverImagemDirecional('up')"
-                                  style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                  ↑
-                                </button>
-                                <div class="d-flex justify-content-center gap-1">
-                                  <button 
-                                    type="button" 
-                                    class="btn btn-outline-primary btn-sm"
-                                    @click="moverImagemDirecional('left')"
-                                    style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                    ←
-                                  </button>
-                                  <button 
-                                    type="button" 
-                                    class="btn btn-outline-secondary btn-sm"
-                                    @click="centralizarImagem"
-                                    title="Centralizar"
-                                    style="width: 32px; height: 32px; font-size: 0.7rem;">
-                                    ⊙
-                                  </button>
-                                  <button 
-                                    type="button" 
-                                    class="btn btn-outline-primary btn-sm"
-                                    @click="moverImagemDirecional('right')"
-                                    style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                    →
-                                  </button>
-                                </div>
-                                <button 
-                                  type="button" 
-                                  class="btn btn-outline-primary btn-sm d-block mx-auto mt-1"
-                                  @click="moverImagemDirecional('down')"
-                                  style="width: 32px; height: 32px; font-size: 0.8rem;">
-                                  ↓
-                                </button>
-                              </div>
-                            </div>
-                            
-                            <!-- Inputs numéricos para posição exata -->
-                            <div class="row g-1">
-                              <div class="col-6">
-                                <div class="input-group input-group-sm">
-                                  <span class="input-group-text text-center" style="font-size: 0.7rem; min-width: 28px;">X</span>
-                                  <input 
-                                    type="number" 
-                                    v-model.number="imagemFundo.x"
-                                    class="form-control form-control-sm text-center"
-                                    style="font-size: 0.75rem;">
-                                </div>
-                              </div>
-                              <div class="col-6">
-                                <div class="input-group input-group-sm">
-                                  <span class="input-group-text text-center" style="font-size: 0.7rem; min-width: 28px;">Y</span>
-                                  <input 
-                                    type="number" 
-                                    v-model.number="imagemFundo.y"
-                                    class="form-control form-control-sm text-center"
-                                    style="font-size: 0.75rem;">
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <!-- Controle de Zoom -->
-                          <div class="mb-3">
-                            <label class="form-label small text-muted mb-2 d-flex align-items-center justify-content-center">
-                              <i class="fa fa-search-plus me-1"></i>
-                              Zoom: {{ imagemFundo.scale }}x
-                            </label>
-                            <input 
-                              type="range" 
-                              v-model.number="imagemFundo.scale"
-                              min="0.1" 
-                              max="3" 
-                              step="0.1"
-                              class="form-range form-range-sm w-100">
-                            <div class="d-flex justify-content-center gap-1 mt-2">
-                              <button 
-                                type="button" 
-                                class="btn btn-outline-secondary btn-sm"
-                                @click="ajustarZoom(0.5)"
-                                style="font-size: 0.7rem;">
-                                50%
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-outline-primary btn-sm"
-                                @click="ajustarZoom(1.0)"
-                                style="font-size: 0.7rem;">
-                                100%
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-outline-secondary btn-sm"
-                                @click="ajustarZoom(1.5)"
-                                style="font-size: 0.7rem;">
-                                150%
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <!-- Controle de Transparência -->
-                          <div class="mb-3">
-                            <label class="form-label small text-muted mb-2 d-flex align-items-center justify-content-center">
-                              <i class="fa fa-adjust me-1"></i>
-                              Transparência: {{ Math.round(imagemFundo.opacity * 100) }}%
-                            </label>
-                            <input 
-                              type="range" 
-                              v-model.number="imagemFundo.opacity"
-                              min="0.1" 
-                              max="1" 
-                              step="0.1"
-                              class="form-range form-range-sm w-100">
-                            <div class="d-flex justify-content-center gap-1 mt-2">
-                              <button 
-                                type="button" 
-                                class="btn btn-outline-secondary btn-sm"
-                                @click="ajustarOpacidade(0.2)"
-                                style="font-size: 0.7rem;">
-                                20%
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-outline-primary btn-sm"
-                                @click="ajustarOpacidade(0.5)"
-                                style="font-size: 0.7rem;">
-                                50%
-                              </button>
-                              <button 
-                                type="button" 
-                                class="btn btn-outline-secondary btn-sm"
-                                @click="ajustarOpacidade(0.8)"
-                                style="font-size: 0.7rem;">
-                                80%
-                              </button>
-                            </div>
-                          </div>
-                          
-                          <!-- Botões de Ação -->
-                          <div class="d-flex gap-1 justify-content-center">
-                            <button 
-                              type="button" 
-                              class="btn btn-outline-secondary btn-sm flex-fill"
-                              @click="resetarPosicaoImagem"
-                              style="font-size: 0.7rem;">
-                              <i class="fa fa-refresh me-1"></i>
-                              Reset
-                            </button>
-                            <button 
-                              type="button" 
-                              class="btn btn-outline-danger btn-sm flex-fill"
-                              @click="removerImagem"
-                              style="font-size: 0.7rem;">
-                              <i class="fa fa-trash me-1"></i>
-                              Remover
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div v-else class="text-center text-muted small py-4">
-                          <i class="fa fa-image fa-2x mb-2 d-block text-center"></i>
-                          Selecione uma imagem para usar como fundo de rascunho
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                  <!-- Componente de Imagem de Fundo -->
+                  <ImagemFundo
+                    :container-dimensions="containerDimensions"
+                    :imagem-inicial="imagemFundoData"
+                    :tipo-ativo="tipoAtivo"
+                    @imagem-mudou="onImagemFundoMudou"
+                    @mostrar-toast="mostrarToast"
+                  />
                 </div>
               </div>
             </div>
@@ -323,27 +121,8 @@
               maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
             }">
               <div class="svg-container-responsive w-100 position-relative">
-                <!-- SVG com transparência se houver imagem de fundo -->
-                <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
-                  width: '100%',
-                  height: 'auto',
-                  maxWidth: '100%',
-                  maxHeight: isMobile ? '60vh' : 'calc(100vh - 320px)',
-                  minHeight: isMobile ? '200px' : '250px',
-                  border: '1px solid #ddd',
-                  backgroundColor: imagemFundo.url ? 'transparent' : '#f8f9fa',
-                  borderRadius: '4px',
-                  shapeRendering: 'geometricPrecision',
-                  textRendering: 'geometricPrecision',
-                  imageRendering: 'optimizeQuality',
-                  position: 'relative',
-                  zIndex: 2,
-                  opacity: imagemFundo.url ? 0.85 : 1
-                }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContentComFundo">
-                </svg>
-                
-                <!-- Imagem de Fundo -->
-                <div v-if="imagemFundo.url" 
+                <!-- Container da imagem de fundo -->
+                <div v-if="imagemFundoData.url" 
                      class="position-absolute d-flex align-items-center justify-content-center"
                      :style="{
                        top: '0',
@@ -352,26 +131,43 @@
                        height: '100%',
                        zIndex: 1,
                        overflow: 'hidden',
-                       borderRadius: '4px',
-                       border: '1px solid #ddd'
+                       borderRadius: '4px'
                      }">
                   <img 
-                    :src="imagemFundo.url"
+                    :src="imagemFundoData.url"
                     :style="{
-                      position: 'absolute',
-                      left: imagemFundo.x + 'px',
-                      top: imagemFundo.y + 'px',
-                      transform: `scale(${imagemFundo.scale})`,
+                      position: 'relative',
+                      left: imagemFundoData.x + 'px',
+                      top: imagemFundoData.y + 'px',
+                      transform: `scale(${imagemFundoData.scale})`,
                       transformOrigin: 'center center',
-                      opacity: imagemFundo.opacity,
+                      opacity: imagemFundoData.opacity,
                       maxWidth: 'none',
                       maxHeight: 'none',
                       userSelect: 'none',
                       pointerEvents: 'none',
                       transition: 'all 0.3s ease-in-out'
-                    }"
-                    @load="ajustarTamanhoImagemCentralizada">
+                    }">
                 </div>
+                
+                <!-- SVG com transparência se houver imagem de fundo -->
+                <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
+                  width: '100%',
+                  height: 'auto',
+                  maxWidth: '100%',
+                  maxHeight: isMobile ? '60vh' : 'calc(100vh - 320px)',
+                  minHeight: isMobile ? '200px' : '250px',
+                  border: '1px solid #ddd',
+                  backgroundColor: imagemFundoData.url ? 'transparent' : '#f8f9fa',
+                  borderRadius: '4px',
+                  shapeRendering: 'geometricPrecision',
+                  textRendering: 'geometricPrecision',
+                  imageRendering: 'optimizeQuality',
+                  position: 'relative',
+                  zIndex: 2,
+                  opacity: imagemFundoData.url ? 0.85 : 1
+                }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContentComFundo">
+                </svg>
               </div>
             </div>
 
@@ -519,6 +315,7 @@ import ConfiguracaoSensores from './compModelador/ConfiguracaoSensores.vue'
 import BotoesControle from './compModelador/BotoesControle.vue'
 import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue'
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
+import ImagemFundo from './compModelador/ImagemFundo.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
 
 export default {
@@ -534,7 +331,8 @@ export default {
     ConfiguracaoSensores,
     BotoesControle,
     GerenciadorModelosBanco,
-    GerenciadorConfiguracoes
+    GerenciadorConfiguracoes,
+    ImagemFundo
   },
   data() {
     return {
@@ -655,15 +453,31 @@ export default {
       temConfigGlobal: true, // Flag para indicar se há configuração global
       modelos: {}, // Armazena os dados dos modelos
 
-      // SISTEMA DE IMAGEM DE FUNDO
-      imagemFundo: {
+      // Dados da imagem de fundo gerenciados pelo componente filho
+      imagemFundoData: {
         url: null,
         x: 0,
         y: 0,
         scale: 1,
         opacity: 0.3
       },
-      mostrarControlesImagem: false
+      // Armazenar dados de imagem separados por tipo
+      imagensFundoPorTipo: {
+        silo: {
+          url: null,
+          x: 0,
+          y: 0,
+          scale: 1,
+          opacity: 0.3
+        },
+        armazem: {
+          url: null,
+          x: 0,
+          y: 0,
+          scale: 1,
+          opacity: 0.3
+        }
+      }
     }
   },
   computed: {
@@ -704,12 +518,18 @@ export default {
     },
     svgContentComFundo() {
       // Se há imagem de fundo, adicionar fundo transparente ao SVG
-      if (this.imagemFundo.url && this.svgContent) {
+      if (this.imagemFundoData.url && this.svgContent) {
         // Adicionar retângulo de fundo semi-transparente para melhor visualização
         const fundoTransparente = `<rect x="0" y="0" width="${this.larguraSVG}" height="${this.alturaSVG}" fill="rgba(248, 249, 250, 0.1)" />`
         return fundoTransparente + this.svgContent
       }
       return this.svgContent
+    },
+    containerDimensions() {
+      return {
+        width: '100%',
+        height: '100%'
+      }
     }
   },
   created() {
@@ -726,20 +546,26 @@ export default {
     this.inicializarPosicoesCabos()
     this.updateSVG()
 
-    // Adicionar eventos
-    document.addEventListener('click', this.fecharControlesImagemSeForaDoElemento)
-    document.addEventListener('keydown', this.handleKeyboardMovement)
+    // Métodos de inicialização
   },
 
   beforeDestroy() {
-    // Remover eventos ao destruir o componente
-    document.removeEventListener('click', this.fecharControlesImagemSeForaDoElemento)
-    document.removeEventListener('keydown', this.handleKeyboardMovement)
+    // Cleanup do componente
   },
   watch: {
     'configArmazem.tipo_fundo': {
       handler(novoTipo) {
         this.configArmazem.deslocamento_vertical_fundo = this.obterDeslocamentoVerticalPadrao(novoTipo)
+      }
+    },
+    tipoAtivo: {
+      handler(novoTipo, tipoAnterior) {
+        // Salvar imagem do tipo anterior
+        if (tipoAnterior && this.imagemFundoData.url) {
+          this.imagensFundoPorTipo[tipoAnterior] = { ...this.imagemFundoData }
+        }
+        // Carregar imagem do novo tipo
+        this.imagemFundoData = { ...this.imagensFundoPorTipo[novoTipo] }
       }
     },
     dados: {
@@ -1224,10 +1050,7 @@ export default {
       this.modeloArcoAtual = novoModelo
 
       if (this.modeloArcoAtual) {
-        // Limpar todas as variáveis para começar do zero
-        this.limparVariaveisParaNovoModelo()
-
-        // Carregar configuração do modelo selecionado
+        // Carregar configuração do modelo selecionado (sem resetar para padrão)
         this.carregarConfiguracaoModelo(this.modeloArcoAtual)
 
         // Inicializar posições dos cabos para o modelo selecionado
@@ -1280,7 +1103,6 @@ export default {
         this.mostrarToast(`Editando ${this.modelosArcos[this.modeloArcoAtual]?.nome || `Modelo ${this.modeloArcoAtual}`}`, 'info')
       } else {
         // Se desmarcou modelo, voltar ao estado geral
-        this.limparVariaveisParaNovoModelo()
         this.aplicarConfiguracaoGeralArmazem()
       }
     },
@@ -1501,6 +1323,10 @@ export default {
       }
 
       this.salvarModeloAtualCompleto()
+      
+      // Reset para valores padrão após salvar
+      this.resetarConfigArmParaPadrao()
+      
       this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${this.modelosArcos[this.modeloArcoAtual]?.nome}) salvo com sucesso!`, 'success')
     },
 
@@ -1541,6 +1367,28 @@ export default {
     limparVariaveisParaNovoModelo() {
       console.log('🧹 [limparVariaveisParaNovoModelo] Limpando variáveis para começar novo modelo')
 
+      // Limpar posições de cabos
+      this.posicoesCabos = {}
+      this.caboSelecionadoPosicionamento = null
+
+      // Limpar modelagem individual
+      this.modelagemIndividualAtiva = false
+      this.penduloSelecionado = 1
+      this.posicoesPendulosIndividuais = {}
+      this.posicoesSensoresIndividuais = {}
+      this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
+      this.dadosPreviewDesvinculados = null
+
+      // Limpar configurações de preview aplicadas
+      this.configPreviewAplicada = null
+      this.configuracaoAplicada = null
+
+      console.log('✅ [limparVariaveisParaNovoModelo] Variáveis limpas - pronto para novo modelo')
+    },
+
+    resetarConfigArmParaPadrao() {
+      console.log('🔄 [resetarConfigArmParaPadrao] Resetando configuração do armazém para valores padrão')
+      
       // Resetar configuração do armazém para padrão
       this.configArmazem = {
         pb: 185,
@@ -1578,23 +1426,10 @@ export default {
         afastamento_vertical_pendulo: 0
       }
 
-      // Limpar posições de cabos
-      this.posicoesCabos = {}
-      this.caboSelecionadoPosicionamento = null
-
-      // Limpar modelagem individual
-      this.modelagemIndividualAtiva = false
-      this.penduloSelecionado = 1
-      this.posicoesPendulosIndividuais = {}
-      this.posicoesSensoresIndividuais = {}
-      this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
-      this.dadosPreviewDesvinculados = null
-
-      // Limpar configurações de preview aplicadas
-      this.configPreviewAplicada = null
-      this.configuracaoAplicada = null
-
-      console.log('✅ [limparVariaveisParaNovoModelo] Variáveis limpas - pronto para novo modelo')
+      // Atualizar SVG com novos valores
+      this.updateSVG()
+      
+      console.log('✅ [resetarConfigArmParaPadrao] Configuração resetada para valores padrão')
     },
 
     carregarConfiguracaoModelo(numeroModelo) {
@@ -4391,181 +4226,13 @@ export default {
       this.mostrarToast('Configuração Legado carregada. Modelos resetados para o padrão.', 'info');
     },
 
-    // MÉTODOS PARA IMAGEM DE FUNDO
-    toggleControlesImagem() {
-      this.mostrarControlesImagem = !this.mostrarControlesImagem
-    },
-
-    carregarImagem(event) {
-      const file = event.target.files[0]
-      if (file && file.type.startsWith('image/')) {
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          this.imagemFundo.url = e.target.result
-          // Aguardar a imagem carregar para centralizar automaticamente
-          this.$nextTick(() => {
-            setTimeout(() => {
-              this.centralizarImagemAutomaticamente()
-            }, 100)
-          })
-          this.mostrarToast('Imagem de fundo carregada e centralizada!', 'success')
-        }
-        reader.readAsDataURL(file)
-      } else {
-        this.mostrarToast('Por favor, selecione um arquivo de imagem válido', 'warning')
-      }
-    },
-
-    ajustarTamanhoImagemCentralizada() {
-      // Centralizar automaticamente quando a imagem carrega
-      this.centralizarImagemAutomaticamente()
-      console.log('Imagem de fundo carregada e centralizada automaticamente')
-    },
-
-    // Centralização automática baseada nas dimensões reais da imagem
-    centralizarImagemAutomaticamente() {
-      // Resetar para posição padrão e centralizar
-      this.imagemFundo.scale = 1
-      this.imagemFundo.opacity = 0.3
-      
-      // Usar o método de centralização melhorado
-      this.centralizarImagem()
-    },
-
-    resetarPosicaoImagem() {
-      this.imagemFundo.x = 0
-      this.imagemFundo.y = 0
-      this.imagemFundo.scale = 1
-      this.imagemFundo.opacity = 0.3
-      this.mostrarToast('Posição da imagem resetada', 'info')
-    },
-
-    removerImagem() {
-      this.imagemFundo.url = null
-      this.imagemFundo.x = 0
-      this.imagemFundo.y = 0
-      this.imagemFundo.scale = 1
-      this.imagemFundo.opacity = 0.3
-      this.mostrarControlesImagem = false
-      this.mostrarToast('Imagem de fundo removida', 'info')
-      
-      // Limpar o input file
-      if (this.$refs.inputImagem) {
-        this.$refs.inputImagem.value = ''
-      }
-    },
-
-    // Métodos para movimentação direcional da imagem
-    moverImagemDirecional(direcao) {
-      const passo = 10 // Pixels por movimento
-      
-      switch (direcao) {
-        case 'up':
-          this.imagemFundo.y -= passo
-          break
-        case 'down':
-          this.imagemFundo.y += passo
-          break
-        case 'left':
-          this.imagemFundo.x -= passo
-          break
-        case 'right':
-          this.imagemFundo.x += passo
-          break
-      }
-    },
-
-    // Centralizar imagem no SVG
-    centralizarImagem() {
-      // Aguardar próximo tick para garantir que o SVG foi renderizado
-      this.$nextTick(() => {
-        // Obter dimensões reais do container do preview
-        const svgContainer = document.querySelector('.svg-container-responsive')
-        const svgElement = svgContainer?.querySelector('svg')
-        
-        if (svgElement) {
-          const rect = svgElement.getBoundingClientRect()
-          
-          // Calcular centro baseado nas dimensões reais do SVG renderizado
-          const centroX = (rect.width / 2) - (rect.width * this.imagemFundo.scale / 4)
-          const centroY = (rect.height / 2) - (rect.height * this.imagemFundo.scale / 4)
-          
-          this.imagemFundo.x = centroX
-          this.imagemFundo.y = centroY
-          
-          console.log('Imagem centralizada:', { 
-            svgWidth: rect.width, 
-            svgHeight: rect.height, 
-            centroX, 
-            centroY,
-            scale: this.imagemFundo.scale 
-          })
-        } else {
-          // Fallback para cálculo baseado nas dimensões lógicas
-          const centroX = this.larguraSVG / 4
-          const centroY = this.alturaSVG / 4
-          
-          this.imagemFundo.x = centroX
-          this.imagemFundo.y = centroY
-        }
-        
-        this.mostrarToast('Imagem centralizada', 'success')
-      })
-    },
-
-    // Ajustar zoom com valores predefinidos
-    ajustarZoom(valor) {
-      this.imagemFundo.scale = valor
-    },
-
-    // Ajustar opacidade com valores predefinidos
-    ajustarOpacidade(valor) {
-      this.imagemFundo.opacity = valor
-    },
-
-    fecharControlesImagemSeForaDoElemento(event) {
-      // Verificar se o clique foi fora dos controles da imagem
-      if (this.mostrarControlesImagem) {
-        const controlesContainer = event.target.closest('.position-relative')
-        const botaoImagem = event.target.closest('button')
-        
-        // Se clicou fora dos controles e não foi no botão da imagem
-        if (!controlesContainer && !botaoImagem) {
-          this.mostrarControlesImagem = false
-        }
-      }
-    },
-
-    // Método para movimentação da imagem com teclado
-    handleKeyboardMovement(event) {
-      // Só processar se há imagem de fundo e os controles estão visíveis
-      if (!this.imagemFundo.url || !this.mostrarControlesImagem) return
-      
-      // Verificar se não está digitando em um input
-      if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return
-      
-      const passo = 10 // Pixels por movimento
-      
-      switch (event.key) {
-        case 'ArrowUp':
-          event.preventDefault()
-          this.imagemFundo.y -= passo
-          break
-        case 'ArrowDown':
-          event.preventDefault()
-          this.imagemFundo.y += passo
-          break
-        case 'ArrowLeft':
-          event.preventDefault()
-          this.imagemFundo.x -= passo
-          break
-        case 'ArrowRight':
-          event.preventDefault()
-          this.imagemFundo.x += passo
-          break
-        default:
-          return // Não processar outras teclas
-      }
+    // MÉTODOS PARA COMUNICAÇÃO COM COMPONENTE IMAGEM DE FUNDO
+    onImagemFundoMudou(novaImagemData) {
+      // Atualizar dados locais quando o componente filho emitir mudanças
+      this.imagemFundoData = { ...novaImagemData }
+      // Salvar também na storage por tipo
+      this.imagensFundoPorTipo[this.tipoAtivo] = { ...novaImagemData }
+      console.log(`Dados da imagem de fundo atualizados para ${this.tipoAtivo}:`, this.imagemFundoData)
     }
   }
 }
