@@ -67,7 +67,10 @@ export default {
           largura: null,
           altura: null,
           baseadoEm: 'config_fundo'
-        }
+        },
+        // Novas chaves para salvar posições manuais
+        posicoesManualPendulos: {}, // Ex: { 1: { x: 100, y: 50 }, 2: { x: 150, y: 60 } }
+        posicoesManualSensores: {} // Ex: { '1-1': { x: 110, y: 45 }, '1-2': { x: 110, y: 35 } }
       })
     },
     dadosSensores: {
@@ -125,7 +128,14 @@ export default {
   },
   watch: {
     config: {
-      handler() {
+      handler(newConfig, oldConfig) {
+        // 📐 DETECTAR MUDANÇA NA LARGURA BASE
+        if (oldConfig && newConfig.lb !== oldConfig.lb) {
+          console.log(`📐 [ArmazemSvg] Largura alterada: ${oldConfig.lb} → ${newConfig.lb}`)
+          
+          // Força recálculo das dimensões quando largura muda
+          this.recalcularDimensoes()
+        }
         this.updateSVG()
       },
       deep: true,
@@ -183,8 +193,20 @@ export default {
         quantidadePendulos = pendulosDetectados || 3
       }
 
-      // 📐 LARGURA ADAPTATIVA (exatamente igual ModeladorSVG calcularDimensoesSVG)
-      const larguraBaseConfig = config.lb || 350
+      // 📐 LARGURA ADAPTATIVA - PRIORIZAR LARGURA SALVA NO MODELO
+      let larguraBaseConfig = 350 // valor padrão
+      
+      // 🎯 BUSCAR largura na ordem de prioridade
+      if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
+        larguraBaseConfig = config.lb
+        console.log(`📐 [calcularDimensoesBaseadoNoFundo] Usando largura do config.lb: ${larguraBaseConfig}`)
+      } else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
+        larguraBaseConfig = this.modeloAtual.configuracao.lb
+        console.log(`📐 [calcularDimensoesBaseadoNoFundo] Usando largura do modeloAtual.configuracao.lb: ${larguraBaseConfig}`)
+      } else {
+        console.log(`📐 [calcularDimensoesBaseadoNoFundo] Usando largura padrão: ${larguraBaseConfig}`)
+      }
+      
       let larguraCalculada = Math.max(larguraBaseConfig, 300)
 
       // Expandir largura baseado na quantidade de pêndulos (igual ModeladorSVG)
@@ -205,7 +227,7 @@ export default {
 
       // 📏 ALTURA ADAPTATIVA (exatamente igual ModeladorSVG calcularDimensoesSVG)
       const alturaBaseConfig = config.pb || 185
-      
+
       // Para armazém, calcular altura adequada incluindo espaço para o topo (igual ModeladorSVG)
       const alturaFundo = alturaBaseConfig + 20  // Altura base + margem
       const alturaTopoNecessaria = 80            // Espaço adequado para o topo
@@ -551,25 +573,37 @@ export default {
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
 
-        // 🎯 APLICAR OFFSET INDIVIDUAL SE EXISTIR (igual ModeladorSVG)
+        // 🎯 APLICAR OFFSET INDIVIDUAL (prioridade: posições manuais > modeloEspecifico > posicionamento de cabos)
         let offsetIndividualX = 0
         let offsetIndividualY = 0
 
-        // Verificar se há estrutura v6.0 com posições específicas
-        if (config.modeloEspecifico?.posicoesPendulos?.[pendulo.numero]) {
-          const posicaoV6 = config.modeloEspecifico.posicoesPendulos[pendulo.numero]
-          offsetIndividualX = parseFloat(posicaoV6.x) || 0
-          offsetIndividualY = parseFloat(posicaoV6.y) || 0
-          
-          console.log(`🎯 [ArmazemSvg] P${pendulo.numero} - Offset v6.0:`, posicaoV6)
-        }
-        // Fallback para estrutura legado
-        else if (config.posicoesCabos && config.posicoesCabos[pendulo.numero]) {
-          const posicaoSalva = config.posicoesCabos[pendulo.numero]
-          offsetIndividualX = parseFloat(posicaoSalva.x) || 0
-          offsetIndividualY = parseFloat(posicaoSalva.y) || 0
+        console.log(`🔍 [renderSensoresArmazem] P${pendulo.numero} - Verificando posições:`, {
+          temPosicoesManualPendulos: !!(this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]),
+          temModeloEspecifico: !!(this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]),
+          temPosicoesCabos: !!(this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero])
+        })
 
-          console.log(`🎯 [ArmazemSvg] P${pendulo.numero} - Offset legado:`, posicaoSalva)
+        // Verificar se há posições manuais salvas para este pêndulo (PRIORIDADE 1)
+        if (this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]) {
+          // Prioridade 1: Posições manuais de drag and drop do ModeladorSVG
+          const posManual = this.config.posicoesManualPendulos[pendulo.numero]
+          offsetIndividualX = parseFloat(posManual.x) || 0
+          offsetIndividualY = parseFloat(posManual.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posições manuais:`, { x: offsetIndividualX, y: offsetIndividualY })
+        } else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
+          // Prioridade 2: Posições do modeloEspecifico (formato v6.0+)
+          const posEspec = this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]
+          offsetIndividualX = parseFloat(posEspec.x) || 0
+          offsetIndividualY = parseFloat(posEspec.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando modeloEspecifico:`, { x: offsetIndividualX, y: offsetIndividualY })
+        } else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
+          // Prioridade 3: Posições dos cabos (compatibilidade)
+          const posCabo = this.config.posicoesCabos[pendulo.numero]
+          offsetIndividualX = parseFloat(posCabo.x) || 0
+          offsetIndividualY = parseFloat(posCabo.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posicoesCabos:`, { x: offsetIndividualX, y: offsetIndividualY })
+        } else {
+          console.log(`⚠️ [renderSensoresArmazem] P${pendulo.numero} - Nenhuma posição customizada encontrada, usando posição base calculada`)
         }
 
         const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetIndividualX
@@ -707,7 +741,7 @@ export default {
       else if (temp < 17) return '#03fcbe'
       else if (temp < 21) return '#07fc03'
       else if (temp < 25) return '#c3ff00'
-      else if (temp < 27) return '#fcf803'
+      else if (temp < 27) return '#fcf800'
       else if (temp < 30) return '#ffb300'
       else if (temp < 35) return '#ff2200'
       else if (temp < 50) return '#ff0090'
@@ -717,7 +751,14 @@ export default {
     // Método para forçar recálculo de dimensões
     recalcularDimensoes() {
       const novasDimensoes = this.calcularDimensoesBaseadoNoFundo()
+      console.log(`📐 [recalcularDimensoes] Novas dimensões calculadas:`, novasDimensoes)
       this.$emit('dimensoes-atualizadas', novasDimensoes)
+      
+      // Força atualização reativa
+      this.$nextTick(() => {
+        this.$forceUpdate()
+      })
+      
       return novasDimensoes
     },
 

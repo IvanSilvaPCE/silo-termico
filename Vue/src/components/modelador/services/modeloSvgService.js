@@ -11,17 +11,17 @@ const pegarToken = () => {
 const preservarPosicoesCabos = (dadosSvg) => {
   try {
     const dados = typeof dadosSvg === 'string' ? JSON.parse(dadosSvg) : dadosSvg;
-    
+
     if (dados.modelosDefinidos) {
       Object.keys(dados.modelosDefinidos).forEach(modeloKey => {
         const modelo = dados.modelosDefinidos[modeloKey];
-        
+
         if (modelo.configuracao) {
           const config = modelo.configuracao;
           const quantidadePendulos = modelo.quantidadePendulos || 3;
-          
+
           console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Salvando posições exatas dos ${quantidadePendulos} pêndulos`);
-          
+
           // Garantir que propriedades básicas existam (sem alterar valores)
           if (config.escala_sensores === undefined) config.escala_sensores = 16;
           if (config.dist_y_sensores === undefined) config.dist_y_sensores = 12;
@@ -29,12 +29,20 @@ const preservarPosicoesCabos = (dadosSvg) => {
           if (config.posicao_horizontal === undefined) config.posicao_horizontal = 0;
           if (config.posicao_vertical === undefined) config.posicao_vertical = 0;
           if (config.afastamento_vertical_pendulo === undefined) config.afastamento_vertical_pendulo = 0;
-          
+
           // IMPORTANTE: Preservar posições individuais dos cabos EXATAMENTE como foram salvas
           if (!config.posicoesCabos) {
             config.posicoesCabos = {};
           }
-          
+
+          // NOVO: Preservar posições manuais dos pêndulos e sensores (drag and drop)
+          if (!config.posicoesManualPendulos) {
+            config.posicoesManualPendulos = {};
+          }
+          if (!config.posicoesManualSensores) {
+            config.posicoesManualSensores = {};
+          }
+
           // Garantir estrutura para cada cabo, mas SEM alterar posições existentes
           for (let i = 1; i <= quantidadePendulos; i++) {
             if (!config.posicoesCabos[i]) {
@@ -53,7 +61,7 @@ const preservarPosicoesCabos = (dadosSvg) => {
             } else {
               // PRESERVAR TOTALMENTE as posições já salvas
               const posicaoExistente = config.posicoesCabos[i];
-              
+
               // Apenas garantir que campos obrigatórios existam SEM ALTERAR valores existentes
               if (posicaoExistente.offsetX === undefined) posicaoExistente.offsetX = 0;
               if (posicaoExistente.offsetY === undefined) posicaoExistente.offsetY = 0;
@@ -61,11 +69,18 @@ const preservarPosicoesCabos = (dadosSvg) => {
               if (posicaoExistente.distanciaHorizontal === undefined) posicaoExistente.distanciaHorizontal = 0;
               if (posicaoExistente.numeroSensores === undefined) posicaoExistente.numeroSensores = 3;
               if (!posicaoExistente.timestampAlteracao) posicaoExistente.timestampAlteracao = Date.now();
-              
+
               console.log(`✅ [PRESERVAÇÃO] Modelo ${modeloKey} - Cabo ${i} - Posição preservada EXATA: x=${posicaoExistente.x}, y=${posicaoExistente.y}`);
             }
           }
-          
+
+          // NOVO: Log das posições manuais preservadas
+          const totalPendulosManual = Object.keys(config.posicoesManualPendulos).length;
+          const totalSensoresManual = Object.keys(config.posicoesManualSensores).length;
+          if (totalPendulosManual > 0 || totalSensoresManual > 0) {
+            console.log(`📍 [PRESERVAÇÃO] Modelo ${modeloKey} - Posições manuais preservadas: ${totalPendulosManual} pêndulos, ${totalSensoresManual} sensores`);
+          }
+
           // Construir array pos_x_cabo baseado nas posições individuais salvas
           if (config.posicoesCabos) {
             const posicoesArray = [];
@@ -79,7 +94,7 @@ const preservarPosicoesCabos = (dadosSvg) => {
             }
             config.pos_x_cabo = posicoesArray;
           }
-          
+
           // Calcular distância entre cabos baseada nas posições reais
           if (config.pos_x_cabo && config.pos_x_cabo.length > 1) {
             const distancias = [];
@@ -90,17 +105,17 @@ const preservarPosicoesCabos = (dadosSvg) => {
           } else {
             config.distancia_entre_cabos = [0];
           }
-          
+
           // Adicionar informações do modelo
           if (!config.informacoesModelo) {
             config.informacoesModelo = {};
           }
-          
+
           config.informacoesModelo.quantidadePendulos = quantidadePendulos;
           config.informacoesModelo.numeroModelo = modeloKey;
           config.informacoesModelo.timestampUltimaEdicao = Date.now();
           config.informacoesModelo.posicionamentoPersonalizado = true;
-          
+
           console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Posições dos cabos preservadas:`, {
             quantidadePendulos: quantidadePendulos,
             posicoesCabos: config.posicoesCabos,
@@ -110,7 +125,7 @@ const preservarPosicoesCabos = (dadosSvg) => {
         }
       });
     }
-    
+
     return typeof dadosSvg === 'string' ? JSON.stringify(dados) : dados;
   } catch (error) {
     console.warn('⚠️ [PRESERVAÇÃO] Erro ao preservar posições de cabos:', error);
@@ -241,7 +256,7 @@ const salvarModelo = async (dadosModelo) => {
     if (!dadoSvgProcessado || dadoSvgProcessado.trim() === "" || dadoSvgProcessado.trim() === "{}") {
       dadoSvgProcessado = JSON.stringify({ versao: "1.0", tipo: "modelo_basico", configuracao: {}, timestamp: Date.now() });
     }
-    
+
     // IMPORTANTE: Salvar primeiro no localStorage antes de enviar para o banco
     try {
       const dadosParaSalvar = typeof dadoSvgProcessado === 'string' ? JSON.parse(dadoSvgProcessado) : dadoSvgProcessado;
@@ -255,7 +270,7 @@ const salvarModelo = async (dadosModelo) => {
     } catch (error) {
       console.warn("⚠️ [LOCALSTORAGE] Erro ao salvar no localStorage:", error);
     }
-    
+
     // Preservar posições exatas dos cabos como foram definidas pelo usuário
     dadosComDefaults.dado_svg = preservarPosicoesCabos(dadoSvgProcessado);
 

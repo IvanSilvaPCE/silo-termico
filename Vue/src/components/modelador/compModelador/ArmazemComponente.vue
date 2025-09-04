@@ -204,28 +204,28 @@ export default {
     configAtual() {
       if (this.modeloAtual?.configuracao) {
         const config = this.modeloAtual.configuracao
-        
+
         // 🎯 ESTRUTURA V6.0: Passar modeloEspecifico diretamente para ArmazemSvg
         if (config.modeloEspecifico) {
           console.log('🎯 [configAtual] Estrutura v6.0 detectada - usando modeloEspecifico')
-          
+
           const configComV6 = {
             ...this.configPadrao,
             ...config,
             // 🎯 MANTER modeloEspecifico intacto para ArmazemSvg processar
             modeloEspecifico: config.modeloEspecifico
           }
-          
+
           console.log('📊 [configAtual] Config v6.0 preparada:', {
             temModeloEspecifico: !!configComV6.modeloEspecifico,
             quantidadePendulos: configComV6.modeloEspecifico?.quantidadePendulos,
             sensoresPorPendulo: configComV6.modeloEspecifico?.sensoresPorPendulo,
             posicoesPendulos: Object.keys(configComV6.modeloEspecifico?.posicoesPendulos || {}).length
           })
-          
+
           return configComV6
         }
-        
+
         // Estrutura legado
         const configComCabos = {
           ...this.configPadrao,
@@ -357,71 +357,117 @@ export default {
         temModelosDefinidos: !!dadosSvg.modelosDefinidos
       })
 
-      // 🎯 DETECTAR E PROCESSAR ESTRUTURA V6.0 CORRETAMENTE
-      if (dadosSvg.versao === '6.0' && dadosSvg.tipo === 'armazem_completo_otimizado' && dadosSvg.modelos) {
-        console.log('✅ [extrairModelosIndividuais] Estrutura v6.0 detectada - processando modelos')
-        
-        Object.keys(dadosSvg.modelos).forEach(key => {
-          const modeloV6 = dadosSvg.modelos[key]
-          
-          console.log(`🔧 [extrairModelosIndividuais] Processando modelo v6.0 - ${key}:`, {
+      // 🎯 DETECTAR E PROCESSAR ESTRUTURAS V6.0 E V6.1 CORRETAMENTE
+      if ((dadosSvg.versao === '6.0' || dadosSvg.versao === '6.1') && 
+          (dadosSvg.tipo === 'armazem_completo_otimizado' || dadosSvg.tipoConfiguracao === 'armazem_completo_v6') && 
+          (dadosSvg.modelos || dadosSvg.modelosDefinidos)) {
+
+        console.log(`✅ [extrairModelosIndividuais] Estrutura ${dadosSvg.versao || 'v6.x'} detectada - processando modelos`)
+
+        // Suportar tanto 'modelos' (v6.0) quanto 'modelosDefinidos' (v6.1+)
+        const modelosData = dadosSvg.modelos || dadosSvg.modelosDefinidos || {}
+
+        Object.keys(modelosData).forEach(key => {
+          const modeloV6 = modelosData[key]
+
+          console.log(`🔧 [extrairModelosIndividuais] Processando modelo ${dadosSvg.versao || 'v6.x'} - ${key}:`, {
             modeloCompleto: modeloV6,
             temModeloEspecifico: !!modeloV6.modeloEspecifico,
-            quantidadePendulos: modeloV6.modeloEspecifico?.quantidadePendulos,
-            sensoresPorPendulo: modeloV6.modeloEspecifico?.sensoresPorPendulo,
-            posicoesPendulos: modeloV6.modeloEspecifico?.posicoesPendulos
+            temConfiguracao: !!modeloV6.configuracao,
+            quantidadePendulos: modeloV6.modeloEspecifico?.quantidadePendulos || modeloV6.quantidadePendulos,
+            sensoresPorPendulo: modeloV6.modeloEspecifico?.sensoresPorPendulo || modeloV6.sensoresPorPendulo,
+            posicoesPendulos: modeloV6.modeloEspecifico?.posicoesPendulos || modeloV6.posicoesManualPendulos
           })
 
-          // 🎯 CONSTRUIR configuração compatível combinando dados v6.0
-          const configuracao = {
-            // Dimensões básicas
-            pb: modeloV6.dimensoes?.pb || 185,
-            lb: modeloV6.dimensoes?.lb || 350,
-            hb: modeloV6.dimensoes?.hb || 30,
-            hf: modeloV6.dimensoes?.hf || 6,
-            lf: modeloV6.dimensoes?.lf || 250,
-            le: modeloV6.dimensoes?.le || 15,
-            ht: modeloV6.dimensoes?.ht || 50,
+          // 🎯 CONSTRUIR configuração compatível - priorizar dados salvos do ModeladorSVG
+          let configuracao = {}
 
-            // Telhado
-            tipo_telhado: modeloV6.telhado?.tipo || 1,
-            curvatura_topo: modeloV6.telhado?.curvatura_topo || 30,
-            pontas_redondas: modeloV6.telhado?.pontas_redondas || false,
-            raio_pontas: modeloV6.telhado?.raio_pontas || 15,
-            estilo_laterais: modeloV6.telhado?.estilo_laterais || 'reta',
-            curvatura_laterais: modeloV6.telhado?.curvatura_laterais || 0,
+          // Verificar se é v6.1+ com configuração direta (dados do ModeladorSVG)
+          if (modeloV6.configuracao) {
+            console.log(`📦 [extrairModelosIndividuais] Modelo ${key} v6.1+ - usando configuração direta`)
+            configuracao = {
+              ...this.configPadrao,
+              ...modeloV6.configuracao // Preservar TODAS as configurações salvas
+            }
+          } else if (modeloV6.dimensoes || modeloV6.telhado || modeloV6.fundo) {
+            console.log(`📦 [extrairModelosIndividuais] Modelo ${key} v6.0 - construindo configuração`)
+            // Estrutura v6.0 separada
+            configuracao = {
+              // Dimensões básicas
+              pb: modeloV6.dimensoes?.pb || 185,
+              lb: modeloV6.dimensoes?.lb || 350,
+              hb: modeloV6.dimensoes?.hb || 30,
+              hf: modeloV6.dimensoes?.hf || 6,
+              lf: modeloV6.dimensoes?.lf || 250,
+              le: modeloV6.dimensoes?.le || 15,
+              ht: modeloV6.dimensoes?.ht || 50,
 
-            // Fundo
-            tipo_fundo: modeloV6.fundo?.tipo || 0,
-            altura_fundo_reto: modeloV6.fundo?.altura_fundo_reto || 10,
-            altura_funil_v: modeloV6.fundo?.altura_funil_v || 18,
-            posicao_ponta_v: modeloV6.fundo?.posicao_ponta_v || 0,
-            inclinacao_funil_v: modeloV6.fundo?.inclinacao_funil_v || 1,
-            largura_abertura_v: modeloV6.fundo?.largura_abertura_v || 20,
-            altura_duplo_v: modeloV6.fundo?.altura_duplo_v || 22,
-            posicao_v_esquerdo: modeloV6.fundo?.posicao_v_esquerdo || -1,
-            posicao_v_direito: modeloV6.fundo?.posicao_v_direito || 1,
-            largura_abertura_duplo_v: modeloV6.fundo?.largura_abertura_duplo_v || 2,
-            altura_plataforma_duplo_v: modeloV6.fundo?.altura_plataforma_duplo_v || 0.3,
-            largura_plataforma_duplo_v: modeloV6.fundo?.largura_plataforma_duplo_v || 10,
-            deslocamento_horizontal_fundo: modeloV6.fundo?.deslocamento_horizontal_fundo || 0,
-            deslocamento_vertical_fundo: modeloV6.fundo?.deslocamento_vertical_fundo || -1,
+              // Telhado
+              tipo_telhado: modeloV6.telhado?.tipo || 1,
+              curvatura_topo: modeloV6.telhado?.curvatura_topo || 30,
+              pontas_redondas: modeloV6.telhado?.pontas_redondas || false,
+              raio_pontas: modeloV6.telhado?.raio_pontas || 15,
+              estilo_laterais: modeloV6.telhado?.estilo_laterais || 'reta',
+              curvatura_laterais: modeloV6.telhado?.curvatura_laterais || 0,
 
-            // 🎯 ESTRUTURA V6.0: Dados dos sensores e pêndulos
-            modeloEspecifico: modeloV6.modeloEspecifico
+              // Fundo
+              tipo_fundo: modeloV6.fundo?.tipo || 0,
+              altura_fundo_reto: modeloV6.fundo?.altura_fundo_reto || 10,
+              altura_funil_v: modeloV6.fundo?.altura_funil_v || 18,
+              posicao_ponta_v: modeloV6.fundo?.posicao_ponta_v || 0,
+              inclinacao_funil_v: modeloV6.fundo?.inclinacao_funil_v || 1,
+              largura_abertura_v: modeloV6.fundo?.largura_abertura_v || 20,
+              altura_duplo_v: modeloV6.fundo?.altura_duplo_v || 22,
+              posicao_v_esquerdo: modeloV6.fundo?.posicao_v_esquerdo || -1,
+              posicao_v_direito: modeloV6.fundo?.posicao_v_direito || 1,
+              largura_abertura_duplo_v: modeloV6.fundo?.largura_abertura_duplo_v || 2,
+              altura_plataforma_duplo_v: modeloV6.fundo?.altura_plataforma_duplo_v || 0.3,
+              largura_plataforma_duplo_v: modeloV6.fundo?.largura_plataforma_duplo_v || 10,
+              deslocamento_horizontal_fundo: modeloV6.fundo?.deslocamento_horizontal_fundo || 0,
+              deslocamento_vertical_fundo: modeloV6.fundo?.deslocamento_vertical_fundo || -1,
+
+              // Sensores padrão se não especificado
+              escala_sensores: 16,
+              dist_y_sensores: 12,
+              dist_x_sensores: 0,
+              posicao_horizontal: 0,
+              posicao_vertical: 0,
+              afastamento_vertical_pendulo: 0
+            }
           }
 
-          // 🎯 EXTRAIR dados corretos do modeloEspecifico v6.0
-          const modeloEspec = modeloV6.modeloEspecifico || {}
-          const quantidadePendulos = modeloEspec.quantidadePendulos || 3
-          const sensoresPorPendulo = modeloEspec.sensoresPorPendulo || {}
-          const posicoesPendulos = modeloEspec.posicoesPendulos || {}
+          // 🎯 PRESERVAR modeloEspecifico se existir
+          if (modeloV6.modeloEspecifico) {
+            configuracao.modeloEspecifico = modeloV6.modeloEspecifico
+          }
 
-          console.log(`📊 [extrairModelosIndividuais] Modelo ${key} v6.0 - Dados extraídos:`, {
+          // 🎯 PRESERVAR posições manuais se existirem
+          if (modeloV6.posicoesManualPendulos) {
+            configuracao.posicoesManualPendulos = modeloV6.posicoesManualPendulos
+          }
+          if (modeloV6.posicoesManualSensores) {
+            configuracao.posicoesManualSensores = modeloV6.posicoesManualSensores
+          }
+
+          // 🎯 EXTRAIR dados finais com compatibilidade total
+          const quantidadePendulos = modeloV6.modeloEspecifico?.quantidadePendulos || 
+                                     modeloV6.quantidadePendulos || 3
+          const sensoresPorPendulo = modeloV6.modeloEspecifico?.sensoresPorPendulo || 
+                                     modeloV6.sensoresPorPendulo || {}
+          const posicoesPendulos = modeloV6.modeloEspecifico?.posicoesPendulos || 
+                                   modeloV6.posicoesManualPendulos || {}
+
+          console.log(`📊 [extrairModelosIndividuais] Modelo ${key} ${dadosSvg.versao || 'v6.x'} - Dados extraídos:`, {
             quantidadePendulos,
             sensoresPorPendulo,
             posicoesPendulos,
-            totalPosicoesDefinidas: Object.keys(posicoesPendulos).length
+            totalPosicoesDefinidas: Object.keys(posicoesPendulos).length,
+            configuracaoCompleta: {
+              telhado: configuracao.tipo_telhado,
+              curvatura: configuracao.curvatura_topo,
+              largura: configuracao.lb,
+              altura: configuracao.pb
+            }
           })
 
           modelos.push({
@@ -431,7 +477,7 @@ export default {
             configuracao: configuracao,
             quantidadePendulos: quantidadePendulos,
             sensoresPorPendulo: sensoresPorPendulo,
-            timestampSalvamento: modeloV6.timestamp || Date.now()
+            timestampSalvamento: modeloV6.timestamp || modeloV6.timestampSalvamento || Date.now()
           })
         })
       }
@@ -542,7 +588,7 @@ export default {
         const modeloEspec = this.modeloAtual.configuracao.modeloEspecifico
         quantidadePendulos = modeloEspec.quantidadePendulos || 3
         sensoresPorPendulo = modeloEspec.sensoresPorPendulo || {}
-        
+
         console.log('🎯 [gerarDadosSensoresSimulados] Usando dados v6.0:', {
           quantidadePendulos,
           sensoresPorPendulo
@@ -551,7 +597,7 @@ export default {
 
       for (let p = 1; p <= quantidadePendulos; p++) {
         dadosSimulados[p] = {}
-        
+
         // 🎯 USAR quantidade correta salva para cada pêndulo
         let numSensores = 3 // padrão
         if (sensoresPorPendulo[p]) {
@@ -569,7 +615,7 @@ export default {
       }
 
       this.dadosSensores = { leitura: dadosSimulados }
-      
+
       console.log('📊 [gerarDadosSensoresSimulados] Dados simulados gerados:', {
         totalPendulos: Object.keys(dadosSimulados).length,
         dadosSimulados
@@ -720,12 +766,12 @@ export default {
             numeroSensores: 3,
             timestampAlteracao: Date.now()
           }
-          
+
           console.log(`🆕 [PRESERVAÇÃO] P${i} - Nova posição criada: ${xBaseCalculado}`)
         } else {
           // 🔧 PRESERVAR posições personalizadas EXATAMENTE como salvas (igual ModeladorSVG)
           const posicaoExistente = config.posicoesCabos[i]
-          
+
           // NÃO alterar posições customizadas - apenas garantir campos obrigatórios
           if (posicaoExistente.y === undefined) posicaoExistente.y = 0
           if (posicaoExistente.offsetX === undefined) posicaoExistente.offsetX = 0
@@ -772,7 +818,7 @@ export default {
       })
     },
 
-    
+
 
     // Método para garantir a existência da estrutura de posições individuais dos cabos
     inicializarPosicoesCabos() {
@@ -893,7 +939,7 @@ export default {
       }
 
       const total = Object.values(sensoresPorPendulo).reduce((sum, num) => sum + (parseInt(num) || 0), 0)
-      
+
       console.log('🔢 [calcularTotalSensores] Total calculado:', {
         sensoresPorPendulo,
         total,
@@ -979,7 +1025,7 @@ export default {
 
       // Sempre atualizar o array pos_x_cabo com as posições personalizadas
       if (!config.pos_x_cabo) config.pos_x_cabo = []
-      
+
       // Usar posições individuais como fonte de verdade
       const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
       for (let i = 1; i <= quantidadePendulos; i++) {
@@ -1040,9 +1086,9 @@ export default {
 
         const chave = `config_posicionamento_${this.modeloCarregado.nome}_${Date.now()}`
         localStorage.setItem(chave, JSON.stringify(dadosCompletos))
-        
+
         console.log('💾 [LOCALSTORAGE] Posicionamento salvo:', chave, dadosCompletos)
-        
+
       } catch (error) {
         console.error('❌ [LOCALSTORAGE] Erro ao salvar posicionamento:', error)
       }

@@ -57,6 +57,19 @@
             @resetar-padrao="resetarPadrao" @resetar-modelos-padrao="resetarModelosParaPadrao"
             @voltar-preview="voltarParaPreview" @resetar-posicoes-manual="resetarPosicoesManual" />
 
+          <!-- Editor de Modelos do Banco -->
+          <EditorModelosBanco 
+            :tipo-ativo="tipoAtivo"
+            :config-silo="configSilo"
+            :config-armazem="configArmazem"
+            :modelos-arcos="modelosArcos"
+            :quantidade-modelos-arcos="quantidadeModelosArcos"
+            :arco-atual="arcoAtual"
+            @aplicar-modelo-edicao="aplicarModeloParaEdicao"
+            @mudar-arco-edicao="mudarArcoParaEdicao"
+            @restaurar-configuracao="restaurarConfiguracao"
+            @mostrar-toast="mostrarToast" />
+
           <!-- Gerenciador de Configurações (Banco de Dados) -->
           <GerenciadorModelosBanco :tipo-ativo="tipoAtivo" :quantidade-modelos-arcos="quantidadeModelosArcos"
             :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :config-silo="configSilo"
@@ -315,6 +328,7 @@ import ConfiguracaoSensores from './compModelador/ConfiguracaoSensores.vue'
 import BotoesControle from './compModelador/BotoesControle.vue'
 import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue'
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
+import EditorModelosBanco from './compModelador/EditorModelosBanco.vue'
 import ImagemFundo from './compModelador/ImagemFundo.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
 
@@ -332,6 +346,7 @@ export default {
     BotoesControle,
     GerenciadorModelosBanco,
     GerenciadorConfiguracoes,
+    EditorModelosBanco,
     ImagemFundo
   },
   data() {
@@ -486,7 +501,11 @@ export default {
           scale: 1,
           opacity: 0.3
         }
-      }
+      },
+
+      // Estados para edição de modelos do banco
+      modoEdicaoModeloBanco: false,
+      modeloBancoEmEdicao: null
     }
   },
   computed: {
@@ -552,6 +571,9 @@ export default {
     await this.carregarDadosAPI()
     await this.carregarModelosDoBanco()
 
+    // Carregar posições temporárias se existirem
+    this.carregarPosicoesTemporarias()
+    
     this.inicializarPosicoesCabos()
     this.updateSVG()
 
@@ -1350,11 +1372,11 @@ export default {
       this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${this.modelosArcos[this.modeloArcoAtual]?.nome}) salvo com sucesso!`, 'success')
     },
 
-    // Método para resetar completamente após salvamento no banco
+    // Método para resetar apenas as posições visuais após salvamento no banco
     resetarTudoAposSalvamentoBanco() {
-      console.log('🔄 [resetarTudoAposSalvamentoBanco] Iniciando reset completo após salvamento no banco')
+      console.log('🔄 [resetarTudoAposSalvamentoBanco] Iniciando reset visual após salvamento no banco')
 
-      // 1. Resetar configuração do armazém para valores padrão
+      // 1. Resetar configuração do armazém para valores padrão VISUAL
       this.configArmazem = {
         pb: 185,
         lb: 350,
@@ -1391,25 +1413,7 @@ export default {
         afastamento_vertical_pendulo: 0
       }
 
-      // 2. Resetar configuração do silo para valores padrão
-      this.configSilo = {
-        lb: 200,
-        hs: 180,
-        hb: 15,
-        eb: 5,
-        escala_sensores: 16,
-        dist_y_sensores: 12,
-        pos_x_cabos_uniforme: 1,
-        pos_x_cabo: [50, 25],
-        pos_y_cabo: [160, 160, 160, 160, 160],
-        aeradores_ativo: false,
-        na: 4,
-        ds: 30,
-        dy: 0,
-        da: 35
-      }
-
-      // 3. Resetar modelos de arcos para padrão
+      // 2. Resetar modelos de arcos VISUAL para padrão (mantendo dados salvos no localStorage)
       this.quantidadeModelosArcos = 1
       this.modelosArcos = {
         1: {
@@ -1423,11 +1427,11 @@ export default {
         }
       }
 
-      // 4. Limpar estado de edição
+      // 3. Limpar apenas estado de edição VISUAL
       this.modeloArcoAtual = null
       this.modelosSalvos = {}
 
-      // 5. Limpar posições e configurações personalizadas
+      // 4. Limpar apenas posições e configurações personalizadas VISUAIS
       this.posicoesCabos = {}
       this.caboSelecionadoPosicionamento = null
       this.modelagemIndividualAtiva = false
@@ -1437,13 +1441,17 @@ export default {
       this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
       this.dadosPreviewDesvinculados = null
 
-      // 6. Limpar configurações de preview
+      // 5. Limpar posições manuais de drag and drop VISUAIS
+      this.posicoesManualPendulos = {}
+      this.posicoesManualSensores = {}
+
+      // 6. Limpar configurações de preview VISUAIS
       this.configuracaoPreviewSelecionada = ''
       this.configPreviewAplicada = null
       this.configuracaoAplicada = null
 
-      // 7. Limpar localStorage relacionado aos modelos
-      this.limparLocalStorageModelos()
+      // 7. IMPORTANTE: NÃO limpar localStorage - manter dados dos modelos salvos para o banco
+      console.log('💾 [resetarTudoAposSalvamentoBanco] PRESERVANDO localStorage com dados dos modelos para banco')
 
       // 8. Regenerar dados exemplares com configuração padrão
       this.criarDadosExemplaresArmazem()
@@ -1451,77 +1459,15 @@ export default {
       // 9. Atualizar SVG
       this.updateSVG()
 
-      console.log('✅ [resetarTudoAposSalvamentoBanco] Reset completo finalizado - pronto para novo modelo')
-    },
-
-    // Método para limpar localStorage dos modelos
-    limparLocalStorageModelos() {
-      try {
-        console.log('🧹 [limparLocalStorageModelos] Iniciando limpeza do localStorage')
-
-        // Limpar chaves específicas dos modelos
-        const chavesParaLimpar = [
-          'estadoModelosArcos',
-          'configArmazem',
-          'modelosArcosSalvos'
-        ]
-
-        chavesParaLimpar.forEach(chave => {
-          if (localStorage.getItem(chave)) {
-            localStorage.removeItem(chave)
-            console.log(`🗑️ [limparLocalStorageModelos] Removido: ${chave}`)
-          }
-        })
-
-        // Limpar modelos individuais (modelo_1, modelo_2, etc.)
-        for (let i = 1; i <= 10; i++) {
-          const chaveModelo = `modelo_${i}`
-          if (localStorage.getItem(chaveModelo)) {
-            localStorage.removeItem(chaveModelo)
-            console.log(`🗑️ [limparLocalStorageModelos] Removido: ${chaveModelo}`)
-          }
-        }
-
-        // Limpar configurações temporárias
-        const chavesTempParaLimpar = [
-          'configuracaoTemporaria',
-          'variaveisModelo',
-          'estadoModeloAtivo',
-          'alteracoesPendentes',
-          'posicoesCabosTemporarias',
-          'sensoresTemporarios'
-        ]
-
-        chavesTempParaLimpar.forEach(chave => {
-          if (localStorage.getItem(chave)) {
-            localStorage.removeItem(chave)
-            console.log(`🗑️ [limparLocalStorageModelos] Removido temporário: ${chave}`)
-          }
-        })
-
-        // Limpar chaves que começam com prefixos específicos
-        const prefixosParaLimpar = ['modelo_temp_', 'config_temp_', 'posicoes_', 'sensores_']
-        const todasChaves = Object.keys(localStorage)
-
-        todasChaves.forEach(chave => {
-          prefixosParaLimpar.forEach(prefixo => {
-            if (chave.startsWith(prefixo)) {
-              localStorage.removeItem(chave)
-              console.log(`🗑️ [limparLocalStorageModelos] Removido prefixo ${prefixo}: ${chave}`)
-            }
-          })
-        })
-
-        console.log('✅ [limparLocalStorageModelos] Limpeza do localStorage concluída')
-      } catch (error) {
-        console.error('❌ [limparLocalStorageModelos] Erro ao limpar localStorage:', error)
-      }
+      console.log('✅ [resetarTudoAposSalvamentoBanco] Reset visual finalizado - dados dos modelos preservados no localStorage')
     },
 
     salvarModeloAtualCompleto() {
       if (!this.modeloArcoAtual) return
 
-      // Criar configuração consolidada do modelo atual
+      console.log(`💾 [salvarModeloAtualCompleto] Salvando modelo ${this.modeloArcoAtual} COM posições manuais`)
+
+      // Criar configuração consolidada do modelo atual com todas as configurações preservadas
       const configuracaoModelo = {
         // Dados básicos do modelo
         nome: this.modelosArcos[this.modeloArcoAtual]?.nome || `Modelo ${this.modeloArcoAtual}`,
@@ -1529,16 +1475,125 @@ export default {
         quantidadePendulos: this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3,
         sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {} },
 
-        // Posição dos cabos separados
+        // IMPORTANTE: Preservar TODAS as configurações do armazém incluindo telhado e dimensões
+        // Dimensões básicas
+        pb: this.configArmazem.pb,
+        lb: this.configArmazem.lb, // CRÍTICO: Largura base deve ser preservada
+        hb: this.configArmazem.hb,
+        hf: this.configArmazem.hf,
+        lf: this.configArmazem.lf,
+        le: this.configArmazem.le,
+        ht: this.configArmazem.ht,
+
+        // CRÍTICO: Configurações do telhado devem ser preservadas
+        tipo_telhado: this.configArmazem.tipo_telhado,
+        curvatura_topo: this.configArmazem.curvatura_topo,
+        pontas_redondas: this.configArmazem.pontas_redondas,
+        raio_pontas: this.configArmazem.raio_pontas,
+        estilo_laterais: this.configArmazem.estilo_laterais,
+        curvatura_laterais: this.configArmazem.curvatura_laterais,
+
+        // Configurações do fundo
+        tipo_fundo: this.configArmazem.tipo_fundo,
+        altura_fundo_reto: this.configArmazem.altura_fundo_reto,
+        altura_funil_v: this.configArmazem.altura_funil_v,
+        posicao_ponta_v: this.configArmazem.posicao_ponta_v,
+        inclinacao_funil_v: this.configArmazem.inclinacao_funil_v,
+        largura_abertura_v: this.configArmazem.largura_abertura_v,
+        altura_duplo_v: this.configArmazem.altura_duplo_v,
+        posicao_v_esquerdo: this.configArmazem.posicao_v_esquerdo,
+        posicao_v_direito: this.configArmazem.posicao_v_direito,
+        largura_abertura_duplo_v: this.configArmazem.largura_abertura_duplo_v,
+        altura_plataforma_duplo_v: this.configArmazem.altura_plataforma_duplo_v,
+        largura_plataforma_duplo_v: this.configArmazem.largura_plataforma_duplo_v,
+        deslocamento_horizontal_fundo: this.configArmazem.deslocamento_horizontal_fundo,
+        deslocamento_vertical_fundo: this.configArmazem.deslocamento_vertical_fundo,
+
+        // Configurações dos sensores
+        escala_sensores: this.configArmazem.escala_sensores,
+        dist_y_sensores: this.configArmazem.dist_y_sensores,
+        dist_x_sensores: this.configArmazem.dist_x_sensores,
+        posicao_horizontal: this.configArmazem.posicao_horizontal,
+        posicao_vertical: this.configArmazem.posicao_vertical,
+        afastamento_vertical_pendulo: this.configArmazem.afastamento_vertical_pendulo,
+
+        // CRÍTICO: Sistema de posições completo para compatibilidade com ArmazemComponente
+        // Posição dos cabos separados (sistema antigo - compatibilidade)
         posicoesCabos: { ...this.posicoesCabos },
 
-        // Todas as configurações do armazém (inclui dimensões, telhado, fundo, sensores)
-        ...this.configArmazem,
+        // NOVO: Posições manuais dos pêndulos e sensores via drag and drop
+        posicoesManualPendulos: { ...this.posicoesManualPendulos },
+        posicoesManualSensores: { ...this.posicoesManualSensores },
 
-        // Estado adicional se necessário
+        // CRÍTICO: Estrutura v6.1 compatível com exemplo fornecido
+        modeloEspecifico: {
+          quantidadePendulos: this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3,
+          sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {} },
+          
+          // Posições dos pêndulos seguindo formato do exemplo fornecido
+          posicoesPendulos: Object.keys(this.posicoesManualPendulos || {}).length > 0 
+            ? Object.keys(this.posicoesManualPendulos).reduce((acc, penduloNum) => {
+                const pos = this.posicoesManualPendulos[penduloNum]
+                acc[penduloNum] = {
+                  x: pos.x || 0,
+                  y: pos.y || 0,
+                  altura: 0,
+                  offsetX: pos.offsetX || 0,
+                  offsetY: pos.offsetY || 0,
+                  distanciaHorizontal: 0,
+                  timestampAlteracao: pos.timestampAlteracao || Date.now()
+                }
+                return acc
+              }, {})
+            : {},
+          
+          // Alturas dos sensores
+          alturasSensores: {},
+          
+          // Configuração global
+          configuracaoGlobal: {
+            escala_sensores: this.configArmazem.escala_sensores || 16,
+            dist_y_sensores: this.configArmazem.dist_y_sensores || 12,
+            dist_x_sensores: this.configArmazem.dist_x_sensores || 0,
+            posicao_horizontal: this.configArmazem.posicao_horizontal || 0,
+            posicao_vertical: this.configArmazem.posicao_vertical || 0,
+            afastamento_vertical_pendulo: this.configArmazem.afastamento_vertical_pendulo || 0
+          }
+        },
+
+        // Estado adicional
         caboSelecionadoPosicionamento: this.caboSelecionadoPosicionamento,
-        timestampSalvamento: new Date().toISOString()
+        timestampSalvamento: new Date().toISOString(),
+        versaoModelo: '6.1', // Compatível com formato do exemplo fornecido
+        validado: true
       }
+
+      console.log(`📊 [salvarModeloAtualCompleto] Configuração completa sendo salva:`, {
+        telhado: {
+          tipo: configuracaoModelo.tipo_telhado,
+          curvatura: configuracaoModelo.curvatura_topo
+        },
+        dimensoes: {
+          lb: configuracaoModelo.lb,
+          pb: configuracaoModelo.pb
+        },
+        posicoesManuais: {
+          pendulos: Object.keys(configuracaoModelo.posicoesManualPendulos || {}).length,
+          sensores: Object.keys(configuracaoModelo.posicoesManualSensores || {}).length
+        }
+      })
+
+      // Atualizar o modelo local com as posições manuais
+      if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
+        this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = {}
+      }
+      if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores) {
+        this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = {}
+      }
+      
+      this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = { ...this.posicoesManualPendulos }
+      this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = { ...this.posicoesManualSensores }
+      this.modelosArcos[this.modeloArcoAtual].timestampSalvamento = configuracaoModelo.timestampSalvamento
 
       // Salvar usando o serviço simplificado
       const { configuracaoService } = require('./services/configuracaoService')
@@ -1546,9 +1601,12 @@ export default {
 
       if (resultado.success) {
         this.modelosSalvos[this.modeloArcoAtual] = true
-        console.log(`✅ Modelo ${this.modeloArcoAtual} salvo no localStorage`)
+        console.log(`✅ [salvarModeloAtualCompleto] Modelo ${this.modeloArcoAtual} salvo no localStorage COM posições manuais:`, {
+          pendulosComPosicao: Object.keys(this.posicoesManualPendulos).length,
+          sensoresComPosicao: Object.keys(this.posicoesManualSensores).length
+        })
       } else {
-        console.error(`❌ Erro ao salvar modelo ${this.modeloArcoAtual}:`, resultado.message)
+        console.error(`❌ [salvarModeloAtualCompleto] Erro ao salvar modelo ${this.modeloArcoAtual}:`, resultado.message)
       }
     },
 
@@ -1567,11 +1625,54 @@ export default {
       this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
       this.dadosPreviewDesvinculados = null
 
+      // Limpar posições manuais de drag and drop
+      this.posicoesManualPendulos = {}
+      this.posicoesManualSensores = {}
+
       // Limpar configurações de preview aplicadas
       this.configPreviewAplicada = null
       this.configuracaoAplicada = null
 
       console.log('✅ [limparVariaveisParaNovoModelo] Variáveis limpas - pronto para novo modelo')
+    },
+
+    // Método para limpar apenas dados temporários do localStorage (OPCIONAL - apenas se necessário)
+    limparLocalStorageTemporario() {
+      try {
+        console.log('🧹 [limparLocalStorageTemporario] Limpando apenas dados temporários')
+
+        // Limpar apenas configurações temporárias - NÃO tocar nos modelos salvos
+        const chavesTempParaLimpar = [
+          'posicoesManualTemp',
+          'configuracaoTemporaria',
+          'estadoModeloAtivo',
+          'alteracoesPendentes'
+        ]
+
+        chavesTempParaLimpar.forEach(chave => {
+          if (localStorage.getItem(chave)) {
+            localStorage.removeItem(chave)
+            console.log(`🗑️ [limparLocalStorageTemporario] Removido temporário: ${chave}`)
+          }
+        })
+
+        // Limpar apenas chaves que começam com prefixos temporários
+        const prefixosTemporarios = ['temp_', 'preview_']
+        const todasChaves = Object.keys(localStorage)
+
+        todasChaves.forEach(chave => {
+          prefixosTemporarios.forEach(prefixo => {
+            if (chave.startsWith(prefixo)) {
+              localStorage.removeItem(chave)
+              console.log(`🗑️ [limparLocalStorageTemporario] Removido prefixo temporário ${prefixo}: ${chave}`)
+            }
+          })
+        })
+
+        console.log('✅ [limparLocalStorageTemporario] Limpeza temporária concluída - modelos preservados')
+      } catch (error) {
+        console.error('❌ [limparLocalStorageTemporario] Erro ao limpar temporários:', error)
+      }
     },
 
     resetarConfigArmParaPadrao() {
@@ -1634,13 +1735,14 @@ export default {
         this.configArmazem = { ...modelo.config }
       }
 
-      // Carregar posições manuais salvas
-      if (modelo.posicoesManualPendulos) {
-        this.posicoesManualPendulos = { ...modelo.posicoesManualPendulos }
-      }
-      if (modelo.posicoesManualSensores) {
-        this.posicoesManualSensores = { ...modelo.posicoesManualSensores }
-      }
+      // NOVO: Carregar posições manuais dos pêndulos e sensores
+      this.posicoesManualPendulos = { ...modelo.posicoesManualPendulos || {} }
+      this.posicoesManualSensores = { ...modelo.posicoesManualSensores || {} }
+
+      console.log(`📍 [carregarConfiguracaoModelo] Posições manuais carregadas:`, {
+        pendulos: Object.keys(this.posicoesManualPendulos).length,
+        sensores: Object.keys(this.posicoesManualSensores).length
+      })
 
       // Carregar estado completo se disponível
       if (modelo.estadoCompleto) {
@@ -1654,6 +1756,14 @@ export default {
         // Restaurar posições de cabos
         if (modelo.estadoCompleto.posicoesCabos) {
           this.posicoesCabos = { ...modelo.estadoCompleto.posicoesCabos }
+        }
+
+        // NOVO: Restaurar posições manuais do estado completo (prioridade sobre modelo base)
+        if (modelo.estadoCompleto.posicoesManualPendulos) {
+          this.posicoesManualPendulos = { ...modelo.estadoCompleto.posicoesManualPendulos }
+        }
+        if (modelo.estadoCompleto.posicoesManualSensores) {
+          this.posicoesManualSensores = { ...modelo.estadoCompleto.posicoesManualSensores }
         }
 
         // Restaurar cabo selecionado
@@ -3020,6 +3130,12 @@ export default {
     },
 
     updateSVG() {
+      // Não atualizar SVG durante drag para evitar sobrescrever posições
+      if (this.isDragging) {
+        console.log('⚠️ updateSVG bloqueado durante drag para preservar posições')
+        return
+      }
+      
       this.calcularDimensoesSVG()
       this.generateSVG()
 
@@ -3028,6 +3144,8 @@ export default {
         this.$nextTick(() => {
           setTimeout(() => {
             this.atualizarSensores()
+            // Readicionar event listeners após regeneração do SVG
+            this.adicionarEventListeners()
           }, 100)
         })
       }
@@ -4184,6 +4302,9 @@ export default {
               quantidadePendulos: modelo.quantidadePendulos || 3,
               sensoresPorPendulo: modelo.sensoresPorPendulo || {},
               posicoesCabos: modelo.posicoesCabos || {},
+              // NOVO: Restaurar posições manuais dos pêndulos e sensores
+              posicoesManualPendulos: modelo.posicoesManualPendulos || {},
+              posicoesManualSensores: modelo.posicoesManualSensores || {},
               // Restaurar estado completo se disponível
               estadoCompleto: modelo.estadoCompleto || null,
               timestampSalvamento: modelo.timestampUltimaEdicao || new Date().toISOString(),
@@ -4264,7 +4385,10 @@ export default {
             nome: modelo.nome || `Modelo ${key}`,
             quantidadePendulos: modelo.quantidadePendulos || 3,
             sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-            posicoesCabos: modelo.posicoesCabos || {}
+            posicoesCabos: modelo.posicoesCabos || {},
+            // NOVO: Restaurar posições manuais se existirem
+            posicoesManualPendulos: modelo.posicoesManualPendulos || {},
+            posicoesManualSensores: modelo.posicoesManualSensores || {}
           }
           novosSalvos[key] = true
         })
@@ -4439,6 +4563,257 @@ export default {
       console.log(`Dados da imagem de fundo atualizados para ${this.tipoAtivo}:`, this.imagemFundoData)
     },
 
+    // MÉTODOS PARA EDIÇÃO DE MODELOS DO BANCO
+    aplicarModeloParaEdicao(dados) {
+      console.log('🔧 [aplicarModeloParaEdicao] Aplicando modelo para edição:', dados)
+      
+      const { modelo, arcoAtual, dadosProcessados } = dados
+      
+      try {
+        // Limpar configuração de preview anterior se existir
+        this.configuracaoPreviewSelecionada = ''
+        this.configPreviewAplicada = null
+        
+        // Marcar modo de edição ativo
+        this.modoEdicaoModeloBanco = true
+        this.modeloBancoEmEdicao = modelo
+        
+        // Forçar tipo baseado no modelo
+        this.tipoAtivo = modelo.tp_svg === 'S' ? 'silo' : 'armazem'
+        
+        // Aplicar configuração baseada no tipo
+        if (modelo.tp_svg === 'S') {
+          this.aplicarModeloSiloParaEdicao(modelo, dadosProcessados)
+        } else {
+          this.aplicarModeloArmazemParaEdicao(modelo, arcoAtual, dadosProcessados)
+        }
+        
+        // Navegar para o arco especificado se for armazém
+        if (modelo.tp_svg === 'A' && arcoAtual && arcoAtual !== this.arcoAtual) {
+          this.mudarArco(arcoAtual, false)
+        }
+        
+        // Aguardar um pouco para garantir que tudo foi carregado antes de atualizar o SVG
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.updateSVG()
+          }, 100)
+        })
+        
+        console.log('✅ [aplicarModeloParaEdicao] Modelo aplicado com sucesso no preview')
+        
+      } catch (error) {
+        console.error('❌ [aplicarModeloParaEdicao] Erro ao aplicar modelo:', error)
+        this.mostrarToast('Erro ao aplicar modelo para edição', 'error')
+      }
+    },
+    
+    aplicarModeloSiloParaEdicao(modelo, dadosProcessados = null) {
+      try {
+        const dadosSVG = dadosProcessados || (typeof modelo.dado_svg === 'string' 
+          ? JSON.parse(modelo.dado_svg) 
+          : modelo.dado_svg)
+        
+        console.log('📊 [aplicarModeloSiloParaEdicao] Dados SVG parseados:', dadosSVG)
+        
+        if (dadosSVG.configuracao || dadosSVG) {
+          const configSalva = dadosSVG.configuracao || dadosSVG
+          
+          // Aplicar configuração salva nos controles do silo
+          this.configSilo = {
+            // Valores padrão
+            lb: 200, hs: 180, hb: 15, eb: 5,
+            escala_sensores: 16, dist_y_sensores: 12,
+            pos_x_cabos_uniforme: 1, pos_x_cabo: [50, 25],
+            pos_y_cabo: [160, 160, 160, 160, 160],
+            aeradores_ativo: false, na: 4, ds: 30, dy: 0, da: 35,
+            // Sobrescrever com valores salvos
+            ...configSalva
+          }
+          
+          console.log('✅ [aplicarModeloSiloParaEdicao] Configuração carregada nos controles:', {
+            lb: this.configSilo.lb,
+            hs: this.configSilo.hs,
+            aeradores_ativo: this.configSilo.aeradores_ativo
+          })
+        } else {
+          console.warn('⚠️ [aplicarModeloSiloParaEdicao] Nenhuma configuração encontrada no modelo')
+        }
+        
+      } catch (error) {
+        console.error('❌ [aplicarModeloSiloParaEdicao] Erro:', error)
+        this.mostrarToast('Erro ao carregar configuração do silo', 'error')
+      }
+    },
+    
+    aplicarModeloArmazemParaEdicao(modelo, arcoAtual, dadosProcessados = null) {
+      try {
+        const dadosSVG = dadosProcessados || (typeof modelo.dado_svg === 'string' 
+          ? JSON.parse(modelo.dado_svg) 
+          : modelo.dado_svg)
+        
+        console.log('📊 [aplicarModeloArmazemParaEdicao] Dados SVG parseados para arco:', arcoAtual || 'não especificado')
+        
+        // Limpar estados anteriores
+        this.modeloArcoAtual = null
+        this.posicoesManualPendulos = {}
+        this.posicoesManualSensores = {}
+        
+        // Aplicar configuração global ou específica
+        let configParaAplicar = {}
+        
+        // Tentar encontrar configuração global ou do primeiro modelo
+        if (dadosSVG.configuracaoGlobal) {
+          configParaAplicar = dadosSVG.configuracaoGlobal
+        } else if (dadosSVG.dimensoes) {
+          // Formato v6.0/v6.1 com estrutura diferente
+          configParaAplicar = {
+            ...dadosSVG.dimensoes,
+            ...dadosSVG.telhado,
+            ...dadosSVG.fundo
+          }
+        } else {
+          // Procurar no primeiro modelo disponível
+          const primeiroModelo = Object.values(dadosSVG.sistemaModelos?.modelosDefinidos || 
+                                               dadosSVG.modelosDefinidos || 
+                                               dadosSVG.modelos || {})[0]
+          if (primeiroModelo) {
+            configParaAplicar = primeiroModelo.configuracao || primeiroModelo.config || primeiroModelo
+          }
+        }
+        
+        // Aplicar configuração nos controles do armazém
+        this.configArmazem = {
+          // Valores padrão
+          pb: 185, lb: 350, hb: 30, hf: 6, lf: 250, le: 15, ht: 50,
+          tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false,
+          raio_pontas: 15, estilo_laterais: 'reta', curvatura_laterais: 0,
+          tipo_fundo: 0, altura_fundo_reto: 10, altura_funil_v: 18,
+          posicao_ponta_v: 0, inclinacao_funil_v: 1, largura_abertura_v: 20,
+          altura_duplo_v: 22, posicao_v_esquerdo: -1, posicao_v_direito: 1,
+          largura_abertura_duplo_v: 2, altura_plataforma_duplo_v: 0.3,
+          largura_plataforma_duplo_v: 10, deslocamento_horizontal_fundo: 0,
+          deslocamento_vertical_fundo: -1, escala_sensores: 16,
+          dist_y_sensores: 12, dist_x_sensores: 0, posicao_horizontal: 0,
+          posicao_vertical: 0, afastamento_vertical_pendulo: 0,
+          // Sobrescrever com valores salvos
+          ...configParaAplicar
+        }
+        
+        // Aplicar sistema de modelos se disponível
+        const modelosDefinidos = dadosSVG.sistemaModelos?.modelosDefinidos || 
+                                dadosSVG.modelosDefinidos || 
+                                dadosSVG.modelos || {}
+        
+        if (Object.keys(modelosDefinidos).length > 0) {
+          this.quantidadeModelosArcos = dadosSVG.sistemaModelos?.quantidadeModelos || 
+                                       dadosSVG.quantidadeModelos || 
+                                       Object.keys(modelosDefinidos).length
+          
+          // Converter modelos para formato do modelador
+          const novosModelos = {}
+          const novosSalvos = {}
+          
+          Object.keys(modelosDefinidos).forEach(key => {
+            const modeloSalvo = modelosDefinidos[key]
+            novosModelos[key] = {
+              posicao: modeloSalvo.posicao || 'todos',
+              config: modeloSalvo.configuracao || modeloSalvo.config || {},
+              nome: modeloSalvo.nome || `Modelo ${key}`,
+              quantidadePendulos: modeloSalvo.quantidadePendulos || 3,
+              sensoresPorPendulo: modeloSalvo.sensoresPorPendulo || {},
+              posicoesCabos: modeloSalvo.posicoesCabos || {},
+              posicoesManualPendulos: modeloSalvo.posicoesManualPendulos || {},
+              posicoesManualSensores: modeloSalvo.posicoesManualSensores || {}
+            }
+            novosSalvos[key] = true
+          })
+          
+          this.modelosArcos = novosModelos
+          this.modelosSalvos = novosSalvos
+          
+          // Regenerar dados exemplares com a nova configuração de modelos
+          this.criarDadosExemplaresArmazem()
+          
+        } else {
+          // Modelo único - resetar para padrão
+          this.quantidadeModelosArcos = 1
+          this.modelosArcos = {
+            1: {
+              posicao: 'todos',
+              config: { ...this.configArmazem },
+              nome: 'Modelo Único',
+              quantidadePendulos: 3,
+              sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 }
+            }
+          }
+          this.modelosSalvos = { 1: true }
+        }
+        
+        // Aplicar configuração específica do arco se disponível
+        this.aplicarConfiguracaoParaArcoEspecifico(arcoAtual)
+        
+        console.log('✅ [aplicarModeloArmazemParaEdicao] Configuração carregada nos controles:', {
+          configArmazem: {
+            lb: this.configArmazem.lb,
+            pb: this.configArmazem.pb,
+            tipo_telhado: this.configArmazem.tipo_telhado,
+            tipo_fundo: this.configArmazem.tipo_fundo
+          },
+          quantidadeModelos: this.quantidadeModelosArcos,
+          modelosArcos: Object.keys(this.modelosArcos).length,
+          arcoAtual: arcoAtual || 'não especificado'
+        })
+        
+      } catch (error) {
+        console.error('❌ [aplicarModeloArmazemParaEdicao] Erro:', error)
+        this.mostrarToast('Erro ao carregar configuração do armazém', 'error')
+      }
+    },
+    
+    aplicarConfiguracaoParaArcoEspecifico(arcoAtual) {
+      // Determinar qual modelo se aplica ao arco atual
+      const modeloParaArco = this.determinarModeloParaArco(arcoAtual)
+      
+      if (modeloParaArco && modeloParaArco.config) {
+        // Mesclar configuração do modelo específico
+        this.configArmazem = {
+          ...this.configArmazem,
+          ...modeloParaArco.config
+        }
+        
+        console.log('📍 [aplicarConfiguracaoParaArcoEspecifico] Configuração do modelo aplicada:', modeloParaArco.nome)
+      }
+    },
+    
+    mudarArcoParaEdicao(novoArco) {
+      console.log('🔄 [mudarArcoParaEdicao] Mudando para arco:', novoArco)
+      
+      if (this.modoEdicaoModeloBanco && this.modeloBancoEmEdicao) {
+        // Aplicar configuração para o novo arco
+        this.aplicarConfiguracaoParaArcoEspecifico(novoArco)
+      }
+      
+      // Navegar para o novo arco
+      this.mudarArco(novoArco, false)
+    },
+    
+    restaurarConfiguracao(dados) {
+      console.log('🔄 [restaurarConfiguracao] Restaurando configuração:', dados.tipo)
+      
+      const { tipo, configuracao } = dados
+      
+      if (tipo === 'silo') {
+        this.configSilo = { ...configuracao }
+      } else if (tipo === 'armazem') {
+        this.configArmazem = { ...configuracao.configArmazem }
+        this.modelosArcos = JSON.parse(JSON.stringify(configuracao.modelosArcos))
+        this.quantidadeModelosArcos = configuracao.quantidadeModelos
+      }
+      
+      this.updateSVG()
+    },
+
     // MÉTODOS PARA DRAG AND DROP
     adicionarEventListeners() {
       if (this.tipoAtivo !== 'armazem') return
@@ -4447,15 +4822,23 @@ export default {
         // Remover listeners existentes primeiro
         this.removerEventListeners()
 
-        // Adicionar listeners para TODOS os elementos dos pêndulos (fundo + texto)
-        this.adicionarListenersPendulos()
-        
-        // Adicionar listeners para TODOS os elementos dos sensores (fundo + texto + nome)
-        this.adicionarListenersSensores()
+        // Aguardar um pouco para garantir que o SVG foi completamente renderizado
+        setTimeout(() => {
+          // Adicionar listeners para TODOS os elementos dos pêndulos (fundo + texto)
+          this.adicionarListenersPendulos()
+          
+          // Adicionar listeners para TODOS os elementos dos sensores (fundo + texto + nome)
+          this.adicionarListenersSensores()
 
-        // Listeners globais para movimento e release
-        document.addEventListener('mousemove', this.continuarDrag)
-        document.addEventListener('mouseup', this.finalizarDrag)
+          // Listeners globais para movimento e release (apenas se não existirem)
+          if (!document.dragListenersAdded) {
+            document.addEventListener('mousemove', this.continuarDrag)
+            document.addEventListener('mouseup', this.finalizarDrag)
+            document.dragListenersAdded = true
+          }
+          
+          console.log('🎯 Event listeners adicionados com sucesso')
+        }, 50)
       })
     },
 
@@ -4517,13 +4900,24 @@ export default {
       const elementosArrastaveis = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
       elementosArrastaveis.forEach(elemento => {
         // Remover todos os event listeners mousedown
-        elemento.replaceWith(elemento.cloneNode(true))
+        const novoElemento = elemento.cloneNode(true)
+        if (elemento.parentNode) {
+          elemento.parentNode.replaceChild(novoElemento, elemento)
+        }
+      })
+
+      // Remover classes antigas
+      const elementosComClasse = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
+      elementosComClasse.forEach(elemento => {
         elemento.classList.remove('pendulo-draggable', 'sensor-draggable')
       })
 
-      // Remover listeners globais
-      document.removeEventListener('mousemove', this.continuarDrag)
-      document.removeEventListener('mouseup', this.finalizarDrag)
+      // Remover listeners globais apenas uma vez
+      if (document.dragListenersAdded) {
+        document.removeEventListener('mousemove', this.continuarDrag)
+        document.removeEventListener('mouseup', this.finalizarDrag)
+        document.dragListenersAdded = false
+      }
     },
 
     iniciarDragPendulo(event, numeroPendulo) {
@@ -4613,8 +5007,11 @@ export default {
       
       event.preventDefault()
       
-      // Encontrar o SVG
-      const svg = document.querySelector('svg')
+      // Encontrar o SVG correto dentro do container do preview
+      const previewContainer = document.querySelector('.svg-container-responsive')
+      if (!previewContainer) return
+      
+      const svg = previewContainer.querySelector('svg')
       if (!svg) return
       
       const svgRect = svg.getBoundingClientRect()
@@ -4629,9 +5026,9 @@ export default {
       const novaY = svgPoint.y - this.dragOffset.y
       
       if (this.dragType === 'pendulo') {
-        this.moverPenduloCompleto(this.dragElement, novaX, novaY)
+        this.moverPenduloCompletoSemUpdate(this.dragElement, novaX, novaY)
       } else if (this.dragType === 'sensor') {
-        this.moverSensorIndividual(this.dragElement.pendulo, this.dragElement.sensor, novaX, novaY)
+        this.moverSensorIndividualSemUpdate(this.dragElement.pendulo, this.dragElement.sensor, novaX, novaY)
       }
     },
 
@@ -4654,6 +5051,16 @@ export default {
         el.style.cursor = 'grab'
       })
       
+      // REMOVIDO: updateSVG() aqui - estava causando o bug de voltar ao padrão
+      // As posições já foram aplicadas diretamente no DOM durante o movimento
+      
+      // IMPORTANTE: Readicionar event listeners após finalizar drag
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.adicionarEventListeners()
+        }, 100)
+      })
+      
       // Debounced save - salvar apenas após parar de mover por um tempo
       this.debouncedSalvarPosicoes(elementoMovido, tipoMovido)
     },
@@ -4673,6 +5080,9 @@ export default {
         if (this.modeloArcoAtual) {
           this.salvarPosicoesNoModelo()
         }
+        
+        // IMPORTANTE: Não chamar updateSVG() aqui para preservar as posições
+        // As posições já foram aplicadas no DOM e salvas nos dados
         
         this.saveTimeout = null
       }, 300)
@@ -4695,6 +5105,12 @@ export default {
     },
 
     moverPenduloCompleto(numeroPendulo, novaX, novaY) {
+      this.moverPenduloCompletoSemUpdate(numeroPendulo, novaX, novaY)
+      // Não chamar updateSVG() aqui - as posições já foram aplicadas no DOM
+      // updateSVG() será chamado apenas quando necessário (ex: reset, mudança de configuração)
+    },
+
+    moverPenduloCompletoSemUpdate(numeroPendulo, novaX, novaY) {
       // Salvar posição manual do pêndulo
       if (!this.posicoesManualPendulos[numeroPendulo]) {
         this.posicoesManualPendulos[numeroPendulo] = { x: 0, y: 0 }
@@ -4704,8 +5120,6 @@ export default {
       const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
       this.posicoesManualPendulos[numeroPendulo].x = novaX - posicaoOriginal.x
       this.posicoesManualPendulos[numeroPendulo].y = novaY - posicaoOriginal.y
-      
-      console.log(`📍 Pêndulo ${numeroPendulo} movido para offset:`, this.posicoesManualPendulos[numeroPendulo])
       
       // Atualizar posições de todos os sensores deste pêndulo junto
       const sensoresCount = this.obterQuantidadeSensoresPendulo(numeroPendulo)
@@ -4719,11 +5133,17 @@ export default {
         this.posicoesManualSensores[chaveSensor].y = this.posicoesManualPendulos[numeroPendulo].y
       }
       
-      // Atualizar visualização
-      this.updateSVG()
+      // Atualizar elementos DOM diretamente para feedback visual imediato
+      this.atualizarElementosDOMDiretamente(numeroPendulo)
     },
 
     moverSensorIndividual(numeroPendulo, numeroSensor, novaX, novaY) {
+      this.moverSensorIndividualSemUpdate(numeroPendulo, numeroSensor, novaX, novaY)
+      // Não chamar updateSVG() aqui - as posições já foram aplicadas no DOM
+      // updateSVG() será chamado apenas quando necessário (ex: reset, mudança de configuração)
+    },
+
+    moverSensorIndividualSemUpdate(numeroPendulo, numeroSensor, novaX, novaY) {
       const chaveSensor = `${numeroPendulo}-${numeroSensor}`
       
       if (!this.posicoesManualSensores[chaveSensor]) {
@@ -4735,10 +5155,72 @@ export default {
       this.posicoesManualSensores[chaveSensor].x = novaX - posicaoOriginal.x
       this.posicoesManualSensores[chaveSensor].y = novaY - posicaoOriginal.y
       
-      console.log(`📍 Sensor ${numeroSensor} do pêndulo ${numeroPendulo} movido para offset:`, this.posicoesManualSensores[chaveSensor])
+      // Atualizar elemento DOM diretamente para feedback visual imediato
+      this.atualizarSensorDOMDiretamente(numeroPendulo, numeroSensor)
+    },
+
+    atualizarElementosDOMDiretamente(numeroPendulo) {
+      // Atualizar posição do pêndulo diretamente no DOM para feedback visual
+      const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+      const offsetX = this.posicoesManualPendulos[numeroPendulo]?.x || 0
+      const offsetY = this.posicoesManualPendulos[numeroPendulo]?.y || 0
       
-      // Atualizar visualização
-      this.updateSVG()
+      const novaX = posicaoOriginal.x + offsetX
+      const novaY = posicaoOriginal.y + offsetY
+      
+      // Encontrar índice do pêndulo (começa em 1, mas DOM usa índice baseado em 0)
+      const indicePendulo = numeroPendulo
+      const escala_sensores = (this.configPreviewAplicada || this.configArmazem).escala_sensores || 16
+      
+      // Atualizar pêndulo principal
+      const elementoPendulo = document.getElementById(`C${indicePendulo}`)
+      const textoElementoPendulo = document.getElementById(`TC${indicePendulo}`)
+      
+      if (elementoPendulo) {
+        elementoPendulo.setAttribute('x', novaX - escala_sensores / 2)
+        elementoPendulo.setAttribute('y', novaY)
+      }
+      if (textoElementoPendulo) {
+        textoElementoPendulo.setAttribute('x', novaX)
+        textoElementoPendulo.setAttribute('y', novaY + escala_sensores / 4)
+      }
+      
+      // Atualizar sensores deste pêndulo
+      const sensoresCount = this.obterQuantidadeSensoresPendulo(numeroPendulo)
+      for (let s = 1; s <= sensoresCount; s++) {
+        this.atualizarSensorDOMDiretamente(numeroPendulo, s)
+      }
+    },
+
+    atualizarSensorDOMDiretamente(numeroPendulo, numeroSensor) {
+      const posicaoOriginalSensor = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
+      const chaveSensor = `${numeroPendulo}-${numeroSensor}`
+      const offsetX = this.posicoesManualSensores[chaveSensor]?.x || 0
+      const offsetY = this.posicoesManualSensores[chaveSensor]?.y || 0
+      
+      const novaX = posicaoOriginalSensor.x + offsetX
+      const novaY = posicaoOriginalSensor.y + offsetY
+      
+      const indicePendulo = numeroPendulo
+      const escala_sensores = (this.configPreviewAplicada || this.configArmazem).escala_sensores || 16
+      
+      // Atualizar elementos do sensor
+      const elementoSensor = document.getElementById(`C${indicePendulo}S${numeroSensor}`)
+      const textoSensor = document.getElementById(`TC${indicePendulo}S${numeroSensor}`)
+      const nomeSensor = document.getElementById(`TIND${indicePendulo}S${numeroSensor}`)
+      
+      if (elementoSensor) {
+        elementoSensor.setAttribute('x', novaX - escala_sensores / 2)
+        elementoSensor.setAttribute('y', novaY)
+      }
+      if (textoSensor) {
+        textoSensor.setAttribute('x', novaX)
+        textoSensor.setAttribute('y', novaY + escala_sensores / 4)
+      }
+      if (nomeSensor) {
+        nomeSensor.setAttribute('x', novaX - escala_sensores / 2 - 2)
+        nomeSensor.setAttribute('y', novaY + escala_sensores / 4)
+      }
     },
 
     calcularPosicaoOriginalPendulo(numeroPendulo) {
@@ -4796,7 +5278,12 @@ export default {
     },
 
     salvarPosicoesNoModelo() {
-      if (!this.modeloArcoAtual) return
+      if (!this.modeloArcoAtual) {
+        console.warn('⚠️ Nenhum modelo selecionado para salvar posições')
+        return
+      }
+      
+      console.log('💾 [salvarPosicoesNoModelo] Iniciando salvamento das posições')
       
       // Salvar posições manuais no modelo atual
       if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
@@ -4809,12 +5296,42 @@ export default {
       this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = { ...this.posicoesManualPendulos }
       this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = { ...this.posicoesManualSensores }
       
+      // 1. Salvar no preview local (estado atual)
+      this.salvarNoPreviewLocal()
+      
+      // 2. Salvar no localStorage
       this.salvarModelosAutomatico()
       
-      console.log('💾 Posições manuais salvas no modelo:', {
+      // 3. Salvar no banco de dados
+      this.salvarModeloAtualCompleto()
+      
+      console.log('💾 Posições manuais salvas em todas as camadas:', {
+        modelo: this.modeloArcoAtual,
         pendulos: this.posicoesManualPendulos,
-        sensores: this.posicoesManualSensores
+        sensores: this.posicoesManualSensores,
+        totalPendulos: Object.keys(this.posicoesManualPendulos).length,
+        totalSensores: Object.keys(this.posicoesManualSensores).length
       })
+    },
+
+    salvarNoPreviewLocal() {
+      // Salvar estado atual no componente para uso imediato
+      const estadoAtual = {
+        posicoesManualPendulos: { ...this.posicoesManualPendulos },
+        posicoesManualSensores: { ...this.posicoesManualSensores },
+        modeloArcoAtual: this.modeloArcoAtual,
+        timestamp: Date.now()
+      }
+      
+      // Salvar temporariamente no localStorage para persistir entre recarregamentos
+      if (typeof localStorage !== 'undefined') {
+        try {
+          localStorage.setItem('posicoesManualTemp', JSON.stringify(estadoAtual))
+          console.log('💾 [salvarNoPreviewLocal] Posições salvas temporariamente no localStorage')
+        } catch (error) {
+          console.error('❌ Erro ao salvar posições temporariamente:', error)
+        }
+      }
     },
 
     resetarPosicoesManual() {
@@ -4827,8 +5344,45 @@ export default {
         this.salvarModelosAutomatico()
       }
       
+      // Limpar localStorage temporário
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('posicoesManualTemp')
+      }
+      
+      // Regenerar SVG para aplicar o reset
       this.updateSVG()
       this.mostrarToast('Posições manuais resetadas!', 'success')
+    },
+
+    carregarPosicoesTemporarias() {
+      if (typeof localStorage === 'undefined') return
+      
+      try {
+        const posicoesTemp = localStorage.getItem('posicoesManualTemp')
+        if (posicoesTemp) {
+          const estadoSalvo = JSON.parse(posicoesTemp)
+          
+          // Verificar se o estado é recente (menos de 1 hora)
+          const agora = Date.now()
+          const umaHora = 60 * 60 * 1000
+          
+          if (agora - estadoSalvo.timestamp < umaHora) {
+            this.posicoesManualPendulos = { ...estadoSalvo.posicoesManualPendulos }
+            this.posicoesManualSensores = { ...estadoSalvo.posicoesManualSensores }
+            
+            console.log('💾 [carregarPosicoesTemporarias] Posições temporárias carregadas:', {
+              pendulos: Object.keys(this.posicoesManualPendulos).length,
+              sensores: Object.keys(this.posicoesManualSensores).length
+            })
+          } else {
+            // Limpar dados antigos
+            localStorage.removeItem('posicoesManualTemp')
+          }
+        }
+      } catch (error) {
+        console.error('❌ Erro ao carregar posições temporárias:', error)
+        localStorage.removeItem('posicoesManualTemp')
+      }
     }
   }
 }
