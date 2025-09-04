@@ -74,7 +74,11 @@
         </div>
 
         <!-- Lista de Configurações Salvas -->
-        <div class="mb-3">
+        <div v-if="configuracoesGerais.length === 0" class="alert alert-info p-2 text-center mt-3">
+          <small>Nenhuma configuração salva encontrada</small>
+        </div>
+
+        <div v-else class="mt-3">
           <div class="d-flex justify-content-between align-items-center mb-2">
             <label class="form-label small fw-bold mb-0" style="color: white;">Configurações Salvas:</label>
             <button class="btn btn-outline-primary btn-sm" @click="carregarConfiguracoesGerais"
@@ -90,34 +94,35 @@
             <small class="d-block text-muted">Carregando configurações...</small>
           </div>
 
-          <div v-else-if="configuracoesGerais.length === 0" class="alert alert-info p-2 text-center">
-            <small>Nenhuma configuração salva encontrada</small>
-          </div>
+          <!-- Lista de Modelos Salvos -->
+          <div v-if="configuracoesGerais.length > 0" class="mt-3">
+            <h6 class="small fw-bold text-success mb-3">
+              📋 Modelos Salvos no Banco ({{ configuracoesGerais.length }})
+            </h6>
 
-          <div v-else class="list-group">
-            <div v-for="config in configuracoesGerais" :key="config.id_svg" class="list-group-item p-2">
-              <div class="d-flex justify-content-between align-items-start">
-                <div class="flex-grow-1">
-                  <h6 class="mb-1 text-truncate">{{ config.nm_modelo }}</h6>
-                  <small class="text-muted d-block text-truncate">
-                    {{ config.ds_modelo || 'Sem descrição' }}
-                  </small>
-                  <small class="text-muted">
-                    Tipo: {{ config.tp_svg === 'A' ? 'Armazém' : 'Silo' }} |
-                    Criado: {{ formatarData(config.created_at) }} |
-                    <span v-if="config.dados_parsed?.quantidadeModelos" class="text-success">
-                      {{ config.dados_parsed.quantidadeModelos }} modelo(s) de arcos
-                    </span>
-                  </small>
-                </div>
-                <div class="btn-group btn-group-sm ms-2">
-                  <button class="btn btn-outline-primary btn-sm" @click="carregarConfiguracao(config)"
-                    :disabled="isCarregando" title="Carregar configuração">
-                    📥
+            <div class="modelos-grid-compact">
+              <div v-for="config in configuracoesGerais" :key="config.id_svg" 
+                   class="modelo-item-compact">
+                <div class="modelo-header" :class="config.tp_svg === 'S' ? 'bg-primary' : 'bg-success'">
+                  <span class="modelo-nome">
+                    {{ config.tp_svg === 'S' ? '🏢' : '🏭' }} {{ config.nm_modelo }}
+                  </span>
+                  <button type="button" 
+                          class="btn-delete" 
+                          @click="confirmarExclusao(config)"
+                          title="Excluir">
+                    ×
                   </button>
-                  <button class="btn btn-outline-danger btn-sm" @click="confirmarExclusao(config)"
-                    :disabled="isExcluindo" title="Excluir configuração">
-                    🗑️
+                </div>
+
+                <div class="modelo-body">
+                  <div class="modelo-details">
+                    <small class="tipo">{{ config.tp_svg === 'S' ? 'Silo' : 'Armazém' }}</small>
+                    <small class="data">{{ formatarData(config.created_at) }}</small>
+                  </div>
+
+                  <button class="btn-carregar" @click="carregarConfiguracao(config)">
+                    📝 Carregar
                   </button>
                 </div>
               </div>
@@ -125,7 +130,7 @@
           </div>
         </div>
         <!-- Status -->
-        <div v-if="!podeSerSalvo" class="alert alert-warning p-2">
+        <div v-if="!podeSerSalvo" class="alert alert-warning p-2 mt-3">
           <small>
             ⚠️
             <span v-if="tipoAtivo === 'armazem'">
@@ -697,12 +702,21 @@ export default {
           dados: dadosSvg
         })
 
+        // Emitir evento com estrutura completa para garantir reprodução correta dos desenhos
         this.$emit('configuracao-carregada', {
           nome: configuracao.nm_modelo,
           dados: dadosSvg,
           tipo: configuracao.tp_svg,
           origem: 'banco_dados',
-          configuracaoId: configuracao.id_svg
+          configuracaoId: configuracao.id_svg,
+          tipoConfiguracao: dadosSvg.tipo || 'configuracao_completa',
+          versao: dadosSvg.versao || '1.0',
+          // Dados adicionais para garantir reprodução
+          sistemaModelos: dadosSvg.sistemaModelos || dadosSvg.modelosDefinidos,
+          configuracaoGlobal: dadosSvg.configuracaoGlobal,
+          layoutsAutomaticos: dadosSvg.layoutsAutomaticos,
+          dimensoesSVG: dadosSvg.dimensoesSVG,
+          dadosOriginais: dadosSvg.dadosOriginais
         })
 
         this.mostrarToast(`Configuração "${configuracao.nm_modelo}" carregada com sucesso!`, 'success')
@@ -1247,10 +1261,10 @@ export default {
           // Validar e preservar EXATAMENTE as coordenadas
           if (Object.keys(posicoesDoCaboFinal).length > 0) {
             const cabosPreservados = {}
-            
+
             Object.keys(posicoesDoCaboFinal).forEach(cabo => {
               const posicao = posicoesDoCaboFinal[cabo]
-              
+
               if (posicao && typeof posicao === 'object') {
                 // PRESERVAR EXATAMENTE todos os valores de posição sem alteração
                 cabosPreservados[cabo] = {
@@ -1265,7 +1279,7 @@ export default {
                   numeroSensores: posicao.numeroSensores !== undefined ? posicao.numeroSensores : 3,
                   timestampAlteracao: posicao.timestampAlteracao || Date.now()
                 }
-                
+
                 console.log(`🎯 [capturarTodasPosicoesCabos] Modelo ${i} - Cabo ${cabo} preservado EXATO:`, cabosPreservados[cabo])
               }
             })
@@ -1342,12 +1356,115 @@ export default {
 </script>
 
 <style scoped>
-.form-label {
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+.bg-light {
+  background-color: #f8f9fa !important;
 }
 
-/* Estilos para o modal de confirmação */
+.badge-sm {
+  font-size: 0.75em;
+}
+
+.progress-sm {
+  height: 0.5rem;
+}
+
+/* Grid de Modelos Ultra Compacto */
+.modelos-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.15rem;
+  margin-top: 0.15rem;
+}
+
+.modelo-item-compact {
+  border: 1px solid #dee2e6;
+  border-radius: 2px;
+  overflow: hidden;
+  transition: transform 0.1s ease-in-out;
+  background: white;
+}
+
+.modelo-item-compact:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.modelo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.15rem 0.3rem;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.modelo-nome {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0;
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  line-height: 1;
+}
+
+.btn-delete:hover {
+  opacity: 1;
+}
+
+.modelo-body {
+  padding: 0.15rem 0.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.modelo-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.modelo-details small {
+  font-size: 0.65rem;
+  color: #6c757d;
+  margin: 0;
+  line-height: 1.1;
+}
+
+.btn-carregar {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 2px;
+  padding: 0.1rem 0.25rem;
+  font-size: 0.6rem;
+  cursor: pointer;
+  transition: all 0.1s;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.btn-carregar:hover {
+  background: #e9ecef;
+  border-color: #adb5bd;
+}
+
+/* Modal de Exclusão - Corrigido */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -1358,35 +1475,25 @@ export default {
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 9999;
+  z-index: 1055;
 }
 
 .modal-dialog {
-  max-width: 500px;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
   width: 90%;
-  margin: 0;
+  margin: 0 auto;
 }
 
 .modal-content {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  animation: modalFadeIn 0.15s ease-out;
-}
-
-@keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  border: none;
+  border-radius: 6px;
 }
 
 .modal-header {
-  padding: 1rem 1.5rem;
+  padding: 1rem;
   border-bottom: 1px solid #dee2e6;
   display: flex;
   justify-content: space-between;
@@ -1395,16 +1502,15 @@ export default {
 
 .modal-title {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 600;
 }
 
 .btn-close {
   background: none;
   border: none;
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   cursor: pointer;
-  color: #6c757d;
   padding: 0;
   width: 24px;
   height: 24px;
@@ -1413,52 +1519,118 @@ export default {
   justify-content: center;
 }
 
-.btn-close:hover {
-  color: #000;
-}
-
 .modal-body {
-  padding: 1.5rem;
+  padding: 1rem;
 }
 
 .modal-footer {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   border-top: 1px solid #dee2e6;
   display: flex;
   justify-content: flex-end;
   gap: 0.5rem;
 }
 
-.text-danger {
-  color: #dc3545 !important;
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1050;
 }
 
-.small {
-  font-size: 0.875rem;
+.modal-backdrop.show {
+  opacity: 1;
 }
 
-/* Responsividade para mobile */
+.modal-backdrop.fade {
+  opacity: 0;
+  transition: opacity 0.15s linear;
+}
+
+/* Responsivo */
 @media (max-width: 576px) {
-  .modal-dialog {
-    width: 95%;
-    margin: 1rem;
+  .modelos-grid-compact {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
   }
 
-  .modal-header, .modal-body, .modal-footer {
-    padding: 1rem;
+  .modelo-header {
+    padding: 0.2rem 0.4rem;
+    font-size: 0.7rem;
   }
 
-  .modal-footer {
-    flex-direction: column;
+  .modelo-body {
+    padding: 0.2rem 0.4rem;
   }
 
-  .modal-footer .btn {
-    width: 100%;
-    margin-bottom: 0.5rem;
+  .modelo-details small {
+    font-size: 0.65rem;
   }
 
-  .modal-footer .btn:last-child {
-    margin-bottom: 0;
+  .btn-carregar {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.25rem;
+  }
+
+  .card-body {
+    padding: 0.75rem !important;
+  }
+
+  .btn-sm {
+    font-size: 11px;
+    padding: 0.2rem 0.4rem;
+    margin: 0.1rem;
+  }
+
+  .form-control,
+  .form-select,
+  .form-control-sm {
+    font-size: 13px;
+    min-height: 32px;
+  }
+
+  .row.g-2 {
+    --bs-gutter-x: 0.5rem;
+    --bs-gutter-y: 0.5rem;
+  }
+
+  .alert {
+    padding: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+
+  .d-flex.flex-wrap.gap-2 {
+    gap: 0.25rem !important;
+    justify-content: center;
+  }
+
+  .small {
+    font-size: 0.75rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .modelos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  }
+
+  .d-flex.gap-1 {
+    gap: 0.5rem !important;
+  }
+
+  .btn-outline-light {
+    min-width: auto;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .modelos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
 }
 </style>

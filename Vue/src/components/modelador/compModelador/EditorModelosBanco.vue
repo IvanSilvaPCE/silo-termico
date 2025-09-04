@@ -46,6 +46,38 @@
         </div>
       </div>
 
+      <!-- Preview do Modelo com ArmazemSvg -->
+      <div v-if="modeloCarregado && previewConfig" class="mb-3">
+        <div class="card">
+          <div class="card-header bg-light py-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <h6 class="mb-0 small fw-bold">🔍 Preview do Modelo</h6>
+              <span class="badge bg-primary small">
+                {{ modeloCarregado.tp_svg === 'S' ? 'Silo' : 'Armazém' }}
+              </span>
+            </div>
+          </div>
+          <div class="card-body p-2" style="background-color: #f8f9fa;">
+            <div class="preview-container" style="height: 250px; border: 1px solid #dee2e6; border-radius: 4px; overflow: hidden;">
+              <!-- Componente ArmazemSvg reutilizável -->
+              <ArmazemSvg
+                :config="previewConfig"
+                :modelo-atual="previewModeloAtual"
+                :largura-svg="350"
+                :altura-svg="250"
+                :dimensoes-personalizadas="previewDimensoes"
+              />
+            </div>
+            <div class="mt-2 text-center">
+              <small class="text-muted">
+                Modelo: {{ determinarModeloParaArcoAtual()?.nome || 'Padrão' }}
+                <span v-if="modeloCarregado.tp_svg === 'A'"> | Arco {{ arcoAtualEdicao }}/{{ estruturaModelo?.totalArcos || 1 }}</span>
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Seletor de Arco (apenas para armazéns com múltiplos arcos) -->
       <div v-if="modeloCarregado && modeloCarregado.tp_svg === 'A' && estruturaModelo && estruturaModelo.totalArcos > 1" class="row g-2 mb-3">
         <div class="col-12">
@@ -131,10 +163,10 @@
       <!-- Log de Alterações -->
       <div v-if="logAlteracoes.length > 0" class="mt-3">
         <h6 class="small fw-bold">📋 Log de Alterações:</h6>
-        <div class="bg-light p-2 rounded" style="max-height: 150px; overflow-y: auto;">
-          <div v-for="(log, index) in logAlteracoes" :key="index" class="small mb-1">
-            <span class="text-muted">{{ formatarTempo(log.timestamp) }}</span>
-            - {{ log.descricao }}
+        <div class="bg-light p-2 rounded log-container">
+          <div v-for="(log, index) in logAlteracoes" :key="index" class="log-item small mb-1">
+            <span class="text-muted timestamp">{{ formatarTempo(log.timestamp) }}</span>
+            <span class="log-description">{{ log.descricao }}</span>
           </div>
         </div>
       </div>
@@ -144,9 +176,14 @@
 
 <script>
 import { modeloSvgService } from '../services/modeloSvgService.js'
+import ArmazemSvg from './ArmazemSvg.vue'
 
 export default {
   name: 'EditorModelosBanco',
+  
+  components: {
+    ArmazemSvg
+  },
   
   props: {
     tipoAtivo: String,
@@ -178,7 +215,12 @@ export default {
       possuiAlteracoes: false,
       
       // Log de alterações
-      logAlteracoes: []
+      logAlteracoes: [],
+      
+      // Dados para preview com ArmazemSvg
+      previewConfig: null,
+      previewModeloAtual: null,
+      previewDimensoes: null
     }
   },
 
@@ -275,29 +317,77 @@ export default {
     },
 
     carregarDadosNoPreview() {
-      if (!this.modeloCarregado) return
+      if (!this.modeloCarregado) {
+        this.previewConfig = null
+        this.previewModeloAtual = null
+        this.previewDimensoes = null
+        return
+      }
 
       try {
         const dadosSVG = typeof this.modeloCarregado.dado_svg === 'string'
           ? JSON.parse(this.modeloCarregado.dado_svg)
           : this.modeloCarregado.dado_svg
 
-        console.log('🔄 [EditorModelosBanco] Carregando dados no preview:', {
+        console.log('🔄 [EditorModelosBanco] Preparando preview com ArmazemSvg:', {
           nome: this.modeloCarregado.nm_modelo,
           tipo: this.modeloCarregado.tp_svg,
           arco: this.arcoAtualEdicao
         })
 
-        // Emitir evento para carregar no ModeladorSVG
+        if (this.modeloCarregado.tp_svg === 'A') {
+          // Para armazém, extrair configuração do modelo para o arco atual
+          const modeloParaArco = this.determinarModeloParaArcoAtual()
+          
+          if (modeloParaArco && modeloParaArco.configuracao) {
+            this.previewConfig = { ...modeloParaArco.configuracao }
+            
+            // Configurar modelo atual para o ArmazemSvg
+            this.previewModeloAtual = {
+              quantidadePendulos: modeloParaArco.quantidadePendulos || 3,
+              sensoresPorPendulo: modeloParaArco.sensoresPorPendulo || {},
+              posicoesCabos: modeloParaArco.posicoesCabos || {}
+            }
+            
+            // Dimensões personalizadas se disponíveis
+            if (dadosSVG.dimensoesSVG) {
+              this.previewDimensoes = dadosSVG.dimensoesSVG
+            }
+          } else {
+            // Fallback para configuração global
+            this.previewConfig = dadosSVG.configuracaoGlobal || {}
+            this.previewModeloAtual = {
+              quantidadePendulos: 3,
+              sensoresPorPendulo: { 1: 3, 2: 3, 3: 3 }
+            }
+          }
+        } else {
+          // Para silo, usar configuração direta
+          this.previewConfig = dadosSVG.configuracao || dadosSVG
+          this.previewModeloAtual = {
+            quantidadePendulos: dadosSVG.quantidadePendulos || 3,
+            sensoresPorPendulo: dadosSVG.sensoresPorPendulo || {}
+          }
+        }
+
+        // Emitir evento para carregar no ModeladorSVG também (compatibilidade)
         this.$emit('aplicar-modelo-edicao', {
           modelo: this.modeloCarregado,
           arcoAtual: this.arcoAtualEdicao,
           dadosProcessados: dadosSVG
         })
 
+        console.log('✅ [EditorModelosBanco] Preview configurado:', {
+          previewConfig: !!this.previewConfig,
+          previewModeloAtual: !!this.previewModeloAtual,
+          configKeys: Object.keys(this.previewConfig || {}).length
+        })
+
       } catch (error) {
-        console.error('❌ [EditorModelosBanco] Erro ao carregar dados no preview:', error)
-        this.$emit('mostrar-toast', 'Erro ao carregar dados no preview', 'error')
+        console.error('❌ [EditorModelosBanco] Erro ao preparar preview:', error)
+        this.$emit('mostrar-toast', 'Erro ao carregar preview', 'error')
+        this.previewConfig = null
+        this.previewModeloAtual = null
       }
     },
 
@@ -566,6 +656,11 @@ export default {
       this.possuiAlteracoes = false
       this.arcoAtualEdicao = 1
       this.logAlteracoes = []
+      
+      // Limpar preview
+      this.previewConfig = null
+      this.previewModeloAtual = null
+      this.previewDimensoes = null
     },
 
     adicionarLog(descricao) {
@@ -596,16 +691,158 @@ export default {
   font-size: 0.75em;
 }
 
+.log-container {
+  max-height: 150px; 
+  overflow-y: auto;
+  border: 1px solid #dee2e6;
+}
+
+.log-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.timestamp {
+  white-space: nowrap;
+  min-width: 60px;
+  font-size: 0.7rem;
+}
+
+.log-description {
+  flex: 1;
+  word-break: break-word;
+}
+
 /* Responsivo */
 @media (max-width: 576px) {
   .btn-sm {
-    font-size: 12px;
-    padding: 0.25rem 0.5rem;
+    font-size: 11px;
+    padding: 0.2rem 0.4rem;
+    margin: 0.1rem;
   }
   
   .form-control,
   .form-select {
-    font-size: 14px;
+    font-size: 13px;
+    min-height: 32px;
+  }
+  
+  .card-body {
+    padding: 0.75rem !important;
+  }
+  
+  .row.g-2 {
+    --bs-gutter-x: 0.5rem;
+    --bs-gutter-y: 0.5rem;
+  }
+  
+  .alert {
+    padding: 0.5rem !important;
+    margin-bottom: 0.75rem !important;
+  }
+  
+  .d-flex.flex-wrap.gap-2 {
+    gap: 0.25rem !important;
+    justify-content: center;
+  }
+  
+  .log-container {
+    max-height: 120px;
+    font-size: 0.75rem;
+  }
+  
+  .timestamp {
+    min-width: 50px;
+    font-size: 0.65rem;
+  }
+  
+  .log-item {
+    gap: 0.25rem;
+    padding: 0.2rem 0;
+  }
+  
+  .small {
+    font-size: 0.75rem !important;
+  }
+  
+  .badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.3rem;
   }
 }
-</style>
+
+/* Estilos específicos do preview */
+.preview-container {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.preview-container::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border: 2px dashed #dee2e6;
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+/* Responsivo para preview */
+@media (max-width: 576px) {
+  .preview-container {
+    height: 200px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .d-flex.align-items-center.gap-2 {
+    flex-wrap: wrap;
+    gap: 0.5rem !important;
+  }
+  
+  .btn-outline-primary {
+    flex: 1 1 auto;
+    min-width: 80px;
+  }
+  
+  .form-select {
+    flex: 1 1 auto;
+    min-width: 100px;
+  }
+  
+  .log-container {
+    max-height: 130px;
+  }
+}
+
+@media (max-width: 420px) {
+  .btn-sm {
+    font-size: 10px;
+    padding: 0.15rem 0.3rem;
+  }
+  
+  .small {
+    font-size: 0.7rem !important;
+  }
+  
+  .log-description {
+    font-size: 0.7rem;
+  }
+  
+  .timestamp {
+    font-size: 0.6rem;
+  }
+}</style>
