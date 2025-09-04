@@ -1,24 +1,41 @@
 <template>
-  <div class="svg-container-responsive w-100 h-100">
-    <svg :viewBox="`0 0 ${dimensoesCalculadas.largura} ${dimensoesCalculadas.altura}`" :style="{
-      width: '100%',
-      height: '100%',
-      maxWidth: '100%',
-      maxHeight: '100%',
-      border: '1px solid #ddd',
-      backgroundColor: '#f8f9fa',
-      borderRadius: '4px',
-      shapeRendering: 'geometricPrecision',
-      textRendering: 'geometricPrecision',
-      imageRendering: 'optimizeQuality'
-    }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContent">
-    </svg>
+  <div class="svg-container-responsive w-100 h-100 position-relative">
+    <!-- Componente de Controle da Imagem de Fundo (posicionado no topo) -->
+    <div class="position-absolute" style="top: 10px; right: 10px; z-index: 10;">
+      <ImagemFundo
+        :tipoAtivo="'armazem'"
+        :containerDimensions="{ width: '100%', height: '100%' }"
+        :imagemInicial="imagemFundo"
+        @imagem-mudou="atualizarImagemFundo"
+        @opacidade-svg-mudou="atualizarOpacidadesSvg"
+        @mostrar-toast="mostrarToast"
+      />
+    </div>
+
+    <!-- Container para Imagem de Fundo e SVG -->
+    <div class="svg-content-container" style="position: relative; width: 100%; height: 100%;">
+      <!-- Imagem de Fundo Renderizada -->
+      <div v-if="imagemFundo.url" class="imagem-fundo-container" :style="imagemContainerStyle">
+        <img :src="imagemFundo.url" :style="imagemStyle" alt="Imagem de fundo do armazém" />
+      </div>
+
+      <!-- SVG do Armazém -->
+      <div class="svg-wrapper" :style="svgWrapperStyle">
+        <svg :viewBox="`0 0 ${dimensoesCalculadas.largura} ${dimensoesCalculadas.altura}`" :style="svgEstiloCompleto" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContent">
+        </svg>
+      </div>
+    </div>
   </div>
 </template>
 
 <script>
+import ImagemFundo from './ImagemFundo.vue'
+
 export default {
   name: 'ArmazemSvg',
+  components: {
+    ImagemFundo
+  },
   props: {
     config: {
       type: Object,
@@ -97,11 +114,41 @@ export default {
     dimensoesPersonalizadas: {
       type: Object,
       default: null
+    },
+    imagemFundo: {
+      type: Object,
+      default: () => ({
+        url: null,
+        x: 0,
+        y: 0,
+        scale: 1,
+        opacity: 0.3
+      })
+    },
+    opacidadesSvg: {
+      type: Object,
+      default: () => ({
+        geral: 1.0,
+        pendulos: 1.0,
+        estrutura: 1.0
+      })
     }
   },
   data() {
     return {
-      svgContent: ''
+      svgContent: '',
+      imagemFundo: {
+        url: null,
+        x: 0,
+        y: 0,
+        scale: 1,
+        opacity: 0.3
+      },
+      opacidadesSvgLocal: {
+        geral: 1.0,
+        pendulos: 1.0,
+        estrutura: 1.0
+      }
     }
   },
   computed: {
@@ -124,7 +171,84 @@ export default {
 
       // Caso contrário, calcular baseado no fundo
       return this.calcularDimensoesBaseadoNoFundo()
-    }
+    },
+
+    imagemContainerStyle() {
+      return {
+        position: 'absolute',
+        top: '0',
+        left: '0',
+        width: '100%',
+        height: '100%',
+        zIndex: 1,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'transparent'
+      }
+    },
+
+    imagemStyle() {
+      return {
+        position: 'relative',
+        left: this.imagemFundo.x + 'px',
+        top: this.imagemFundo.y + 'px',
+        transform: `scale(${this.imagemFundo.scale})`,
+        transformOrigin: 'center center',
+        opacity: this.imagemFundo.opacity,
+        maxWidth: 'none',
+        maxHeight: 'none',
+        width: 'auto',
+        height: 'auto',
+        userSelect: 'none',
+        pointerEvents: 'none',
+        transition: 'all 0.3s ease-in-out',
+        zIndex: 1
+      }
+    },
+
+    svgStyle() {
+      return {
+        width: '100%',
+        height: 'auto',
+        maxWidth: '100%',
+        maxHeight: this.isMobile ? '60vh' : 'calc(100vh - 320px)',
+        minHeight: this.isMobile ? '200px' : '250px',
+        border: '1px solid #ddd',
+        backgroundColor: '#f8f9fa',
+        borderRadius: '4px',
+        shapeRendering: 'geometricPrecision',
+        textRendering: 'geometricPrecision',
+        imageRendering: 'optimizeQuality'
+      }
+    },
+
+    svgWrapperStyle() {
+      return {
+        position: 'relative',
+        zIndex: 2,
+        width: '100%',
+        height: '100%',
+        opacity: this.opacidadesSvgLocal.geral
+      }
+    },
+
+    svgEstiloCompleto() {
+      return {
+        width: '100%',
+        height: '100%',
+        maxWidth: '100%',
+        maxHeight: '100%',
+        border: '1px solid #ddd',
+        backgroundColor: 'transparent',
+        borderRadius: '4px',
+        shapeRendering: 'geometricPrecision',
+        textRendering: 'geometricPrecision',
+        imageRendering: 'optimizeQuality'
+      }
+    },
   },
   watch: {
     config: {
@@ -132,8 +256,8 @@ export default {
         // 📐 DETECTAR MUDANÇA NA LARGURA BASE
         if (oldConfig && newConfig.lb !== oldConfig.lb) {
           console.log(`📐 [ArmazemSvg] Largura alterada: ${oldConfig.lb} → ${newConfig.lb}`)
-          
-          // Força recálculo das dimensões quando largura muda
+
+          // Força recálculo das dimensões quando muda
           this.recalcularDimensoes()
         }
         this.updateSVG()
@@ -158,6 +282,20 @@ export default {
     },
     alturaSvg() {
       this.updateSVG()
+    },
+    imagemFundo: {
+      handler() {
+        this.updateSVG()
+      },
+      deep: true
+    },
+    opacidadesSvg: {
+      handler(novasOpacidades) {
+        this.opacidadesSvgLocal = { ...novasOpacidades }
+        this.updateSVG()
+      },
+      deep: true,
+      immediate: true
     }
   },
   mounted() {
@@ -169,7 +307,7 @@ export default {
     },
 
     calcularDimensoesBaseadoNoFundo() {
-      // 📏 ADAPTAÇÃO DINÂMICA DO SVG (igual ModeladorSVG.vue)
+      // 📏 ADAPTAÇÃO DINÂMICA DO SVG - AJUSTADA PARA PREVIEW
       const config = this.config
 
       // 🚀 DETECTAR quantidade de pêndulos dinamicamente
@@ -195,45 +333,44 @@ export default {
 
       // 📐 LARGURA ADAPTATIVA - PRIORIZAR LARGURA SALVA NO MODELO
       let larguraBaseConfig = 350 // valor padrão
-      
-      // 🎯 BUSCAR largura na ordem de prioridade
+
+      // 🎯 BUSCAR largura na ordem de priridade
       if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
         larguraBaseConfig = config.lb
-        console.log(`📐 [calcularDimensoesBaseadoNoFundo] Usando largura do config.lb: ${larguraBaseConfig}`)
       } else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
         larguraBaseConfig = this.modeloAtual.configuracao.lb
-        console.log(`📐 [calcularDimensoesBaseadoNoFundo] Usando largura do modeloAtual.configuracao.lb: ${larguraBaseConfig}`)
-      } else {
-        console.log(`📐 [calcularDimensoesBaseadoNoFundo] Usando largura padrão: ${larguraBaseConfig}`)
       }
-      
+
       let larguraCalculada = Math.max(larguraBaseConfig, 300)
 
-      // Expandir largura baseado na quantidade de pêndulos (igual ModeladorSVG)
+      // Expandir largura baseado na quantidade de pêndulos
       if (quantidadePendulos > 0) {
         const margemLateral = 35
-        const espacamentoPendulo = 25 // Espaço mínimo entre pêndulos
+        const espacamentoPendulo = 25
         const larguraMinimaNecessaria = (2 * margemLateral) + ((quantidadePendulos - 1) * espacamentoPendulo) + 50
-
-        // Usar a maior entre a largura configurada e a necessária
         larguraCalculada = Math.max(larguraBaseConfig, larguraMinimaNecessaria)
-
-        console.log(`📐 [ADAPTATIVO] Largura para ${quantidadePendulos} pêndulos:`, {
-          larguraConfig: larguraBaseConfig,
-          larguraMinima: larguraMinimaNecessaria,
-          larguraFinal: larguraCalculada
-        })
       }
 
-      // 📏 ALTURA ADAPTATIVA (exatamente igual ModeladorSVG calcularDimensoesSVG)
+      // 📏 ALTURA OTIMIZADA PARA PREVIEW - REMOÇÃO DO ESPAÇO DESNECESSÁRIO
       const alturaBaseConfig = config.pb || 185
 
-      // Para armazém, calcular altura adequada incluindo espaço para o topo (igual ModeladorSVG)
-      const alturaFundo = alturaBaseConfig + 20  // Altura base + margem
-      const alturaTopoNecessaria = 80            // Espaço adequado para o topo
-      const alturaTotal = alturaFundo + alturaTopoNecessaria
+      // 🎯 CALCULAR altura mínima necessária baseada no telhado
+      let alturaTopo = 10 // altura mínima do topo
+      if (config.tipo_telhado === 1) {
+        // Telhado pontudo - calcular altura real da ponta
+        const curvaturaAjustada = Math.max(10, 50 - (config.curvatura_topo || 30))
+        alturaTopo = Math.max(curvaturaAjustada, 15)
+      } else if (config.tipo_telhado === 2 || config.tipo_telhado === 3) {
+        // Telhado arredondado/arco - altura baseada na curvatura
+        alturaTopo = Math.max(10, 60 - (config.curvatura_topo || 30))
+      }
 
-      // Para diferentes tipos de fundo, ajustar altura (igual ModeladorSVG)
+      // 🎯 ALTURA TOTAL OTIMIZADA - sem espaços desnecessários
+      const margemTopoMinima = 20  // margem adequada acima do telhado para não cortar
+      const alturaArmazem = alturaBaseConfig
+      const alturaTotal = margemTopoMinima + alturaTopo + (config.ht || 50) + alturaArmazem
+
+      // Extensão do fundo se necessário
       let extensaoFundo = 0
       if (config.tipo_fundo === 1) {
         extensaoFundo = config.altura_funil_v || 40
@@ -241,48 +378,34 @@ export default {
         extensaoFundo = config.altura_duplo_v || 35
       }
 
-      let alturaCalculada = Math.max(alturaTotal + extensaoFundo, 280)
+      // 📏 ALTURA BASE sem margens desnecessárias
+      let alturaCalculada = alturaTotal + extensaoFundo
 
-      // 🎯 ALTURA DINÂMICA baseada nos sensores (igual ModeladorSVG)
+      // 🎯 AJUSTE para sensores - calcular espaço real necessário
       if (quantidadePendulos > 0 && Object.keys(sensoresPorPendulo).length > 0) {
         const maxSensores = Math.max(...Object.values(sensoresPorPendulo).map(s => parseInt(s) || 0))
         const escala_sensores = config.escala_sensores || 16
         const dist_y_sensores = config.dist_y_sensores || 12
-        const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
-        const alturaSensores = maxSensores * dist_y_sensores + escala_sensores
-        const margemSuperior = 30
-        const margemInferior = 50
-        const margemPendulo = 20
+        // Espaço real necessário para os sensores
+        const espacoSensores = maxSensores * dist_y_sensores + escala_sensores + 20 // 20px de margem
+        const espacoPendulos = 25 // espaço para o nome dos pêndulos
 
-        const alturaComSensores = Math.max(
-          alturaCalculada,
-          margemSuperior + alturaSensores + margemInferior + margemPendulo
-        )
-
-        alturaCalculada = Math.max(alturaComSensores, 280)
-
-        console.log(`📏 [ADAPTATIVO] Altura para máximo ${maxSensores} sensores:`, {
-          alturaBase: alturaTotal + extensaoFundo,
-          alturaComSensores,
-          maxSensores,
-          alturaFinal: alturaCalculada
-        })
+        const alturaComSensores = alturaTotal + extensaoFundo + espacoSensores + espacoPendulos
+        alturaCalculada = Math.max(alturaCalculada, alturaComSensores)
       }
 
-      // 📱 AJUSTE PARA MOBILE (igual ModeladorSVG)
-      if (typeof window !== 'undefined' && window.innerWidth <= 576) {
-        const aspectRatio = larguraCalculada / alturaCalculada
-        if (aspectRatio > 2) {
-          alturaCalculada = Math.max(alturaCalculada, larguraCalculada / 1.8)
-        }
-      }
+      // 📱 Altura mínima para diferentes dispositivos
+      const alturaMinima = typeof window !== 'undefined' && window.innerWidth <= 576 ? 200 : 250
+      alturaCalculada = Math.max(alturaCalculada, alturaMinima)
 
-      console.log(`✅ [ADAPTATIVO] Dimensões finais calculadas:`, {
+      console.log(`✅ [PREVIEW OTIMIZADO] Dimensões calculadas:`, {
         largura: larguraCalculada,
         altura: alturaCalculada,
-        quantidadePendulos,
-        baseadoEm: 'configuracao_dinamica'
+        alturaTopo,
+        alturaBase: alturaBaseConfig,
+        extensaoFundo,
+        quantidadePendulos
       })
 
       return {
@@ -298,7 +421,20 @@ export default {
             transition: all 0.15s ease-out;
           }
         </style>
-      ` + this.renderTelhado() + this.renderFundo()
+      ` + this.renderTelhadoComOpacidade() + this.renderFundoComOpacidade()
+    },
+
+    renderTelhadoComOpacidade() {
+      const svgTelhado = this.renderTelhado()
+      // Aplicar opacidade da estrutura ao telhado
+      return svgTelhado.replace(/fill="#E6E6E6"/g, `fill="#E6E6E6" opacity="${this.opacidadesSvgLocal.estrutura}"`)
+                      .replace(/stroke="#999999"/g, `stroke="#999999" opacity="${this.opacidadesSvgLocal.estrutura}"`)
+    },
+
+    renderFundoComOpacidade() {
+      const svgFundo = this.renderFundo()
+      // Aplicar opacidade da estrutura ao fundo
+      return svgFundo.replace(/fill="#999999"/g, `fill="#999999" opacity="${this.opacidadesSvgLocal.estrutura}"`)
     },
 
     renderTelhado() {
@@ -308,17 +444,20 @@ export default {
       } = this.config
 
       if (tipo_telhado === 1) {
-        // Telhado Pontudo
+        // Telhado Pontudo - AJUSTADO PARA PREVIEW
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 7
         }
 
-        const alturaTopo = Math.max(10, 50 - (curvatura_topo || 30))
+        // 🎯 ALTURA DO TOPO AJUSTADA - começar mais próximo do topo do viewBox
+        const alturaTopo = Math.max(15, 50 - (curvatura_topo || 30))
+        const margemTopo = 20 // margem adequada do topo para não cortar
+
         const p1 = [(lb - lf) / 2, pb - hf + extensao]
         const p2 = [le, pb - hb + extensao]
         const p3 = [le, pb - ht]
-        const p4 = [lb / 2, alturaTopo]
+        const p4 = [lb / 2, margemTopo] // Posição ajustada para não cortar
         const p5 = [lb - le, pb - ht]
         const p6 = [lb - le, pb - hb + extensao]
         const p7 = [lb - (lb - lf) / 2, pb - hf + extensao]
@@ -360,33 +499,39 @@ export default {
           return `<polygon fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" points="${pathTelhado}" />`
         }
       } else if (tipo_telhado === 2) {
-        // Telhado Arredondado
+        // Telhado Arredondado - AJUSTADO PARA PREVIEW
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
-        const alturaCurva = Math.max(10, 60 - (curvatura_topo || 30))
+        const alturaCurva = Math.max(20, 60 - (curvatura_topo || 30)) // altura mínima aumentada
+        const margemTopo = 20
+
         let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
         pathTelhado += ` L ${le} ${pb - hb + extensao}`
         pathTelhado += ` L ${le} ${pb - ht}`
-        pathTelhado += ` Q ${lb / 2} ${alturaCurva} ${lb - le} ${pb - ht}`
+        pathTelhado += ` Q ${lb / 2} ${margemTopo} ${lb - le} ${pb - ht}` // Ajustado para não cortar
         pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
         pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao} Z`
 
         return `<path fill="#E6E6E6" stroke="#999999" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="${pathTelhado}" />`
       } else if (tipo_telhado === 3) {
-        // Telhado em Arco
+        // Telhado em Arco - AJUSTADO PARA PREVIEW
         let extensao = 0
         if (tipo_fundo === 1 || tipo_fundo === 2) {
           extensao = 5
         }
 
         const raioArco = Math.max(20, curvatura_topo || 30)
+        const margemTopo = 25 // margem adequada para o arco não cortar
+
         let pathTelhado = `M ${(lb - lf) / 2} ${pb - hf + extensao}`
         pathTelhado += ` L ${le} ${pb - hb + extensao}`
         pathTelhado += ` L ${le} ${pb - ht}`
-        pathTelhado += ` A ${(lb - le * 2) / 2} ${raioArco} 0 0 1 ${lb - le} ${pb - ht}`
+        // Ajustar o arco para começar mais baixo
+        const alturaArco = Math.min(raioArco, (pb - ht) - margemTopo)
+        pathTelhado += ` A ${(lb - le * 2) / 2} ${alturaArco} 0 0 1 ${lb - le} ${pb - ht}`
         pathTelhado += ` L ${lb - le} ${pb - hb + extensao}`
         pathTelhado += ` L ${lb - (lb - lf) / 2} ${pb - hf + extensao} Z`
 
@@ -537,8 +682,9 @@ export default {
       const posicao_vertical = config.posicao_vertical || 0
       const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
-      const pb = (config.pb || this.dimensoesCalculadas.altura - 50) + (this.dimensoesCalculadas.altura < 300 ? 0 : 50)
-      const yPendulo = pb + 15 + posicao_vertical
+      // 🎯 POSICIONAMENTO OTIMIZADO DOS SENSORES (sem espaço desnecessário)
+      const pb = config.pb || 185
+      const yPendulo = pb + 10 + posicao_vertical // Reduzir espaçamento
 
       const totalCabos = estruturaPendulos.pendulos.length
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
@@ -628,6 +774,7 @@ export default {
             fill="${corPendulo}"
             stroke="${strokePendulo}"
             stroke-width="${strokeWidth}"
+            opacity="${this.opacidadesSvgLocal.pendulos}"
           />
         `
 
@@ -643,6 +790,7 @@ export default {
             font-size="${escala_sensores * 0.4 - 0.5}"
             font-family="Arial"
             fill="white"
+            opacity="${this.opacidadesSvgLocal.pendulos}"
           >
             P${pendulo.numero}
           </text>
@@ -655,7 +803,8 @@ export default {
           const xSensorFinal = xCabo
           const ySensorFinal = ySensorBase
 
-          if (ySensorFinal > 10 && ySensorFinal < (this.dimensoesCalculadas.altura - 60)) {
+          // 🎯 LIMITES AJUSTADOS PARA PREVIEW OTIMIZADO
+          if (ySensorFinal > 15 && ySensorFinal < (this.dimensoesCalculadas.altura - 40)) {
             // 🌡️ DETERMINAR COR DO SENSOR (igual ModeladorSVG)
             let corSensor = "#ccc"
             let valorSensor = "0"
@@ -691,6 +840,7 @@ export default {
                 fill="${corSensor}"
                 stroke="${strokeSensor}"
                 stroke-width="${strokeWidthSensor}"
+                opacity="${this.opacidadesSvgLocal.pendulos}"
               />
             `
 
@@ -705,6 +855,7 @@ export default {
                 font-size="${escala_sensores * 0.4 - 0.5}"
                 font-family="Arial"
                 fill="${corSensor === "#ff2200" ? "white" : "black"}"
+                opacity="${this.opacidadesSvgLocal.pendulos}"
               >
                 ${valorSensor}
               </text>
@@ -721,6 +872,7 @@ export default {
                 font-size="${escala_sensores * 0.4 - 1.5}"
                 font-family="Arial"
                 fill="black"
+                opacity="${this.opacidadesSvgLocal.pendulos}"
               >
                 S${s}
               </text>
@@ -753,12 +905,12 @@ export default {
       const novasDimensoes = this.calcularDimensoesBaseadoNoFundo()
       console.log(`📐 [recalcularDimensoes] Novas dimensões calculadas:`, novasDimensoes)
       this.$emit('dimensoes-atualizadas', novasDimensoes)
-      
+
       // Força atualização reativa
       this.$nextTick(() => {
         this.$forceUpdate()
       })
-      
+
       return novasDimensoes
     },
 
@@ -771,6 +923,29 @@ export default {
           origem: 'banco_dados'
         })
       }
+    },
+
+    // Métodos para controle da imagem de fundo
+    atualizarImagemFundo(novaImagem) {
+      this.imagemFundo = { ...novaImagem }
+      console.log('📸 [ArmazemSvg] Imagem de fundo atualizada:', this.imagemFundo)
+
+      // Forçar atualização do componente para garantir que a imagem apareça
+      this.$nextTick(() => {
+        this.$forceUpdate()
+      })
+    },
+
+    atualizarOpacidadesSvg(novasOpacidades) {
+      this.opacidadesSvgLocal = { ...novasOpacidades }
+      console.log('👁️ [ArmazemSvg] Opacidades SVG atualizadas:', this.opacidadesSvgLocal)
+      this.updateSVG()
+    },
+
+    mostrarToast(evento) {
+      // Emitir evento para componente pai mostrar toast
+      this.$emit('mostrar-toast', evento)
+      console.log('🔔 [ArmazemSvg] Toast:', evento.mensagem)
     }
   }
 }
@@ -782,6 +957,48 @@ export default {
   justify-content: center;
   align-items: center;
   width: 100%;
-  /* height: 100%; */
+  height: 100%;
+  position: relative;
+}
+
+.svg-content-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.imagem-fundo-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.svg-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+}
+
+/* Garantir que o SVG fique acima da imagem de fundo */
+.svg-wrapper svg {
+  background-color: transparent !important;
+}
+
+/* Garantir que a imagem de fundo se ajuste corretamente */
+.imagem-fundo-container img {
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
 }
 </style>

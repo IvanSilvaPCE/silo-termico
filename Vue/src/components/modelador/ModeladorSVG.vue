@@ -181,8 +181,7 @@
                     :dados-sensores="dados"
                     :modelo-atual="modeloAtualParaComponente"
                     :dimensoes-personalizadas="dimensoesPersonalizadasParaComponente"
-                    :largura-svg="larguraSVG"
-                    :altura-svg="alturaSVG"
+                    :imagem-fundo="imagemFundoData"
                     @dimensoes-atualizadas="onDimensoesAtualizadas"
                     @dimensoes-aplicadas="onDimensoesAplicadas"
                   />
@@ -625,15 +624,8 @@ export default {
 
     // Dimensões personalizadas se necessário
     dimensoesPersonalizadasParaComponente() {
-      // Usar dimensões calculadas se houver configuração específica
-      if (this.configPreviewAplicada?.dimensoesSVG) {
-        return {
-          largura: this.configPreviewAplicada.dimensoesSVG.largura,
-          altura: this.configPreviewAplicada.dimensoesSVG.altura
-        }
-      }
-
-      return null // Deixar o componente calcular automaticamente
+      // Sempre retornar null para deixar o ArmazemSvg calcular suas próprias dimensões
+      return null
     }
   },
   created() {
@@ -2876,97 +2868,10 @@ export default {
         this.larguraSVG = this.configSilo.lb + (this.configSilo.aeradores_ativo ? this.configSilo.ds * 2 + 68 : 0)
         this.alturaSVG = this.configSilo.hs + this.configSilo.hb * 1.75
       } else {
-        // 🎯 USAR MESMO CÁLCULO DO ArmazemSvg.vue
-        const config = this.configPreviewAplicada || this.configArmazem
-
-        // 🚀 DETECTAR quantidade de pêndulos dinamicamente
-        let quantidadePendulos = 0
-        let sensoresPorPendulo = {}
-
-        if (config.modeloEspecifico) {
-          quantidadePendulos = config.modeloEspecifico.quantidadePendulos || 0
-          sensoresPorPendulo = config.modeloEspecifico.sensoresPorPendulo || {}
-        } else {
-          quantidadePendulos = config.quantidadePendulos || this.modeloAtual?.quantidadePendulos || 0
-          sensoresPorPendulo = config.sensoresPorPendulo || this.modeloAtual?.sensoresPorPendulo || {}
-        }
-
-        // 🔍 FALLBACK: Extrair dos dados se não há quantidade definida
-        if (quantidadePendulos === 0) {
-          const pendulosDetectados = Math.max(
-            Object.keys(sensoresPorPendulo).length,
-            ...Object.keys(sensoresPorPendulo).map(p => parseInt(p) || 0)
-          )
-          quantidadePendulos = pendulosDetectados || 3
-        }
-
-        // 📐 LARGURA ADAPTATIVA - PRIORIZAR LARGURA SALVA NO MODELO
-        let larguraBaseConfig = 350 // valor padrão
-
-        if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
-          larguraBaseConfig = config.lb
-        }
-
-        let larguraCalculada = Math.max(larguraBaseConfig, 300)
-
-        // Expandir largura baseado na quantidade de pêndulos
-        if (quantidadePendulos > 0) {
-          const margemLateral = 35
-          const espacamentoPendulo = 25 // Espaço mínimo entre pêndulos
-          const larguraMinimaNecessaria = (2 * margemLateral) + ((quantidadePendulos - 1) * espacamentoPendulo) + 50
-
-          // Usar a maior entre a largura configurada e a necessária
-          larguraCalculada = Math.max(larguraBaseConfig, larguraMinimaNecessaria)
-        }
-
-        // 📏 ALTURA ADAPTATIVA (igual ArmazemSvg)
-        const alturaBaseConfig = config.pb || 185
-
-        // Calcular altura adequada incluindo espaço para o topo
-        const alturaFundo = alturaBaseConfig + 20  // Altura base + margem
-        const alturaTopoNecessaria = 80            // Espaço adequado para o topo
-        const alturaTotal = alturaFundo + alturaTopoNecessaria
-
-        // Para diferentes tipos de fundo, ajustar altura
-        let extensaoFundo = 0
-        if (config.tipo_fundo === 1) {
-          extensaoFundo = config.altura_funil_v || 40
-        } else if (config.tipo_fundo === 2) {
-          extensaoFundo = config.altura_duplo_v || 35
-        }
-
-        let alturaCalculada = Math.max(alturaTotal + extensaoFundo, 280)
-
-        // 🎯 ALTURA DINÂMICA baseada nos sensores
-        if (quantidadePendulos > 0 && Object.keys(sensoresPorPendulo).length > 0) {
-          const maxSensores = Math.max(...Object.values(sensoresPorPendulo).map(s => parseInt(s) || 0))
-          const escala_sensores = config.escala_sensores || 16
-          const dist_y_sensores = config.dist_y_sensores || 12
-          const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
-
-          const alturaSensores = maxSensores * dist_y_sensores + escala_sensores
-          const margemSuperior = 30
-          const margemInferior = 50
-          const margemPendulo = 20
-
-          const alturaComSensores = Math.max(
-            alturaCalculada,
-            margemSuperior + alturaSensores + margemInferior + margemPendulo
-          )
-
-          alturaCalculada = Math.max(alturaComSensores, 280)
-        }
-
-        // 📱 AJUSTE PARA MOBILE
-        if (this.isMobile) {
-          const aspectRatio = larguraCalculada / alturaCalculada
-          if (aspectRatio > 2) {
-            alturaCalculada = Math.max(alturaCalculada, larguraCalculada / 1.8)
-          }
-        }
-
-        this.larguraSVG = larguraCalculada
-        this.alturaSVG = alturaCalculada
+        // Para armazém, não calcular dimensões aqui - deixar o ArmazemSvg gerenciar completamente
+        // Apenas manter valores padrão mínimos para compatibilidade
+        this.larguraSVG = 400
+        this.alturaSVG = 300
       }
     },
 
@@ -3815,12 +3720,7 @@ export default {
     // MÉTODOS PARA COMUNICAÇÃO COM COMPONENTE ARMAZEM SVG
     onDimensoesAtualizadas(novasDimensoes) {
       console.log('📐 [ModeladorSVG] Dimensões atualizadas pelo ArmazemSvg:', novasDimensoes)
-
-      // Atualizar dimensões locais se necessário
-      if (novasDimensoes.largura && novasDimensoes.altura) {
-        this.larguraSVG = novasDimensoes.largura
-        this.alturaSVG = novasDimensoes.altura
-      }
+      // Não interferir - deixar o ArmazemSvg gerenciar suas próprias dimensões
     },
 
     onDimensoesAplicadas(dimensoesAplicadas) {

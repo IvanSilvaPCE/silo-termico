@@ -100,29 +100,31 @@
               📋 Modelos Salvos no Banco ({{ configuracoesGerais.length }})
             </h6>
 
-            <div class="modelos-grid-compact">
+            <div class="modelos-grid-responsive">
               <div v-for="config in configuracoesGerais" :key="config.id_svg" 
-                   class="modelo-item-compact">
-                <div class="modelo-header" :class="config.tp_svg === 'S' ? 'bg-primary' : 'bg-success'">
-                  <span class="modelo-nome">
+                   class="modelo-card-responsive">
+                <div class="modelo-header-responsive" :class="config.tp_svg === 'S' ? 'bg-primary' : 'bg-success'">
+                  <span class="modelo-nome-responsive">
                     {{ config.tp_svg === 'S' ? '🏢' : '🏭' }} {{ config.nm_modelo }}
                   </span>
                   <button type="button" 
-                          class="btn-delete" 
+                          class="btn-delete-responsive" 
                           @click="confirmarExclusao(config)"
-                          title="Excluir">
+                          title="Excluir configuração">
                     ×
                   </button>
                 </div>
 
-                <div class="modelo-body">
-                  <div class="modelo-details">
-                    <small class="tipo">{{ config.tp_svg === 'S' ? 'Silo' : 'Armazém' }}</small>
-                    <small class="data">{{ formatarData(config.created_at) }}</small>
+                <div class="modelo-body-responsive">
+                  <div class="modelo-info">
+                    <span class="tipo-badge" :class="config.tp_svg === 'S' ? 'tipo-silo' : 'tipo-armazem'">
+                      {{ config.tp_svg === 'S' ? 'Silo' : (config.vista_svg === 'F' ? 'Fundo' : 'Topo') }}
+                    </span>
+                    <span class="data-info">{{ formatarData(config.created_at) }}</span>
                   </div>
 
-                  <button class="btn-carregar" @click="carregarConfiguracao(config)">
-                    📝 Carregar
+                  <button class="btn-carregar-responsive" @click="carregarConfiguracao(config)" title="Visualizar configuração">
+                    🗐
                   </button>
                 </div>
               </div>
@@ -145,34 +147,31 @@
       </div>
     </div>
 
-    <!-- Modal de Confirmação de Exclusão -->
-    <div v-show="showModalExclusao" class="modal-overlay" @click="fecharModal">
-      <div class="modal-dialog modal-dialog-centered" role="document" @click.stop>
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Confirmar Exclusão</h5>
-            <button type="button" class="btn-close" @click="fecharModal" aria-label="Close">×</button>
+    <!-- Modal de Confirmação de Exclusão - Otimizado -->
+    <div v-show="showModalExclusao" class="modal-overlay-compact" @click="fecharModal">
+      <div class="modal-compact" role="document" @click.stop>
+        <div class="modal-content-compact">
+          <div class="modal-header-compact">
+            <h6 class="modal-title-compact">🗑️ Confirmar Exclusão</h6>
+            <button type="button" class="btn-close-compact" @click="fecharModal">×</button>
           </div>
-          <div class="modal-body">
-            <p class="mb-2">Deseja excluir a configuração:</p>
-            <strong>{{ modeloParaExcluir?.nm_modelo }}</strong>
-            <p class="text-muted small mt-2">Esta ação não pode ser desfeita.</p>
+          <div class="modal-body-compact">
+            <p class="mb-1">Excluir configuração:</p>
+            <strong class="text-primary">{{ modeloParaExcluir?.nm_modelo }}</strong>
+            <p class="text-muted small mt-1 mb-0">Esta ação não pode ser desfeita.</p>
           </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary btn-sm" @click="fecharModal" :disabled="isExcluindo">
+          <div class="modal-footer-compact">
+            <button type="button" class="btn btn-outline-secondary btn-xs" @click="fecharModal" :disabled="isExcluindo">
               Cancelar
             </button>
-            <button type="button" class="btn btn-danger btn-sm" @click="excluirConfiguracao" :disabled="isExcluindo">
+            <button type="button" class="btn btn-danger btn-xs" @click="excluirConfiguracao" :disabled="isExcluindo">
               <span v-if="isExcluindo" class="spinner-border spinner-border-sm me-1" role="status"></span>
-              <span>{{ isExcluindo ? 'Excluindo...' : 'Excluir' }}</span>
+              {{ isExcluindo ? 'Excluindo...' : 'Excluir' }}
             </button>
           </div>
         </div>
       </div>
     </div>
-
-    <!-- Backdrop do Modal -->
-    <div class="modal-backdrop fade" v-show="showModalExclusao" :class="{ 'show': showModalExclusao }" @click="fecharModal"></div>
   </div>
 </template>
 
@@ -1368,213 +1367,301 @@ export default {
   height: 0.5rem;
 }
 
-/* Grid de Modelos Ultra Compacto */
-.modelos-grid-compact {
+/* Grid Responsivo Otimizado - Duas Colunas */
+.modelos-grid-responsive {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 0.15rem;
-  margin-top: 0.15rem;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
 
-.modelo-item-compact {
+.modelo-card-responsive {
   border: 1px solid #dee2e6;
-  border-radius: 2px;
+  border-radius: 6px;
   overflow: hidden;
-  transition: transform 0.1s ease-in-out;
+  transition: all 0.2s ease;
   background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
-.modelo-item-compact:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+.modelo-card-responsive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  border-color: #007bff;
 }
 
-.modelo-header {
+.modelo-header-responsive {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.15rem 0.3rem;
+  padding: 0.5rem 0.75rem;
   color: white;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.3;
 }
 
-.modelo-nome {
+.modelo-nome-responsive {
   flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-right: 0.5rem;
 }
 
-.btn-delete {
+.btn-delete-responsive {
   background: none;
   border: none;
   color: white;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
   cursor: pointer;
   padding: 0;
-  width: 14px;
-  height: 14px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.7;
+  opacity: 0.8;
   line-height: 1;
+  border-radius: 50%;
+  transition: all 0.2s;
 }
 
-.btn-delete:hover {
+.btn-delete-responsive:hover {
   opacity: 1;
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.1);
 }
 
-.modelo-body {
-  padding: 0.15rem 0.3rem;
+.modelo-body-responsive {
+  padding: 0.75rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.modelo-info {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
+  gap: 0.25rem;
+  flex: 1;
 }
 
-.modelo-details {
-  display: flex;
-  flex-direction: column;
-  gap: 0.05rem;
+.tipo-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  padding: 0.15rem 0.4rem;
+  border-radius: 12px;
+  text-align: center;
+  max-width: fit-content;
 }
 
-.modelo-details small {
+.tipo-silo {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.tipo-armazem {
+  background: #e8f5e8;
+  color: #2e7d32;
+}
+
+.data-info {
   font-size: 0.65rem;
   color: #6c757d;
   margin: 0;
-  line-height: 1.1;
-}
-
-.btn-carregar {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 2px;
-  padding: 0.1rem 0.25rem;
-  font-size: 0.6rem;
-  cursor: pointer;
-  transition: all 0.1s;
-  text-align: center;
   line-height: 1.2;
 }
 
-.btn-carregar:hover {
-  background: #e9ecef;
-  border-color: #adb5bd;
+.btn-carregar-responsive {
+  background: linear-gradient(135deg, #007bff, #0056b3);
+  border: none;
+  border-radius: 4px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.7rem;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-/* Modal de Exclusão - Corrigido */
-.modal-overlay {
+.btn-carregar-responsive:hover {
+  background: linear-gradient(135deg, #0056b3, #004085);
+  transform: scale(1.05);
+}
+
+/* Modal Compacto e Otimizado */
+.modal-overlay-compact {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
+  background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1055;
+  backdrop-filter: blur(2px);
 }
 
-.modal-dialog {
+.modal-compact {
   background: white;
-  border-radius: 6px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  max-width: 320px;
   width: 90%;
   margin: 0 auto;
+  animation: modalSlideIn 0.2s ease-out;
 }
 
-.modal-content {
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-content-compact {
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
-.modal-header {
-  padding: 1rem;
-  border-bottom: 1px solid #dee2e6;
+.modal-header-compact {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e9ecef;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: #f8f9fa;
+  border-radius: 8px 8px 0 0;
 }
 
-.modal-title {
+.modal-title-compact {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
   font-weight: 600;
+  color: #495057;
 }
 
-.btn-close {
+.btn-close-compact {
   background: none;
   border: none;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   cursor: pointer;
   padding: 0;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #6c757d;
+  transition: all 0.2s;
+  border-radius: 50%;
 }
 
-.modal-body {
+.btn-close-compact:hover {
+  background: #e9ecef;
+  color: #495057;
+}
+
+.modal-body-compact {
   padding: 1rem;
+  text-align: center;
 }
 
-.modal-footer {
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #dee2e6;
+.modal-body-compact p {
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.modal-footer-compact {
+  padding: 0.5rem 1rem 0.75rem;
   display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+  justify-content: center;
+  gap: 0.75rem;
 }
 
-.modal-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1050;
+.btn-xs {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  border-radius: 4px;
+  font-weight: 500;
+  min-width: 70px;
 }
 
-.modal-backdrop.show {
-  opacity: 1;
-}
-
-.modal-backdrop.fade {
-  opacity: 0;
-  transition: opacity 0.15s linear;
-}
-
-/* Responsivo */
-@media (max-width: 576px) {
-  .modelos-grid-compact {
+/* Responsividade Otimizada */
+@media (max-width: 768px) {
+  .modelos-grid-responsive {
     grid-template-columns: 1fr;
-    gap: 0.2rem;
+    gap: 0.5rem;
   }
 
-  .modelo-header {
-    padding: 0.2rem 0.4rem;
+  .modelo-card-responsive {
+    margin-bottom: 0.25rem;
+  }
+
+  .modelo-header-responsive {
+    padding: 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .modelo-body-responsive {
+    padding: 0.6rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .modelo-info {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .btn-carregar-responsive {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .modal-compact {
+    max-width: 280px;
+    width: 95%;
+  }
+
+  .modal-header-compact {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .modal-title-compact {
+    font-size: 0.85rem;
+  }
+
+  .modal-body-compact {
+    padding: 0.75rem;
+  }
+
+  .modal-footer-compact {
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .btn-xs {
+    padding: 0.3rem 0.6rem;
     font-size: 0.7rem;
+    min-width: 60px;
   }
+}
 
-  .modelo-body {
-    padding: 0.2rem 0.4rem;
-  }
-
-  .modelo-details small {
-    font-size: 0.65rem;
-  }
-
-  .btn-carregar {
-    font-size: 0.6rem;
-    padding: 0.1rem 0.25rem;
-  }
-
+@media (max-width: 576px) {
   .card-body {
     padding: 0.75rem !important;
   }
@@ -1592,23 +1679,39 @@ export default {
     min-height: 32px;
   }
 
-  .row.g-2 {
-    --bs-gutter-x: 0.5rem;
-    --bs-gutter-y: 0.5rem;
-  }
-
   .alert {
     padding: 0.5rem !important;
     margin-bottom: 0.75rem !important;
   }
 
-  .d-flex.flex-wrap.gap-2 {
-    gap: 0.25rem !important;
-    justify-content: center;
-  }
-
   .small {
     font-size: 0.75rem !important;
+  }
+
+  .modelos-grid-responsive {
+    gap: 0.4rem;
+  }
+
+  .modelo-card-responsive {
+    border-radius: 4px;
+  }
+
+  .modelo-header-responsive {
+    padding: 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .modelo-body-responsive {
+    padding: 0.5rem;
+  }
+
+  .tipo-badge {
+    font-size: 0.65rem;
+    padding: 0.1rem 0.3rem;
+  }
+
+  .data-info {
+    font-size: 0.6rem;
   }
 }
 
@@ -1628,9 +1731,23 @@ export default {
   }
 }
 
+/* Layout para telas maiores - Três colunas quando há espaço */
+@media (min-width: 1200px) {
+  .modelos-grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+  .modelos-grid-responsive {
+    gap: 0.875rem;
+  }
+}
+
 @media (max-width: 992px) {
-  .modelos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  .modelos-grid-responsive {
+    gap: 0.75rem;
   }
 }
 </style>
