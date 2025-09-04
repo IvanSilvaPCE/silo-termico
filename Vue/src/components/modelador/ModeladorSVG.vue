@@ -55,13 +55,13 @@
           <!-- Botões de Reset -->
           <BotoesControle :tipo-ativo="tipoAtivo" :dados-vindos-do-preview="dadosVindosDoPreview"
             @resetar-padrao="resetarPadrao" @resetar-modelos-padrao="resetarModelosParaPadrao"
-            @voltar-preview="voltarParaPreview" />
+            @voltar-preview="voltarParaPreview" @resetar-posicoes-manual="resetarPosicoesManual" />
 
           <!-- Gerenciador de Configurações (Banco de Dados) -->
           <GerenciadorModelosBanco :tipo-ativo="tipoAtivo" :quantidade-modelos-arcos="quantidadeModelosArcos"
             :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :config-silo="configSilo"
             :config-armazem="configArmazem" @configuracao-carregada="carregarConfiguracaoDoBanco"
-            @mostrar-toast="mostrarToast" />
+            @mostrar-toast="mostrarToast" @resetar-apos-salvamento-banco="resetarTudoAposSalvamentoBanco" />
 
           <!-- Gerenciador de Configurações (Backup Local) -->
           <GerenciadorConfiguracoes />
@@ -446,6 +446,15 @@ export default {
         vertical: 0
       },
 
+      // Estados para drag and drop
+      isDragging: false,
+      dragElement: null,
+      dragType: null, // 'pendulo' ou 'sensor'
+      dragOffset: { x: 0, y: 0 },
+      posicoesManualPendulos: {},
+      posicoesManualSensores: {},
+      saveTimeout: null, // Para debounce do salvamento
+
       // NOVOS ESTADOS REATIVOS ADICIONADOS PARA CORREÇÃO DE ERRO
       modelosAtualizados: false, // Indica se houve alterações nos modelos que precisam ser salvas
       modelosConfigurados: {}, // Armazena configurações de modelos individuais
@@ -546,11 +555,21 @@ export default {
     this.inicializarPosicoesCabos()
     this.updateSVG()
 
-    // Métodos de inicialização
+    // Adicionar event listeners para drag and drop
+    this.$nextTick(() => {
+      this.adicionarEventListeners()
+    })
   },
 
   beforeDestroy() {
-    // Cleanup do componente
+    // Cleanup dos event listeners
+    this.removerEventListeners()
+    
+    // Limpar timeout de salvamento se existir
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout)
+      this.saveTimeout = null
+    }
   },
   watch: {
     'configArmazem.tipo_fundo': {
@@ -574,6 +593,7 @@ export default {
           // Aguardar um pouco mais para garantir que o SVG foi renderizado
           setTimeout(() => {
             this.atualizarSensores()
+            this.adicionarEventListeners()
           }, 100)
         }
       },
@@ -1330,6 +1350,174 @@ export default {
       this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${this.modelosArcos[this.modeloArcoAtual]?.nome}) salvo com sucesso!`, 'success')
     },
 
+    // Método para resetar completamente após salvamento no banco
+    resetarTudoAposSalvamentoBanco() {
+      console.log('🔄 [resetarTudoAposSalvamentoBanco] Iniciando reset completo após salvamento no banco')
+
+      // 1. Resetar configuração do armazém para valores padrão
+      this.configArmazem = {
+        pb: 185,
+        lb: 350,
+        hb: 30,
+        hf: 6,
+        lf: 250,
+        le: 15,
+        ht: 50,
+        tipo_telhado: 1,
+        curvatura_topo: 30,
+        pontas_redondas: false,
+        raio_pontas: 15,
+        estilo_laterais: 'reta',
+        curvatura_laterais: 0,
+        tipo_fundo: 0,
+        altura_fundo_reto: 10,
+        altura_funil_v: 18,
+        posicao_ponta_v: 0,
+        inclinacao_funil_v: 1,
+        largura_abertura_v: 20,
+        altura_duplo_v: 22,
+        posicao_v_esquerdo: -1,
+        posicao_v_direito: 1,
+        largura_abertura_duplo_v: 2,
+        altura_plataforma_duplo_v: 0.3,
+        largura_plataforma_duplo_v: 10,
+        deslocamento_horizontal_fundo: 0,
+        deslocamento_vertical_fundo: -1,
+        escala_sensores: 16,
+        dist_y_sensores: 12,
+        dist_x_sensores: 0,
+        posicao_horizontal: 0,
+        posicao_vertical: 0,
+        afastamento_vertical_pendulo: 0
+      }
+
+      // 2. Resetar configuração do silo para valores padrão
+      this.configSilo = {
+        lb: 200,
+        hs: 180,
+        hb: 15,
+        eb: 5,
+        escala_sensores: 16,
+        dist_y_sensores: 12,
+        pos_x_cabos_uniforme: 1,
+        pos_x_cabo: [50, 25],
+        pos_y_cabo: [160, 160, 160, 160, 160],
+        aeradores_ativo: false,
+        na: 4,
+        ds: 30,
+        dy: 0,
+        da: 35
+      }
+
+      // 3. Resetar modelos de arcos para padrão
+      this.quantidadeModelosArcos = 1
+      this.modelosArcos = {
+        1: {
+          posicao: 'todos',
+          config: { ...this.configArmazem },
+          nome: 'Modelo Único',
+          quantidadePendulos: 3,
+          sensoresPorPendulo: {
+            1: 4, 2: 3, 3: 5
+          }
+        }
+      }
+
+      // 4. Limpar estado de edição
+      this.modeloArcoAtual = null
+      this.modelosSalvos = {}
+
+      // 5. Limpar posições e configurações personalizadas
+      this.posicoesCabos = {}
+      this.caboSelecionadoPosicionamento = null
+      this.modelagemIndividualAtiva = false
+      this.penduloSelecionado = 1
+      this.posicoesPendulosIndividuais = {}
+      this.posicoesSensoresIndividuais = {}
+      this.ajustesGlobaisSensores = { horizontal: 0, vertical: 0 }
+      this.dadosPreviewDesvinculados = null
+
+      // 6. Limpar configurações de preview
+      this.configuracaoPreviewSelecionada = ''
+      this.configPreviewAplicada = null
+      this.configuracaoAplicada = null
+
+      // 7. Limpar localStorage relacionado aos modelos
+      this.limparLocalStorageModelos()
+
+      // 8. Regenerar dados exemplares com configuração padrão
+      this.criarDadosExemplaresArmazem()
+
+      // 9. Atualizar SVG
+      this.updateSVG()
+
+      console.log('✅ [resetarTudoAposSalvamentoBanco] Reset completo finalizado - pronto para novo modelo')
+    },
+
+    // Método para limpar localStorage dos modelos
+    limparLocalStorageModelos() {
+      try {
+        console.log('🧹 [limparLocalStorageModelos] Iniciando limpeza do localStorage')
+
+        // Limpar chaves específicas dos modelos
+        const chavesParaLimpar = [
+          'estadoModelosArcos',
+          'configArmazem',
+          'modelosArcosSalvos'
+        ]
+
+        chavesParaLimpar.forEach(chave => {
+          if (localStorage.getItem(chave)) {
+            localStorage.removeItem(chave)
+            console.log(`🗑️ [limparLocalStorageModelos] Removido: ${chave}`)
+          }
+        })
+
+        // Limpar modelos individuais (modelo_1, modelo_2, etc.)
+        for (let i = 1; i <= 10; i++) {
+          const chaveModelo = `modelo_${i}`
+          if (localStorage.getItem(chaveModelo)) {
+            localStorage.removeItem(chaveModelo)
+            console.log(`🗑️ [limparLocalStorageModelos] Removido: ${chaveModelo}`)
+          }
+        }
+
+        // Limpar configurações temporárias
+        const chavesTempParaLimpar = [
+          'configuracaoTemporaria',
+          'variaveisModelo',
+          'estadoModeloAtivo',
+          'alteracoesPendentes',
+          'posicoesCabosTemporarias',
+          'sensoresTemporarios'
+        ]
+
+        chavesTempParaLimpar.forEach(chave => {
+          if (localStorage.getItem(chave)) {
+            localStorage.removeItem(chave)
+            console.log(`🗑️ [limparLocalStorageModelos] Removido temporário: ${chave}`)
+          }
+        })
+
+        // Limpar chaves que começam com prefixos específicos
+        const prefixosParaLimpar = ['modelo_temp_', 'config_temp_', 'posicoes_', 'sensores_']
+        const todasChaves = Object.keys(localStorage)
+
+        todasChaves.forEach(chave => {
+          prefixosParaLimpar.forEach(prefixo => {
+            if (chave.startsWith(prefixo)) {
+              localStorage.removeItem(chave)
+              console.log(`🗑️ [limparLocalStorageModelos] Removido prefixo ${prefixo}: ${chave}`)
+            }
+          })
+        })
+
+        console.log('✅ [limparLocalStorageModelos] Limpeza do localStorage concluída')
+      } catch (error) {
+        console.error('❌ [limparLocalStorageModelos] Erro ao limpar localStorage:', error)
+      }
+    },
+
     salvarModeloAtualCompleto() {
       if (!this.modeloArcoAtual) return
 
@@ -1444,6 +1632,14 @@ export default {
       // Carregar configuração básica do modelo
       if (modelo.config) {
         this.configArmazem = { ...modelo.config }
+      }
+
+      // Carregar posições manuais salvas
+      if (modelo.posicoesManualPendulos) {
+        this.posicoesManualPendulos = { ...modelo.posicoesManualPendulos }
+      }
+      if (modelo.posicoesManualSensores) {
+        this.posicoesManualSensores = { ...modelo.posicoesManualSensores }
       }
 
       // Carregar estado completo se disponível
@@ -2574,15 +2770,20 @@ export default {
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
 
-        // Aplicar offset individual (seja de modelagem individual ou posicionamento de cabos)
+        // Aplicar offset individual (prioridade: posições manuais > modelagem individual > posicionamento de cabos)
         let offsetIndividualX = 0
         let offsetIndividualY = 0
 
-        if (this.modelagemIndividualAtiva && this.posicoesPendulosIndividuais[pendulo.numero]) {
+        if (this.posicoesManualPendulos[pendulo.numero]) {
+          // Prioridade 1: Posições manuais de drag and drop
+          offsetIndividualX = this.posicoesManualPendulos[pendulo.numero].x || 0
+          offsetIndividualY = this.posicoesManualPendulos[pendulo.numero].y || 0
+        } else if (this.modelagemIndividualAtiva && this.posicoesPendulosIndividuais[pendulo.numero]) {
+          // Prioridade 2: Modelagem individual
           offsetIndividualX = this.posicoesPendulosIndividuais[pendulo.numero].x || 0
           offsetIndividualY = this.posicoesPendulosIndividuais[pendulo.numero].y || 0
         } else if (this.posicoesCabos && this.posicoesCabos[pendulo.numero]) {
-          // Usar posições dos cabos - garantir que sejam números
+          // Prioridade 3: Posições dos cabos
           offsetIndividualX = parseFloat(this.posicoesCabos[pendulo.numero].x) || 0
           offsetIndividualY = parseFloat(this.posicoesCabos[pendulo.numero].y) || 0
         }
@@ -2635,16 +2836,19 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
-          // Aplicar offset individual se em modo de modelagem individual
+          // Aplicar offset individual (prioridade: posições manuais > modelagem individual)
           let offsetSensorX = 0
           let offsetSensorY = 0
+          const chaveSensor = `${pendulo.numero}-${s}`
 
-          if (this.modelagemIndividualAtiva) {
-            const chaveSensor = `${pendulo.numero}-${s}`
-            if (this.posicoesSensoresIndividuais[chaveSensor]) {
-              offsetSensorX = this.posicoesSensoresIndividuais[chaveSensor].x || 0
-              offsetSensorY = this.posicoesSensoresIndividuais[chaveSensor].y || 0
-            }
+          if (this.posicoesManualSensores[chaveSensor]) {
+            // Prioridade 1: Posições manuais de drag and drop
+            offsetSensorX = this.posicoesManualSensores[chaveSensor].x || 0
+            offsetSensorY = this.posicoesManualSensores[chaveSensor].y || 0
+          } else if (this.modelagemIndividualAtiva && this.posicoesSensoresIndividuais[chaveSensor]) {
+            // Prioridade 2: Modelagem individual
+            offsetSensorX = this.posicoesSensoresIndividuais[chaveSensor].x || 0
+            offsetSensorY = this.posicoesSensoresIndividuais[chaveSensor].y || 0
           }
 
           const xSensorFinal = xCabo + offsetSensorX
@@ -4233,6 +4437,398 @@ export default {
       // Salvar também na storage por tipo
       this.imagensFundoPorTipo[this.tipoAtivo] = { ...novaImagemData }
       console.log(`Dados da imagem de fundo atualizados para ${this.tipoAtivo}:`, this.imagemFundoData)
+    },
+
+    // MÉTODOS PARA DRAG AND DROP
+    adicionarEventListeners() {
+      if (this.tipoAtivo !== 'armazem') return
+
+      this.$nextTick(() => {
+        // Remover listeners existentes primeiro
+        this.removerEventListeners()
+
+        // Adicionar listeners para TODOS os elementos dos pêndulos (fundo + texto)
+        this.adicionarListenersPendulos()
+        
+        // Adicionar listeners para TODOS os elementos dos sensores (fundo + texto + nome)
+        this.adicionarListenersSensores()
+
+        // Listeners globais para movimento e release
+        document.addEventListener('mousemove', this.continuarDrag)
+        document.addEventListener('mouseup', this.finalizarDrag)
+      })
+    },
+
+    adicionarListenersPendulos() {
+      // Capturar tanto o fundo (rect) quanto o texto dos pêndulos
+      const elementosPendulos = document.querySelectorAll('[id^="C"]:not([id*="S"]), [id^="TC"]:not([id*="S"])')
+      
+      elementosPendulos.forEach(elemento => {
+        const id = elemento.id
+        
+        // Verificar se é elemento de pêndulo (C1, C2... ou TC1, TC2...)
+        const matchPendulo = id.match(/^(T?C)(\d+)$/)
+        if (matchPendulo) {
+          const numeroPendulo = parseInt(matchPendulo[2])
+          
+          elemento.style.cursor = 'grab'
+          elemento.addEventListener('mousedown', (e) => this.iniciarDragPendulo(e, numeroPendulo))
+          elemento.setAttribute('title', `Clique e arraste para mover o pêndulo ${numeroPendulo} inteiro`)
+          
+          // Adicionar classe para identificação
+          elemento.classList.add('pendulo-draggable')
+        }
+      })
+    },
+
+    adicionarListenersSensores() {
+      // Capturar fundo, texto e nome dos sensores
+      const elementosSensores = document.querySelectorAll('[id^="C"][id*="S"], [id^="TC"][id*="S"], [id^="TIND"]')
+      
+      elementosSensores.forEach(elemento => {
+        const id = elemento.id
+        let numeroPendulo, numeroSensor
+        
+        // Identificar pêndulo e sensor dos diferentes elementos
+        let matchSensor = id.match(/^C(\d+)S(\d+)$/)  // C1S2 (fundo)
+        if (!matchSensor) {
+          matchSensor = id.match(/^TC(\d+)S(\d+)$/)   // TC1S2 (texto valor)
+        }
+        if (!matchSensor) {
+          matchSensor = id.match(/^TIND(\d+)S(\d+)$/) // TIND1S2 (texto nome)
+        }
+        
+        if (matchSensor) {
+          numeroPendulo = parseInt(matchSensor[1])
+          numeroSensor = parseInt(matchSensor[2])
+          
+          elemento.style.cursor = 'grab'
+          elemento.addEventListener('mousedown', (e) => this.iniciarDragSensor(e, numeroPendulo, numeroSensor))
+          elemento.setAttribute('title', `Clique e arraste para mover apenas o sensor ${numeroSensor} do pêndulo ${numeroPendulo}`)
+          
+          // Adicionar classe para identificação
+          elemento.classList.add('sensor-draggable')
+        }
+      })
+    },
+
+    removerEventListeners() {
+      // Remover listeners de todos os elementos arrastáveis
+      const elementosArrastaveis = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
+      elementosArrastaveis.forEach(elemento => {
+        // Remover todos os event listeners mousedown
+        elemento.replaceWith(elemento.cloneNode(true))
+        elemento.classList.remove('pendulo-draggable', 'sensor-draggable')
+      })
+
+      // Remover listeners globais
+      document.removeEventListener('mousemove', this.continuarDrag)
+      document.removeEventListener('mouseup', this.finalizarDrag)
+    },
+
+    iniciarDragPendulo(event, numeroPendulo) {
+      event.preventDefault()
+      event.stopPropagation()
+      
+      console.log(`🎯 Iniciando drag do pêndulo ${numeroPendulo}`)
+      
+      this.isDragging = true
+      this.dragType = 'pendulo'
+      this.dragElement = numeroPendulo
+      
+      // Calcular offset do mouse em relação ao SVG
+      const svg = event.target.closest('svg')
+      const svgRect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - svgRect.left
+      const mouseY = event.clientY - svgRect.top
+      
+      // Converter para coordenadas do SVG
+      const svgPoint = this.converterParaCoordenadaSVG(svg, mouseX, mouseY)
+      
+      // Encontrar elemento principal do pêndulo (rect) para pegar posição
+      const elementoPrincipal = document.getElementById(`C${numeroPendulo}`)
+      if (elementoPrincipal) {
+        const penduloX = parseFloat(elementoPrincipal.getAttribute('x')) || 0
+        const penduloY = parseFloat(elementoPrincipal.getAttribute('y')) || 0
+        
+        this.dragOffset = {
+          x: svgPoint.x - (penduloX + (parseFloat(elementoPrincipal.getAttribute('width')) || 0) / 2),
+          y: svgPoint.y - (penduloY + (parseFloat(elementoPrincipal.getAttribute('height')) || 0) / 2)
+        }
+      } else {
+        this.dragOffset = { x: 0, y: 0 }
+      }
+      
+      // Alterar cursor de todos os elementos do pêndulo
+      const elementosPendulo = document.querySelectorAll(`[id^="C${numeroPendulo}"], [id^="TC${numeroPendulo}"]`)
+      elementosPendulo.forEach(el => {
+        if (!el.id.includes('S')) { // Apenas elementos do pêndulo, não sensores
+          el.style.cursor = 'grabbing'
+        }
+      })
+    },
+
+    iniciarDragSensor(event, numeroPendulo, numeroSensor) {
+      event.preventDefault()
+      event.stopPropagation()
+      
+      console.log(`🎯 Iniciando drag do sensor ${numeroSensor} do pêndulo ${numeroPendulo}`)
+      
+      this.isDragging = true
+      this.dragType = 'sensor'
+      this.dragElement = { pendulo: numeroPendulo, sensor: numeroSensor }
+      
+      // Calcular offset do mouse em relação ao SVG
+      const svg = event.target.closest('svg')
+      const svgRect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - svgRect.left
+      const mouseY = event.clientY - svgRect.top
+      
+      // Converter para coordenadas do SVG
+      const svgPoint = this.converterParaCoordenadaSVG(svg, mouseX, mouseY)
+      
+      // Encontrar elemento principal do sensor (rect) para pegar posição
+      const elementoPrincipal = document.getElementById(`C${numeroPendulo}S${numeroSensor}`)
+      if (elementoPrincipal) {
+        const sensorX = parseFloat(elementoPrincipal.getAttribute('x')) || 0
+        const sensorY = parseFloat(elementoPrincipal.getAttribute('y')) || 0
+        
+        this.dragOffset = {
+          x: svgPoint.x - (sensorX + (parseFloat(elementoPrincipal.getAttribute('width')) || 0) / 2),
+          y: svgPoint.y - (sensorY + (parseFloat(elementoPrincipal.getAttribute('height')) || 0) / 2)
+        }
+      } else {
+        this.dragOffset = { x: 0, y: 0 }
+      }
+      
+      // Alterar cursor de todos os elementos do sensor
+      const elementosSensor = document.querySelectorAll(`[id*="C${numeroPendulo}S${numeroSensor}"], [id*="TC${numeroPendulo}S${numeroSensor}"], [id*="TIND${numeroPendulo}S${numeroSensor}"]`)
+      elementosSensor.forEach(el => {
+        el.style.cursor = 'grabbing'
+      })
+    },
+
+    continuarDrag(event) {
+      if (!this.isDragging) return
+      
+      event.preventDefault()
+      
+      // Encontrar o SVG
+      const svg = document.querySelector('svg')
+      if (!svg) return
+      
+      const svgRect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - svgRect.left
+      const mouseY = event.clientY - svgRect.top
+      
+      // Converter para coordenadas do SVG
+      const svgPoint = this.converterParaCoordenadaSVG(svg, mouseX, mouseY)
+      
+      // Calcular nova posição
+      const novaX = svgPoint.x - this.dragOffset.x
+      const novaY = svgPoint.y - this.dragOffset.y
+      
+      if (this.dragType === 'pendulo') {
+        this.moverPenduloCompleto(this.dragElement, novaX, novaY)
+      } else if (this.dragType === 'sensor') {
+        this.moverSensorIndividual(this.dragElement.pendulo, this.dragElement.sensor, novaX, novaY)
+      }
+    },
+
+    finalizarDrag(event) {
+      if (!this.isDragging) return
+      
+      console.log(`✅ Finalizando drag do ${this.dragType}`)
+      
+      const elementoMovido = this.dragElement
+      const tipoMovido = this.dragType
+      
+      this.isDragging = false
+      this.dragType = null
+      this.dragElement = null
+      this.dragOffset = { x: 0, y: 0 }
+      
+      // Restaurar cursor para todos os elementos arrastáveis
+      const elementosArrastaveis = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
+      elementosArrastaveis.forEach(el => {
+        el.style.cursor = 'grab'
+      })
+      
+      // Debounced save - salvar apenas após parar de mover por um tempo
+      this.debouncedSalvarPosicoes(elementoMovido, tipoMovido)
+    },
+
+    // Implementar debounce para salvamento
+    debouncedSalvarPosicoes(elementoMovido, tipoMovido) {
+      // Cancelar salvamento anterior se existir
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout)
+      }
+      
+      // Agendar novo salvamento após 300ms de inatividade
+      this.saveTimeout = setTimeout(() => {
+        console.log(`💾 Salvando posições após movimento de ${tipoMovido}:`, elementoMovido)
+        
+        // Salvar posições no modelo atual se estiver editando
+        if (this.modeloArcoAtual) {
+          this.salvarPosicoesNoModelo()
+        }
+        
+        this.saveTimeout = null
+      }, 300)
+    },
+
+    converterParaCoordenadaSVG(svg, mouseX, mouseY) {
+      const viewBox = svg.getAttribute('viewBox')
+      if (!viewBox) return { x: mouseX, y: mouseY }
+      
+      const [minX, minY, width, height] = viewBox.split(' ').map(Number)
+      const svgRect = svg.getBoundingClientRect()
+      
+      const scaleX = width / svgRect.width
+      const scaleY = height / svgRect.height
+      
+      return {
+        x: minX + mouseX * scaleX,
+        y: minY + mouseY * scaleY
+      }
+    },
+
+    moverPenduloCompleto(numeroPendulo, novaX, novaY) {
+      // Salvar posição manual do pêndulo
+      if (!this.posicoesManualPendulos[numeroPendulo]) {
+        this.posicoesManualPendulos[numeroPendulo] = { x: 0, y: 0 }
+      }
+      
+      // Calcular diferença da posição original
+      const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+      this.posicoesManualPendulos[numeroPendulo].x = novaX - posicaoOriginal.x
+      this.posicoesManualPendulos[numeroPendulo].y = novaY - posicaoOriginal.y
+      
+      console.log(`📍 Pêndulo ${numeroPendulo} movido para offset:`, this.posicoesManualPendulos[numeroPendulo])
+      
+      // Atualizar posições de todos os sensores deste pêndulo junto
+      const sensoresCount = this.obterQuantidadeSensoresPendulo(numeroPendulo)
+      for (let s = 1; s <= sensoresCount; s++) {
+        const chaveSensor = `${numeroPendulo}-${s}`
+        if (!this.posicoesManualSensores[chaveSensor]) {
+          this.posicoesManualSensores[chaveSensor] = { x: 0, y: 0 }
+        }
+        // Mover sensores junto com o pêndulo
+        this.posicoesManualSensores[chaveSensor].x = this.posicoesManualPendulos[numeroPendulo].x
+        this.posicoesManualSensores[chaveSensor].y = this.posicoesManualPendulos[numeroPendulo].y
+      }
+      
+      // Atualizar visualização
+      this.updateSVG()
+    },
+
+    moverSensorIndividual(numeroPendulo, numeroSensor, novaX, novaY) {
+      const chaveSensor = `${numeroPendulo}-${numeroSensor}`
+      
+      if (!this.posicoesManualSensores[chaveSensor]) {
+        this.posicoesManualSensores[chaveSensor] = { x: 0, y: 0 }
+      }
+      
+      // Calcular diferença da posição original
+      const posicaoOriginal = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
+      this.posicoesManualSensores[chaveSensor].x = novaX - posicaoOriginal.x
+      this.posicoesManualSensores[chaveSensor].y = novaY - posicaoOriginal.y
+      
+      console.log(`📍 Sensor ${numeroSensor} do pêndulo ${numeroPendulo} movido para offset:`, this.posicoesManualSensores[chaveSensor])
+      
+      // Atualizar visualização
+      this.updateSVG()
+    },
+
+    calcularPosicaoOriginalPendulo(numeroPendulo) {
+      // Usar a mesma lógica do renderSensoresArmazem para calcular posição original
+      const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
+      const pb = (config.pb || this.alturaSVG - 50) + (this.alturaSVG < 300 ? 0 : 50)
+      const posicao_horizontal = config.posicao_horizontal || 0
+      const posicao_vertical = config.posicao_vertical || 0
+      
+      const yPendulo = pb + 15 + posicao_vertical
+      
+      // Calcular posição X baseada no layout
+      const arcoInfo = this.analiseArcos?.arcos[this.arcoAtual]
+      if (!arcoInfo) return { x: 0, y: yPendulo }
+      
+      const totalCabos = arcoInfo.pendulos.length
+      const larguraTotal = config.lb || 350
+      const margemLateral = 35
+      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+      
+      let xCabo
+      if (totalCabos === 1) {
+        xCabo = larguraTotal / 2
+      } else {
+        const espacamento = larguraUtilizavel / (totalCabos - 1)
+        xCabo = margemLateral + ((numeroPendulo - 1) * espacamento)
+      }
+      
+      return { x: xCabo + posicao_horizontal, y: yPendulo }
+    },
+
+    calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor) {
+      const posicaoPendulo = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+      const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
+      const dist_y_sensores = config.dist_y_sensores || 12
+      const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
+      
+      const ySensor = posicaoPendulo.y - dist_y_sensores * numeroSensor - 25 - afastamento_vertical_pendulo
+      
+      return { x: posicaoPendulo.x, y: ySensor }
+    },
+
+    obterQuantidadeSensoresPendulo(numeroPendulo) {
+      const modeloAtual = this.determinarModeloParaArco(this.arcoAtual)
+      if (modeloAtual?.sensoresPorPendulo) {
+        return modeloAtual.sensoresPorPendulo[numeroPendulo] || 1
+      }
+      
+      // Fallback: tentar obter dos dados atuais
+      if (this.dados?.leitura?.[numeroPendulo]) {
+        return Object.keys(this.dados.leitura[numeroPendulo]).length
+      }
+      
+      return 1
+    },
+
+    salvarPosicoesNoModelo() {
+      if (!this.modeloArcoAtual) return
+      
+      // Salvar posições manuais no modelo atual
+      if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
+        this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = {}
+      }
+      if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores) {
+        this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = {}
+      }
+      
+      this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = { ...this.posicoesManualPendulos }
+      this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = { ...this.posicoesManualSensores }
+      
+      this.salvarModelosAutomatico()
+      
+      console.log('💾 Posições manuais salvas no modelo:', {
+        pendulos: this.posicoesManualPendulos,
+        sensores: this.posicoesManualSensores
+      })
+    },
+
+    resetarPosicoesManual() {
+      this.posicoesManualPendulos = {}
+      this.posicoesManualSensores = {}
+      
+      if (this.modeloArcoAtual) {
+        this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = {}
+        this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = {}
+        this.salvarModelosAutomatico()
+      }
+      
+      this.updateSVG()
+      this.mostrarToast('Posições manuais resetadas!', 'success')
     }
   }
 }

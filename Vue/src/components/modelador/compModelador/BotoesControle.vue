@@ -7,9 +7,24 @@
       @click="$emit('resetar-modelos-padrao')">
       🗑️ Limpar Todos os Modelos
     </button>
-    <button v-if="dadosVindosDoPreview" type="button" class="btn btn-info" @click="$emit('voltar-preview')">
-      ⬅️ Voltar ao Preview
-    </button>
+    <button 
+          v-if="dadosVindosDoPreview" 
+          type="button" 
+          class="btn btn-info btn-sm w-100 mb-2" 
+          @click="$emit('voltar-preview')"
+        >
+          🔙 Voltar ao Preview
+        </button>
+
+        <button 
+          v-if="tipoAtivo === 'armazem'" 
+          type="button" 
+          class="btn btn-warning btn-sm w-100 mb-2" 
+          @click="$emit('resetar-posicoes-manual')"
+          title="Resetar posições manuais dos pêndulos e sensores"
+        >
+          🎯 Resetar Posições Manuais
+        </button>
   </div>
 </template>
 
@@ -20,6 +35,11 @@ export default {
     tipoAtivo: String,
     dadosVindosDoPreview: Boolean
   },
-  emits: ['resetar-padrao', 'resetar-modelos-padrao', 'voltar-preview']
+  emits: [
+    'resetar-padrao',
+    'resetar-modelos-padrao', 
+    'voltar-preview',
+    'resetar-posicoes-manual'
+  ],
 }
 </script>

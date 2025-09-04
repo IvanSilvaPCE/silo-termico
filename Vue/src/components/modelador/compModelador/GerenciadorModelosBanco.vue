@@ -186,7 +186,8 @@ export default {
   emits: [
     'configuracao-carregada',
     'mostrar-toast',
-    'modelo-deletado'
+    'modelo-deletado',
+    'resetar-apos-salvamento-banco'
   ],
   data() {
     return {
@@ -294,6 +295,27 @@ export default {
     this.carregarConfiguracoesGerais()
   },
   methods: {
+    // Método para resetar tudo após salvamento no banco
+    resetarTudoAposSalvamento() {
+      console.log('🔄 [GerenciadorModelosBanco] Iniciando reset completo após salvamento no banco')
+
+      try {
+        // Emitir evento para o componente pai resetar
+        this.$emit('resetar-apos-salvamento-banco')
+
+        // Mostrar toast de confirmação
+        this.$emit('mostrar-toast', 
+          '✅ Sistema resetado para valores padrão!\n\n' +
+          '🆕 Pronto para modelar uma nova configuração do zero',
+          'info'
+        )
+
+        console.log('✅ [GerenciadorModelosBanco] Reset completo emitido com sucesso')
+      } catch (error) {
+        console.error('❌ [GerenciadorModelosBanco] Erro ao resetar após salvamento:', error)
+        this.$emit('mostrar-toast', 'Erro ao resetar sistema. Recarregue a página.', 'error')
+      }
+    },
     async carregarConfiguracoesGerais() {
       this.isCarregando = true
       try {
@@ -392,13 +414,19 @@ export default {
               `🎉 Configuração "${this.nomeModelo}" salva no banco!\n\n` +
               `🆔 ID: ${idSalvo}\n` +
               `📊 ${this.quantidadeModelosArcos} modelo(s) de arco consolidado(s)\n` +
-              `✅ Salvamento realizado com sucesso!`,
+              `✅ Salvamento realizado com sucesso!\n\n` +
+              `🔄 Sistema será resetado para valores padrão...`,
               'success'
             )
 
             // Limpar campos
             this.nomeModelo = ''
             this.descricaoModelo = ''
+
+            // NOVO: Resetar tudo para valores padrão após salvar no banco
+            setTimeout(() => {
+              this.resetarTudoAposSalvamento()
+            }, 1500) // Delay para mostrar mensagem de sucesso
 
           } else {
             console.error('❌ [GerenciadorModelosBanco] Erro ao salvar:', response)
@@ -440,12 +468,18 @@ export default {
             const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
             this.$emit('mostrar-toast',
               `🎉 Configuração do Silo "${this.nomeModelo}" salva!\n\n` +
-              `🆔 ID: ${idSalvo}`,
+              `🆔 ID: ${idSalvo}\n\n` +
+              `🔄 Sistema será resetado para valores padrão...`,
               'success'
             )
 
             this.nomeModelo = ''
             this.descricaoModelo = ''
+
+            // NOVO: Resetar tudo para valores padrão após salvar silo no banco
+            setTimeout(() => {
+              this.resetarTudoAposSalvamento()
+            }, 1500) // Delay para mostrar mensagem de sucesso
 
           } else {
             console.error('❌ [GerenciadorModelosBanco] Erro ao salvar silo:', response)
