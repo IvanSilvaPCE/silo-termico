@@ -708,35 +708,26 @@ export default {
           temPosicoesCabos: !!(this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero])
         })
 
-        // 🎯 PRIORIDADE 1: Posições manuais de drag and drop do ModeladorSVG
+        // Verificar se há posições manuais salvas para este pêndulo (PRIORIDADE 1)
         if (this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]) {
+          // Prioridade 1: Posições manuais de drag and drop do ModeladorSVG
           const posManual = this.config.posicoesManualPendulos[pendulo.numero]
           offsetIndividualX = parseFloat(posManual.x) || 0
           offsetIndividualY = parseFloat(posManual.y) || 0
           console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posições manuais:`, { x: offsetIndividualX, y: offsetIndividualY })
-        } 
-        // 🎯 PRIORIDADE 2: Posições do modeloEspecifico (formato v6.0+)
-        else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
+        } else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
+          // Prioridade 2: Posições do modeloEspecifico (formato v6.0+)
           const posEspec = this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]
           offsetIndividualX = parseFloat(posEspec.x) || 0
           offsetIndividualY = parseFloat(posEspec.y) || 0
           console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando modeloEspecifico:`, { x: offsetIndividualX, y: offsetIndividualY })
-        } 
-        // 🎯 PRIORIDADE 3: Posições JSON estruturadas (formato banco de dados v6.2+)
-        else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[`P${pendulo.numero}`]) {
-          const posPendulo = this.config.modeloEspecifico.posicoesPendulos[`P${pendulo.numero}`]
-          offsetIndividualX = parseFloat(posPendulo.x) || 0
-          offsetIndividualY = parseFloat(posPendulo.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posições JSON estruturadas:`, { x: offsetIndividualX, y: offsetIndividualY })
-        }
-        // 🎯 PRIORIDADE 4: Posições dos cabos (compatibilidade)
-        else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
+        } else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
+          // Prioridade 3: Posições dos cabos (compatibilidade)
           const posCabo = this.config.posicoesCabos[pendulo.numero]
           offsetIndividualX = parseFloat(posCabo.x) || 0
           offsetIndividualY = parseFloat(posCabo.y) || 0
           console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posicoesCabos:`, { x: offsetIndividualX, y: offsetIndividualY })
-        } 
-        else {
+        } else {
           console.log(`⚠️ [renderSensoresArmazem] P${pendulo.numero} - Nenhuma posição customizada encontrada, usando posição base calculada`)
         }
 
@@ -788,28 +779,8 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
-          // 🎯 APLICAR POSIÇÕES MANUAIS DE SENSORES INDIVIDUAIS
-          let xSensorFinal = xCabo
-          let ySensorFinal = ySensorBase
-
-          // Verificar se há posição manual para este sensor específico
-          const chaveSensorManual = `${pendulo.numero}-${s}`
-          const chaveSensorJson = `P${pendulo.numero}S${s}`
-
-          // PRIORIDADE 1: Posições manuais de drag and drop
-          if (this.config.posicoesManualSensores && this.config.posicoesManualSensores[chaveSensorManual]) {
-            const posSensorManual = this.config.posicoesManualSensores[chaveSensorManual]
-            xSensorFinal += parseFloat(posSensorManual.x) || 0
-            ySensorFinal += parseFloat(posSensorManual.y) || 0
-            console.log(`🎯 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual:`, { x: xSensorFinal, y: ySensorFinal })
-          }
-          // PRIORIDADE 2: Posições JSON estruturadas do banco
-          else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesSensores && this.config.modeloEspecifico.posicoesSensores[chaveSensorJson]) {
-            const posSensorJson = this.config.modeloEspecifico.posicoesSensores[chaveSensorJson]
-            xSensorFinal = parseFloat(posSensorJson.x) || xSensorFinal
-            ySensorFinal = parseFloat(posSensorJson.y) || ySensorFinal
-            console.log(`🎯 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição JSON:`, { x: xSensorFinal, y: ySensorFinal })
-          }
+          const xSensorFinal = xCabo
+          const ySensorFinal = ySensorBase
 
           // 🎯 LIMITES AJUSTADOS PARA PREVIEW OTIMIZADO
           if (ySensorFinal > 15 && ySensorFinal < (this.dimensoesCalculadas.altura - 40)) {

@@ -142,33 +142,40 @@ export default {
         }
       }
 
-      // Mapear posições dos pêndulos
+      // 🎯 CORRIGIDO: Mapear posições dos pêndulos com cálculo de posição absoluta
       Object.keys(this.posicoesManualPendulos || {}).forEach(numeroPendulo => {
         const posicao = this.posicoesManualPendulos[numeroPendulo]
+        
+        // Calcular posição absoluta (posição original + offset)
+        const posicaoAbsoluta = this.calcularPosicaoAbsolutaPendulo(parseInt(numeroPendulo), posicao)
+        
         estrutura.posicoes.pendulos[`P${numeroPendulo}`] = {
           numero: parseInt(numeroPendulo),
-          x: Math.round(posicao.x * 100) / 100, // Arredondar para 2 casas decimais
-          y: Math.round(posicao.y * 100) / 100,
-          offsetX: Math.round((posicao.offsetX || 0) * 100) / 100,
-          offsetY: Math.round((posicao.offsetY || 0) * 100) / 100,
+          x: Math.round(posicaoAbsoluta.x * 100) / 100, // Posição absoluta final
+          y: Math.round(posicaoAbsoluta.y * 100) / 100, // Posição absoluta final
+          offsetX: Math.round((posicao.x || 0) * 100) / 100, // Offset original
+          offsetY: Math.round((posicao.y || 0) * 100) / 100, // Offset original
           timestampAlteracao: posicao.timestampAlteracao || Date.now(),
           quantidadeSensores: this.sensoresPorPendulo[numeroPendulo] || 0
         }
       })
 
-      // Mapear posições dos sensores
+      // 🎯 CORRIGIDO: Mapear posições dos sensores com cálculo de posição absoluta
       Object.keys(this.posicoesManualSensores || {}).forEach(chaveSensor => {
         const [numeroPendulo, numeroSensor] = chaveSensor.split('-')
         const posicao = this.posicoesManualSensores[chaveSensor]
+        
+        // Calcular posição absoluta (posição original + offset)
+        const posicaoAbsoluta = this.calcularPosicaoAbsolutaSensor(parseInt(numeroPendulo), parseInt(numeroSensor), posicao)
         
         const chaveJson = `P${numeroPendulo}S${numeroSensor}`
         estrutura.posicoes.sensores[chaveJson] = {
           pendulo: parseInt(numeroPendulo),
           sensor: parseInt(numeroSensor),
-          x: Math.round(posicao.x * 100) / 100,
-          y: Math.round(posicao.y * 100) / 100,
-          offsetX: Math.round((posicao.offsetX || 0) * 100) / 100,
-          offsetY: Math.round((posicao.offsetY || 0) * 100) / 100,
+          x: Math.round(posicaoAbsoluta.x * 100) / 100, // Posição absoluta final
+          y: Math.round(posicaoAbsoluta.y * 100) / 100, // Posição absoluta final
+          offsetX: Math.round((posicao.x || 0) * 100) / 100, // Offset original
+          offsetY: Math.round((posicao.y || 0) * 100) / 100, // Offset original
           timestampAlteracao: posicao.timestampAlteracao || Date.now()
         }
       })
@@ -342,9 +349,70 @@ export default {
       }
     },
 
+    // 🎯 NOVOS MÉTODOS: Calcular posições absolutas para o banco de dados
+    calcularPosicaoAbsolutaPendulo(numeroPendulo, posicaoManual) {
+      // Usar mesma lógica do ModeladorSVG para calcular posição original
+      const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+      
+      return {
+        x: posicaoOriginal.x + (posicaoManual.x || 0),
+        y: posicaoOriginal.y + (posicaoManual.y || 0)
+      }
+    },
+
+    calcularPosicaoAbsolutaSensor(numeroPendulo, numeroSensor, posicaoManual) {
+      // Usar mesma lógica do ModeladorSVG para calcular posição original
+      const posicaoOriginal = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
+      
+      return {
+        x: posicaoOriginal.x + (posicaoManual.x || 0),
+        y: posicaoOriginal.y + (posicaoManual.y || 0)
+      }
+    },
+
+    calcularPosicaoOriginalPendulo(numeroPendulo) {
+      // Replicar lógica do ModeladorSVG - usar configuração atual
+      const pb = 185 // Valor padrão
+      const yPendulo = pb + 10
+      
+      // Calcular largura - manter consistente
+      const larguraTotal = 350 // Valor padrão
+      const margemLateral = 35
+      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+      const totalCabos = this.quantidadePendulos || 3
+      
+      let xCabo
+      if (totalCabos === 1) {
+        xCabo = larguraTotal / 2
+      } else {
+        const espacamento = larguraUtilizavel / (totalCabos - 1)
+        xCabo = margemLateral + ((numeroPendulo - 1) * espacamento)
+      }
+
+      return { x: xCabo, y: yPendulo }
+    },
+
+    calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor) {
+      const posicaoPendulo = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+      const dist_y_sensores = 12 // Valor padrão
+      
+      const ySensor = posicaoPendulo.y - dist_y_sensores * numeroSensor - 25
+
+      return { x: posicaoPendulo.x, y: ySensor }
+    },
+
     // Método público para ser chamado pelo componente pai
     carregarPosicoesModelo(numeroModelo) {
-      return this.carregarPosicoesDoLocalStorage(numeroModelo)
+      const posicoes = this.carregarPosicoesDoLocalStorage(numeroModelo)
+      
+      // 🎯 CRÍTICO: NÃO aplicar posições automaticamente para evitar reposicionamento
+      // Apenas retornar os dados para o componente pai decidir se deve aplicar ou não
+      if (posicoes && posicoes.posicoes) {
+        console.log(`📂 [GerenciadorPosicoesManual] Posições encontradas para modelo ${numeroModelo}, mas não aplicadas automaticamente`)
+        return posicoes
+      }
+      
+      return null
     }
   }
 }

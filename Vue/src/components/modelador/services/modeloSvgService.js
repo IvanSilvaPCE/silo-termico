@@ -35,38 +35,12 @@ const preservarPosicoesCabos = (dadosSvg) => {
             config.posicoesCabos = {};
           }
 
-          // 🎯 NOVO: Preservar posições manuais dos pêndulos e sensores (drag and drop)
+          // NOVO: Preservar posições manuais dos pêndulos e sensores (drag and drop)
           if (!config.posicoesManualPendulos) {
             config.posicoesManualPendulos = {};
           }
           if (!config.posicoesManualSensores) {
             config.posicoesManualSensores = {};
-          }
-
-          // 🎯 NOVO: Preservar posições estruturadas em formato JSON (v6.2+)
-          if (modelo.posicoesPendulos && typeof modelo.posicoesPendulos === 'object') {
-            config.posicoesPendulosEstruturadas = modelo.posicoesPendulos;
-          }
-          if (modelo.posicoesSensores && typeof modelo.posicoesSensores === 'object') {
-            config.posicoesSensoresEstruturadas = modelo.posicoesSensores;
-          }
-
-          // 🎯 NOVO: Preservar posições individuais de sensores do modeloEspecifico
-          if (modelo.modeloEspecifico && modelo.modeloEspecifico.posicoesSensores) {
-            config.posicoesSensoresIndividuais = modelo.modeloEspecifico.posicoesSensores;
-            
-            const totalSensores = Object.keys(modelo.modeloEspecifico.posicoesSensores).length;
-          }
-
-          // 🎯 PRESERVAR POSIÇÕES DOS PÊNDULOS INDIVIDUALMENTE
-          if (modelo.modeloEspecifico && modelo.modeloEspecifico.posicoesPendulos) {
-            config.posicoesPendulosIndividuais = modelo.modeloEspecifico.posicoesPendulos;
-          }
-
-          // 🎯 NOVO: Preservar dimensões calculadas se disponíveis
-          if (modelo.dimensoesModelo) {
-            console.log(`📐 [PRESERVAÇÃO] Modelo ${modeloKey} - Salvando dimensões calculadas:`, modelo.dimensoesModelo);
-            config.dimensoesCalculadas = modelo.dimensoesModelo;
           }
 
           // Garantir estrutura para cada cabo, mas SEM alterar posições existentes
