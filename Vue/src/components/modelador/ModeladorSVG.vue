@@ -36,7 +36,10 @@
               @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
 
             <!-- Seção 1: Dimensões Básicas -->
-            <DimensoesBasicas :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+            <DimensoesBasicas 
+              :config-armazem="configArmazem" 
+              @armazem-change="onArmazemChange"
+              @dimensoes-alteradas="onDimensoesAlteradas" />
 
             <!-- Seção 2: Configuração do Telhado -->
             <ConfiguracaoTelhado :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
@@ -1118,6 +1121,35 @@ export default {
       }
     },
 
+    onDimensoesAlteradas(data) {
+      console.log('📐 [ModeladorSVG] Dimensões alteradas:', data)
+      
+      // Forçar atualização do SVG
+      this.updateSVG()
+      
+      // Se estiver editando um modelo, salvar as alterações
+      if (this.modeloArcoAtual) {
+        // Garantir que as dimensões sejam salvas no modelo
+        this.modelosArcos[this.modeloArcoAtual].config = { ...this.configArmazem }
+        
+        // Salvar modelo completo para persistir as dimensões
+        this.salvarModeloAtualCompleto()
+        
+        console.log('💾 [ModeladorSVG] Dimensões salvas no modelo:', {
+          modelo: this.modeloArcoAtual,
+          dimensoes: {
+            pb: this.configArmazem.pb,
+            lb: this.configArmazem.lb,
+            hb: this.configArmazem.hb,
+            hf: this.configArmazem.hf,
+            lf: this.configArmazem.lf,
+            le: this.configArmazem.le,
+            ht: this.configArmazem.ht
+          }
+        })
+      }
+    },
+
     onQuantidadeModelosChange(event) {
       this.quantidadeModelosArcos = parseInt(event.target.value)
       const qtd = parseInt(this.quantidadeModelosArcos)
@@ -1685,13 +1717,28 @@ export default {
       }
 
       console.log(`📊 [salvarModeloAtualCompleto] Configuração completa sendo salva:`, {
+        dimensoesBasicas: {
+          pb: configuracaoModelo.pb,
+          lb: configuracaoModelo.lb,
+          hb: configuracaoModelo.hb,
+          hf: configuracaoModelo.hf,
+          lf: configuracaoModelo.lf,
+          le: configuracaoModelo.le,
+          ht: configuracaoModelo.ht
+        },
         telhado: {
           tipo: configuracaoModelo.tipo_telhado,
-          curvatura: configuracaoModelo.curvatura_topo
+          curvatura: configuracaoModelo.curvatura_topo,
+          pontas_redondas: configuracaoModelo.pontas_redondas,
+          raio_pontas: configuracaoModelo.raio_pontas,
+          estilo_laterais: configuracaoModelo.estilo_laterais,
+          curvatura_laterais: configuracaoModelo.curvatura_laterais
         },
-        dimensoes: {
-          lb: configuracaoModelo.lb,
-          pb: configuracaoModelo.pb
+        fundo: {
+          tipo: configuracaoModelo.tipo_fundo,
+          altura_fundo_reto: configuracaoModelo.altura_fundo_reto,
+          altura_funil_v: configuracaoModelo.altura_funil_v,
+          altura_duplo_v: configuracaoModelo.altura_duplo_v
         },
         posicoesManuais: {
           pendulos: Object.keys(configuracaoModelo.posicoesManualPendulos || {}).length,

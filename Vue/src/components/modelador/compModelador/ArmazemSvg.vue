@@ -303,6 +303,14 @@ export default {
       // 📏 ADAPTAÇÃO DINÂMICA DO SVG - RESPONSIVO COMPLETO
       const config = this.config
 
+      console.log('📐 [calcularDimensoesBaseadoNoFundo] Configuração recebida:', {
+        lb: config.lb,
+        pb: config.pb,
+        hb: config.hb,
+        modeloEspecifico: !!config.modeloEspecifico,
+        modeloAtual: !!this.modeloAtual
+      })
+
       // 🚀 DETECTAR quantidade de pêndulos dinamicamente
       let quantidadePendulos = 0
       let sensoresPorPendulo = {}
@@ -324,13 +332,23 @@ export default {
         quantidadePendulos = pendulosDetectados || 3
       }
 
-      // 📐 LARGURA BASE - PRIORIZAR LARGURA SALVA NO MODELO
+      // 📐 LARGURA BASE - PRIORIZAR LARGURA SALVA NO MODELO (HIERARQUIA CORRIGIDA)
       let larguraBase = 350 // valor padrão
 
+      // Prioridade 1: Configuração atual do componente (mais específica)
       if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
         larguraBase = config.lb
-      } else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
+        console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura da config atual:', larguraBase)
+      } 
+      // Prioridade 2: Configuração do modelo atual
+      else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
         larguraBase = this.modeloAtual.configuracao.lb
+        console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura do modelo atual:', larguraBase)
+      }
+      // Prioridade 3: Largura das props externas
+      else if (this.larguraSvg && this.larguraSvg > 200) {
+        larguraBase = this.larguraSvg
+        console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura das props:', larguraBase)
       }
 
       // Expandir largura baseado na quantidade de pêndulos se necessário
@@ -882,11 +900,11 @@ export default {
     // Método para forçar recálculo de dimensões
     recalcularDimensoes() {
       const novasDimensoes = this.calcularDimensoesBaseadoNoFundo()
-      console.log(`📐 [recalcularDimensoes] Novas dimensões calculadas:`, novasDimensoes)
-      
+      console.log('📐 [recalcularDimensoes] Novas dimensões calculadas:', novasDimensoes)
+
       // 🎯 SALVAR as dimensões corretas no modelo atual
       this.salvarDimensoesNoModelo(novasDimensoes)
-      
+
       this.$emit('dimensoes-atualizadas', novasDimensoes)
 
       // Força atualização reativa
@@ -928,7 +946,7 @@ export default {
     // 🎯 NOVO: Salvar dimensões corretas no modelo
     salvarDimensoesNoModelo(dimensoes) {
       console.log('💾 [ArmazemSvg] Salvando dimensões no modelo:', dimensoes)
-      
+
       // Emitir evento para o ModeladorSVG salvar as dimensões
       this.$emit('salvar-dimensoes-modelo', {
         largura: dimensoes.largura,
@@ -1009,7 +1027,7 @@ export default {
   .svg-container-responsive {
     padding: 10px;
   }
-  
+
   .svg-wrapper svg {
     width: 100%;
     height: auto;

@@ -12,6 +12,46 @@ const preservarPosicoesCabos = (dadosSvg) => {
   try {
     const dados = typeof dadosSvg === 'string' ? JSON.parse(dadosSvg) : dadosSvg;
 
+    // 🎯 NOVA ESTRUTURA V6.0: Preservar estrutura de modelos conforme anexo
+    if (dados.modelos) {
+      console.log(`💾 [PRESERVAÇÃO V6.0] Processando ${Object.keys(dados.modelos).length} modelos`);
+      
+      Object.keys(dados.modelos).forEach(modeloId => {
+        const modelo = dados.modelos[modeloId];
+
+        if (modelo && modelo.dimensoes && modelo.modeloEspecifico) {
+          console.log(`💾 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Preservando estrutura completa:`, {
+            nome: modelo.nome,
+            posicao: modelo.posicao,
+            quantidadePendulos: modelo.modeloEspecifico.quantidadePendulos,
+            dimensoes: modelo.dimensoes,
+            telhado: modelo.telhado?.tipo,
+            fundo: modelo.fundo?.tipo
+          });
+
+          // 🔒 PRESERVAR TOTALMENTE as dimensões já salvas - NÃO alterar
+          if (modelo.dimensoes) {
+            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Dimensões preservadas INTACTAS:`, modelo.dimensoes);
+          }
+
+          // 🔒 PRESERVAR posições dos pêndulos
+          if (modelo.modeloEspecifico.posicoesPendulos) {
+            const totalPosicoes = Object.keys(modelo.modeloEspecifico.posicoesPendulos).length;
+            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalPosicoes} posições de pêndulos preservadas`);
+          }
+
+          // 🔒 PRESERVAR sensores por pêndulo
+          if (modelo.modeloEspecifico.sensoresPorPendulo) {
+            const totalSensoresPorPendulo = Object.keys(modelo.modeloEspecifico.sensoresPorPendulo).length;
+            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalSensoresPorPendulo} configurações de sensores preservadas`);
+          }
+        }
+      });
+
+      return typeof dadosSvg === 'string' ? JSON.stringify(dados) : dados;
+    }
+
+    // 🔄 FALLBACK: Estrutura antiga (modelosDefinidos)
     if (dados.modelosDefinidos) {
       Object.keys(dados.modelosDefinidos).forEach(modeloKey => {
         const modelo = dados.modelosDefinidos[modeloKey];
@@ -20,9 +60,46 @@ const preservarPosicoesCabos = (dadosSvg) => {
           const config = modelo.configuracao;
           const quantidadePendulos = modelo.quantidadePendulos || 3;
 
-          console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Salvando posições exatas dos ${quantidadePendulos} pêndulos`);
+          console.log(`💾 [PRESERVAÇÃO LEGACY] Modelo ${modeloKey} - Salvando dimensões e posições dos ${quantidadePendulos} pêndulos`);
 
-          // Garantir que propriedades básicas existam (sem alterar valores)
+          // 🔒 PRESERVAR TOTALMENTE as dimensões - NÃO sobrescrever se já existem
+          const dimensoesSalvas = ['pb', 'lb', 'hb', 'hf', 'lf', 'le', 'ht'];
+          dimensoesSalvas.forEach(dim => {
+            if (config[dim] !== undefined && config[dim] !== null) {
+              console.log(`✅ [PRESERVAÇÃO LEGACY] ${dim} preservado: ${config[dim]}`);
+            } else {
+              // Apenas aplicar defaults se realmente não existir
+              const defaults = { pb: 185, lb: 350, hb: 30, hf: 6, lf: 250, le: 15, ht: 50 };
+              config[dim] = defaults[dim];
+              console.log(`🆕 [PRESERVAÇÃO LEGACY] ${dim} definido como default: ${config[dim]}`);
+            }
+          });
+
+          // CRÍTICO: Preservar configurações do telhado
+          if (config.tipo_telhado === undefined) config.tipo_telhado = 1;
+          if (config.curvatura_topo === undefined) config.curvatura_topo = 30;
+          if (config.pontas_redondas === undefined) config.pontas_redondas = false;
+          if (config.raio_pontas === undefined) config.raio_pontas = 15;
+          if (config.estilo_laterais === undefined) config.estilo_laterais = 'reta';
+          if (config.curvatura_laterais === undefined) config.curvatura_laterais = 0;
+
+          // CRÍTICO: Preservar configurações do fundo
+          if (config.tipo_fundo === undefined) config.tipo_fundo = 0;
+          if (config.altura_fundo_reto === undefined) config.altura_fundo_reto = 10;
+          if (config.altura_funil_v === undefined) config.altura_funil_v = 18;
+          if (config.posicao_ponta_v === undefined) config.posicao_ponta_v = 0;
+          if (config.inclinacao_funil_v === undefined) config.inclinacao_funil_v = 1;
+          if (config.largura_abertura_v === undefined) config.largura_abertura_v = 20;
+          if (config.altura_duplo_v === undefined) config.altura_duplo_v = 22;
+          if (config.posicao_v_esquerdo === undefined) config.posicao_v_esquerdo = -1;
+          if (config.posicao_v_direito === undefined) config.posicao_v_direito = 1;
+          if (config.largura_abertura_duplo_v === undefined) config.largura_abertura_duplo_v = 2;
+          if (config.altura_plataforma_duplo_v === undefined) config.altura_plataforma_duplo_v = 0.3;
+          if (config.largura_plataforma_duplo_v === undefined) config.largura_plataforma_duplo_v = 10;
+          if (config.deslocamento_horizontal_fundo === undefined) config.deslocamento_horizontal_fundo = 0;
+          if (config.deslocamento_vertical_fundo === undefined) config.deslocamento_vertical_fundo = -1;
+
+          // Configurações de sensores - apenas garantir que existam SEM alterar valores salvos
           if (config.escala_sensores === undefined) config.escala_sensores = 16;
           if (config.dist_y_sensores === undefined) config.dist_y_sensores = 12;
           if (config.dist_x_sensores === undefined) config.dist_x_sensores = 0;
@@ -116,11 +193,53 @@ const preservarPosicoesCabos = (dadosSvg) => {
           config.informacoesModelo.timestampUltimaEdicao = Date.now();
           config.informacoesModelo.posicionamentoPersonalizado = true;
 
-          console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Posições dos cabos preservadas:`, {
+          console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Configuração completa preservada:`, {
             quantidadePendulos: quantidadePendulos,
+            dimensoesBasicas: {
+              pb: config.pb,
+              lb: config.lb,
+              hb: config.hb,
+              hf: config.hf,
+              lf: config.lf,
+              le: config.le,
+              ht: config.ht
+            },
+            telhado: {
+              tipo_telhado: config.tipo_telhado,
+              curvatura_topo: config.curvatura_topo,
+              pontas_redondas: config.pontas_redondas,
+              raio_pontas: config.raio_pontas,
+              estilo_laterais: config.estilo_laterais,
+              curvatura_laterais: config.curvatura_laterais
+            },
+            fundo: {
+              tipo_fundo: config.tipo_fundo,
+              altura_fundo_reto: config.altura_fundo_reto,
+              altura_funil_v: config.altura_funil_v,
+              altura_duplo_v: config.altura_duplo_v,
+              deslocamento_horizontal_fundo: config.deslocamento_horizontal_fundo,
+              deslocamento_vertical_fundo: config.deslocamento_vertical_fundo
+            },
             posicoesCabos: config.posicoesCabos,
             pos_x_cabo: config.pos_x_cabo,
-            distancia_entre_cabos: config.distancia_entre_cabos
+            distancia_entre_cabos: config.distancia_entre_cabos,
+            totalPropriedades: Object.keys(config).length
+          });
+
+          // VALIDAÇÃO CRÍTICA: Verificar se dimensões básicas estão sendo preservadas
+          const dimensoesCriticas = ['pb', 'lb', 'hb', 'hf', 'lf', 'le', 'ht'];
+          const dimensoesPreservadas = dimensoesCriticas.filter(dim => 
+            config[dim] !== undefined && config[dim] !== null
+          );
+          const dimensoesComValores = {};
+          dimensoesCriticas.forEach(dim => {
+            dimensoesComValores[dim] = config[dim];
+          });
+          
+          console.log(`🔍 [VALIDAÇÃO] Modelo ${modeloKey} - Dimensões preservadas: ${dimensoesPreservadas.length}/${dimensoesCriticas.length}`, {
+            preservadas: dimensoesPreservadas,
+            faltando: dimensoesCriticas.filter(dim => config[dim] === undefined || config[dim] === null),
+            valoresDimensoes: dimensoesComValores
           });
         }
       });
@@ -245,16 +364,38 @@ const salvarModelo = async (dadosModelo) => {
     let dadoSvgProcessado = "";
     if (dadosModelo.dado_svg) {
       if (typeof dadosModelo.dado_svg === "string") {
-        try { JSON.parse(dadosModelo.dado_svg); dadoSvgProcessado = dadosModelo.dado_svg.trim(); }
-        catch { console.warn("⚠️ [PROCESSAMENTO] dado_svg não é JSON válido, usando como string"); dadoSvgProcessado = dadosModelo.dado_svg; }
+        try { 
+          // IMPORTANTE: Validar JSON sem alterar o conteúdo
+          JSON.parse(dadosModelo.dado_svg); 
+          dadoSvgProcessado = dadosModelo.dado_svg.trim(); 
+        }
+        catch { 
+          console.warn("⚠️ [PROCESSAMENTO] dado_svg não é JSON válido, usando como string"); 
+          dadoSvgProcessado = dadosModelo.dado_svg; 
+        }
       } else if (typeof dadosModelo.dado_svg === "object") {
+        // CRÍTICO: NÃO alterar o objeto - apenas stringificar
         dadoSvgProcessado = JSON.stringify(dadosModelo.dado_svg);
+        console.log(`💾 [PROCESSAMENTO] Dados SVG objeto preservado:`, {
+          modelosDefinidos: dadosModelo.dado_svg.modelosDefinidos ? Object.keys(dadosModelo.dado_svg.modelosDefinidos).length : 0,
+          tamanhoTotal: dadoSvgProcessado.length
+        });
       } else {
         dadoSvgProcessado = String(dadosModelo.dado_svg);
       }
     }
-    if (!dadoSvgProcessado || dadoSvgProcessado.trim() === "" || dadoSvgProcessado.trim() === "{}") {
-      dadoSvgProcessado = JSON.stringify({ versao: "1.0", tipo: "modelo_basico", configuracao: {}, timestamp: Date.now() });
+    
+    // IMPORTANTE: Apenas criar dados básicos se realmente não houver dados
+    if (!dadoSvgProcessado || dadoSvgProcessado.trim() === "") {
+      console.log("🆕 [PROCESSAMENTO] Criando estrutura básica pois dados estão vazios");
+      dadoSvgProcessado = JSON.stringify({ 
+        versao: "1.0", 
+        tipo: "modelo_basico", 
+        configuracao: {}, 
+        timestamp: Date.now() 
+      });
+    } else {
+      console.log(`✅ [PROCESSAMENTO] Dados SVG preservados - tamanho: ${dadoSvgProcessado.length} caracteres`);
     }
 
     // IMPORTANTE: Salvar primeiro no localStorage antes de enviar para o banco
@@ -289,6 +430,31 @@ const salvarModelo = async (dadosModelo) => {
       return { status: 400, success: false, message: `Dados inválidos: ${validacao.erros.join(", ")}`, error: validacao.erros };
     }
 
+    // 🔍 VALIDAÇÃO CRÍTICA: Verificar se dimensões básicas estão preservadas no payload final
+    let dimensoesFinalValidacao = null;
+    try {
+      const dadosParsed = JSON.parse(dadosComDefaults.dado_svg);
+      if (dadosParsed.modelosDefinidos) {
+        dimensoesFinalValidacao = {};
+        Object.keys(dadosParsed.modelosDefinidos).forEach(modeloKey => {
+          const config = dadosParsed.modelosDefinidos[modeloKey]?.configuracao;
+          if (config) {
+            dimensoesFinalValidacao[modeloKey] = {
+              pb: config.pb,
+              lb: config.lb,
+              hb: config.hb,
+              hf: config.hf,
+              lf: config.lf,
+              le: config.le,
+              ht: config.ht
+            };
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('⚠️ [VALIDAÇÃO] Erro ao verificar dimensões finais:', error);
+    }
+
     console.log("🔄 [PENÚLTIMA] Dados preparados para envio (estrutura final):", {
       nm_modelo: `"${dadosComDefaults.nm_modelo}"`,
       tp_svg: `"${dadosComDefaults.tp_svg}"`,
@@ -296,6 +462,7 @@ const salvarModelo = async (dadosModelo) => {
       ds_modelo: `"${dadosComDefaults.ds_modelo}"`,
       dado_svg_size: dadosComDefaults.dado_svg.length + " caracteres",
       dado_svg_is_valid_json: (() => { try { JSON.parse(dadosComDefaults.dado_svg); return true; } catch { return false; } })(),
+      dimensoesFinalValidacao,
       payload_completo: dadosComDefaults,
     });
 
