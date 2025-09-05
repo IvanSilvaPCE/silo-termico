@@ -364,16 +364,11 @@ export default {
         extensaoFundo = config.altura_duplo_v || 35
       }
 
-      // Espaço para sensores
-      let espacoSensores = 0
-      if (quantidadePendulos > 0 && Object.keys(sensoresPorPendulo).length > 0) {
-        const maxSensores = Math.max(...Object.values(sensoresPorPendulo).map(s => parseInt(s) || 0))
-        const escala_sensores = config.escala_sensores || 16
-        const dist_y_sensores = config.dist_y_sensores || 12
-        espacoSensores = (maxSensores * dist_y_sensores) + escala_sensores + 40
-      }
+      // 🎯 NÃO CALCULAR ESPAÇO PARA SENSORES - manter ViewBox consistente
+      // (Os sensores são renderizados mas não afetam as dimensões do ViewBox)
+      const espacoSensores = 0
 
-      // 🎯 ALTURA TOTAL COMPLETA - REDUZIDA EM 80PX
+      // 🎯 ALTURA TOTAL COMPLETA - REDUZIDA EM 80PX (MANTENDO ViewBox 0 0 350 225)
       const margemTopo = 25
       const margemBase = 15
       const alturaTotal = margemTopo + alturaTelho + alturaCorpo + extensaoFundo + espacoSensores + margemBase - 80
@@ -713,26 +708,35 @@ export default {
           temPosicoesCabos: !!(this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero])
         })
 
-        // Verificar se há posições manuais salvas para este pêndulo (PRIORIDADE 1)
+        // 🎯 PRIORIDADE 1: Posições manuais de drag and drop do ModeladorSVG
         if (this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]) {
-          // Prioridade 1: Posições manuais de drag and drop do ModeladorSVG
           const posManual = this.config.posicoesManualPendulos[pendulo.numero]
           offsetIndividualX = parseFloat(posManual.x) || 0
           offsetIndividualY = parseFloat(posManual.y) || 0
           console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posições manuais:`, { x: offsetIndividualX, y: offsetIndividualY })
-        } else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
-          // Prioridade 2: Posições do modeloEspecifico (formato v6.0+)
+        } 
+        // 🎯 PRIORIDADE 2: Posições do modeloEspecifico (formato v6.0+)
+        else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
           const posEspec = this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]
           offsetIndividualX = parseFloat(posEspec.x) || 0
           offsetIndividualY = parseFloat(posEspec.y) || 0
           console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando modeloEspecifico:`, { x: offsetIndividualX, y: offsetIndividualY })
-        } else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
-          // Prioridade 3: Posições dos cabos (compatibilidade)
+        } 
+        // 🎯 PRIORIDADE 3: Posições JSON estruturadas (formato banco de dados v6.2+)
+        else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[`P${pendulo.numero}`]) {
+          const posPendulo = this.config.modeloEspecifico.posicoesPendulos[`P${pendulo.numero}`]
+          offsetIndividualX = parseFloat(posPendulo.x) || 0
+          offsetIndividualY = parseFloat(posPendulo.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posições JSON estruturadas:`, { x: offsetIndividualX, y: offsetIndividualY })
+        }
+        // 🎯 PRIORIDADE 4: Posições dos cabos (compatibilidade)
+        else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
           const posCabo = this.config.posicoesCabos[pendulo.numero]
           offsetIndividualX = parseFloat(posCabo.x) || 0
           offsetIndividualY = parseFloat(posCabo.y) || 0
           console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posicoesCabos:`, { x: offsetIndividualX, y: offsetIndividualY })
-        } else {
+        } 
+        else {
           console.log(`⚠️ [renderSensoresArmazem] P${pendulo.numero} - Nenhuma posição customizada encontrada, usando posição base calculada`)
         }
 
@@ -784,8 +788,28 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
-          const xSensorFinal = xCabo
-          const ySensorFinal = ySensorBase
+          // 🎯 APLICAR POSIÇÕES MANUAIS DE SENSORES INDIVIDUAIS
+          let xSensorFinal = xCabo
+          let ySensorFinal = ySensorBase
+
+          // Verificar se há posição manual para este sensor específico
+          const chaveSensorManual = `${pendulo.numero}-${s}`
+          const chaveSensorJson = `P${pendulo.numero}S${s}`
+
+          // PRIORIDADE 1: Posições manuais de drag and drop
+          if (this.config.posicoesManualSensores && this.config.posicoesManualSensores[chaveSensorManual]) {
+            const posSensorManual = this.config.posicoesManualSensores[chaveSensorManual]
+            xSensorFinal += parseFloat(posSensorManual.x) || 0
+            ySensorFinal += parseFloat(posSensorManual.y) || 0
+            console.log(`🎯 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual:`, { x: xSensorFinal, y: ySensorFinal })
+          }
+          // PRIORIDADE 2: Posições JSON estruturadas do banco
+          else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesSensores && this.config.modeloEspecifico.posicoesSensores[chaveSensorJson]) {
+            const posSensorJson = this.config.modeloEspecifico.posicoesSensores[chaveSensorJson]
+            xSensorFinal = parseFloat(posSensorJson.x) || xSensorFinal
+            ySensorFinal = parseFloat(posSensorJson.y) || ySensorFinal
+            console.log(`🎯 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição JSON:`, { x: xSensorFinal, y: ySensorFinal })
+          }
 
           // 🎯 LIMITES AJUSTADOS PARA PREVIEW OTIMIZADO
           if (ySensorFinal > 15 && ySensorFinal < (this.dimensoesCalculadas.altura - 40)) {
