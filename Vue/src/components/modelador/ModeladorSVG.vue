@@ -87,7 +87,7 @@
             <div class="card-header bg-primary text-white">
               <div
                 class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
-                <h6 class="mb-1 mb-md-0">
+                <h6 class="mb-2 mb-md-1">
                   Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO:
                   ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
                   <span v-if="dadosVindosDoPreview" class="badge bg-success ms-2"
@@ -117,10 +117,11 @@
             </div>
 
             <div class="card-body text-center d-flex align-items-center justify-content-center p-1 p-md-2" :style="{
-              height: isMobile ? 'auto' : 'calc(100vh - 250px)',
+              height: isMobile ? 'auto' : 'calc(100vh - 280px)',
               overflow: isMobile ? 'visible' : 'auto',
-              minHeight: isMobile ? '250px' : '300px',
-              maxHeight: isMobile ? 'none' : 'calc(100vh - 250px)'
+              minHeight: isMobile ? '300px' : '350px',
+              maxHeight: isMobile ? 'none' : 'calc(100vh - 280px)',
+              paddingTop: '30px'
             }">
               <div class="svg-container-responsive w-100 position-relative">
                 <!-- Renderização condicional baseada no tipo -->
@@ -174,17 +175,62 @@
                   </svg>
                 </template>
 
-                <!-- Componente ArmazemSvg para Armazém -->
+                <!-- Componente Armazem para Armazém -->
                 <template v-else>
-                  <ArmazemSvg
-                    :config="configArmazemParaComponente"
-                    :dados-sensores="dados"
-                    :modelo-atual="modeloAtualParaComponente"
-                    :dimensoes-personalizadas="dimensoesPersonalizadasParaComponente"
-                    :imagem-fundo="imagemFundoData"
-                    @dimensoes-atualizadas="onDimensoesAtualizadas"
-                    @dimensoes-aplicadas="onDimensoesAplicadas"
-                  />
+                  <!-- Container da imagem de fundo para Armazém -->
+                  <div v-if="imagemFundoData.url" 
+                       class="position-absolute d-flex align-items-center justify-content-center"
+                       :style="{
+                         top: '0',
+                         left: '0',
+                         width: '100%',
+                         height: '100%',
+                         zIndex: 1,
+                         overflow: 'hidden',
+                         borderRadius: '4px'
+                       }">
+                    <img 
+                      :src="imagemFundoData.url"
+                      :style="{
+                        position: 'relative',
+                        left: imagemFundoData.x + 'px',
+                        top: imagemFundoData.y + 'px',
+                        transform: `scale(${imagemFundoData.scale})`,
+                        transformOrigin: 'center center',
+                        opacity: imagemFundoData.opacity,
+                        maxWidth: 'none',
+                        maxHeight: 'none',
+                        userSelect: 'none',
+                        pointerEvents: 'none',
+                        transition: 'all 0.3s ease-in-out'
+                      }">
+                  </div>
+
+                  <!-- ArmazemSvg com transparência se houver imagem de fundo -->
+                  <div :style="{
+                    position: 'relative',
+                    zIndex: 2,
+                    opacity: imagemFundoData.url ? imagemFundoData.opacity : 1,
+                    transition: 'opacity 0.3s ease-in-out',
+                    width: '100%',
+                    height: '100%',
+                    minHeight: '400px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }">
+                    <Armazem
+                      :config="configArmazemParaComponente"
+                      :dados-sensores="dados"
+                      :modelo-atual="modeloAtualParaComponente"
+                      :dimensoes-personalizadas="dimensoesPersonalizadasParaComponente"
+                      :imagem-fundo="imagemFundoData"
+                      @dimensoes-atualizadas="onDimensoesAtualizadas"
+                      @dimensoes-aplicadas="onDimensoesAplicadas"
+                      @salvar-dimensoes-modelo="onSalvarDimensoesModelo"
+                      style="width: 100%; height: 100%; min-height: 400px;"
+                    />
+                  </div>
                 </template>
               </div>
             </div>
@@ -335,7 +381,7 @@ import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
 
 import ImagemFundo from './compModelador/ImagemFundo.vue'
-import ArmazemSvg from './compModelador/ArmazemSvg.vue'
+import Armazem from './compModelador/ArmazemSvg.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
 
 export default {
@@ -354,7 +400,7 @@ export default {
     GerenciadorConfiguracoes,
     
     ImagemFundo,
-    ArmazemSvg
+    Armazem
   },
   data() {
     return {
@@ -633,14 +679,17 @@ export default {
   },
 
   async mounted() {
+    // LIMPEZA AUTOMÁTICA NA INICIALIZAÇÃO - Remove posições salvas para começar limpo
+    this.limparPosicoesInicializacao()
+    
     this.resetarModelosParaPadrao()
 
     await this.verificarDadosArcoRecebidos()
     await this.carregarDadosAPI()
     await this.carregarModelosDoBanco()
 
-    // Carregar posições temporárias se existirem
-    this.carregarPosicoesTemporarias()
+    // NÃO carregar posições temporárias na inicialização - sempre começar limpo
+    // this.carregarPosicoesTemporarias()
 
     this.inicializarPosicoesCabos()
     this.updateSVG()
@@ -1980,13 +2029,21 @@ export default {
           quantidadePendulos: 3,
           sensoresPorPendulo: {
             1: 3, 2: 3, 3: 3 // Configuração padrão uniforme de 3 sensores para 3 pêndulos
-          }
+          },
+          // GARANTIR que posições estejam limpas
+          posicoesManualPendulos: {},
+          posicoesManualSensores: {},
+          posicoesCabos: {}
         }
       }
       this.modeloArcoAtual = null
       this.modelosSalvos = {}
       this.caboSelecionadoPosicionamento = null
       this.posicoesCabos = {}
+      
+      // GARANTIR que variáveis globais estejam limpas
+      this.posicoesManualPendulos = {}
+      this.posicoesManualSensores = {}
     },
 
     salvarConfiguracao() {
@@ -3743,6 +3800,45 @@ export default {
       }
     },
 
+    // 🎯 NOVO: Handler para salvar dimensões calculadas no modelo
+    onSalvarDimensoesModelo(dimensoesCalculadas) {
+      console.log('📐 [ModeladorSVG] Salvando dimensões calculadas no modelo:', dimensoesCalculadas)
+      
+      // Atualizar dimensões locais
+      this.larguraSVG = dimensoesCalculadas.largura
+      this.alturaSVG = dimensoesCalculadas.altura
+
+      // Salvar na configuração global
+      this.configArmazem.dimensoesSvgFundo = {
+        largura: dimensoesCalculadas.largura,
+        altura: dimensoesCalculadas.altura,
+        baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_otimizado',
+        calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString()
+      }
+
+      // Se estiver editando um modelo específico, salvar também no modelo
+      if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+        this.modelosArcos[this.modeloArcoAtual].config.dimensoesSvgFundo = {
+          largura: dimensoesCalculadas.largura,
+          altura: dimensoesCalculadas.altura,
+          baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_otimizado',
+          calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString()
+        }
+
+        // Salvar modelo completo para persistir as dimensões
+        this.salvarModeloAtualCompleto()
+      }
+
+      // Salvar automaticamente
+      this.salvarModelosAutomatico()
+
+      console.log('✅ [ModeladorSVG] Dimensões salvas com sucesso:', {
+        largura: dimensoesCalculadas.largura,
+        altura: dimensoesCalculadas.altura,
+        modeloAtual: this.modeloArcoAtual
+      })
+    },
+
     
 
     // MÉTODOS PARA DRAG AND DROP
@@ -4283,6 +4379,35 @@ export default {
       // Regenerar SVG para aplicar o reset
       this.updateSVG()
       this.mostrarToast('Posições manuais resetadas!', 'success')
+    },
+
+    // NOVO MÉTODO: Limpeza automática apenas na inicialização
+    limparPosicoesInicializacao() {
+      console.log('🧹 [limparPosicoesInicializacao] Limpando posições para inicialização limpa')
+      
+      // Limpar posições manuais de drag and drop
+      this.posicoesManualPendulos = {}
+      this.posicoesManualSensores = {}
+      
+      // Limpar localStorage de posições temporárias
+      if (typeof localStorage !== 'undefined') {
+        try {
+          // Remover apenas dados de posições temporárias - preservar outros dados importantes
+          localStorage.removeItem('posicoesManualTemp')
+          
+          // Limpar posições salvas nos modelos (apenas para inicialização limpa)
+          Object.keys(this.modelosArcos || {}).forEach(modeloKey => {
+            if (this.modelosArcos[modeloKey]) {
+              this.modelosArcos[modeloKey].posicoesManualPendulos = {}
+              this.modelosArcos[modeloKey].posicoesManualSensores = {}
+            }
+          })
+          
+          console.log('✅ [limparPosicoesInicializacao] Posições limpas - ModeladorSVG iniciará organizado')
+        } catch (error) {
+          console.error('❌ Erro ao limpar posições na inicialização:', error)
+        }
+      }
     },
 
     carregarPosicoesTemporarias() {

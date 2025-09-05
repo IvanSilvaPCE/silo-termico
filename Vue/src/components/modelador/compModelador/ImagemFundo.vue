@@ -150,7 +150,7 @@
           <!-- Controle de Transparência da Imagem -->
           <div class="mb-3">
             <label class="form-label small text-muted mb-2 d-flex align-items-center justify-content-center">
-              <i class="fa fa-adjust me-1"></i>
+              <i class="fa fa-image me-1"></i>
               Transparência da Imagem: {{ Math.round(imagemFundo.opacity * 100) }}%
             </label>
             <input 
@@ -159,27 +159,27 @@
               @input="emitirMudanca"
               min="0.1" 
               max="1" 
-              step="0.1"
+              step="0.05"
               class="form-range form-range-sm w-100">
             <div class="d-flex justify-content-center gap-1 mt-2">
               <button 
                 type="button" 
                 class="btn btn-outline-secondary btn-sm"
-                @click="ajustarOpacidade(0.2)"
+                @click="ajustarTransparenciaImagem(0.2)"
                 style="font-size: 0.7rem;">
                 20%
               </button>
               <button 
                 type="button" 
                 class="btn btn-outline-primary btn-sm"
-                @click="ajustarOpacidade(0.5)"
+                @click="ajustarTransparenciaImagem(0.5)"
                 style="font-size: 0.7rem;">
                 50%
               </button>
               <button 
                 type="button" 
                 class="btn btn-outline-secondary btn-sm"
-                @click="ajustarOpacidade(0.8)"
+                @click="ajustarTransparenciaImagem(0.8)"
                 style="font-size: 0.7rem;">
                 80%
               </button>
@@ -189,8 +189,8 @@
           <!-- Controles de Opacidade do SVG -->
           <div class="mb-3">
             <label class="form-label small text-muted mb-2 d-flex align-items-center justify-content-center">
-              <i class="fa fa-eye me-1"></i>
-              Opacidade do Componente
+              <i class="fa fa-adjust me-1"></i>
+              Opacidade do Componente SVG
             </label>
             
             <!-- Dropdown para seleção do tipo de controle -->
@@ -198,14 +198,17 @@
               class="form-select form-select-sm mb-2" 
               v-model="tipoOpacidadeAtivo"
               style="font-size: 0.75rem;">
-              <option value="geral">SVG Completo</option>
-              <option value="pendulos">Apenas Pêndulos</option>
-              <option value="estrutura">Estrutura (sem pêndulos)</option>
+              <option value="geral">🎯 SVG Completo</option>
+              <option value="pendulos">📊 Apenas Pêndulos/Sensores</option>
+              <option value="estrutura">🏗️ Apenas Estrutura</option>
             </select>
 
             <!-- Controle de Opacidade Geral do SVG -->
             <div v-if="tipoOpacidadeAtivo === 'geral'">
-              <label class="small text-muted mb-1">SVG Completo: {{ Math.round(opacidadesSvg.geral * 100) }}%</label>
+              <label class="small text-muted mb-1">
+                <i class="fa fa-eye me-1"></i>
+                SVG Completo: {{ Math.round(opacidadesSvg.geral * 100) }}%
+              </label>
               <input 
                 type="range" 
                 v-model.number="opacidadesSvg.geral"
@@ -218,7 +221,10 @@
 
             <!-- Controle de Opacidade dos Pêndulos -->
             <div v-if="tipoOpacidadeAtivo === 'pendulos'">
-              <label class="small text-muted mb-1">Pêndulos e Sensores: {{ Math.round(opacidadesSvg.pendulos * 100) }}%</label>
+              <label class="small text-muted mb-1">
+                <i class="fa fa-thermometer-half me-1"></i>
+                Pêndulos e Sensores: {{ Math.round(opacidadesSvg.pendulos * 100) }}%
+              </label>
               <input 
                 type="range" 
                 v-model.number="opacidadesSvg.pendulos"
@@ -231,7 +237,10 @@
 
             <!-- Controle de Opacidade da Estrutura -->
             <div v-if="tipoOpacidadeAtivo === 'estrutura'">
-              <label class="small text-muted mb-1">Estrutura do Armazém: {{ Math.round(opacidadesSvg.estrutura * 100) }}%</label>
+              <label class="small text-muted mb-1">
+                <i class="fa fa-building me-1"></i>
+                Estrutura do Armazém: {{ Math.round(opacidadesSvg.estrutura * 100) }}%
+              </label>
               <input 
                 type="range" 
                 v-model.number="opacidadesSvg.estrutura"
@@ -269,22 +278,32 @@
           </div>
           
           <!-- Botões de Ação -->
-          <div class="d-flex gap-1 justify-content-center">
+          <div class="d-flex flex-column gap-1">
+            <div class="d-flex gap-1 justify-content-center">
+              <button 
+                type="button" 
+                class="btn btn-outline-secondary btn-sm flex-fill"
+                @click="resetarPosicao"
+                style="font-size: 0.7rem;">
+                <i class="fa fa-refresh me-1"></i>
+                Reset Imagem
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-outline-danger btn-sm flex-fill"
+                @click="removerImagem"
+                style="font-size: 0.7rem;">
+                <i class="fa fa-trash me-1"></i>
+                Remover
+              </button>
+            </div>
             <button 
               type="button" 
-              class="btn btn-outline-secondary btn-sm flex-fill"
-              @click="resetarPosicao"
+              class="btn btn-outline-info btn-sm w-100"
+              @click="resetarOpacidadesSvg"
               style="font-size: 0.7rem;">
-              <i class="fa fa-refresh me-1"></i>
-              Reset
-            </button>
-            <button 
-              type="button" 
-              class="btn btn-outline-danger btn-sm flex-fill"
-              @click="removerImagem"
-              style="font-size: 0.7rem;">
-              <i class="fa fa-trash me-1"></i>
-              Remover
+              <i class="fa fa-eye me-1"></i>
+              Reset Opacidades SVG
             </button>
           </div>
         </div>
@@ -562,7 +581,7 @@ export default {
       this.emitirMudanca()
     },
 
-    ajustarOpacidade(valor) {
+    ajustarTransparenciaImagem(valor) {
       this.imagemFundo.opacity = valor
       this.emitirMudanca()
     },
@@ -586,7 +605,12 @@ export default {
       this.imagemFundo.scale = 1
       this.imagemFundo.opacity = 0.3
       
-      // Resetar também as opacidades do SVG
+      this.mostrarToast('Posição e transparência da imagem resetadas', 'info')
+      this.emitirMudanca()
+    },
+
+    resetarOpacidadesSvg() {
+      // Método separado para resetar apenas as opacidades do SVG
       this.opacidadesSvg = {
         geral: 1.0,
         pendulos: 1.0,
@@ -594,8 +618,7 @@ export default {
       }
       this.opacidadesPorTipo[this.tipoAtivo] = { ...this.opacidadesSvg }
       
-      this.mostrarToast('Posição da imagem e opacidades resetadas', 'info')
-      this.emitirMudanca()
+      this.mostrarToast('Opacidades do SVG resetadas', 'info')
       this.emitirMudancaOpacidade()
     },
 
@@ -615,14 +638,6 @@ export default {
         opacity: 0.3
       }
       
-      // Resetar opacidades para padrão
-      this.opacidadesSvg = {
-        geral: 1.0,
-        pendulos: 1.0,
-        estrutura: 1.0
-      }
-      this.opacidadesPorTipo[this.tipoAtivo] = { ...this.opacidadesSvg }
-      
       this.mostrarControles = false
       this.mostrarToast(`Imagem de fundo removida do ${this.tipoAtivo.toUpperCase()}`, 'info')
       
@@ -631,7 +646,7 @@ export default {
         this.$refs.inputImagem.value = ''
       }
       this.emitirMudanca()
-      this.emitirMudancaOpacidade()
+      // Não resetar opacidades do SVG ao remover imagem
     },
 
     fecharControlesSeForaDoElemento(event) {

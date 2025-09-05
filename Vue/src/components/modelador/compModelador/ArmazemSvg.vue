@@ -1,19 +1,7 @@
 <template>
-  <div class="svg-container-responsive w-100 h-100 position-relative">
-    <!-- Componente de Controle da Imagem de Fundo (posicionado no topo) -->
-    <div class="position-absolute" style="top: 10px; right: 10px; z-index: 10;">
-      <ImagemFundo
-        :tipoAtivo="'armazem'"
-        :containerDimensions="{ width: '100%', height: '100%' }"
-        :imagemInicial="imagemFundo"
-        @imagem-mudou="atualizarImagemFundo"
-        @opacidade-svg-mudou="atualizarOpacidadesSvg"
-        @mostrar-toast="mostrarToast"
-      />
-    </div>
-
+  <div class="svg-container-responsive w-100 position-relative">
     <!-- Container para Imagem de Fundo e SVG -->
-    <div class="svg-content-container" style="position: relative; width: 100%; height: 100%;">
+    <div class="svg-content-container" style="position: relative; width: 100%; height: auto;">
       <!-- Imagem de Fundo Renderizada -->
       <div v-if="imagemFundo.url" class="imagem-fundo-container" :style="imagemContainerStyle">
         <img :src="imagemFundo.url" :style="imagemStyle" alt="Imagem de fundo do armazém" />
@@ -29,12 +17,9 @@
 </template>
 
 <script>
-import ImagemFundo from './ImagemFundo.vue'
-
 export default {
   name: 'ArmazemSvg',
   components: {
-    ImagemFundo
   },
   props: {
     config: {
@@ -214,7 +199,7 @@ export default {
         width: '100%',
         height: 'auto',
         maxWidth: '100%',
-        maxHeight: this.isMobile ? '60vh' : 'calc(100vh - 320px)',
+        maxHeight: this.isMobile ? '50vh' : '500px',
         minHeight: this.isMobile ? '200px' : '250px',
         border: '1px solid #ddd',
         backgroundColor: '#f8f9fa',
@@ -230,23 +215,29 @@ export default {
         position: 'relative',
         zIndex: 2,
         width: '100%',
-        height: '100%',
-        opacity: this.opacidadesSvgLocal.geral
+        height: 'auto',
+        opacity: this.opacidadesSvgLocal.geral,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '20px 10px'
       }
     },
 
     svgEstiloCompleto() {
       return {
         width: '100%',
-        height: '100%',
+        height: 'auto',
         maxWidth: '100%',
-        maxHeight: '100%',
+        maxHeight: this.isMobile ? '50vh' : '500px',
         border: '1px solid #ddd',
         backgroundColor: 'transparent',
         borderRadius: '4px',
         shapeRendering: 'geometricPrecision',
         textRendering: 'geometricPrecision',
-        imageRendering: 'optimizeQuality'
+        imageRendering: 'optimizeQuality',
+        display: 'block',
+        objectFit: 'contain'
       }
     },
   },
@@ -258,7 +249,9 @@ export default {
           console.log(`📐 [ArmazemSvg] Largura alterada: ${oldConfig.lb} → ${newConfig.lb}`)
 
           // Força recálculo das dimensões quando muda
-          this.recalcularDimensoes()
+          const novasDimensoes = this.recalcularDimensoes()
+          // 🎯 SALVAR automaticamente as novas dimensões
+          this.salvarDimensoesNoModelo(novasDimensoes)
         }
         this.updateSVG()
       },
@@ -307,7 +300,7 @@ export default {
     },
 
     calcularDimensoesBaseadoNoFundo() {
-      // 📏 ADAPTAÇÃO DINÂMICA DO SVG - AJUSTADA PARA PREVIEW
+      // 📏 ADAPTAÇÃO DINÂMICA DO SVG - RESPONSIVO COMPLETO
       const config = this.config
 
       // 🚀 DETECTAR quantidade de pêndulos dinamicamente
@@ -331,46 +324,39 @@ export default {
         quantidadePendulos = pendulosDetectados || 3
       }
 
-      // 📐 LARGURA ADAPTATIVA - PRIORIZAR LARGURA SALVA NO MODELO
-      let larguraBaseConfig = 350 // valor padrão
+      // 📐 LARGURA BASE - PRIORIZAR LARGURA SALVA NO MODELO
+      let larguraBase = 350 // valor padrão
 
-      // 🎯 BUSCAR largura na ordem de priridade
       if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
-        larguraBaseConfig = config.lb
+        larguraBase = config.lb
       } else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
-        larguraBaseConfig = this.modeloAtual.configuracao.lb
+        larguraBase = this.modeloAtual.configuracao.lb
       }
 
-      let larguraCalculada = Math.max(larguraBaseConfig, 300)
-
-      // Expandir largura baseado na quantidade de pêndulos
+      // Expandir largura baseado na quantidade de pêndulos se necessário
       if (quantidadePendulos > 0) {
         const margemLateral = 35
         const espacamentoPendulo = 25
         const larguraMinimaNecessaria = (2 * margemLateral) + ((quantidadePendulos - 1) * espacamentoPendulo) + 50
-        larguraCalculada = Math.max(larguraBaseConfig, larguraMinimaNecessaria)
+        larguraBase = Math.max(larguraBase, larguraMinimaNecessaria)
       }
 
-      // 📏 ALTURA OTIMIZADA PARA PREVIEW - REMOÇÃO DO ESPAÇO DESNECESSÁRIO
+      // 📏 ALTURA COMPLETA - CALCULAR TODOS OS COMPONENTES
       const alturaBaseConfig = config.pb || 185
 
-      // 🎯 CALCULAR altura mínima necessária baseada no telhado
-      let alturaTopo = 10 // altura mínima do topo
+      // Altura do telhado baseada no tipo
+      let alturaTelho = 20
       if (config.tipo_telhado === 1) {
-        // Telhado pontudo - calcular altura real da ponta
-        const curvaturaAjustada = Math.max(10, 50 - (config.curvatura_topo || 30))
-        alturaTopo = Math.max(curvaturaAjustada, 15)
+        const curvaturaAjustada = Math.max(15, 60 - (config.curvatura_topo || 30))
+        alturaTelho = curvaturaAjustada
       } else if (config.tipo_telhado === 2 || config.tipo_telhado === 3) {
-        // Telhado arredondado/arco - altura baseada na curvatura
-        alturaTopo = Math.max(10, 60 - (config.curvatura_topo || 30))
+        alturaTelho = Math.max(15, 70 - (config.curvatura_topo || 30))
       }
 
-      // 🎯 ALTURA TOTAL OTIMIZADA - sem espaços desnecessários
-      const margemTopoMinima = 20  // margem adequada acima do telhado para não cortar
-      const alturaArmazem = alturaBaseConfig
-      const alturaTotal = margemTopoMinima + alturaTopo + (config.ht || 50) + alturaArmazem
+      // Altura do corpo principal
+      const alturaCorpo = (config.ht || 50) + alturaBaseConfig
 
-      // Extensão do fundo se necessário
+      // Extensão do fundo
       let extensaoFundo = 0
       if (config.tipo_fundo === 1) {
         extensaoFundo = config.altura_funil_v || 40
@@ -378,39 +364,37 @@ export default {
         extensaoFundo = config.altura_duplo_v || 35
       }
 
-      // 📏 ALTURA BASE sem margens desnecessárias
-      let alturaCalculada = alturaTotal + extensaoFundo
-
-      // 🎯 AJUSTE para sensores - calcular espaço real necessário
+      // Espaço para sensores
+      let espacoSensores = 0
       if (quantidadePendulos > 0 && Object.keys(sensoresPorPendulo).length > 0) {
         const maxSensores = Math.max(...Object.values(sensoresPorPendulo).map(s => parseInt(s) || 0))
         const escala_sensores = config.escala_sensores || 16
         const dist_y_sensores = config.dist_y_sensores || 12
-
-        // Espaço real necessário para os sensores
-        const espacoSensores = maxSensores * dist_y_sensores + escala_sensores + 20 // 20px de margem
-        const espacoPendulos = 25 // espaço para o nome dos pêndulos
-
-        const alturaComSensores = alturaTotal + extensaoFundo + espacoSensores + espacoPendulos
-        alturaCalculada = Math.max(alturaCalculada, alturaComSensores)
+        espacoSensores = (maxSensores * dist_y_sensores) + escala_sensores + 40
       }
 
-      // 📱 Altura mínima para diferentes dispositivos
-      const alturaMinima = typeof window !== 'undefined' && window.innerWidth <= 576 ? 200 : 250
-      alturaCalculada = Math.max(alturaCalculada, alturaMinima)
+      // 🎯 ALTURA TOTAL COMPLETA - REDUZIDA EM 80PX
+      const margemTopo = 25
+      const margemBase = 15
+      const alturaTotal = margemTopo + alturaTelho + alturaCorpo + extensaoFundo + espacoSensores + margemBase - 80
 
-      console.log(`✅ [PREVIEW OTIMIZADO] Dimensões calculadas:`, {
-        largura: larguraCalculada,
-        altura: alturaCalculada,
-        alturaTopo,
-        alturaBase: alturaBaseConfig,
-        extensaoFundo,
+      console.log(`✅ [DIMENSÕES RESPONSIVAS] Calculadas:`, {
+        largura: larguraBase,
+        altura: alturaTotal,
+        componentes: {
+          margemTopo,
+          alturaTelho,
+          alturaCorpo,
+          extensaoFundo,
+          espacoSensores,
+          margemBase
+        },
         quantidadePendulos
       })
 
       return {
-        largura: larguraCalculada,
-        altura: alturaCalculada
+        largura: larguraBase,
+        altura: alturaTotal
       }
     },
 
@@ -904,6 +888,10 @@ export default {
     recalcularDimensoes() {
       const novasDimensoes = this.calcularDimensoesBaseadoNoFundo()
       console.log(`📐 [recalcularDimensoes] Novas dimensões calculadas:`, novasDimensoes)
+      
+      // 🎯 SALVAR as dimensões corretas no modelo atual
+      this.salvarDimensoesNoModelo(novasDimensoes)
+      
       this.$emit('dimensoes-atualizadas', novasDimensoes)
 
       // Força atualização reativa
@@ -925,7 +913,7 @@ export default {
       }
     },
 
-    // Métodos para controle da imagem de fundo
+    // Métodos para controle da imagem de fundo (controlados pelo componente pai)
     atualizarImagemFundo(novaImagem) {
       this.imagemFundo = { ...novaImagem }
       console.log('📸 [ArmazemSvg] Imagem de fundo atualizada:', this.imagemFundo)
@@ -942,10 +930,17 @@ export default {
       this.updateSVG()
     },
 
-    mostrarToast(evento) {
-      // Emitir evento para componente pai mostrar toast
-      this.$emit('mostrar-toast', evento)
-      console.log('🔔 [ArmazemSvg] Toast:', evento.mensagem)
+    // 🎯 NOVO: Salvar dimensões corretas no modelo
+    salvarDimensoesNoModelo(dimensoes) {
+      console.log('💾 [ArmazemSvg] Salvando dimensões no modelo:', dimensoes)
+      
+      // Emitir evento para o ModeladorSVG salvar as dimensões
+      this.$emit('salvar-dimensoes-modelo', {
+        largura: dimensoes.largura,
+        altura: dimensoes.altura,
+        calculadoEm: new Date().toISOString(),
+        baseadoEm: 'calculo_otimizado'
+      })
     }
   }
 }
@@ -953,20 +948,24 @@ export default {
 
 <style scoped>
 .svg-container-responsive {
-  display: flex;
-  justify-content: center;
-  align-items: center;
   width: 100%;
-  height: 100%;
+  height: auto;
   position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .svg-content-container {
   width: 100%;
-  height: 100%;
+  height: auto;
+  max-height: 550px;
+  position: relative;
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 20px 10px;
 }
 
 .imagem-fundo-container {
@@ -985,20 +984,46 @@ export default {
 
 .svg-wrapper {
   width: 100%;
-  height: 100%;
+  height: auto;
   position: relative;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Garantir que o SVG fique acima da imagem de fundo */
+/* SVG responsivo que mantém proporção e mostra conteúdo completo */
 .svg-wrapper svg {
   background-color: transparent !important;
+  width: 100%;
+  height: auto;
+  max-height: 500px;
+  display: block;
+  object-fit: contain;
 }
 
-/* Garantir que a imagem de fundo se ajuste corretamente */
+/* Imagem de fundo adaptável */
 .imagem-fundo-container img {
   max-width: none;
   max-height: none;
   object-fit: contain;
+}
+
+/* Media queries para dispositivos menores */
+@media (max-width: 768px) {
+  .svg-container-responsive {
+    padding: 10px;
+  }
+  
+  .svg-wrapper svg {
+    width: 100%;
+    height: auto;
+  }
+}
+
+@media (max-width: 576px) {
+  .svg-container-responsive {
+    padding: 5px;
+  }
 }
 </style>
