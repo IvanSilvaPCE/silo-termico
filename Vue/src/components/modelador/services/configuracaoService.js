@@ -99,10 +99,10 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
     // 🎯 ESTRUTURA CORRIGIDA: Dados separados por modelo
     modeloEspecifico: {
       quantidadePendulos: config.quantidadePendulos || 3,
-
+      
       // Quantidade de sensores para cada pêndulo
       sensoresPorPendulo: config.sensoresPorPendulo || {},
-
+      
       // Posições individuais de cada pêndulo
       posicoesPendulos: Object.keys(posicoesCabos).reduce((acc, numeroPendulo) => {
         const posicao = posicoesCabos[numeroPendulo]
@@ -117,10 +117,10 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
         }
         return acc
       }, {}),
-
+      
       // Alturas personalizadas dos sensores por pêndulo
       alturasSensores: config.alturasSensores || {},
-
+      
       // Configurações específicas de posicionamento
       configuracaoGlobal: {
         escala_sensores: config.escala_sensores || 16,
@@ -186,242 +186,172 @@ const carregarModelosArcos = () => {
   }
 }
 
-const consolidarModelosParaBanco = (nomeConfiguracao, quantidadeModelos = 1) => {
+const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
   try {
-    console.log(`🔄 [consolidarModelosParaBanco V6.0] Iniciando consolidação para: ${nomeConfiguracao} com ${quantidadeModelos} modelos`)
-
-    const modelosV6 = {}
+    const modelosConsolidados = {}
     let modelosEncontrados = 0
-    const nomesPosicoes = ['frente', 'par', 'impar', 'fundo']
 
-    // Carregar modelos salvos individualmente
+    console.log(`🔄 [consolidarModelosParaBanco] Iniciando consolidação OTIMIZADA v6.0 de ${quantidadeModelos} modelos`)
+
+    // Processar modelos em ordem crescente (1, 2, 3, ...)
     for (let i = 1; i <= quantidadeModelos; i++) {
-      const modeloIndividual = carregarModeloIndividual(i)
-      if (modeloIndividual && modeloIndividual.configuracao) {
+      const modelo = carregarModeloIndividual(i)
+      console.log(`🔍 [consolidarModelosParaBanco] Verificando modelo ${i}:`, modelo)
+
+      if (modelo && modelo.configuracao) {
         modelosEncontrados++
 
-        console.log(`✅ [consolidarModelosParaBanco V6.0] Modelo ${i} encontrado:`, {
-          numero: modeloIndividual.numero,
-          timestamp: modeloIndividual.timestamp,
-          configuracao: !!modeloIndividual.configuracao
+        // Extrair configuração do modelo
+        const config = modelo.configuracao
+
+        // 🎯 OTIMIZAÇÃO: Consolidar posições dos cabos em uma única fonte
+        const posicoesCabosConsolidadas = consolidarPosicoesCabos(config)
+
+        // 🎯 OTIMIZAÇÃO v6.0: Consolidar dados dos sensores
+        const quantidadePendulos = config.quantidadePendulos || 3
+        const dadosSensoresOtimizados = consolidarDadosSensores(config, quantidadePendulos)
+
+        console.log(`🎯 [consolidarModelosParaBanco] Modelo ${i} - Dados OTIMIZADOS:`, {
+          posicoesCabos: Object.keys(posicoesCabosConsolidadas).length,
+          sensores: dadosSensoresOtimizados,
+          eliminandoRedundancias: true
         })
 
-        const config = modeloIndividual.configuracao
-
-        // 🎯 ESTRUTURA V6.0 COMPLETA conforme anexo
-        const modeloV6 = {
-          id: i,
-          nome: quantidadeModelos === 1 ? "Modelo Único" :
-            i === 1 ? "Modelo Frente" :
-              i === quantidadeModelos ? "Modelo Fundo" :
-                nomesPosicoes[i - 1] ? `Modelo ${nomesPosicoes[i - 1].charAt(0).toUpperCase() + nomesPosicoes[i - 1].slice(1)}` :
-                  `Modelo ${i}`,
-          versao: "6.1",
-          posicao: quantidadeModelos === 1 ? "unico" :
-            i === 1 ? "frente" :
-              i === quantidadeModelos ? "fundo" :
-                nomesPosicoes[i - 1] || `posicao_${i}`,
-          validado: true,
-          timestamp: Date.now(),
-
-          // 🔒 DIMENSÕES PRESERVADAS EXATAMENTE como configuradas
-          dimensoes: {
-            pb: Number(config.pb) || 185,
-            lb: Number(config.lb) || 350,
-            hb: Number(config.hb) || 30,
-            hf: Number(config.hf) || 6,
-            lf: Number(config.lf) || 250,
-            le: Number(config.le) || 15,
-            ht: Number(config.ht) || 50
-          },
-
-          // 🏠 CONFIGURAÇÃO DO TELHADO
-          telhado: {
-            tipo: Number(config.tipo_telhado) || 1,
-            curvatura_topo: Number(config.curvatura_topo) || 30,
-            pontas_redondas: Boolean(config.pontas_redondas),
-            raio_pontas: Number(config.raio_pontas) || 15,
-            estilo_laterais: config.estilo_laterais || "reta",
-            curvatura_laterais: Number(config.curvatura_laterais) || 0
-          },
-
-          // 🏗️ CONFIGURAÇÃO DO FUNDO
-          fundo: {
-            tipo: Number(config.tipo_fundo) || 0,
-            altura_fundo_reto: Number(config.altura_fundo_reto) || 10,
-            altura_funil_v: Number(config.altura_funil_v) || 18,
-            posicao_ponta_v: Number(config.posicao_ponta_v) || 0,
-            inclinacao_funil_v: Number(config.inclinacao_funil_v) || 1,
-            largura_abertura_v: Number(config.largura_abertura_v) || 20,
-            altura_duplo_v: Number(config.altura_duplo_v) || 22,
-            posicao_v_esquerdo: Number(config.posicao_v_esquerdo) || -1,
-            posicao_v_direito: Number(config.posicao_v_direito) || 1,
-            largura_abertura_duplo_v: Number(config.largura_abertura_duplo_v) || 2,
-            altura_plataforma_duplo_v: Number(config.altura_plataforma_duplo_v) || 0.3,
-            largura_plataforma_duplo_v: Number(config.largura_plataforma_duplo_v) || 10,
-            deslocamento_horizontal_fundo: Number(config.deslocamento_horizontal_fundo) || 0,
-            deslocamento_vertical_fundo: Number(config.deslocamento_vertical_fundo) || -1
-          },
-
-          // 🎯 MODELO ESPECÍFICO com pêndulos e sensores
-          modeloEspecifico: {
-            quantidadePendulos: Number(config.quantidadePendulos) || 3,
-            sensoresPorPendulo: config.sensoresPorPendulo || {},
-            alturasSensores: config.alturasSensores || {},
-
-            // 📍 POSIÇÕES DOS PÊNDULOS preservadas
-            posicoesPendulos: (() => {
-              const posicoes = {}
-              const quantidadePendulos = Number(config.quantidadePendulos) || 3
-
-              for (let p = 1; p <= quantidadePendulos; p++) {
-                if (config.posicoesCabos && config.posicoesCabos[p]) {
-                  const pos = config.posicoesCabos[p]
-                  posicoes[p] = {
-                    x: Number(pos.x) || 0,
-                    y: Number(pos.y) || 0,
-                    altura: Number(pos.altura) || 0,
-                    offsetX: Number(pos.offsetX) || 0,
-                    offsetY: Number(pos.offsetY) || 0,
-                    timestampAlteracao: pos.timestampAlteracao || Date.now(),
-                    distanciaHorizontal: Number(pos.distanciaHorizontal) || 0
-                  }
-                } else {
-                  posicoes[p] = {
-                    x: 0, y: 0, altura: 0, offsetX: 0, offsetY: 0,
-                    timestampAlteracao: Date.now(), distanciaHorizontal: 0
-                  }
-                }
-              }
-              return posicoes
-            })(),
-
-            // ⚙️ CONFIGURAÇÃO GLOBAL
-            configuracaoGlobal: {
-              escala_sensores: Number(config.escala_sensores) || 16,
-              dist_y_sensores: Number(config.dist_y_sensores) || 12,
-              dist_x_sensores: Number(config.dist_x_sensores) || 0,
-              posicao_horizontal: Number(config.posicao_horizontal) || 0,
-              posicao_vertical: Number(config.posicao_vertical) || 0,
-              afastamento_vertical_pendulo: Number(config.afastamento_vertical_pendulo) || 0
-            }
-          }
-        }
-
-        modelosV6[i.toString()] = modeloV6
-
-        console.log(`✅ [consolidarModelosParaBanco V6.0] Modelo ${i} estruturado:`, {
-          nome: modeloV6.nome,
-          posicao: modeloV6.posicao,
-          dimensoes: modeloV6.dimensoes,
-          quantidadePendulos: modeloV6.modeloEspecifico.quantidadePendulos,
-          posicoesPendulos: Object.keys(modeloV6.modeloEspecifico.posicoesPendulos).length
-        })
+        // 🎯 ESTRUTURA OTIMIZADA v6.0: Sem redundâncias
+        modelosConsolidados[i.toString()] = criarEstruturaOtimizadaV6(
+          i,
+          config,
+          posicoesCabosConsolidadas,
+          dadosSensoresOtimizados
+        )
       } else {
-        console.warn(`⚠️ [consolidarModelosParaBanco V6.0] Modelo ${i} não encontrado`)
+        console.warn(`⚠️ [consolidarModelosParaBanco] Modelo ${i} não encontrado ou sem configuração`)
       }
     }
 
     // Validar se encontrou todos os modelos esperados
     if (modelosEncontrados === 0) {
-      console.error('❌ [consolidarModelosParaBanco V6.0] Nenhum modelo encontrado!')
+      console.error('❌ [consolidarModelosParaBanco] Nenhum modelo encontrado!')
       return { success: false, message: 'Nenhum modelo de arco configurado encontrado. Salve os modelos individualmente antes de salvar no banco.' }
     }
 
     if (modelosEncontrados < quantidadeModelos) {
-      console.warn(`⚠️ [consolidarModelosParaBanco V6.0] Encontrados ${modelosEncontrados}/${quantidadeModelos} modelos`)
+      console.warn(`⚠️ [consolidarModelosParaBanco] Encontrados ${modelosEncontrados}/${quantidadeModelos} modelos`)
       return { success: false, message: `Apenas ${modelosEncontrados} de ${quantidadeModelos} modelos foram encontrados. Configure e salve todos os modelos antes de salvar no banco.` }
     }
 
-    // 📋 CONTROLE DE INTEGRIDADE V6.0
-    const controleV6 = {
-      ordemModelos: Object.keys(modelosV6).sort((a, b) => Number(a) - Number(b)),
-      modelosEncontrados: modelosEncontrados,
-      quantidadeEsperada: quantidadeModelos,
-      verificacaoIntegridade: {
-        totalModelos: Object.keys(modelosV6).length,
-        detalhesModelos: {},
-        modelosComSensores: 0,
-        modelosComPosicoesCabos: 0,
-        modelosComAlturasSensores: 0
+    // CORREÇÃO: Garantir ordem correta dos modelos (P1, P2, P3...)
+    const modelosOrdenados = {}
+    for (let i = 1; i <= quantidadeModelos; i++) {
+      if (modelosConsolidados[i.toString()]) {
+        modelosOrdenados[i.toString()] = modelosConsolidados[i.toString()]
       }
     }
 
-    // Verificar integridade de cada modelo
-    Object.keys(modelosV6).forEach(modeloId => {
-      const modelo = modelosV6[modeloId]
-      controleV6.verificacaoIntegridade.detalhesModelos[modeloId] = {
-        nome: modelo.nome,
-        quantidadePendulos: modelo.modeloEspecifico.quantidadePendulos,
-        sensores: Object.keys(modelo.modeloEspecifico.sensoresPorPendulo || {}).length,
-        posicoesPendulos: Object.keys(modelo.modeloEspecifico.posicoesPendulos || {}).length,
-        dimensoes: modelo.dimensoes,
-        validado: modelo.validado
-      }
+    console.log(`✅ [consolidarModelosParaBanco] Modelos ordenados corretamente:`, {
+      ordemOriginal: Object.keys(modelosConsolidados),
+      ordemFinal: Object.keys(modelosOrdenados),
+      detalhesModelos: Object.keys(modelosOrdenados).map(key => ({
+        chave: key,
+        numeroModelo: modelosOrdenados[key].numeroModelo,
+        nome: modelosOrdenados[key].nome,
+        quantidadePendulos: modelosOrdenados[key].quantidadePendulos,
+        sensoresCompletos: Object.keys(modelosOrdenados[key].sensoresPorPenduloCompletos || {}).length
+      }))
+    })
 
-      if (modelo.modeloEspecifico.sensoresPorPendulo && Object.keys(modelo.modeloEspecifico.sensoresPorPendulo).length > 0) {
-        controleV6.verificacaoIntegridade.modelosComSensores++
-      }
-      if (modelo.modeloEspecifico.posicoesPendulos && Object.keys(modelo.modeloEspecifico.posicoesPendulos).length > 0) {
-        controleV6.verificacaoIntegridade.modelosComPosicoesCabos++
-      }
-      if (modelo.modeloEspecifico.alturasSensores && Object.keys(modelo.modeloEspecifico.alturasSensores).length > 0) {
-        controleV6.verificacaoIntegridade.modelosComAlturasSensores++
+    // VERIFICAÇÃO FINAL: Garantir que todos os dados estão presentes antes de criar dado_svg
+    const verificacaoFinal = {
+      totalModelos: Object.keys(modelosOrdenados).length,
+      modelosComPosicoesCabos: 0,
+      modelosComSensores: 0,
+      modelosComAlturasSensores: 0,
+      detalhesModelos: {}
+    }
+
+    Object.keys(modelosOrdenados).forEach(modeloKey => {
+      const modelo = modelosOrdenados[modeloKey]
+      if (modelo && modelo.configuracao) {
+        const config = modelo.configuracao
+
+        // Verificar posições dos cabos com segurança
+        const temPosicoesCabos = config.posicoesCabos && typeof config.posicoesCabos === 'object' && Object.keys(config.posicoesCabos).length > 0
+        if (temPosicoesCabos) verificacaoFinal.modelosComPosicoesCabos++
+
+        // Verificar sensores com segurança
+        const temSensores = config.sensoresPorPenduloCompletos && typeof config.sensoresPorPenduloCompletos === 'object' && Object.keys(config.sensoresPorPenduloCompletos).length > 0
+        if (temSensores) verificacaoFinal.modelosComSensores++
+
+        // Verificar alturas dos sensores com segurança
+        const temAlturas = config.alturasSensores && typeof config.alturasSensores === 'object' && Object.keys(config.alturasSensores).length > 0
+        if (temAlturas) verificacaoFinal.modelosComAlturasSensores++
+
+        verificacaoFinal.detalhesModelos[modeloKey] = {
+          nome: modelo.nome,
+          temPosicoesCabos,
+          temSensores,
+          temAlturas,
+          quantidadePendulos: modelo.quantidadePendulos || 0,
+          totalCabos: config.posicoesCabos ? Object.keys(config.posicoesCabos).length : 0,
+          totalSensores: config.sensoresPorPenduloCompletos ? Object.keys(config.sensoresPorPenduloCompletos).length : 0
+        }
       }
     })
 
-    // 🎯 DISTRIBUIÇÃO AUTOMÁTICA baseada na quantidade de modelos
-    const distribuicaoV6 = quantidadeModelos === 1 ? {
-      nome: "Modelo Único",
-      aplicacao: "modelo_unico"
-    } : quantidadeModelos === 2 ? {
-      nome: "Frente/Fundo",
-      aplicacao: "frente_fundo"
-    } : quantidadeModelos === 3 ? {
-      nome: "Frente/Meio/Fundo",
-      aplicacao: "frente_meio_fundo"
-    } : {
-      nome: "Frente/Par/Ímpar/Fundo",
-      aplicacao: "frente_par_impar_fundo"
-    }
+    console.log('🔍 [consolidarModelosParaBanco] VERIFICAÇÃO FINAL antes de salvar no banco:', verificacaoFinal)
 
-    // 🎯 ESTRUTURA FINAL V6.0 conforme anexo
-    const estruturaV6Final = {
-      tipo: "armazem_completo_otimizado",
-      versao: "6.0",
-      modelos: modelosV6,
-      controle: controleV6,
-      otimizado: true,
-      timestamp: Date.now(),
-      distribuicao: distribuicaoV6,
-      reducaoTamanho: "60-80%",
-      tipoConfiguracao: "armazem_completo_v6",
-      quantidadeModelos: quantidadeModelos
-    }
-
-    // Dados finais para o banco (estrutura compatível com a API)
+    // 🎯 ESTRUTURA FINAL OTIMIZADA v6.0: 60-80% menos dados
     const dadosSvgFinal = {
       nm_modelo: nomeConfiguracao,
-      tp_svg: "A", // Armazém
-      vista_svg: "F", // Frontal
-      ds_modelo: `Configuração de armazém v6.0 com ${quantidadeModelos} modelo(s) - Criado em ${new Date().toLocaleDateString('pt-BR')}`,
-      dado_svg: JSON.stringify(estruturaV6Final)
+      tp_svg: 'A', // Armazém
+      vista_svg: 'F', // Frontal
+      ds_modelo: `Configuração OTIMIZADA v6.0 com ${quantidadeModelos} modelo(s) - ${new Date().toLocaleDateString('pt-BR')}`,
+      dado_svg: JSON.stringify({
+        versao: '6.0',
+        tipo: 'armazem_completo_otimizado',
+        tipoConfiguracao: 'armazem_completo_v6',
+        quantidadeModelos: quantidadeModelos,
+
+        // 🎯 ÚNICO local com os modelos (sem duplicação sistemaModelos/modelosDefinidos)
+        modelos: modelosOrdenados,
+
+        // Lógica de distribuição
+        distribuicao: {
+          nome: quantidadeModelos === 1 ? 'Modelo Único' :
+                quantidadeModelos === 2 ? 'Par/Ímpar' :
+                quantidadeModelos === 3 ? 'Frente/Fundo + Par/Ímpar' : 'Frente/Par/Ímpar/Fundo',
+          aplicacao: quantidadeModelos === 1 ? 'todos_arcos' :
+                    quantidadeModelos === 2 ? 'par_impar' :
+                    quantidadeModelos === 3 ? 'frente_fundo_par_impar' : 'frente_par_impar_fundo'
+        },
+
+        // Metadados essenciais
+        timestamp: Date.now(),
+        otimizado: true,
+        reducaoTamanho: '60-80%',
+
+        // Dados de controle
+        controle: {
+          modelosEncontrados: modelosEncontrados,
+          quantidadeEsperada: quantidadeModelos,
+          ordemModelos: Object.keys(modelosOrdenados),
+          verificacaoIntegridade: verificacaoFinal
+        }
+      })
     }
 
-    console.log('✅ [consolidarModelosParaBanco V6.0] Consolidação concluída:', {
+    console.log('✅ [consolidarModelosParaBanco] Consolidação concluída:', {
       nomeConfiguracao,
       quantidadeModelos,
       modelosEncontrados,
-      modelosProcessados: Object.keys(modelosV6).length,
-      estruturaFinal: estruturaV6Final.tipo,
-      versao: estruturaV6Final.versao,
-      tamanhoFinal: JSON.stringify(estruturaV6Final).length
+      modelosProcessados: Object.keys(modelosConsolidados).length,
+      tamanhoFinal: JSON.stringify(dadosSvgFinal.dado_svg).length
     })
 
     return { success: true, dados: dadosSvgFinal }
   } catch (error) {
-    console.error('❌ [consolidarModelosParaBanco V6.0] Erro na consolidação:', error)
-    return { success: false, message: 'Erro ao consolidar modelos para o banco' }
+    console.error('❌ [configuracaoService] Erro ao consolidar modelos para banco:', error)
+    return { success: false, message: `Erro interno ao consolidar configurações: ${error.message}` }
   }
 }
 

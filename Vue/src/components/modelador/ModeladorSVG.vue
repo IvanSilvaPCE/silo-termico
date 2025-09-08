@@ -1514,8 +1514,9 @@ export default {
 
       this.salvarModeloAtualCompleto()
 
-      // Reset para valores padrão após salvar
-      this.resetarConfigArmParaPadrao()
+      // FIXO: NÃO resetar configurações após salvar para preservar dimensões do usuário
+      // Comentado para preservar dimensões configuradas pelo usuário
+      // this.resetarConfigArmParaPadrao()
 
       this.mostrarToast(`Modelo ${this.modeloArcoAtual} (${this.modelosArcos[this.modeloArcoAtual]?.nome}) salvo com sucesso!`, 'success')
     },
@@ -1524,22 +1525,33 @@ export default {
     resetarTudoAposSalvamentoBanco() {
       console.log('🔄 [resetarTudoAposSalvamentoBanco] Iniciando reset visual após salvamento no banco')
 
-      // 1. Resetar configuração do armazém para valores padrão VISUAL
+      // FIXO CRÍTICO: NÃO resetar as dimensões configuradas pelo usuário
+      // Preservar as dimensões atuais do armazém que foram configuradas pelo usuário
+      const dimensoesPreservadas = {
+        pb: this.configArmazem.pb, // Preservar Profundidade Base
+        lb: this.configArmazem.lb, // CRÍTICO: Preservar LarguraBase configurada pelo usuário
+        hb: this.configArmazem.hb, // Preservar Altura Base
+        hf: this.configArmazem.hf, // Preservar Altura Fundo
+        lf: this.configArmazem.lf, // Preservar Largura Fundo
+        le: this.configArmazem.le, // Preservar Largura Entre
+        ht: this.configArmazem.ht, // Preservar Altura Topo - alturaTopo
+        // Preservar também outras configurações importantes do telhado
+        tipo_telhado: this.configArmazem.tipo_telhado,
+        curvatura_topo: this.configArmazem.curvatura_topo,
+        pontas_redondas: this.configArmazem.pontas_redondas,
+        raio_pontas: this.configArmazem.raio_pontas,
+        estilo_laterais: this.configArmazem.estilo_laterais,
+        curvatura_laterais: this.configArmazem.curvatura_laterais,
+        tipo_fundo: this.configArmazem.tipo_fundo
+      }
+
+      console.log('💾 [resetarTudoAposSalvamentoBanco] Preservando dimensões configuradas:', dimensoesPreservadas)
+
+      // 1. Resetar configuração do armazém MANTENDO as dimensões configuradas pelo usuário
       this.configArmazem = {
-        pb: 185,
-        lb: 350,
-        hb: 30,
-        hf: 6,
-        lf: 250,
-        le: 15,
-        ht: 50,
-        tipo_telhado: 1,
-        curvatura_topo: 30,
-        pontas_redondas: false,
-        raio_pontas: 15,
-        estilo_laterais: 'reta',
-        curvatura_laterais: 0,
-        tipo_fundo: 0,
+        // Preservar todas as dimensões configuradas pelo usuário
+        ...dimensoesPreservadas,
+        // Resetar apenas configurações que podem ser restauradas para padrão sem impactar o salvamento
         altura_fundo_reto: 10,
         altura_funil_v: 18,
         posicao_ponta_v: 0,
@@ -1562,11 +1574,12 @@ export default {
       }
 
       // 2. Resetar modelos de arcos VISUAL para padrão (mantendo dados salvos no localStorage)
+      // IMPORTANTE: Usar as dimensões preservadas para criar o modelo visual
       this.quantidadeModelosArcos = 1
       this.modelosArcos = {
         1: {
           posicao: 'todos',
-          config: { ...this.configArmazem },
+          config: { ...this.configArmazem }, // Agora contém as dimensões preservadas
           nome: 'Modelo Único',
           quantidadePendulos: 3,
           sensoresPorPendulo: {
@@ -1607,7 +1620,11 @@ export default {
       // 9. Atualizar SVG
       this.updateSVG()
 
-      console.log('✅ [resetarTudoAposSalvamentoBanco] Reset visual finalizado - dados dos modelos preservados no localStorage')
+      console.log('✅ [resetarTudoAposSalvamentoBanco] Reset visual finalizado - DIMENSÕES PRESERVADAS:', {
+        'LarguraBase (lb)': this.configArmazem.lb,
+        'AlturaTopo (ht)': this.configArmazem.ht,
+        'dimensões completas': dimensoesPreservadas
+      })
     },
 
     salvarModeloAtualCompleto() {
@@ -1624,14 +1641,27 @@ export default {
         sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {} },
 
         // IMPORTANTE: Preservar TODAS as configurações do armazém incluindo telhado e dimensões
-        // Dimensões básicas
-        pb: this.configArmazem.pb,
-        lb: this.configArmazem.lb, // CRÍTICO: Largura base deve ser preservada
-        hb: this.configArmazem.hb,
-        hf: this.configArmazem.hf,
-        lf: this.configArmazem.lf,
-        le: this.configArmazem.le,
-        ht: this.configArmazem.ht,
+        // Dimensões básicas - GARANTIR que sejam preservadas
+        pb: this.configArmazem.pb || 185,
+        lb: this.configArmazem.lb || 350, // CRÍTICO: Largura base deve ser preservada
+        hb: this.configArmazem.hb || 30,
+        hf: this.configArmazem.hf || 6,
+        lf: this.configArmazem.lf || 250,
+        le: this.configArmazem.le || 15,
+        ht: this.configArmazem.ht || 50,
+
+        // 🎯 CRÍTICO: Preservar dimensões calculadas se existirem
+        dimensoesSvgFundo: this.configArmazem.dimensoesSvgFundo ? {
+          largura: this.configArmazem.dimensoesSvgFundo.largura || this.configArmazem.lb || 350,
+          altura: this.configArmazem.dimensoesSvgFundo.altura || 300,
+          baseadoEm: this.configArmazem.dimensoesSvgFundo.baseadoEm || 'calculo_otimizado',
+          calculadoEm: this.configArmazem.dimensoesSvgFundo.calculadoEm || new Date().toISOString()
+        } : {
+          largura: this.configArmazem.lb || 350,
+          altura: 300,
+          baseadoEm: 'config_padrao',
+          calculadoEm: new Date().toISOString()
+        },
 
         // CRÍTICO: Configurações do telhado devem ser preservadas
         tipo_telhado: this.configArmazem.tipo_telhado,
@@ -1839,24 +1869,32 @@ export default {
     },
 
     resetarConfigArmParaPadrao() {
-      console.log('🔄 [resetarConfigArmParaPadrao] Resetando configuração do armazém para valores padrão')
+      console.log('🔄 [resetarConfigArmParaPadrao] PRESERVANDO dimensões configuradas pelo usuário')
 
-      // Resetar configuração do armazém para padrão
+      // FIXO CRÍTICO: Preservar as dimensões atuais configuradas pelo usuário
+      const dimensoesAtuaisPreservadas = {
+        pb: this.configArmazem.pb, // Preservar Profundidade Base
+        lb: this.configArmazem.lb, // CRÍTICO: Preservar LarguraBase
+        hb: this.configArmazem.hb, // Preservar Altura Base  
+        hf: this.configArmazem.hf, // Preservar Altura Fundo
+        lf: this.configArmazem.lf, // Preservar Largura Fundo
+        le: this.configArmazem.le, // Preservar Largura Entre
+        ht: this.configArmazem.ht, // Preservar Altura Topo
+        // Preservar configurações do telhado também
+        tipo_telhado: this.configArmazem.tipo_telhado,
+        curvatura_topo: this.configArmazem.curvatura_topo,
+        pontas_redondas: this.configArmazem.pontas_redondas,
+        raio_pontas: this.configArmazem.raio_pontas,
+        estilo_laterais: this.configArmazem.estilo_laterais,
+        curvatura_laterais: this.configArmazem.curvatura_laterais,
+        tipo_fundo: this.configArmazem.tipo_fundo
+      }
+
+      // Resetar configuração do armazém MANTENDO as dimensões principais
       this.configArmazem = {
-        pb: 185,
-        lb: 350,
-        hb: 30,
-        hf: 6,
-        lf: 250,
-        le: 15,
-        ht: 50,
-        tipo_telhado: 1,
-        curvatura_topo: 30,
-        pontas_redondas: false,
-        raio_pontas: 15,
-        estilo_laterais: 'reta',
-        curvatura_laterais: 0,
-        tipo_fundo: 0,
+        // Preservar dimensões configuradas pelo usuário
+        ...dimensoesAtuaisPreservadas,
+        // Resetar apenas configurações secundárias
         altura_fundo_reto: 10,
         altura_funil_v: 18,
         posicao_ponta_v: 0,
@@ -1878,10 +1916,14 @@ export default {
         afastamento_vertical_pendulo: 0
       }
 
-      // Atualizar SVG com novos valores
+      // Atualizar SVG com valores atualizados (mas dimensões preservadas)
       this.updateSVG()
 
-      console.log('✅ [resetarConfigArmParaPadrao] Configuração resetada para valores padrão')
+      console.log('✅ [resetarConfigArmParaPadrao] Configuração resetada PRESERVANDO dimensões:', {
+        'LarguraBase (lb)': this.configArmazem.lb,
+        'AlturaTopo (ht)': this.configArmazem.ht,
+        'dimensões preservadas': dimensoesAtuaisPreservadas
+      })
     },
 
     carregarConfiguracaoModelo(numeroModelo) {
@@ -3855,6 +3897,12 @@ export default {
       this.larguraSVG = dimensoesCalculadas.largura
       this.alturaSVG = dimensoesCalculadas.altura
 
+      // 🎯 CRÍTICO: Garantir que lb seja atualizado para refletir a largura
+      if (dimensoesCalculadas.largura && dimensoesCalculadas.largura !== this.configArmazem.lb) {
+        console.log(`🔧 [ModeladorSVG] Atualizando lb: ${this.configArmazem.lb} → ${dimensoesCalculadas.largura}`)
+        this.configArmazem.lb = dimensoesCalculadas.largura
+      }
+
       // Salvar na configuração global
       this.configArmazem.dimensoesSvgFundo = {
         largura: dimensoesCalculadas.largura,
@@ -3865,12 +3913,20 @@ export default {
 
       // Se estiver editando um modelo específico, salvar também no modelo
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+        // 🎯 CRÍTICO: Atualizar TODAS as dimensões no modelo
+        this.modelosArcos[this.modeloArcoAtual].config.lb = dimensoesCalculadas.largura
         this.modelosArcos[this.modeloArcoAtual].config.dimensoesSvgFundo = {
           largura: dimensoesCalculadas.largura,
           altura: dimensoesCalculadas.altura,
           baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_otimizado',
           calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString()
         }
+
+        console.log('💾 [ModeladorSVG] Salvando no modelo:', {
+          modelo: this.modeloArcoAtual,
+          lb: this.modelosArcos[this.modeloArcoAtual].config.lb,
+          dimensoesSvgFundo: this.modelosArcos[this.modeloArcoAtual].config.dimensoesSvgFundo
+        })
 
         // Salvar modelo completo para persistir as dimensões
         this.salvarModeloAtualCompleto()
@@ -3882,6 +3938,7 @@ export default {
       console.log('✅ [ModeladorSVG] Dimensões salvas com sucesso:', {
         largura: dimensoesCalculadas.largura,
         altura: dimensoesCalculadas.altura,
+        lb_atualizado: this.configArmazem.lb,
         modeloAtual: this.modeloArcoAtual
       })
     },
