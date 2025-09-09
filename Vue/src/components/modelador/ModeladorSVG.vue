@@ -36,8 +36,8 @@
               @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
 
             <!-- Seção 1: Dimensões Básicas -->
-            <DimensoesBasicas 
-              :config-armazem="configArmazem" 
+            <DimensoesBasicas
+              :config-armazem="configArmazem"
               @armazem-change="onArmazemChange"
               @dimensoes-alteradas="onDimensoesAlteradas" />
 
@@ -60,7 +60,7 @@
             @resetar-padrao="resetarPadrao" @resetar-modelos-padrao="resetarModelosParaPadrao"
             @voltar-preview="voltarParaPreview" @resetar-posicoes-manual="resetarPosicoesManual" />
 
-          
+
 
           <!-- Gerenciador de Configurações (Banco de Dados) -->
           <GerenciadorModelosBanco :tipo-ativo="tipoAtivo" :quantidade-modelos-arcos="quantidadeModelosArcos"
@@ -130,7 +130,7 @@
                 <!-- Renderização condicional baseada no tipo -->
                 <template v-if="tipoAtivo === 'silo'">
                   <!-- Container da imagem de fundo para Silo -->
-                  <div v-if="imagemFundoData.url" 
+                  <div v-if="imagemFundoData.url"
                        class="position-absolute d-flex align-items-center justify-content-center"
                        :style="{
                          top: '0',
@@ -141,7 +141,7 @@
                          overflow: 'hidden',
                          borderRadius: '4px'
                        }">
-                    <img 
+                    <img
                       :src="imagemFundoData.url"
                       :style="{
                         position: 'relative',
@@ -181,7 +181,7 @@
                 <!-- Componente Armazem para Armazém -->
                 <template v-else>
                   <!-- Container da imagem de fundo para Armazém -->
-                  <div v-if="imagemFundoData.url" 
+                  <div v-if="imagemFundoData.url"
                        class="position-absolute d-flex align-items-center justify-content-center"
                        :style="{
                          top: '0',
@@ -192,7 +192,7 @@
                          overflow: 'hidden',
                          borderRadius: '4px'
                        }">
-                    <img 
+                    <img
                       :src="imagemFundoData.url"
                       :style="{
                         position: 'relative',
@@ -401,7 +401,7 @@ export default {
     BotoesControle,
     GerenciadorModelosBanco,
     GerenciadorConfiguracoes,
-    
+
     ImagemFundo,
     Armazem
   },
@@ -613,9 +613,9 @@ export default {
       const configCompleta = {
         ...config,
         // Dados específicos do modelo se estiver editando
-        quantidadePendulos: this.modeloArcoAtual ? 
+        quantidadePendulos: this.modeloArcoAtual ?
           (this.modelosArcos[this.modeloArcoAtual]?.quantidadePendulos || 3) : 3,
-        sensoresPorPendulo: this.modeloArcoAtual ? 
+        sensoresPorPendulo: this.modeloArcoAtual ?
           (this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {}) : {},
 
         // Posições manuais dos pêndulos e sensores (drag and drop)
@@ -630,6 +630,7 @@ export default {
           quantidadePendulos: this.modelosArcos[this.modeloArcoAtual].quantidadePendulos || 3,
           sensoresPorPendulo: this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo || {},
           posicoesPendulos: this.posicoesManualPendulos,
+          alturasSensores: this.construirAlturasSensores(this.posicoesManualPendulos, this.posicoesManualSensores, this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo), // Chamada para o novo método
           configuracaoGlobal: {
             escala_sensores: config.escala_sensores || 16,
             dist_y_sensores: config.dist_y_sensores || 12,
@@ -681,15 +682,21 @@ export default {
     // Inicialização sem debounce
   },
 
-  async mounted() {
+  mounted() {
     // LIMPEZA AUTOMÁTICA NA INICIALIZAÇÃO - Remove posições salvas para começar limpo
     this.limparPosicoesInicializacao()
-    
+
     this.resetarModelosParaPadrao()
 
-    await this.verificarDadosArcoRecebidos()
-    await this.carregarDadosAPI()
-    await this.carregarModelosDoBanco()
+    // Verificar se dados vieram do preview antes de carregar da API
+    this.verificarDadosArcoRecebidos()
+
+    // Carregar dados apenas se não vieram do preview
+    if (!this.dadosVindosDoPreview) {
+      this.carregarDadosAPI()
+    }
+
+    this.carregarModelosDoBanco()
 
     // NÃO carregar posições temporárias na inicialização - sempre começar limpo
     // this.carregarPosicoesTemporarias()
@@ -779,6 +786,7 @@ export default {
               localStorage.removeItem('dadosArcoParaModelador')
               localStorage.removeItem('timestampArcoModelador')
 
+              console.log('Dados recebidos do preview do armazém foram carregados com sucesso.')
               return true
             }
           }
@@ -804,9 +812,10 @@ export default {
           return
         }
 
-        const response = await fetch('https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47', {
+        // Implementação da API para Silo (exemplo)
+        const response = await fetch('URL_DA_SUA_API_AQUI', {
           headers: {
-            'Authorization': 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1NjAxOTM4LCJleHAiOjE3NTY4MTE1MzgsIm5iZiI6MTc1NTYwMTkzOCwianRpIjoid2xsMU1DQlV6ZUlPUjBpQSIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCx0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.17k5NPdmmKvNtUEJ1GmCNYuYSFtayYedzESRU-Vta50',
+            'Authorization': 'Bearer SEU_TOKEN_AQUI',
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -1123,18 +1132,18 @@ export default {
 
     onDimensoesAlteradas(data) {
       console.log('📐 [ModeladorSVG] Dimensões alteradas:', data)
-      
+
       // Forçar atualização do SVG
       this.updateSVG()
-      
+
       // Se estiver editando um modelo, salvar as alterações
       if (this.modeloArcoAtual) {
         // Garantir que as dimensões sejam salvas no modelo
         this.modelosArcos[this.modeloArcoAtual].config = { ...this.configArmazem }
-        
+
         // Salvar modelo completo para persistir as dimensões
         this.salvarModeloAtualCompleto()
-        
+
         console.log('💾 [ModeladorSVG] Dimensões salvas no modelo:', {
           modelo: this.modeloArcoAtual,
           dimensoes: {
@@ -1161,7 +1170,7 @@ export default {
         if (qtd === 1) {
           posicao = 'todos'
           nome = 'Modelo Único'
-        } else if ( qtd === 2) {
+        } else if (qtd === 2) {
           if (i === 1) {
             posicao = 'par'
             nome = 'Modelo Par'
@@ -1592,7 +1601,7 @@ export default {
       this.modeloArcoAtual = null
       this.modelosSalvos = {}
 
-      // 4. Limpar apenas posições e configurações personalizadas VISUAIS
+      // 4. Limpar posições e configurações personalizadas VISUAIS
       this.posicoesCabos = {}
       this.caboSelecionadoPosicionamento = null
       this.modelagemIndividualAtiva = false
@@ -1709,7 +1718,7 @@ export default {
           sensoresPorPendulo: { ...this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo || {} },
 
           // Posições dos pêndulos seguindo formato do exemplo fornecido
-          posicoesPendulos: Object.keys(this.posicoesManualPendulos || {}).length > 0 
+          posicoesPendulos: Object.keys(this.posicoesManualPendulos || {}).length > 0
             ? Object.keys(this.posicoesManualPendulos).reduce((acc, penduloNum) => {
                 const pos = this.posicoesManualPendulos[penduloNum]
                 acc[penduloNum] = {
@@ -1718,15 +1727,24 @@ export default {
                   altura: 0,
                   offsetX: pos.offsetX || 0,
                   offsetY: pos.offsetY || 0,
-                  distanciaHorizontal: 0,
                   timestampAlteracao: pos.timestampAlteracao || Date.now()
                 }
                 return acc
               }, {})
             : {},
 
-          // Alturas dos sensores
-          alturasSensores: {},
+          // CRÍTICO: Salvar posições manuais dos sensores
+          posicoesManualSensores: { ...this.posicoesManualSensores },
+
+          // Alturas dos sensores com posições detalhadas
+          alturasSensores: (() => {
+            const resultado = this.construirAlturasSensores(
+              this.posicoesManualPendulos,
+              this.posicoesManualSensores,
+              this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo
+            )
+            return resultado.alturasSensores || {}
+          })(),
 
           // Configuração global
           configuracaoGlobal: {
@@ -1875,7 +1893,7 @@ export default {
       const dimensoesAtuaisPreservadas = {
         pb: this.configArmazem.pb, // Preservar Profundidade Base
         lb: this.configArmazem.lb, // CRÍTICO: Preservar LarguraBase
-        hb: this.configArmazem.hb, // Preservar Altura Base  
+        hb: this.configArmazem.hb, // Preservar Altura Base
         hf: this.configArmazem.hf, // Preservar Altura Fundo
         lf: this.configArmazem.lf, // Preservar Largura Fundo
         le: this.configArmazem.le, // Preservar Largura Entre
@@ -2129,7 +2147,7 @@ export default {
       this.modelosSalvos = {}
       this.caboSelecionadoPosicionamento = null
       this.posicoesCabos = {}
-      
+
       // GARANTIR que variáveis globais estejam limpas
       this.posicoesManualPendulos = {}
       this.posicoesManualSensores = {}
@@ -2400,7 +2418,7 @@ export default {
         `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s) com estado completo\n` +
         `🎯 Lógica: ${logica}\n` +
         `📐 Dimensões: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}\n\n` +
-        `💡 Cada modelo foi restaurado com todas as configurações originais!`,
+        `💡 Cada modelofoi restaurado com todas as configurações originais!`,
         'success'
       )
     },
@@ -3410,8 +3428,6 @@ export default {
       }
     },
 
-    // Métodos de modelagem individual removidos - não utilizados
-
     // Métodos para controle de sensores por pêndulo
     onSensoresCaboChange(data) {
       console.log('🔧 [ModeladorSVG] onSensoresCaboChange:', data)
@@ -3892,7 +3908,7 @@ export default {
     // 🎯 NOVO: Handler para salvar dimensões calculadas no modelo
     onSalvarDimensoesModelo(dimensoesCalculadas) {
       console.log('📐 [ModeladorSVG] Salvando dimensões calculadas no modelo:', dimensoesCalculadas)
-      
+
       // Atualizar dimensões locais
       this.larguraSVG = dimensoesCalculadas.largura
       this.alturaSVG = dimensoesCalculadas.altura
@@ -3943,7 +3959,7 @@ export default {
       })
     },
 
-    
+
 
     // MÉTODOS PARA DRAG AND DROP
     adicionarEventListeners() {
@@ -4285,6 +4301,15 @@ export default {
       const posicaoOriginal = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
       this.posicoesManualSensores[chaveSensor].x = novaX - posicaoOriginal.x
       this.posicoesManualSensores[chaveSensor].y = novaY - posicaoOriginal.y
+      this.posicoesManualSensores[chaveSensor].timestampAlteracao = Date.now()
+
+      console.log(`📍 [moverSensorIndividual] Sensor ${chaveSensor} movido:`, {
+        novaX,
+        novaY,
+        offsetX: this.posicoesManualSensores[chaveSensor].x,
+        offsetY: this.posicoesManualSensores[chaveSensor].y,
+        posicaoOriginal
+      })
 
       // Atualizar elemento DOM diretamente para feedback visual imediato
       this.atualizarSensorDOMDiretamente(numeroPendulo, numeroSensor)
@@ -4414,7 +4439,12 @@ export default {
         return
       }
 
-      console.log('💾 [salvarPosicoesNoModelo] Iniciando salvamento das posições')
+      console.log('💾 [salvarPosicoesNoModelo] Iniciando salvamento das posições', {
+        modelo: this.modeloArcoAtual,
+        posicoesManualPendulos: this.posicoesManualPendulos,
+        posicoesManualSensores: this.posicoesManualSensores,
+        totalSensores: Object.keys(this.posicoesManualSensores).length
+      })
 
       // Salvar posições manuais no modelo atual
       if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
@@ -4426,6 +4456,11 @@ export default {
 
       this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = { ...this.posicoesManualPendulos }
       this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = { ...this.posicoesManualSensores }
+
+      console.log('📊 [salvarPosicoesNoModelo] Posições salvas no modelo:', {
+        pendulosNoModelo: Object.keys(this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos).length,
+        sensoresNoModelo: Object.keys(this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores).length
+      })
 
       // 1. Salvar no preview local (estado atual)
       this.salvarNoPreviewLocal()
@@ -4488,17 +4523,17 @@ export default {
     // NOVO MÉTODO: Limpeza automática apenas na inicialização
     limparPosicoesInicializacao() {
       console.log('🧹 [limparPosicoesInicializacao] Limpando posições para inicialização limpa')
-      
+
       // Limpar posições manuais de drag and drop
       this.posicoesManualPendulos = {}
       this.posicoesManualSensores = {}
-      
+
       // Limpar localStorage de posições temporárias
       if (typeof localStorage !== 'undefined') {
         try {
           // Remover apenas dados de posições temporárias - preservar outros dados importantes
           localStorage.removeItem('posicoesManualTemp')
-          
+
           // Limpar posições salvas nos modelos (apenas para inicialização limpa)
           Object.keys(this.modelosArcos || {}).forEach(modeloKey => {
             if (this.modelosArcos[modeloKey]) {
@@ -4506,7 +4541,7 @@ export default {
               this.modelosArcos[modeloKey].posicoesManualSensores = {}
             }
           })
-          
+
           console.log('✅ [limparPosicoesInicializacao] Posições limpas - ModeladorSVG iniciará organizado')
         } catch (error) {
           console.error('❌ Erro ao limpar posições na inicialização:', error)
@@ -4543,6 +4578,64 @@ export default {
         console.error('❌ Erro ao carregar posições temporárias:', error)
         localStorage.removeItem('posicoesManualTemp')
       }
+    },
+
+    // 🎯 NOVO MÉTODO: Construir alturas dos sensores para o modelo
+    construirAlturasSensores(posicoesPendulos, posicoesSensores, sensoresPorPenduloConfig) {
+      const alturasSensores = {}
+      const posicoesManualSensores = {}
+      const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
+      const dist_y_sensores = config.dist_y_sensores || 12
+      const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
+
+      if (!sensoresPorPenduloConfig) {
+        console.warn('⚠️ [construirAlturasSensores] Configuração de sensores por pêndulo não encontrada.')
+        return { alturasSensores, posicoesManualSensores }
+      }
+
+      // Iterar sobre cada pêndulo configurado
+      Object.keys(sensoresPorPenduloConfig).forEach(penduloNum => {
+        const numSensores = sensoresPorPenduloConfig[penduloNum] || 1
+        const offsetPendulo = posicoesPendulos[penduloNum] || { x: 0, y: 0 }
+        const offsetPenduloY = offsetPendulo.y || 0
+        const offsetPenduloX = offsetPendulo.x || 0
+
+        // Calcular altura de cada sensor dentro do pêndulo
+        for (let s = 1; s <= numSensores; s++) {
+          const chaveSensor = `${penduloNum}-${s}`
+          const offsetSensor = posicoesSensores[chaveSensor] || { x: 0, y: 0 }
+
+          // Calcular a altura vertical relativa ao topo do pêndulo
+          const alturaSensor = (offsetPenduloY + offsetSensor.y) - (dist_y_sensores * s) - 30 - afastamento_vertical_pendulo
+
+          // Salvar altura do sensor
+          alturasSensores[chaveSensor] = {
+            altura: alturaSensor,
+            posicaoX: offsetPenduloX + offsetSensor.x,
+            posicaoY: offsetPenduloY + offsetSensor.y,
+            pendulo: parseInt(penduloNum),
+            sensor: s,
+            timestampAlteracao: Date.now()
+          }
+
+          // CRÍTICO: Salvar posições manuais dos sensores no formato correto
+          posicoesManualSensores[chaveSensor] = {
+            x: offsetSensor.x,
+            y: offsetSensor.y,
+            pendulo: parseInt(penduloNum),
+            sensor: s,
+            timestampAlteracao: Date.now()
+          }
+        }
+      })
+
+      console.log('📊 [construirAlturasSensores] Dados construídos:', {
+        alturasSensores,
+        posicoesManualSensores,
+        totalSensores: Object.keys(alturasSensores).length
+      })
+
+      return { alturasSensores, posicoesManualSensores }
     }
   }
 }
@@ -4678,6 +4771,172 @@ export default {
   /* Compactar controles de posicionamento */
   .row.g-1 .col-6 {
     padding: 0.1rem;
+  }
+}
+
+/* Estilos para SVG */
+.svg-container-responsive {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Estilos específicos para navegação mobile */
+.mobile-navigation {
+  background: rgba(248, 249, 250, 0.95);
+  border-radius: 6px;
+  padding: 8px;
+  margin: 4px 0;
+  border: 1px solid #dee2e6;
+}
+
+.mobile-nav-buttons {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-btn {
+  min-width: 36px !important;
+  height: 32px;
+  font-weight: bold;
+  font-size: 14px;
+  padding: 4px 8px;
+}
+
+.mobile-select {
+  max-width: 90px !important;
+  min-width: 75px !important;
+  height: 32px;
+  font-size: 13px;
+}
+
+.mobile-info {
+  background: white;
+  border-radius: 4px;
+  padding: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-badge {
+  font-size: 0.65rem !important;
+  padding: 2px 4px !important;
+}
+
+.mobile-badges {
+  margin-bottom: 4px;
+}
+
+.mobile-model-name {
+  font-size: 0.7rem !important;
+  line-height: 1.2;
+}
+
+@media (max-width: 767.98px) {
+  .svg-container-responsive {
+    min-height: 180px;
+    padding: 0.5rem;
+  }
+
+  .card-body {
+    padding: 0.5rem !important;
+  }
+
+  .card-footer {
+    padding: 0.5rem !important;
+    position: relative;
+    z-index: 100;
+    background: #f8f9fa !important;
+    border-top: 2px solid #dee2e6;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .svg-container-responsive {
+    min-height: 150px;
+    padding: 0.25rem;
+  }
+
+  .mobile-navigation {
+    margin: 2px -2px;
+    padding: 6px;
+  }
+
+  .mobile-nav-buttons {
+    gap: 2px !important;
+    justify-content: space-between;
+  }
+
+  .nav-btn {
+    min-width: 32px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 70px !important;
+    min-width: 60px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 4px !important;
+  }
+
+  .mobile-info {
+    padding: 4px;
+  }
+
+  .mobile-badge {
+    font-size: 0.6rem !important;
+    padding: 1px 3px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.65rem !important;
+  }
+
+  .card-footer {
+    padding: 0.25rem !important;
+    position: sticky;
+    bottom: 0;
+    z-index: 150;
+    background: rgba(248, 249, 250, 0.98) !important;
+    backdrop-filter: blur(4px);
+    border-top: 2px solid #007bff;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Ajustes para telas muito pequenas */
+@media (max-width: 420px) {
+  .mobile-nav-buttons {
+    gap: 2px !important;
+  }
+
+  .nav-btn {
+    min-width: 28px !important;
+    height: 26px;
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+
+  .mobile-select {
+    max-width: 55px !important;
+    min-width: 50px !important;
+    height: 26px;
+    font-size: 11px;
+    margin: 0 2px !important;
+  }
+
+  .mobile-badge {
+    font-size: 0.55rem !important;
+    padding: 1px 2px !important;
+  }
+
+  .mobile-model-name {
+    font-size: 0.6rem !important;
   }
 }
 

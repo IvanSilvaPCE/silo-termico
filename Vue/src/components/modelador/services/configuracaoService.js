@@ -118,6 +118,12 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
         return acc
       }, {}),
       
+      // NOVO: Posições manuais dos sensores individuais (drag-and-drop)
+      posicoesManualSensores: config.posicoesManualSensores || {},
+      
+      // NOVO: Posições manuais dos pêndulos (drag-and-drop)
+      posicoesManualPendulos: config.posicoesManualPendulos || {},
+      
       // Alturas personalizadas dos sensores por pêndulo
       alturasSensores: config.alturasSensores || {},
       

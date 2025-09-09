@@ -21,7 +21,7 @@
           type="button" 
           class="btn btn-warning btn-sm w-100 mb-2" 
           @click="$emit('resetar-posicoes-manual')"
-          title="Resetar posições manuais dos pêndulos e sensores"
+          title="Resetar posições manuais dos pêndulos e sensores (ambos salvos no banco)"
         >
           🎯 Resetar Posições Manuais
         </button>

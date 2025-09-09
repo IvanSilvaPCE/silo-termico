@@ -716,41 +716,49 @@ export default {
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
 
-        // 🎯 APLICAR OFFSET INDIVIDUAL (prioridade: posições manuais > modeloEspecifico > posicionamento de cabos)
-        let offsetIndividualX = 0
-        let offsetIndividualY = 0
+        // 🎯 APLICAR OFFSET INDIVIDUAL DO PÊNDULO (apenas para o pêndulo, não influenciar sensores)
+        let offsetPenduloX = 0
+        let offsetPenduloY = 0
 
-        console.log(`🔍 [renderSensoresArmazem] P${pendulo.numero} - Verificando posições:`, {
+        console.log(`🔍 [renderSensoresArmazem] P${pendulo.numero} - Verificando posições do pêndulo:`, {
           temPosicoesManualPendulos: !!(this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]),
-          temModeloEspecifico: !!(this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]),
+          temModeloEspecificoManual: !!(this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesManualPendulos && this.config.modeloEspecifico.posicoesManualPendulos[pendulo.numero]),
+          temModeloEspecificoPosicoes: !!(this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]),
           temPosicoesCabos: !!(this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero])
         })
 
-        // Verificar se há posições manuais salvas para este pêndulo (PRIORIDADE 1)
-        if (this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]) {
-          // Prioridade 1: Posições manuais de drag and drop do ModeladorSVG
-          const posManual = this.config.posicoesManualPendulos[pendulo.numero]
-          offsetIndividualX = parseFloat(posManual.x) || 0
-          offsetIndividualY = parseFloat(posManual.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posições manuais:`, { x: offsetIndividualX, y: offsetIndividualY })
+        // 🎯 BUSCAR POSIÇÃO MANUAL ESPECÍFICA DO PÊNDULO (não dos sensores)
+        if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesManualPendulos && this.config.modeloEspecifico.posicoesManualPendulos[pendulo.numero]) {
+          // PRIORIDADE 1: Posições manuais da estrutura v6.0 (posicoesManualPendulos)
+          const posManualPenduloV6 = this.config.modeloEspecifico.posicoesManualPendulos[pendulo.numero]
+          offsetPenduloX = parseFloat(posManualPenduloV6.x) || 0
+          offsetPenduloY = parseFloat(posManualPenduloV6.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posição manual do pêndulo v6.0:`, { x: offsetPenduloX, y: offsetPenduloY })
+        } else if (this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]) {
+          // PRIORIDADE 2: Posições manuais de drag and drop do ModeladorSVG (compatibilidade)
+          const posManualPendulo = this.config.posicoesManualPendulos[pendulo.numero]
+          offsetPenduloX = parseFloat(posManualPendulo.x) || 0
+          offsetPenduloY = parseFloat(posManualPendulo.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posição manual do pêndulo compatibilidade:`, { x: offsetPenduloX, y: offsetPenduloY })
         } else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
-          // Prioridade 2: Posições do modeloEspecifico (formato v6.0+)
-          const posEspec = this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]
-          offsetIndividualX = parseFloat(posEspec.x) || 0
-          offsetIndividualY = parseFloat(posEspec.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando modeloEspecifico:`, { x: offsetIndividualX, y: offsetIndividualY })
+          // PRIORIDADE 3: Posições do modeloEspecifico (formato v6.0+ estrutural)
+          const posEspecPendulo = this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]
+          offsetPenduloX = parseFloat(posEspecPendulo.x) || 0
+          offsetPenduloY = parseFloat(posEspecPendulo.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando modeloEspecifico posicoesPendulos:`, { x: offsetPenduloX, y: offsetPenduloY })
         } else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
-          // Prioridade 3: Posições dos cabos (compatibilidade)
-          const posCabo = this.config.posicoesCabos[pendulo.numero]
-          offsetIndividualX = parseFloat(posCabo.x) || 0
-          offsetIndividualY = parseFloat(posCabo.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posicoesCabos:`, { x: offsetIndividualX, y: offsetIndividualY })
+          // PRIORIDADE 4: Posições dos cabos (compatibilidade)
+          const posCaboPendulo = this.config.posicoesCabos[pendulo.numero]
+          offsetPenduloX = parseFloat(posCaboPendulo.x) || 0
+          offsetPenduloY = parseFloat(posCaboPendulo.y) || 0
+          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posicoesCabos:`, { x: offsetPenduloX, y: offsetPenduloY })
         } else {
           console.log(`⚠️ [renderSensoresArmazem] P${pendulo.numero} - Nenhuma posição customizada encontrada, usando posição base calculada`)
         }
 
-        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetIndividualX
-        const yPenduloFinal = yPendulo + offsetIndividualY
+        // 🎯 POSIÇÕES FINAIS DO PÊNDULO
+        const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetPenduloX
+        const yPenduloFinal = yPendulo + offsetPenduloY
         const numSensores = pendulo.totalSensores
 
         // 🎨 DETERMINAR COR DO PÊNDULO (igual ModeladorSVG)
@@ -797,8 +805,49 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
-          const xSensorFinal = xCabo
-          const ySensorFinal = ySensorBase
+          let xSensorFinal = xCabo
+          let ySensorFinal = ySensorBase
+
+          // 🎯 VERIFICAR POSIÇÕES MANUAIS DOS SENSORES (independente do pêndulo)
+          const chaveManualSensor = `${pendulo.numero}-${s}`
+          
+          // 🎯 CALCULAR POSIÇÃO BASE DO SENSOR (relativa ao pêndulo)
+          let xSensorBase = xCabo  // Posição X base do pêndulo (já com offset aplicado)
+          let ySensorBaseCalc = ySensorBase  // Posição Y padrão do sensor
+          
+          // PRIORIDADE 1: Posições manuais da estrutura v6.0
+          if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesManualSensores && this.config.modeloEspecifico.posicoesManualSensores[chaveManualSensor]) {
+            const posManualSensorV6 = this.config.modeloEspecifico.posicoesManualSensores[chaveManualSensor]
+            // 🔧 CORRIGIDO: Aplicar offset do sensor à posição base do armazém, não do pêndulo
+            xSensorFinal = xCaboBase + posicao_horizontal + deslocamentoX + (parseFloat(posManualSensorV6.x) || 0)
+            ySensorFinal = yPendulo + (parseFloat(posManualSensorV6.y) || 0)
+            console.log(`✅ [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual v6.0:`, { 
+              offsetSensor: { x: posManualSensorV6.x, y: posManualSensorV6.y }, 
+              final: { x: xSensorFinal, y: ySensorFinal },
+              basePendulo: { x: xCaboBase, y: yPendulo }
+            })
+          }
+          // PRIORIDADE 2: Posições manuais de compatibilidade
+          else if (this.config.posicoesManualSensores && this.config.posicoesManualSensores[chaveManualSensor]) {
+            const posManualSensor = this.config.posicoesManualSensores[chaveManualSensor]
+            // 🔧 CORRIGIDO: Aplicar offset do sensor à posição base do armazém, não do pêndulo
+            xSensorFinal = xCaboBase + posicao_horizontal + deslocamentoX + (parseFloat(posManualSensor.x) || 0)
+            ySensorFinal = yPendulo + (parseFloat(posManualSensor.y) || 0)
+            console.log(`✅ [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual compatibilidade:`, { 
+              offsetSensor: { x: posManualSensor.x, y: posManualSensor.y }, 
+              final: { x: xSensorFinal, y: ySensorFinal },
+              basePendulo: { x: xCaboBase, y: yPendulo }
+            })
+          }
+          // CASO PADRÃO: Seguir posição do pêndulo movido
+          else {
+            xSensorFinal = xCabo  // Seguir posição X do pêndulo (com seu offset)
+            ySensorFinal = ySensorBase  // Manter posição Y padrão do sensor
+            console.log(`📍 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição padrão seguindo pêndulo:`, { 
+              pendulo: { x: xCabo, y: yPenduloFinal }, 
+              sensor: { x: xSensorFinal, y: ySensorFinal }
+            })
+          }
 
           // 🎯 LIMITES AJUSTADOS PARA PREVIEW OTIMIZADO
           if (ySensorFinal > 15 && ySensorFinal < (this.dimensoesCalculadas.altura - 40)) {

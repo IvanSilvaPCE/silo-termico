@@ -15,7 +15,7 @@ const preservarPosicoesCabos = (dadosSvg) => {
     // 🎯 NOVA ESTRUTURA V6.0: Preservar estrutura de modelos conforme anexo
     if (dados.modelos) {
       console.log(`💾 [PRESERVAÇÃO V6.0] Processando ${Object.keys(dados.modelos).length} modelos`);
-      
+
       Object.keys(dados.modelos).forEach(modeloId => {
         const modelo = dados.modelos[modeloId];
 
@@ -38,6 +38,12 @@ const preservarPosicoesCabos = (dadosSvg) => {
           if (modelo.modeloEspecifico.posicoesPendulos) {
             const totalPosicoes = Object.keys(modelo.modeloEspecifico.posicoesPendulos).length;
             console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalPosicoes} posições de pêndulos preservadas`);
+          }
+
+          // 🔒 PRESERVAR posições manuais dos sensores
+          if (modelo.modeloEspecifico.posicoesManualSensores) {
+            const totalSensores = Object.keys(modelo.modeloEspecifico.posicoesManualSensores).length;
+            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalSensores} posições manuais de sensores preservadas`);
           }
 
           // 🔒 PRESERVAR sensores por pêndulo
@@ -112,12 +118,41 @@ const preservarPosicoesCabos = (dadosSvg) => {
             config.posicoesCabos = {};
           }
 
-          // NOVO: Preservar posições manuais dos pêndulos e sensores (drag and drop)
+          // NOVO: Preservar posições manuais dos pêndulos E SENSORES (drag and drop)
           if (!config.posicoesManualPendulos) {
             config.posicoesManualPendulos = {};
           }
           if (!config.posicoesManualSensores) {
             config.posicoesManualSensores = {};
+          }
+
+          // CRÍTICO: Preservar posições manuais dos sensores do modeloEspecifico
+          if (modelo.modeloEspecifico && modelo.modeloEspecifico.posicoesManualSensores) {
+            config.posicoesManualSensores = { ...modelo.modeloEspecifico.posicoesManualSensores };
+            console.log(`📍 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Posições manuais sensores preservadas:`, Object.keys(config.posicoesManualSensores).length);
+          }
+
+          // NOVO: Preservar posições manuais dos pêndulos
+          if (!config.posicoesManualPendulos) {
+            config.posicoesManualPendulos = {};
+          }
+
+          // CRÍTICO: Preservar posições manuais dos pêndulos do modeloEspecifico
+          if (modelo.modeloEspecifico && modelo.modeloEspecifico.posicoesManualPendulos) {
+            config.posicoesManualPendulos = { ...modelo.modeloEspecifico.posicoesManualPendulos };
+            console.log(`📍 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Posições manuais pêndulos preservadas:`, Object.keys(config.posicoesManualPendulos).length);
+          }
+
+          // NOVO: Garantir que posicoesManualSensores sempre existe na estrutura V6.0
+          if (!modelo.modeloEspecifico.posicoesManualSensores) {
+            modelo.modeloEspecifico.posicoesManualSensores = {};
+            console.log(`🆕 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Campo posicoesManualSensores criado`);
+          }
+
+          // NOVO: Garantir que posicoesManualPendulos sempre existe na estrutura V6.0
+          if (!modelo.modeloEspecifico.posicoesManualPendulos) {
+            modelo.modeloEspecifico.posicoesManualPendulos = {};
+            console.log(`🆕 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Campo posicoesManualPendulos criado`);
           }
 
           // Garantir estrutura para cada cabo, mas SEM alterar posições existentes
@@ -151,7 +186,7 @@ const preservarPosicoesCabos = (dadosSvg) => {
             }
           }
 
-          // NOVO: Log das posições manuais preservadas
+          // NOVO: Log das posições manuais preservadas (pêndulos E sensores)
           const totalPendulosManual = Object.keys(config.posicoesManualPendulos).length;
           const totalSensoresManual = Object.keys(config.posicoesManualSensores).length;
           if (totalPendulosManual > 0 || totalSensoresManual > 0) {
@@ -228,14 +263,14 @@ const preservarPosicoesCabos = (dadosSvg) => {
 
           // VALIDAÇÃO CRÍTICA: Verificar se dimensões básicas estão sendo preservadas
           const dimensoesCriticas = ['pb', 'lb', 'hb', 'hf', 'lf', 'le', 'ht'];
-          const dimensoesPreservadas = dimensoesCriticas.filter(dim => 
+          const dimensoesPreservadas = dimensoesCriticas.filter(dim =>
             config[dim] !== undefined && config[dim] !== null
           );
           const dimensoesComValores = {};
           dimensoesCriticas.forEach(dim => {
             dimensoesComValores[dim] = config[dim];
           });
-          
+
           console.log(`🔍 [VALIDAÇÃO] Modelo ${modeloKey} - Dimensões preservadas: ${dimensoesPreservadas.length}/${dimensoesCriticas.length}`, {
             preservadas: dimensoesPreservadas,
             faltando: dimensoesCriticas.filter(dim => config[dim] === undefined || config[dim] === null),
@@ -364,14 +399,14 @@ const salvarModelo = async (dadosModelo) => {
     let dadoSvgProcessado = "";
     if (dadosModelo.dado_svg) {
       if (typeof dadosModelo.dado_svg === "string") {
-        try { 
+        try {
           // IMPORTANTE: Validar JSON sem alterar o conteúdo
-          JSON.parse(dadosModelo.dado_svg); 
-          dadoSvgProcessado = dadosModelo.dado_svg.trim(); 
+          JSON.parse(dadosModelo.dado_svg);
+          dadoSvgProcessado = dadosModelo.dado_svg.trim();
         }
-        catch { 
-          console.warn("⚠️ [PROCESSAMENTO] dado_svg não é JSON válido, usando como string"); 
-          dadoSvgProcessado = dadosModelo.dado_svg; 
+        catch {
+          console.warn("⚠️ [PROCESSAMENTO] dado_svg não é JSON válido, usando como string");
+          dadoSvgProcessado = dadosModelo.dado_svg;
         }
       } else if (typeof dadosModelo.dado_svg === "object") {
         // CRÍTICO: NÃO alterar o objeto - apenas stringificar
@@ -384,15 +419,15 @@ const salvarModelo = async (dadosModelo) => {
         dadoSvgProcessado = String(dadosModelo.dado_svg);
       }
     }
-    
+
     // IMPORTANTE: Apenas criar dados básicos se realmente não houver dados
     if (!dadoSvgProcessado || dadoSvgProcessado.trim() === "") {
       console.log("🆕 [PROCESSAMENTO] Criando estrutura básica pois dados estão vazios");
-      dadoSvgProcessado = JSON.stringify({ 
-        versao: "1.0", 
-        tipo: "modelo_basico", 
-        configuracao: {}, 
-        timestamp: Date.now() 
+      dadoSvgProcessado = JSON.stringify({
+        versao: "1.0",
+        tipo: "modelo_basico",
+        configuracao: {},
+        timestamp: Date.now()
       });
     } else {
       console.log(`✅ [PROCESSAMENTO] Dados SVG preservados - tamanho: ${dadoSvgProcessado.length} caracteres`);
