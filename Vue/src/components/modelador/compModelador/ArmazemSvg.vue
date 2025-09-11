@@ -133,29 +133,72 @@ export default {
         geral: 1.0,
         pendulos: 1.0,
         estrutura: 1.0
-      }
+      },
+      // Estados para drag and drop
+      isDragging: false,
+      dragElement: null,
+      dragOffset: { x: 0, y: 0 }
     }
   },
   computed: {
     dimensoesCalculadas() {
-      // Se há dimensões personalizadas vindas do banco, usar essas
-      if (this.dimensoesPersonalizadas) {
-        return {
-          largura: this.dimensoesPersonalizadas.largura || this.calcularDimensoesBaseadoNoFundo().largura,
-          altura: this.dimensoesPersonalizadas.altura || this.calcularDimensoesBaseadoNoFundo().altura
+      // 🎯 PADRONIZAÇÃO CRÍTICA: Sempre usar dimensões consistentes com o que será salvo
+      
+      // Prioridade 1: Props passadas diretamente (ViewBox sincronizado)
+      if (this.larguraSvg && this.alturaSvg && this.larguraSvg > 0 && this.alturaSvg > 0) {
+        const dimensoesProps = {
+          largura: this.larguraSvg,
+          altura: this.alturaSvg
         }
+        console.log('🎯 [ArmazemSvg] VIEWBOX SINCRONIZADO - Usando dimensões das props:', dimensoesProps)
+        
+        // 🎯 CRÍTICO: Emitir dimensões para o ModeladorSVG sempre que usar props
+        this.$nextTick(() => {
+          this.$emit('dimensoes-atualizadas', dimensoesProps)
+        })
+        
+        return dimensoesProps
       }
 
-      // Se há dimensões salvas na configuração, usar essas
+      // Prioridade 2: Dimensões salvas na configuração 
       if (this.config.dimensoesSvgFundo && this.config.dimensoesSvgFundo.largura && this.config.dimensoesSvgFundo.altura) {
-        return {
+        const dimensoesSalvas = {
           largura: this.config.dimensoesSvgFundo.largura,
           altura: this.config.dimensoesSvgFundo.altura
         }
+        console.log('📐 [ArmazemSvg] Usando dimensões salvas na configuração:', dimensoesSalvas)
+        return dimensoesSalvas
       }
 
-      // Caso contrário, calcular baseado no fundo
-      return this.calcularDimensoesBaseadoNoFundo()
+      // Prioridade 3: Dimensões personalizadas vindas do banco
+      if (this.dimensoesPersonalizadas && this.dimensoesPersonalizadas.largura && this.dimensoesPersonalizadas.altura) {
+        console.log('📐 [ArmazemSvg] Usando dimensões personalizadas do banco:', this.dimensoesPersonalizadas)
+        return {
+          largura: this.dimensoesPersonalizadas.largura,
+          altura: this.dimensoesPersonalizadas.altura
+        }
+      }
+
+      // Prioridade 4: Calcular baseado na configuração
+      const dimensoesCalculadas = this.calcularDimensoesBaseadoNoFundo()
+      
+      // 🔒 PADRONIZAR dimensões e garantir que sejam salvas
+      const dimensoesPadronizadas = {
+        largura: Math.max(dimensoesCalculadas.largura, 350), // Largura mínima padrão
+        altura: Math.max(dimensoesCalculadas.altura, 250)    // Altura mínima padrão
+      }
+      
+      console.log('📐 [ArmazemSvg] Dimensões calculadas e padronizadas:', {
+        original: dimensoesCalculadas,
+        padronizada: dimensoesPadronizadas
+      })
+
+      // 🎯 CRÍTICO: Sempre emitir as dimensões calculadas para o ModeladorSVG salvar
+      this.$nextTick(() => {
+        this.$emit('dimensoes-atualizadas', dimensoesPadronizadas)
+      })
+      
+      return dimensoesPadronizadas
     },
 
     imagemContainerStyle() {
@@ -211,25 +254,36 @@ export default {
     },
 
     svgWrapperStyle() {
+      // 🔒 PADRONIZAÇÃO: Estilo consistente independente do container pai
       return {
         position: 'relative',
         zIndex: 2,
         width: '100%',
         height: 'auto',
+        minHeight: '300px', // Altura mínima garantida
+        maxHeight: '600px', // Altura máxima para evitar desproporcionalidade
         opacity: this.opacidadesSvgLocal.geral,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '20px 10px'
+        padding: '20px 10px',
+        boxSizing: 'border-box' // Garantir cálculo correto das dimensões
       }
     },
 
     svgEstiloCompleto() {
+      // 🔒 PADRONIZAÇÃO: Dimensões consistentes baseadas no viewBox interno
+      const dimensoes = this.dimensoesCalculadas
+      const aspectRatio = dimensoes.largura / dimensoes.altura
+      
       return {
         width: '100%',
         height: 'auto',
         maxWidth: '100%',
-        maxHeight: this.isMobile ? '50vh' : '500px',
+        // 🎯 CRÍTICO: Manter aspect ratio consistente baseado nas dimensões internas
+        aspectRatio: aspectRatio.toFixed(3),
+        minHeight: '250px',
+        maxHeight: this.isMobile ? '60vh' : '500px',
         border: '1px solid #ddd',
         backgroundColor: 'transparent',
         borderRadius: '4px',
@@ -237,7 +291,10 @@ export default {
         textRendering: 'geometricPrecision',
         imageRendering: 'optimizeQuality',
         display: 'block',
-        objectFit: 'contain'
+        objectFit: 'contain',
+        // 🔒 ESTABILIZAR posicionamento para drag and drop consistente
+        transformOrigin: 'center center',
+        userSelect: 'none'
       }
     },
   },
@@ -293,6 +350,16 @@ export default {
   },
   mounted() {
     this.updateSVG()
+    
+    // Adicionar event listeners para drag and drop
+    this.$nextTick(() => {
+      this.adicionarEventListeners()
+    })
+  },
+  
+  beforeDestroy() {
+    // Cleanup dos event listeners
+    this.removerEventListeners()
   },
   methods: {
     updateSVG() {
@@ -300,7 +367,7 @@ export default {
     },
 
     calcularDimensoesBaseadoNoFundo() {
-      // 📏 ADAPTAÇÃO DINÂMICA DO SVG - RESPONSIVO COMPLETO
+      // 📏 PADRONIZAÇÃO CRÍTICA: Cálculo consistente que será sincronizado com o salvamento
       const config = this.config
 
       console.log('📐 [calcularDimensoesBaseadoNoFundo] Configuração recebida:', {
@@ -332,83 +399,96 @@ export default {
         quantidadePendulos = pendulosDetectados || 3
       }
 
-      // 📐 LARGURA BASE - PRIORIZAR LARGURA SALVA NO MODELO (HIERARQUIA CORRIGIDA)
-      let larguraBase = 350 // valor padrão
+      // 🔒 PADRONIZAÇÃO DA LARGURA: Sempre usar uma base consistente
+      const LARGURA_MINIMA_PADRAO = 350
+      const LARGURA_MAXIMA_SENSATA = 800
+      
+      let larguraBase = LARGURA_MINIMA_PADRAO
 
-      // Prioridade 1: Configuração atual do componente (mais específica)
-      if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
+      // 🎯 CRÍTICO: Priorizar config.lb que será salvo no ModeladorSVG
+      if (config.lb && typeof config.lb === 'number' && config.lb >= LARGURA_MINIMA_PADRAO && config.lb <= LARGURA_MAXIMA_SENSATA) {
         larguraBase = config.lb
-        console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura da config atual:', larguraBase)
+        console.log('📐 [SALVAMENTO] Usando largura da config (será salva):', larguraBase)
       } 
-      // Prioridade 2: Configuração do modelo atual
-      else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
+      // Prioridade 2: Modelo atual com validação
+      else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && 
+               this.modeloAtual.configuracao.lb >= LARGURA_MINIMA_PADRAO && this.modeloAtual.configuracao.lb <= LARGURA_MAXIMA_SENSATA) {
         larguraBase = this.modeloAtual.configuracao.lb
-        console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura do modelo atual:', larguraBase)
-      }
-      // Prioridade 3: Largura das props externas
-      else if (this.larguraSvg && this.larguraSvg > 200) {
-        larguraBase = this.larguraSvg
-        console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura das props:', larguraBase)
+        console.log('📐 [SALVAMENTO] Usando largura do modelo (será salva):', larguraBase)
       }
 
-      // Expandir largura baseado na quantidade de pêndulos se necessário
+      // 📏 GARANTIR largura mínima baseada nos pêndulos
       if (quantidadePendulos > 0) {
-        const margemLateral = 35
-        const espacamentoPendulo = 25
-        const larguraMinimaNecessaria = (2 * margemLateral) + ((quantidadePendulos - 1) * espacamentoPendulo) + 50
-        larguraBase = Math.max(larguraBase, larguraMinimaNecessaria)
+        const MARGEM_LATERAL_PADRAO = 35
+        const ESPACAMENTO_MINIMO_PENDULO = 25
+        const larguraMinimaNecessaria = (2 * MARGEM_LATERAL_PADRAO) + ((quantidadePendulos - 1) * ESPACAMENTO_MINIMO_PENDULO) + 50
+        if (larguraBase < larguraMinimaNecessaria) {
+          console.log(`📐 [SALVAMENTO] Ajustando largura para acomodar ${quantidadePendulos} pêndulos: ${larguraBase} → ${larguraMinimaNecessaria}`)
+          larguraBase = larguraMinimaNecessaria
+        }
       }
 
-      // 📏 ALTURA COMPLETA - CALCULAR TODOS OS COMPONENTES
-      const alturaBaseConfig = config.pb || 185
+      // 🔒 PADRONIZAÇÃO DA ALTURA: Cálculo consistente que será salvo
+      const ALTURA_MINIMA_PADRAO = 250
+      const ALTURA_MAXIMA_SENSATA = 600
+      
+      const alturaBaseConfig = Math.max(config.pb || 185, 150) // Altura base mínima
 
-      // Altura do telhado baseada no tipo
+      // Altura do telhado padronizada
       let alturaTelho = 20
       if (config.tipo_telhado === 1) {
-        const curvaturaAjustada = Math.max(15, 60 - (config.curvatura_topo || 30))
-        alturaTelho = curvaturaAjustada
+        alturaTelho = Math.max(15, Math.min(60, 60 - (config.curvatura_topo || 30)))
       } else if (config.tipo_telhado === 2 || config.tipo_telhado === 3) {
-        alturaTelho = Math.max(15, 70 - (config.curvatura_topo || 30))
+        alturaTelho = Math.max(15, Math.min(70, 70 - (config.curvatura_topo || 30)))
       }
 
       // Altura do corpo principal
-      const alturaCorpo = (config.ht || 50) + alturaBaseConfig
+      const alturaCorpo = Math.max(config.ht || 50, 30) + alturaBaseConfig
 
-      // Extensão do fundo
+      // Extensão do fundo limitada
       let extensaoFundo = 0
       if (config.tipo_fundo === 1) {
-        extensaoFundo = config.altura_funil_v || 40
+        extensaoFundo = Math.min(config.altura_funil_v || 40, 80)
       } else if (config.tipo_fundo === 2) {
-        extensaoFundo = config.altura_duplo_v || 35
+        extensaoFundo = Math.min(config.altura_duplo_v || 35, 70)
       }
 
-      // 🎯 NÃO CALCULAR ESPAÇO PARA SENSORES - manter ViewBox consistente
-      // (Os sensores são renderizados mas não afetam as dimensões do ViewBox)
-      const espacoSensores = 0
+      // 🎯 ALTURA TOTAL PADRONIZADA
+      const MARGEM_TOPO_PADRAO = 25
+      const MARGEM_BASE_PADRAO = 15
+      const AJUSTE_VIEWBOX = -80 // Manter compatibilidade com ViewBox otimizado
+      
+      let alturaTotal = MARGEM_TOPO_PADRAO + alturaTelho + alturaCorpo + extensaoFundo + MARGEM_BASE_PADRAO + AJUSTE_VIEWBOX
+      
+      // Garantir limites sensatos
+      alturaTotal = Math.max(ALTURA_MINIMA_PADRAO, Math.min(alturaTotal, ALTURA_MAXIMA_SENSATA))
 
-      // 🎯 ALTURA TOTAL COMPLETA - REDUZIDA EM 80PX (MANTENDO ViewBox 0 0 350 225)
-      const margemTopo = 25
-      const margemBase = 15
-      const alturaTotal = margemTopo + alturaTelho + alturaCorpo + extensaoFundo + espacoSensores + margemBase - 80
-
-      console.log(`✅ [DIMENSÕES RESPONSIVAS] Calculadas:`, {
-        largura: larguraBase,
-        altura: alturaTotal,
-        componentes: {
-          margemTopo,
-          alturaTelho,
-          alturaCorpo,
-          extensaoFundo,
-          espacoSensores,
-          margemBase
-        },
-        quantidadePendulos
-      })
-
-      return {
+      const dimensoesFinais = {
         largura: larguraBase,
         altura: alturaTotal
       }
+
+      console.log(`✅ [DIMENSÕES PARA SALVAMENTO] Calculadas para sincronização com ModeladorSVG:`, {
+        ...dimensoesFinais,
+        componentes: {
+          margemTopo: MARGEM_TOPO_PADRAO,
+          alturaTelho,
+          alturaCorpo,
+          extensaoFundo,
+          margemBase: MARGEM_BASE_PADRAO,
+          ajusteViewBox: AJUSTE_VIEWBOX
+        },
+        quantidadePendulos,
+        configLbOriginal: config.lb,
+        limitesAplicados: {
+          larguraMinima: LARGURA_MINIMA_PADRAO,
+          larguraMaxima: LARGURA_MAXIMA_SENSATA,
+          alturaMinima: ALTURA_MINIMA_PADRAO,
+          alturaMaxima: ALTURA_MAXIMA_SENSATA
+        }
+      })
+
+      return dimensoesFinais
     },
 
     renderArmazem() {
@@ -645,33 +725,77 @@ export default {
 
       // Determinar estrutura dos pêndulos baseada no modelo atual (igual ModeladorSVG)
       let estruturaPendulos
-      const modeloAtual = this.modeloAtual
+      const config = this.config
 
-      if (modeloAtual && (modeloAtual.quantidadePendulos || modeloAtual.sensoresPorPendulo)) {
-        // Usar configuração do modelo para o arco
-        const quantidade = modeloAtual.quantidadePendulos || 3
-        const sensoresPorPendulo = modeloAtual.sensoresPorPendulo || {}
+      // 🎯 PRIORIDADE 1: Usar dados do modeloEspecifico se disponível (estrutura v6.0+)
+      if (config.modeloEspecifico) {
+        const quantidade = config.modeloEspecifico.quantidadePendulos || 3
+        const sensoresPorPendulo = config.modeloEspecifico.sensoresPorPendulo || {}
 
         estruturaPendulos = {
           pendulos: Array.from({ length: quantidade }, (_, i) => ({
             numero: i + 1,
-            totalSensores: sensoresPorPendulo[i + 1] || 1
+            totalSensores: sensoresPorPendulo[i + 1] || sensoresPorPendulo[(i + 1).toString()] || 3
           }))
         }
-      } else {
-        // Fallback para estrutura mínima
+        
+        console.log('🎯 [renderSensores] Usando modeloEspecifico:', {
+          quantidade,
+          sensoresPorPendulo,
+          estruturaPendulos
+        })
+      }
+      // 🎯 PRIORIDADE 2: Usar dados do modeloAtual se disponível
+      else if (this.modeloAtual && (this.modeloAtual.quantidadePendulos || this.modeloAtual.sensoresPorPendulo)) {
+        const quantidade = this.modeloAtual.quantidadePendulos || 3
+        const sensoresPorPendulo = this.modeloAtual.sensoresPorPendulo || {}
+
+        estruturaPendulos = {
+          pendulos: Array.from({ length: quantidade }, (_, i) => ({
+            numero: i + 1,
+            totalSensores: sensoresPorPendulo[i + 1] || sensoresPorPendulo[(i + 1).toString()] || 3
+          }))
+        }
+        
+        console.log('🎯 [renderSensores] Usando modeloAtual:', {
+          quantidade,
+          sensoresPorPendulo,
+          estruturaPendulos
+        })
+      }
+      // 🎯 PRIORIDADE 3: Usar dados da config direta
+      else if (config.quantidadePendulos || config.sensoresPorPendulo) {
+        const quantidade = config.quantidadePendulos || 3
+        const sensoresPorPendulo = config.sensoresPorPendulo || {}
+
+        estruturaPendulos = {
+          pendulos: Array.from({ length: quantidade }, (_, i) => ({
+            numero: i + 1,
+            totalSensores: sensoresPorPendulo[i + 1] || sensoresPorPendulo[(i + 1).toString()] || 3
+          }))
+        }
+        
+        console.log('🎯 [renderSensores] Usando config direta:', {
+          quantidade,
+          sensoresPorPendulo,
+          estruturaPendulos
+        })
+      }
+      // 🎯 FALLBACK: Estrutura mínima padrão
+      else {
         estruturaPendulos = {
           pendulos: Array.from({ length: 3 }, (_, i) => ({
             numero: i + 1,
             totalSensores: 3
           }))
         }
+        
+        console.log('🎯 [renderSensores] Usando fallback padrão:', estruturaPendulos)
       }
 
       if (!estruturaPendulos) return ''
 
       // Usar configuração aplicada (igual ModeladorSVG)
-      const config = this.config
       const escala_sensores = config.escala_sensores || 16
       const dist_y_sensores = config.dist_y_sensores || 12
       const dist_x_sensores = config.dist_x_sensores || 0
@@ -679,17 +803,19 @@ export default {
       const posicao_vertical = config.posicao_vertical || 0
       const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
-      // 🎯 POSICIONAMENTO OTIMIZADO DOS SENSORES (sem espaço desnecessário)
+      // 🔒 PADRONIZAÇÃO CRÍTICA: Sistema de coordenadas absoluto e consistente
+      // Sempre usar dimensões internas calculadas, nunca dimensões do container pai
+      const dimensoesPadrao = this.dimensoesCalculadas
       const pb = config.pb || 185
-      const yPendulo = pb + 10 + posicao_vertical // Reduzir espaçamento
+      const yPendulo = pb + 10 + posicao_vertical
 
       const totalCabos = estruturaPendulos.pendulos.length
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
-      // 🎯 CALCULAR POSIÇÕES DOS CABOS DINAMICAMENTE IGUAL ModeladorSVG.vue
-      const larguraTotal = config.lb || this.dimensoesCalculadas.largura || 350
-      const margemLateral = 35  // EXATAMENTE igual ModeladorSVG
-      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+      // 🎯 USAR SEMPRE as dimensões internas padronizadas para coordenadas
+      const larguraTotal = dimensoesPadrao.largura  // SEMPRE usar dimensões internas
+      const MARGEM_LATERAL_PADRAO = 35  // Constante padronizada
+      const larguraUtilizavel = larguraTotal - (2 * MARGEM_LATERAL_PADRAO)
       const posicoesCabosCalculadas = []
 
       if (totalCabos === 1) {
@@ -697,13 +823,23 @@ export default {
       } else {
         const espacamento = larguraUtilizavel / (totalCabos - 1)
         for (let i = 0; i < totalCabos; i++) {
-          posicoesCabosCalculadas.push(margemLateral + (i * espacamento))
+          posicoesCabosCalculadas.push(MARGEM_LATERAL_PADRAO + (i * espacamento))
         }
       }
 
+      console.log(`🔒 [COORDENADAS PADRONIZADAS] Sistema absoluto:`, {
+        larguraTotal,
+        alturaTotal: dimensoesPadrao.altura,
+        margemLateral: MARGEM_LATERAL_PADRAO,
+        larguraUtilizavel,
+        totalCabos,
+        posicoesCabosCalculadas,
+        yPendulo
+      })
+
       console.log(`🎯 [ArmazemSvg] Cálculo DINÂMICO igual ModeladorSVG:`, {
         larguraTotal,
-        margemLateral,
+        margemLateral: MARGEM_LATERAL_PADRAO,
         larguraUtilizavel,
         totalCabos,
         espacamento: totalCabos > 1 ? larguraUtilizavel / (totalCabos - 1) : 0,
@@ -992,17 +1128,260 @@ export default {
       this.updateSVG()
     },
 
-    // 🎯 NOVO: Salvar dimensões corretas no modelo
+    // 🎯 NOVO: Salvar dimensões corretas no modelo com sincronização garantida
     salvarDimensoesNoModelo(dimensoes) {
-      console.log('💾 [ArmazemSvg] Salvando dimensões no modelo:', dimensoes)
+      console.log('💾 [ArmazemSvg] Salvando dimensões no modelo com sincronização:', dimensoes)
 
-      // Emitir evento para o ModeladorSVG salvar as dimensões
+      // 🔒 CRÍTICO: Garantir que config.lb seja atualizado ANTES de salvar
+      if (this.config && dimensoes.largura && dimensoes.largura !== this.config.lb) {
+        console.log(`🔧 [SINCRONIZAÇÃO] Atualizando config.lb antes de salvar: ${this.config.lb} → ${dimensoes.largura}`)
+        
+        // Emitir atualização da configuração primeiro
+        this.$emit('configuracao-atualizada', {
+          ...this.config,
+          lb: dimensoes.largura,
+          dimensoesSvgFundo: {
+            largura: dimensoes.largura,
+            altura: dimensoes.altura,
+            baseadoEm: 'calculo_sincronizado',
+            calculadoEm: new Date().toISOString()
+          }
+        })
+      }
+
+      // Emitir evento para o ModeladorSVG salvar as dimensões sincronizadas
       this.$emit('salvar-dimensoes-modelo', {
         largura: dimensoes.largura,
         altura: dimensoes.altura,
         calculadoEm: new Date().toISOString(),
-        baseadoEm: 'calculo_otimizado'
+        baseadoEm: 'calculo_sincronizado',
+        configLbAtualizado: true
       })
+    },
+
+    // 🔒 NOVO: Normalizar coordenadas para o sistema interno padronizado
+    normalizarCoordenadaParaSistemaInterno(coordenada, tipo = 'x') {
+      const dimensoes = this.dimensoesCalculadas
+      
+      if (tipo === 'x') {
+        // Normalizar coordenada X baseada na largura interna
+        const larguraInterna = dimensoes.largura
+        const coordenadaNormalizada = Math.max(0, Math.min(coordenada, larguraInterna))
+        return Math.round(coordenadaNormalizada * 10) / 10 // Arredondar para 1 casa decimal
+      } else if (tipo === 'y') {
+        // Normalizar coordenada Y baseada na altura interna
+        const alturaInterna = dimensoes.altura
+        const coordenadaNormalizada = Math.max(0, Math.min(coordenada, alturaInterna))
+        return Math.round(coordenadaNormalizada * 10) / 10 // Arredondar para 1 casa decimal
+      }
+      
+      return coordenada
+    },
+
+    // 🔒 NOVO: Converter coordenadas do DOM para sistema interno
+    converterCoordenadaDOMParaInterno(coordenadaDOM, elemento, tipo = 'x') {
+      if (!elemento) return coordenadaDOM
+      
+      const dimensoes = this.dimensoesCalculadas
+      const rectElemento = elemento.getBoundingClientRect()
+      
+      if (tipo === 'x') {
+        // Converter coordenada X do DOM para sistema interno
+        const proporcaoX = dimensoes.largura / rectElemento.width
+        return this.normalizarCoordenadaParaSistemaInterno(coordenadaDOM * proporcaoX, 'x')
+      } else if (tipo === 'y') {
+        // Converter coordenada Y do DOM para sistema interno  
+        const proporcaoY = dimensoes.altura / rectElemento.height
+        return this.normalizarCoordenadaParaSistemaInterno(coordenadaDOM * proporcaoY, 'y')
+      }
+      
+      return coordenadaDOM
+    },
+
+    // 🎯 DRAG AND DROP: Adicionar event listeners
+    adicionarEventListeners() {
+      const svgWrapper = this.$el.querySelector('.svg-wrapper svg')
+      if (!svgWrapper) {
+        console.warn('⚠️ [adicionarEventListeners] SVG wrapper não encontrado')
+        return
+      }
+
+      // Adicionar listeners de mouse para drag and drop
+      svgWrapper.addEventListener('mousedown', this.onMouseDown)
+      document.addEventListener('mousemove', this.onMouseMove)
+      document.addEventListener('mouseup', this.onMouseUp)
+
+      console.log('✅ [adicionarEventListeners] Event listeners de drag and drop adicionados')
+    },
+
+    // 🎯 DRAG AND DROP: Remover event listeners
+    removerEventListeners() {
+      const svgWrapper = this.$el?.querySelector('.svg-wrapper svg')
+      if (svgWrapper) {
+        svgWrapper.removeEventListener('mousedown', this.onMouseDown)
+      }
+      document.removeEventListener('mousemove', this.onMouseMove)
+      document.removeEventListener('mouseup', this.onMouseUp)
+
+      console.log('🗑️ [removerEventListeners] Event listeners removidos')
+    },
+
+    // 🎯 DRAG AND DROP: Mouse down
+    onMouseDown(event) {
+      const elemento = event.target
+      const id = elemento.id
+      
+      if (!id || (!id.startsWith('C') && !id.startsWith('TC'))) {
+        return // Só permitir drag em pêndulos e sensores
+      }
+
+      event.preventDefault()
+      
+      // Determinar tipo de elemento
+      let tipo, numeroPendulo, numeroSensor = null
+      
+      if (id.match(/^C\d+S\d+$/)) {
+        // Sensor individual (ex: C1S1)
+        tipo = 'sensor'
+        const match = id.match(/^C(\d+)S(\d+)$/)
+        numeroPendulo = parseInt(match[1])
+        numeroSensor = parseInt(match[2])
+      } else if (id.match(/^C\d+$/)) {
+        // Pêndulo (ex: C1)
+        tipo = 'pendulo'
+        numeroPendulo = parseInt(id.replace('C', ''))
+      } else {
+        return // ID não reconhecido
+      }
+
+      // Iniciar drag
+      this.isDragging = true
+      this.dragElement = { id, tipo, numeroPendulo, numeroSensor }
+      
+      // Calcular offset inicial
+      const svg = elemento.closest('svg')
+      const rect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - rect.left
+      const mouseY = event.clientY - rect.top
+      
+      // Converter para coordenadas SVG
+      const coordsSVG = this.converterParaCoordenadaSVG(svg, mouseX, mouseY)
+      
+      // Obter posição atual do elemento
+      const elementoRect = elemento.getBBox()
+      this.dragOffset = {
+        x: coordsSVG.x - (elementoRect.x + elementoRect.width / 2),
+        y: coordsSVG.y - (elementoRect.y + elementoRect.height / 2)
+      }
+
+      console.log(`🖱️ [onMouseDown] Iniciando drag:`, {
+        tipo,
+        numeroPendulo,
+        numeroSensor,
+        coordsSVG,
+        offset: this.dragOffset
+      })
+    },
+
+    // 🎯 DRAG AND DROP: Mouse move
+    onMouseMove(event) {
+      if (!this.isDragging || !this.dragElement) return
+
+      event.preventDefault()
+      
+      const svg = this.$el.querySelector('.svg-wrapper svg')
+      if (!svg) return
+
+      const rect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - rect.left
+      const mouseY = event.clientY - rect.top
+      
+      // Converter para coordenadas SVG
+      const coordsSVG = this.converterParaCoordenadaSVG(svg, mouseX, mouseY)
+      
+      // Calcular nova posição
+      const novaX = coordsSVG.x - this.dragOffset.x
+      const novaY = coordsSVG.y - this.dragOffset.y
+      
+      // Aplicar posição temporariamente
+      const elemento = svg.querySelector(`#${this.dragElement.id}`)
+      if (elemento) {
+        if (this.dragElement.tipo === 'pendulo') {
+          // Mover pêndulo
+          elemento.setAttribute('x', novaX - 8) // Ajustar para centro
+          elemento.setAttribute('y', novaY)
+        } else if (this.dragElement.tipo === 'sensor') {
+          // Mover sensor
+          elemento.setAttribute('x', novaX - 8) // Ajustar para centro
+          elemento.setAttribute('y', novaY)
+        }
+      }
+    },
+
+    // 🎯 DRAG AND DROP: Mouse up
+    onMouseUp(event) {
+      if (!this.isDragging || !this.dragElement) return
+
+      const svg = this.$el.querySelector('.svg-wrapper svg')
+      if (!svg) return
+
+      const rect = svg.getBoundingClientRect()
+      const mouseX = event.clientX - rect.left
+      const mouseY = event.clientY - rect.top
+      
+      // Converter para coordenadas SVG
+      const coordsSVG = this.converterParaCoordenadaSVG(svg, mouseX, mouseY)
+      
+      // Calcular posição final
+      const novaX = coordsSVG.x - this.dragOffset.x
+      const novaY = coordsSVG.y - this.dragOffset.y
+      
+      // Salvar posição baseada no tipo
+      if (this.dragElement.tipo === 'pendulo') {
+        // Salvar posição do pêndulo
+        this.$emit('posicao-pendulo-alterada', {
+          numeroPendulo: this.dragElement.numeroPendulo,
+          x: novaX,
+          y: novaY
+        })
+      } else if (this.dragElement.tipo === 'sensor') {
+        // Salvar posição do sensor
+        this.$emit('posicao-sensor-alterada', {
+          numeroPendulo: this.dragElement.numeroPendulo,
+          numeroSensor: this.dragElement.numeroSensor,
+          x: novaX,
+          y: novaY
+        })
+      }
+
+      console.log(`✅ [onMouseUp] Drag finalizado:`, {
+        tipo: this.dragElement.tipo,
+        numeroPendulo: this.dragElement.numeroPendulo,
+        numeroSensor: this.dragElement.numeroSensor,
+        posicaoFinal: { x: novaX, y: novaY }
+      })
+
+      // Limpar estado de drag
+      this.isDragging = false
+      this.dragElement = null
+      this.dragOffset = { x: 0, y: 0 }
+    },
+
+    // 🎯 DRAG AND DROP: Converter coordenadas do mouse para SVG
+    converterParaCoordenadaSVG(svg, mouseX, mouseY) {
+      const viewBox = svg.getAttribute('viewBox')
+      if (!viewBox) return { x: mouseX, y: mouseY }
+      
+      const [minX, minY, width, height] = viewBox.split(' ').map(Number)
+      const svgRect = svg.getBoundingClientRect()
+      
+      const scaleX = width / svgRect.width
+      const scaleY = height / svgRect.height
+      
+      return {
+        x: minX + (mouseX * scaleX),
+        y: minY + (mouseY * scaleY)
+      }
     }
   }
 }
