@@ -8,58 +8,6 @@ const pegarToken = () => {
   return token.startsWith("Bearer ") ? token : `Bearer ${token}`;
 };
 
-// 🎯 SISTEMA DE COORDENADAS BASEADO NO POLÍGONO DO TOPO
-const calcularReferenciaPoligonoTopo = (dimensoes) => {
-  const { pb = 185, lb = 350, hb = 30, ht = 50 } = dimensoes;
-  
-  // Calcular coordenadas do polígono do topo (mesmo cálculo do ArmazemSvg)
-  const pontosCentralizados = [
-    [lb / 2, ht], // Ponto central do topo
-    [lb - 15, ht + 15], // Ponto direito
-    [lb - 15, pb], // Canto inferior direito
-    [15, pb], // Canto inferior esquerdo  
-    [15, ht + 15] // Ponto esquerdo
-  ];
-
-  return {
-    centroX: lb / 2,
-    centroY: ht + (pb - ht) / 2,
-    larguraUtil: lb - 30, // Área útil dentro do polígono
-    alturaUtil: pb - ht - 15,
-    coordenadasPoligono: pontosCentralizados,
-    larguraTotal: lb,
-    alturaTotal: pb + ht
-  };
-};
-
-const converterPosicaoParaReferenciaPoligono = (posicaoAbsoluta, referenciaPoligono) => {
-  // Converter posição absoluta para coordenadas relativas ao polígono
-  const relX = (posicaoAbsoluta.x - referenciaPoligono.centroX) / referenciaPoligono.larguraUtil;
-  const relY = (posicaoAbsoluta.y - referenciaPoligono.centroY) / referenciaPoligono.alturaUtil;
-  
-  return {
-    relX: Math.round(relX * 1000) / 1000, // 3 casas decimais
-    relY: Math.round(relY * 1000) / 1000,
-    referenciaPoligono: {
-      centroX: referenciaPoligono.centroX,
-      centroY: referenciaPoligono.centroY,
-      larguraUtil: referenciaPoligono.larguraUtil,
-      alturaUtil: referenciaPoligono.alturaUtil
-    }
-  };
-};
-
-const converterReferenciaPoligonoParaPosicao = (posicaoRelativa, novaReferenciaPoligono) => {
-  // Converter coordenadas relativas para posição absoluta na nova referência
-  const absX = novaReferenciaPoligono.centroX + (posicaoRelativa.relX * novaReferenciaPoligono.larguraUtil);
-  const absY = novaReferenciaPoligono.centroY + (posicaoRelativa.relY * novaReferenciaPoligono.alturaUtil);
-  
-  return {
-    x: Math.round(absX * 100) / 100,
-    y: Math.round(absY * 100) / 100
-  };
-};
-
 const preservarPosicoesCabos = (dadosSvg) => {
   try {
     const dados = typeof dadosSvg === 'string' ? JSON.parse(dadosSvg) : dadosSvg;
@@ -81,84 +29,21 @@ const preservarPosicoesCabos = (dadosSvg) => {
             fundo: modelo.fundo?.tipo
           });
 
-          // 🎯 CALCULAR REFERÊNCIA DO POLÍGONO PARA ESTE MODELO
-          const referenciaPoligono = calcularReferenciaPoligonoTopo(modelo.dimensoes);
-          
-          // Salvar referência no modelo para reprodução exata
-          modelo.referenciaPoligono = referenciaPoligono;
-          
-          console.log(`📐 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Referência do polígono calculada:`, {
-            centroX: referenciaPoligono.centroX,
-            centroY: referenciaPoligono.centroY,
-            larguraUtil: referenciaPoligono.larguraUtil,
-            alturaUtil: referenciaPoligono.alturaUtil
-          });
-
           // 🔒 PRESERVAR TOTALMENTE as dimensões já salvas - NÃO alterar
           if (modelo.dimensoes) {
             console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Dimensões preservadas INTACTAS:`, modelo.dimensoes);
           }
 
-          // 🔒 CONVERTER E PRESERVAR posições dos pêndulos com base no polígono
+          // 🔒 PRESERVAR posições dos pêndulos
           if (modelo.modeloEspecifico.posicoesPendulos) {
-            const posicoesConvertidas = {};
-            
-            Object.keys(modelo.modeloEspecifico.posicoesPendulos).forEach(numeroPendulo => {
-              const posicaoOriginal = modelo.modeloEspecifico.posicoesPendulos[numeroPendulo];
-              
-              // Converter para coordenadas relativas ao polígono
-              const posicaoRelativa = converterPosicaoParaReferenciaPoligono(
-                { x: posicaoOriginal.x || 0, y: posicaoOriginal.y || 0 },
-                referenciaPoligono
-              );
-              
-              posicoesConvertidas[numeroPendulo] = {
-                ...posicaoOriginal,
-                // Manter posições originais para compatibilidade
-                x: posicaoOriginal.x || 0,
-                y: posicaoOriginal.y || 0,
-                // Adicionar coordenadas relativas ao polígono
-                relPoligonoX: posicaoRelativa.relX,
-                relPoligonoY: posicaoRelativa.relY,
-                referenciaPoligono: posicaoRelativa.referenciaPoligono
-              };
-            });
-            
-            modelo.modeloEspecifico.posicoesPendulos = posicoesConvertidas;
-            
-            const totalPosicoes = Object.keys(posicoesConvertidas).length;
-            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalPosicoes} posições de pêndulos convertidas para referência do polígono`);
+            const totalPosicoes = Object.keys(modelo.modeloEspecifico.posicoesPendulos).length;
+            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalPosicoes} posições de pêndulos preservadas`);
           }
 
-          // 🔒 CONVERTER E PRESERVAR posições manuais dos sensores com base no polígono
+          // 🔒 PRESERVAR posições manuais dos sensores
           if (modelo.modeloEspecifico.posicoesManualSensores) {
-            const sensoresConvertidos = {};
-            
-            Object.keys(modelo.modeloEspecifico.posicoesManualSensores).forEach(chaveSensor => {
-              const posicaoOriginal = modelo.modeloEspecifico.posicoesManualSensores[chaveSensor];
-              
-              // Converter para coordenadas relativas ao polígono
-              const posicaoRelativa = converterPosicaoParaReferenciaPoligono(
-                { x: posicaoOriginal.x || 0, y: posicaoOriginal.y || 0 },
-                referenciaPoligono
-              );
-              
-              sensoresConvertidos[chaveSensor] = {
-                ...posicaoOriginal,
-                // Manter posições originais para compatibilidade
-                x: posicaoOriginal.x || 0,
-                y: posicaoOriginal.y || 0,
-                // Adicionar coordenadas relativas ao polígono
-                relPoligonoX: posicaoRelativa.relX,
-                relPoligonoY: posicaoRelativa.relY,
-                referenciaPoligono: posicaoRelativa.referenciaPoligono
-              };
-            });
-            
-            modelo.modeloEspecifico.posicoesManualSensores = sensoresConvertidos;
-            
-            const totalSensores = Object.keys(sensoresConvertidos).length;
-            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalSensores} posições manuais de sensores convertidas para referência do polígono`);
+            const totalSensores = Object.keys(modelo.modeloEspecifico.posicoesManualSensores).length;
+            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalSensores} posições manuais de sensores preservadas`);
           }
 
           // 🔒 PRESERVAR sensores por pêndulo

@@ -1126,7 +1126,7 @@ export default {
       // Atualizar modelo atual se estiver selecionado
       if (this.modeloArcoAtual) {
         this.modelosArcos[this.modeloArcoAtual].config = { ...this.configArmazem }
-        this.salvarModeloAtualCompleto()
+        this.salvarModelosAutomatico()
       }
     },
 
@@ -1741,7 +1741,7 @@ export default {
             const resultado = this.construirAlturasSensores(
               this.posicoesManualPendulos,
               this.posicoesManualSensores,
-              this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo
+              this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo
             )
             return resultado.alturasSensores || {}
           })(),
@@ -3774,7 +3774,7 @@ export default {
       this.modelosSalvos = { 1: true }
       this.configArmazem = { ...dados }
 
-      this.mostrarToast(`Configuração simples "${nome}" convertida para o novo formato hierárquico!`, 'info')
+      this.mostrarToast(`Configuração simples "${nome}" convertida para novo formato!`, 'info')
     },
 
     // Métodos do Gerenciador de Configurações
@@ -4013,7 +4013,7 @@ export default {
 
     adicionarListenersSensores() {
       // Capturar fundo, texto e nome dos sensores
-      const elementosSensores = document.querySelectorAll('[id^="C"][id*="S"], [id^="TC"][id*="S"], [id^="TIND"][id*="S"]')
+      const elementosSensores = document.querySelectorAll('[id^="C"][id*="S"], [id^="TC"][id*="S"], [id^="TIND"]')
 
       elementosSensores.forEach(elemento => {
         const id = elemento.id
@@ -4263,12 +4263,10 @@ export default {
         this.posicoesManualPendulos[numeroPendulo] = { x: 0, y: 0 }
       }
 
-      // 🎯 SISTEMA SIMPLIFICADO: Salvar exatamente onde foi solto
-      this.posicoesManualPendulos[numeroPendulo].x = novaX
-      this.posicoesManualPendulos[numeroPendulo].y = novaY
-      this.posicoesManualPendulos[numeroPendulo].timestamp = Date.now()
-
-      console.log(`📍 [SIMPLES] P${numeroPendulo} salvo em:`, { x: novaX, y: novaY })
+      // Calcular diferença da posição original
+      const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+      this.posicoesManualPendulos[numeroPendulo].x = novaX - posicaoOriginal.x
+      this.posicoesManualPendulos[numeroPendulo].y = novaY - posicaoOriginal.y
 
       // Atualizar posições de todos os sensores deste pêndulo junto
       const sensoresCount = this.obterQuantidadeSensoresPendulo(numeroPendulo)
@@ -4985,7 +4983,7 @@ export default {
   background: white;
   border-radius: 4px;
   padding: 6px;
-  box-shadow: 0 1px3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .mobile-badge {
