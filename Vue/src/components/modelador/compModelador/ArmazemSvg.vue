@@ -335,10 +335,10 @@ export default {
       // (Os sensores são renderizados mas não afetam as dimensões do ViewBox)
       const espacoSensores = 0
 
-      // 🎯 ALTURA TOTAL COMPLETA - REDUZIDA EM 80PX (MANTENDO ViewBox 0 0 350 225)
+      // 🔧 CORRIGIDO: Altura natural sem ajustes arbitrários para alinhamento com ModeladorSVG
       const margemTopo = 25
       const margemBase = 15
-      const alturaTotal = margemTopo + alturaTelho + alturaCorpo + extensaoFundo + espacoSensores + margemBase - 80
+      const alturaTotal = margemTopo + alturaTelho + alturaCorpo + extensaoFundo + espacoSensores + margemBase
 
       console.log(`✅ [DIMENSÕES RESPONSIVAS] Calculadas:`, {
         largura: larguraBase,
@@ -628,46 +628,20 @@ export default {
       const posicao_vertical = config.posicao_vertical || 0
       const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
-      // 🎯 POSICIONAMENTO OTIMIZADO DOS SENSORES (sem espaço desnecessário)
-      const pb = config.pb || 185
-      const yPendulo = pb + 10 + posicao_vertical // Reduzir espaçamento
-
+      // 🔧 CORRIGIDO: Usar largura do viewBox para manter alinhamento correto
       const totalCabos = estruturaPendulos.pendulos.length
+      const larguraTotal = this.dimensoesCalculadas.largura  // Usar largura real do viewBox
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
-      // 🎯 CALCULAR POSIÇÕES DOS CABOS DINAMICAMENTE IGUAL ModeladorSVG.vue
-      const larguraTotal = config.lb || this.dimensoesCalculadas.largura || 350
-      const margemLateral = 35  // EXATAMENTE igual ModeladorSVG
-      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
-      const posicoesCabosCalculadas = []
-
-      if (totalCabos === 1) {
-        posicoesCabosCalculadas.push(larguraTotal / 2)
-      } else {
-        const espacamento = larguraUtilizavel / (totalCabos - 1)
-        for (let i = 0; i < totalCabos; i++) {
-          posicoesCabosCalculadas.push(margemLateral + (i * espacamento))
-        }
-      }
-
-      console.log(`🎯 [ArmazemSvg] Cálculo DINÂMICO igual ModeladorSVG:`, {
+      console.log(`🎯 [ArmazemSvg] Usando calcularPosicaoOriginalPendulo como fonte única:`, {
         larguraTotal,
-        margemLateral,
-        larguraUtilizavel,
-        totalCabos,
-        espacamento: totalCabos > 1 ? larguraUtilizavel / (totalCabos - 1) : 0,
-        posicoesCabosCalculadas
+        totalCabos
       })
 
       estruturaPendulos.pendulos.forEach((pendulo, index) => {
-        // 📏 USAR POSIÇÕES CALCULADAS DINAMICAMENTE (igual ModeladorSVG)
-        const xCaboBase = posicoesCabosCalculadas[index]
+        // 🔧 CORRIGIDO: Usar fonte única de verdade para posições
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
-
-        // 🎯 APLICAR OFFSET INDIVIDUAL DO PÊNDULO (apenas para o pêndulo, não influenciar sensores)
-        let offsetPenduloX = 0
-        let offsetPenduloY = 0
 
         console.log(`🔍 [renderSensoresArmazem] P${pendulo.numero} - Verificando posições do pêndulo:`, {
           temPosicoesManualPendulos: !!(this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]),
@@ -676,7 +650,7 @@ export default {
           temPosicoesCabos: !!(this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero])
         })
 
-        // 🎯 CALCULAR POSIÇÃO ORIGINAL DO PÊNDULO (IGUAL ModeladorSVG.vue)
+        // 🎯 FONTE ÚNICA DE VERDADE: Calcular posição original do pêndulo (IGUAL ModeladorSVG.vue)
         const posicaoOriginalPendulo = this.calcularPosicaoOriginalPendulo(pendulo.numero, totalCabos, larguraTotal)
         let xCaboFinal = posicaoOriginalPendulo.x
         let yPenduloFinal = posicaoOriginalPendulo.y
@@ -961,28 +935,75 @@ export default {
       })
     },
 
-    // 🎯 NOVO: Calcular posição original do pêndulo (IGUAL ModeladorSVG.vue)
+    // 🎯 CORRIGIDO: Calcular posição baseada nos limites do fundo (área cinza claro)
     calcularPosicaoOriginalPendulo(numeroPendulo, totalCabos, larguraTotal) {
       const config = this.config
-      const pb = (config.pb || this.dimensoesCalculadas.altura - 50) + (this.dimensoesCalculadas.altura < 300 ? 0 : 50)
+      
+      // 🎯 CALCULAR LIMITES DO FUNDO com todos os parâmetros (incluindo deslocamentos)
+      const limitesFundo = this.calcularLimitesFundoCompleto(config)
+      
+      // 🎯 Y: Posição baseada no pb (base do armazém)
+      const pb = config.pb || 185
       const posicao_horizontal = config.posicao_horizontal || 0
       const posicao_vertical = config.posicao_vertical || 0
-
       const yPendulo = pb + 15 + posicao_vertical
 
-      // 🎯 DISTRIBUIÇÃO DINÂMICA IGUAL ModeladorSVG.vue
-      const margemLateral = 35  // EXATAMENTE igual ModeladorSVG
-      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
-
+      // 🎯 X: Distribuir dentro da área útil do fundo (não na largura total do SVG)
       let xCabo
       if (totalCabos === 1) {
-        xCabo = larguraTotal / 2
+        xCabo = limitesFundo.centro
       } else {
-        const espacamento = larguraUtilizavel / (totalCabos - 1)
-        xCabo = margemLateral + ((numeroPendulo - 1) * espacamento)
+        const espacamento = limitesFundo.larguraUtil / (totalCabos - 1)
+        xCabo = limitesFundo.xMinimo + ((numeroPendulo - 1) * espacamento)
       }
 
-      return { x: xCabo + posicao_horizontal, y: yPendulo }
+      // 🎯 APLICAR offset ANTES da validação e VALIDAR posição final considerando escala do sensor
+      const escala_sensores = config.escala_sensores || 16
+      const xComOffset = xCabo + posicao_horizontal
+      const xFinal = this.validarPosicaoDentroDoFundo(xComOffset, limitesFundo, escala_sensores)
+
+      return { x: xFinal, y: yPendulo }
+    },
+
+    // 🎯 FUNÇÃO COMPLETA: Calcular limites do fundo com deslocamentos
+    calcularLimitesFundoCompleto(config) {
+      const lb = config.lb || 350; // Largura do armazém
+      const lf = config.lf || 250; // Largura do fundo
+      const deslocamento_horizontal_fundo = config.deslocamento_horizontal_fundo || 0
+
+      // Calcular limites do fundo considerando deslocamento horizontal
+      const inicioFundo = (lb - lf) / 2 + deslocamento_horizontal_fundo; 
+      const fimFundo = inicioFundo + lf; 
+
+      // Margem de segurança para os sensores não ficarem na borda
+      const margemSeguranca = 20;
+
+      return {
+        xMinimo: inicioFundo + margemSeguranca,
+        xMaximo: fimFundo - margemSeguranca,
+        larguraUtil: (fimFundo - inicioFundo) - (2 * margemSeguranca),
+        centro: (inicioFundo + fimFundo) / 2  // Centro do fundo com deslocamento
+      };
+    },
+
+    // 🎯 FUNÇÃO AUXILIAR: Validar posição considerando escala do sensor
+    validarPosicaoDentroDoFundo(posicao, limitesFundo, escala_sensores = 16) {
+      const metadeEscala = escala_sensores / 2;
+
+      // Garantir que o sensor inteiro (incluindo sua largura) fique dentro do fundo
+      const xMinimo = limitesFundo.xMinimo + metadeEscala;
+      const xMaximo = limitesFundo.xMaximo - metadeEscala;
+
+      // Ajustar posição se estiver fora dos limites
+      if (posicao < xMinimo) {
+        return xMinimo;
+      }
+
+      if (posicao > xMaximo) {
+        return xMaximo;
+      }
+
+      return posicao;
     },
 
     // 🎯 NOVO: Calcular posição original do sensor (IGUAL ModeladorSVG.vue)

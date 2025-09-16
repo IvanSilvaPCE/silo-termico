@@ -3746,32 +3746,79 @@ export default {
     },
 
     calcularPosicaoOriginalPendulo(numeroPendulo) {
-      // 🎯 USAR MESMA LÓGICA DE DISTRIBUIÇÃO DO ArmazemSvg.vue
+      // 🎯 USAR LIMITES DO FUNDO (área cinza claro) IGUAL ArmazemSvg.vue
       const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
-      const pb = (config.pb || this.alturaSVG - 50) + (this.alturaSVG < 300 ? 0 : 50)
+      
+      // 🎯 CALCULAR LIMITES DO FUNDO com todos os parâmetros (incluindo deslocamentos)
+      const limitesFundo = this.calcularLimitesFundoCompleto(config)
+      
+      // 🎯 Y: Posição baseada no pb (base do armazém)
+      const pb = config.pb || 185
       const posicao_horizontal = config.posicao_horizontal || 0
       const posicao_vertical = config.posicao_vertical || 0
-
       const yPendulo = pb + 15 + posicao_vertical
 
-      // 🎯 DISTRIBUIÇÃO DINÂMICA IGUAL ArmazemSvg.vue
+      // 🎯 X: Distribuir dentro da área útil do fundo (não na largura total do SVG)
       const arcoInfo = this.analiseArcos?.arcos[this.arcoAtual]
-      if (!arcoInfo) return { x: 0, y: yPendulo }
+      if (!arcoInfo) return { x: limitesFundo.centro, y: yPendulo }
 
       const totalCabos = arcoInfo.pendulos.length
-      const larguraTotal = config.lb || this.larguraSVG || 350
-      const margemLateral = 35  // EXATAMENTE igual ArmazemSvg
-      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
-
+      
       let xCabo
       if (totalCabos === 1) {
-        xCabo = larguraTotal / 2
+        xCabo = limitesFundo.centro
       } else {
-        const espacamento = larguraUtilizavel / (totalCabos - 1)
-        xCabo = margemLateral + ((numeroPendulo - 1) * espacamento)
+        const espacamento = limitesFundo.larguraUtil / (totalCabos - 1)
+        xCabo = limitesFundo.xMinimo + ((numeroPendulo - 1) * espacamento)
       }
 
-      return { x: xCabo + posicao_horizontal, y: yPendulo }
+      // 🎯 APLICAR offset ANTES da validação e VALIDAR posição final considerando escala do sensor
+      const escala_sensores = config.escala_sensores || 16
+      const xComOffset = xCabo + posicao_horizontal
+      const xFinal = this.validarPosicaoDentroDoFundo(xComOffset, limitesFundo, escala_sensores)
+
+      return { x: xFinal, y: yPendulo }
+    },
+
+    // 🎯 FUNÇÃO COMPLETA: Calcular limites do fundo com deslocamentos
+    calcularLimitesFundoCompleto(config) {
+      const lb = config.lb || 350; // Largura do armazém
+      const lf = config.lf || 250; // Largura do fundo
+      const deslocamento_horizontal_fundo = config.deslocamento_horizontal_fundo || 0
+
+      // Calcular limites do fundo considerando deslocamento horizontal
+      const inicioFundo = (lb - lf) / 2 + deslocamento_horizontal_fundo; 
+      const fimFundo = inicioFundo + lf; 
+
+      // Margem de segurança para os sensores não ficarem na borda
+      const margemSeguranca = 20;
+
+      return {
+        xMinimo: inicioFundo + margemSeguranca,
+        xMaximo: fimFundo - margemSeguranca,
+        larguraUtil: (fimFundo - inicioFundo) - (2 * margemSeguranca),
+        centro: (inicioFundo + fimFundo) / 2  // Centro do fundo com deslocamento
+      };
+    },
+
+    // 🎯 FUNÇÃO AUXILIAR: Validar posição considerando escala do sensor
+    validarPosicaoDentroDoFundo(posicao, limitesFundo, escala_sensores = 16) {
+      const metadeEscala = escala_sensores / 2;
+
+      // Garantir que o sensor inteiro (incluindo sua largura) fique dentro do fundo
+      const xMinimo = limitesFundo.xMinimo + metadeEscala;
+      const xMaximo = limitesFundo.xMaximo - metadeEscala;
+
+      // Ajustar posição se estiver fora dos limites
+      if (posicao < xMinimo) {
+        return xMinimo;
+      }
+
+      if (posicao > xMaximo) {
+        return xMaximo;
+      }
+
+      return posicao;
     },
 
     calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor) {
