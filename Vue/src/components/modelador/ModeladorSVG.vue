@@ -130,33 +130,7 @@
                 <!-- Renderização condicional baseada no tipo -->
                 <template v-if="tipoAtivo === 'silo'">
                   <!-- Container da imagem de fundo para Silo -->
-                  <div v-if="imagemFundoData.url"
-                       class="position-absolute d-flex align-items-center justify-content-center"
-                       :style="{
-                         top: '0',
-                         left: '0',
-                         width: '100%',
-                         height: '100%',
-                         zIndex: 1,
-                         overflow: 'hidden',
-                         borderRadius: '4px'
-                       }">
-                    <img
-                      :src="imagemFundoData.url"
-                      :style="{
-                        position: 'relative',
-                        left: imagemFundoData.x + 'px',
-                        top: imagemFundoData.y + 'px',
-                        transform: `scale(${imagemFundoData.scale})`,
-                        transformOrigin: 'center center',
-                        opacity: imagemFundoData.opacity,
-                        maxWidth: 'none',
-                        maxHeight: 'none',
-                        userSelect: 'none',
-                        pointerEvents: 'none',
-                        transition: 'all 0.3s ease-in-out'
-                      }">
-                  </div>
+                  <ImagemFundoContainer :imagem-fundo-data="imagemFundoData" />
 
                   <!-- SVG Silo com transparência se houver imagem de fundo -->
                   <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
@@ -181,33 +155,7 @@
                 <!-- Componente Armazem para Armazém -->
                 <template v-else>
                   <!-- Container da imagem de fundo para Armazém -->
-                  <div v-if="imagemFundoData.url"
-                       class="position-absolute d-flex align-items-center justify-content-center"
-                       :style="{
-                         top: '0',
-                         left: '0',
-                         width: '100%',
-                         height: '100%',
-                         zIndex: 1,
-                         overflow: 'hidden',
-                         borderRadius: '4px'
-                       }">
-                    <img
-                      :src="imagemFundoData.url"
-                      :style="{
-                        position: 'relative',
-                        left: imagemFundoData.x + 'px',
-                        top: imagemFundoData.y + 'px',
-                        transform: `scale(${imagemFundoData.scale})`,
-                        transformOrigin: 'center center',
-                        opacity: imagemFundoData.opacity,
-                        maxWidth: 'none',
-                        maxHeight: 'none',
-                        userSelect: 'none',
-                        pointerEvents: 'none',
-                        transition: 'all 0.3s ease-in-out'
-                      }">
-                  </div>
+                  <ImagemFundoContainer :imagem-fundo-data="imagemFundoData" />
 
                   <!-- ArmazemSvg com transparência se houver imagem de fundo -->
                   <div :style="{
@@ -262,104 +210,37 @@
                 </div>
               </div>
 
-              <!-- Mobile First: Layout para pequenas telas -->
-              <div class="d-block d-md-none mobile-navigation">
-                <!-- Linha 1: Navegação compacta -->
-                <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1 mobile-nav-buttons">
-                  <button type="button" class="btn btn-outline-primary btn-sm nav-btn"
-                    @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1"
-                    title="Arco anterior">
-                    ←
-                  </button>
-                  <select class="form-select form-select-sm text-center mx-1 mobile-select" v-model.number="arcoAtual"
-                    @change="mudarArco(arcoAtual, false)">
-                    <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
-                      {{ numeroArco }}
-                    </option>
-                  </select>
-                  <button type="button" class="btn btn-outline-primary btn-sm nav-btn"
-                    @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
-                    :disabled="arcoAtual >= analiseArcos.totalArcos" title="Próximo arco">
-                    →
-                  </button>
-                </div>
-
-                <!-- Linha 2: Informações compactas -->
-                <div class="text-center mobile-info">
-                  <div class="mb-1">
-                    <small><strong>{{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong></small>
-                    <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1 mobile-badge">EDIT</span>
-                    <span v-if="configuracaoPreviewSelecionada"
-                      class="badge bg-success text-white ms-1 mobile-badge">BANCO</span>
-                  </div>
-                  <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1 mobile-badges">
-                    <span class="badge bg-info text-white mobile-badge">
-                      {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }}P
-                    </span>
-                    <span class="badge bg-secondary text-white mobile-badge">
-                      {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }}S
-                    </span>
-                    <span :class="getBadgeClass()" style="color: white;" class="mobile-badge">
-                      {{ getBadgeText() }}
-                    </span>
-                  </div>
-                  <small class="text-muted d-block mobile-model-name">{{
-                    determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão' }}</small>
-                </div>
+              <!-- Navegação mobile/desktop consolidada -->
+              <div class="d-block d-md-none">
+                <NavegacaoArcos
+                  :is-mobile="true"
+                  :arco-atual="arcoAtual"
+                  :total-arcos="analiseArcos.totalArcos"
+                  :total-pendulos="analiseArcos.arcos[arcoAtual]?.totalPendulos || 0"
+                  :total-sensores="analiseArcos.arcos[arcoAtual]?.totalSensores || 0"
+                  :badge-class="getBadgeClass()"
+                  :badge-text="getBadgeText()"
+                  :nome-modelo="determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'"
+                  :modelo-editando="!!modeloArcoAtual"
+                  :configuracao-banco="!!configuracaoPreviewSelecionada"
+                  @mudar-arco="mudarArco($event, false)"
+                />
               </div>
 
-              <!-- Desktop: Layout para telas médias e grandes -->
               <div class="d-none d-md-block">
-                <div class="row g-1 align-items-center">
-                  <!-- Navegação -->
-                  <div class="col-md-4 col-lg-3">
-                    <div class="d-flex align-items-center justify-content-center justify-content-lg-start">
-                      <button type="button" class="btn btn-outline-primary btn-sm me-1"
-                        @click="mudarArco(Math.max(1, arcoAtual - 1), false)" :disabled="arcoAtual <= 1"
-                        title="Arco anterior">
-                        ← Anterior
-                      </button>
-                      <select class="form-select form-select-sm mx-1" style="min-width: 100px; max-width: 120px;"
-                        v-model.number="arcoAtual" @change="mudarArco(arcoAtual, false)">
-                        <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
-                          Arco {{ numeroArco }}
-                        </option>
-                      </select>
-                      <button type="button" class="btn btn-outline-primary btn-sm ms-1"
-                        @click="mudarArco(Math.min(analiseArcos.totalArcos, arcoAtual + 1), false)"
-                        :disabled="arcoAtual >= analiseArcos.totalArcos" title="Próximo arco">
-                        Próximo →
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Informações do Arco -->
-                  <div class="col-md-4 col-lg-3 text-center">
-                    <div>
-                      <strong class="text-nowrap">Arco {{ arcoAtual }}/{{ analiseArcos.totalArcos }}</strong>
-                      <span v-if="modeloArcoAtual" class="badge bg-warning text-dark ms-1">EDITANDO</span>
-                      <span v-if="configuracaoPreviewSelecionada" class="badge bg-success text-white ms-1">BANCO</span>
-                    </div>
-                    <small class="text-muted d-block">{{ determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'
-                    }}</small>
-                  </div>
-
-                  <!-- Badges de Contadores -->
-                  <div class="col-md-4 col-lg-6 text-center text-md-end">
-                    <div
-                      class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
-                      <span class="badge bg-info text-white">
-                        {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
-                      </span>
-                      <span class="badge bg-secondary text-white">
-                        {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }} Sensores
-                      </span>
-                      <span :class="getBadgeClass()" style="color: white;">
-                        {{ getBadgeText() }}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <NavegacaoArcos
+                  :is-mobile="false"
+                  :arco-atual="arcoAtual"
+                  :total-arcos="analiseArcos.totalArcos"
+                  :total-pendulos="analiseArcos.arcos[arcoAtual]?.totalPendulos || 0"
+                  :total-sensores="analiseArcos.arcos[arcoAtual]?.totalSensores || 0"
+                  :badge-class="getBadgeClass()"
+                  :badge-text="getBadgeText()"
+                  :nome-modelo="determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'"
+                  :modelo-editando="!!modeloArcoAtual"
+                  :configuracao-banco="!!configuracaoPreviewSelecionada"
+                  @mudar-arco="mudarArco($event, false)"
+                />
               </div>
             </div>
           </div>
@@ -384,8 +265,70 @@ import GerenciadorModelosBanco from './compModelador/GerenciadorModelosBanco.vue
 import GerenciadorConfiguracoes from './compModelador/GerenciadorConfiguracoes.vue'
 
 import ImagemFundo from './compModelador/ImagemFundo.vue'
+import ImagemFundoContainer from './compModelador/ImagemFundoContainer.vue'
+import NavegacaoArcos from './compModelador/NavegacaoArcos.vue'
 import Armazem from './compModelador/ArmazemSvg.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
+import { configuracaoService } from './services/configuracaoService.js'
+
+// Funções factory para configurações padrão que retornam deep copies
+// para evitar mutação compartilhada dos arrays
+function getDefaultSiloConfig() {
+  return {
+    lb: 200,
+    hs: 180,
+    hb: 15,
+    eb: 5,
+    escala_sensores: 16,
+    dist_y_sensores: 12,
+    pos_x_cabos_uniforme: 1,
+    pos_x_cabo: [50, 25], // Array criado novo a cada chamada
+    pos_y_cabo: [160, 160, 160, 160, 160], // Array criado novo a cada chamada
+    aeradores_ativo: false,
+    na: 4,
+    ds: 30,
+    dy: 0,
+    da: 35
+  }
+}
+
+function getDefaultArmazemConfig() {
+  return {
+    pb: 185,
+    lb: 350,
+    hb: 30,
+    hf: 6,
+    lf: 250,
+    le: 15,
+    ht: 50,
+    tipo_telhado: 1,
+    curvatura_topo: 30,
+    pontas_redondas: false,
+    raio_pontas: 15,
+    estilo_laterais: 'reta',
+    curvatura_laterais: 0,
+    tipo_fundo: 0,
+    altura_fundo_reto: 10,
+    altura_funil_v: 18,
+    posicao_ponta_v: 0,
+    inclinacao_funil_v: 1,
+    largura_abertura_v: 20,
+    altura_duplo_v: 22,
+    posicao_v_esquerdo: -1,
+    posicao_v_direito: 1,
+    largura_abertura_duplo_v: 2,
+    altura_plataforma_duplo_v: 0.3,
+    largura_plataforma_duplo_v: 10,
+    deslocamento_horizontal_fundo: 0,
+    deslocamento_vertical_fundo: -1,
+    escala_sensores: 16,
+    dist_y_sensores: 12,
+    dist_x_sensores: 0,
+    posicao_horizontal: 0,
+    posicao_vertical: 0,
+    afastamento_vertical_pendulo: 0
+  }
+}
 
 export default {
   name: 'ModeladorSVG',
@@ -403,64 +346,17 @@ export default {
     GerenciadorConfiguracoes,
 
     ImagemFundo,
+    ImagemFundoContainer,
+    NavegacaoArcos,
     Armazem
   },
   data() {
     return {
       // Estados para configurações do Silo
-      configSilo: {
-        lb: 200,
-        hs: 180,
-        hb: 15,
-        eb: 5,
-        escala_sensores: 16,
-        dist_y_sensores: 12,
-        pos_x_cabos_uniforme: 1,
-        pos_x_cabo: [50, 25],
-        pos_y_cabo: [160, 160, 160, 160, 160],
-        aeradores_ativo: false,
-        na: 4,
-        ds: 30,
-        dy: 0,
-        da: 35
-      },
+      configSilo: getDefaultSiloConfig(),
 
       // Estados para configurações do Armazém
-      configArmazem: {
-        pb: 185,
-        lb: 350,
-        hb: 30,
-        hf: 6,
-        lf: 250,
-        le: 15,
-        ht: 50,
-        tipo_telhado: 1,
-        curvatura_topo: 30,
-        pontas_redondas: false,
-        raio_pontas: 15,
-        estilo_laterais: 'reta',
-        curvatura_laterais: 0,
-        tipo_fundo: 0,
-        altura_fundo_reto: 10,
-        altura_funil_v: 18,
-        posicao_ponta_v: 0,
-        inclinacao_funil_v: 1,
-        largura_abertura_v: 20,
-        altura_duplo_v: 22,
-        posicao_v_esquerdo: -1,
-        posicao_v_direito: 1,
-        largura_abertura_duplo_v: 2,
-        altura_plataforma_duplo_v: 0.3,
-        largura_plataforma_duplo_v: 10,
-        deslocamento_horizontal_fundo: 0,
-        deslocamento_vertical_fundo: -1,
-        escala_sensores: 16,
-        dist_y_sensores: 12,
-        dist_x_sensores: 0,
-        posicao_horizontal: 0,
-        posicao_vertical: 0,
-        afastamento_vertical_pendulo: 0
-      },
+      configArmazem: getDefaultArmazemConfig(),
 
       // Estados para modelos de arcos
       quantidadeModelosArcos: 1,
@@ -514,6 +410,7 @@ export default {
       posicoesManualPendulos: {},
       posicoesManualSensores: {},
       saveTimeout: null, // Para debounce do salvamento
+      _globalsAdded: false, // 🔧 Estado específico da instância para listeners globais
 
       // NOVOS ESTADOS REATIVOS ADICIONADOS PARA CORREÇÃO DE ERRO
       modelosAtualizados: false, // Indica se houve alterações nos modelos que precisam ser salvas
@@ -704,9 +601,9 @@ export default {
     this.inicializarPosicoesCabos()
     this.updateSVG()
 
-    // Adicionar event listeners para drag and drop
+    // 🔧 CORREÇÃO: Usar método centralizado e idempotente
     this.$nextTick(() => {
-      this.adicionarEventListeners()
+      this.reestabelecerEventListenersSeguro()
     })
   },
 
@@ -739,10 +636,10 @@ export default {
     dados: {
       handler() {
         if (this.tipoAtivo === 'armazem' && this.dados) {
-          // Aguardar um pouco mais para garantir que o SVG foi renderizado
-          setTimeout(() => {
-            this.adicionarEventListeners()
-          }, 100)
+          // 🔧 CORREÇÃO: Usar método centralizado sem timeout arbitrário
+          this.$nextTick(() => {
+            this.reestabelecerEventListenersSeguro()
+          })
         }
       },
       deep: true
@@ -786,7 +683,6 @@ export default {
               localStorage.removeItem('dadosArcoParaModelador')
               localStorage.removeItem('timestampArcoModelador')
 
-              console.log('Dados recebidos do preview do armazém foram carregados com sucesso.')
               return true
             }
           }
@@ -802,7 +698,6 @@ export default {
         // Se já recebeu dados do preview, não precisar recarregar
         const dadosRecebidos = await this.verificarDadosArcoRecebidos()
         if (dadosRecebidos) {
-          console.log('Usando dados recebidos do preview, pulando inicialização padrão')
           return
         }
 
@@ -919,12 +814,6 @@ export default {
       const dadosConvertidos = this.converterDadosParaRenderizacao(dadosExemplo, 1)
       this.dados = dadosConvertidos
 
-      console.log('Dados exemplares criados para o armazém:', {
-        analise,
-        layouts,
-        dimensoes,
-        dadosConvertidos
-      })
     },
 
     // Analisar estrutura dos arcos baseada na nova estrutura da API
@@ -1091,7 +980,6 @@ export default {
     },
 
     onTipoChange() {
-      console.log('🔄 [onTipoChange] Mudando tipo para:', this.tipoAtivo)
 
       // Recarregar modelos do banco quando mudar o tipo
       this.carregarModelosDoBanco()
@@ -1101,7 +989,6 @@ export default {
       // Se mudou para armazém e não tem dados, criar dados exemplares
       if (this.tipoAtivo === 'armazem') {
         if (!this.dadosPortal || !this.analiseArcos || !this.layoutsAutomaticos) {
-          console.log('📊 [onTipoChange] Criando dados exemplares para armazém')
           this.criarDadosExemplaresArmazem()
         }
         // Garantir que o modelo padrão esteja configurado
@@ -1113,7 +1000,6 @@ export default {
       // Forçar atualização do SVG
       this.$nextTick(() => {
         this.updateSVG()
-        console.log('✅ [onTipoChange] SVG atualizado para tipo:', this.tipoAtivo)
       })
     },
 
@@ -1131,7 +1017,6 @@ export default {
     },
 
     onDimensoesAlteradas(data) {
-      console.log('📐 [ModeladorSVG] Dimensões alteradas:', data)
 
       // Forçar atualização do SVG
       this.updateSVG()
@@ -1144,18 +1029,6 @@ export default {
         // Salvar modelo completo para persistir as dimensões
         this.salvarModeloAtualCompleto()
 
-        console.log('💾 [ModeladorSVG] Dimensões salvas no modelo:', {
-          modelo: this.modeloArcoAtual,
-          dimensoes: {
-            pb: this.configArmazem.pb,
-            lb: this.configArmazem.lb,
-            hb: this.configArmazem.hb,
-            hf: this.configArmazem.hf,
-            lf: this.configArmazem.lf,
-            le: this.configArmazem.le,
-            ht: this.configArmazem.ht
-          }
-        })
       }
     },
 
@@ -1320,25 +1193,8 @@ export default {
       }
     },
 
-    getDescricaoModelo(modeloNum) {
-      if (this.quantidadeModelosArcos === 1) {
-        return 'todos'
-      } else if (this.quantidadeModelosArcos === 2) {
-        return modeloNum === 1 ? 'par' : 'impar'
-      } else if (this.quantidadeModelosArcos === 3) {
-        if (modeloNum === 1) return 'frente/fundo'
-        else if (modeloNum === 2) return 'par'
-        else return 'impar'
-      } else if (this.quantidadeModelosArcos === 4) {
-        if (modeloNum === 1) return 'frente'
-        else if (modeloNum === 2) return 'par'
-        else if (modeloNum === 3) return 'impar'
-        else return 'fundo'
-      }
-      return ''
-    },
-
-    determinarPosicaoDoModelo(numeroModelo, quantidadeModelos) {
+    // Método auxiliar para mapear número do modelo para tipo/posição
+    determinarTipoPorNumeroModelo(numeroModelo, quantidadeModelos) {
       if (quantidadeModelos === 1) {
         return 'todos'
       } else if (quantidadeModelos === 2) {
@@ -1356,106 +1212,143 @@ export default {
       return 'todos'
     },
 
-    determinarModeloParaArco(numeroArco) {
-      const totalArcos = this.analiseArcos?.totalArcos || 1
-      const quantidadeModelos = Object.keys(this.modelosArcos || {}).length
+    getDescricaoModelo(modeloNum) {
+      const tipo = this.determinarTipoPorNumeroModelo(modeloNum, this.quantidadeModelosArcos)
+      
+      const descricoesPorTipo = {
+        'todos': 'todos',
+        'par': 'par',
+        'impar': 'impar',
+        'frente_fundo': 'frente/fundo',
+        'frente': 'frente',
+        'fundo': 'fundo'
+      }
+      
+      return descricoesPorTipo[tipo] || ''
+    },
 
-      if (!this.modelosArcos || quantidadeModelos === 0) {
+    determinarPosicaoDoModelo(numeroModelo, quantidadeModelos) {
+      return this.determinarTipoPorNumeroModelo(numeroModelo, quantidadeModelos)
+    },
+
+    determinarModeloParaArco(numeroArco) {
+      if (!this.modelosArcos || Object.keys(this.modelosArcos).length === 0) {
         return null
       }
 
-      // 1 modelo: todos os arcos usam o mesmo modelo
-      if (quantidadeModelos === 1) {
+      // Usar a lógica consolidada de determinação de tipo
+      const analiseArcos = { totalArcos: this.analiseArcos?.totalArcos || 1 }
+      const quantidadeModelos = Object.keys(this.modelosArcos).length
+      
+      // Simular o contexto necessário para determinarTipoArco
+      const contextoTemporario = {
+        analiseArcos,
+        quantidadeModelosArcos: quantidadeModelos,
+        arcoAtual: numeroArco
+      }
+      
+      const tipoArco = this.determinarTipoArcoParaContexto(contextoTemporario)
+      
+      // Buscar modelo pela posição/tipo
+      if (tipoArco === 'todos') {
         return this.modelosArcos[1] || null
       }
+      
+      return Object.values(this.modelosArcos).find(modelo => 
+        modelo && modelo.posicao === tipoArco
+      ) || this.modelosArcos[1] || null
+    },
 
-      // 2 modelos: começa com ímpar (1º, 3º, 5º...), depois par (2º, 4º, 6º...)
-      if (quantidadeModelos === 2) {
-        const isImpar = numeroArco % 2 === 1
-        const posicaoProcurada = isImpar ? 'impar' : 'par'
-        return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
-      }
-
-      // 3 modelos: 1º e último = frente_fundo, depois par e ímpar intercalados
-      if (quantidadeModelos === 3) {
-        if (numeroArco === 1 || numeroArco === totalArcos) {
-          return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'frente_fundo') || this.modelosArcos[1] || null
+    // Versão reutilizável do determinarTipoArco que aceita contexto customizado
+    determinarTipoArcoParaContexto(contexto) {
+      if (!contexto.analiseArcos) return 'todos'
+      
+      const { quantidadeModelosArcos, arcoAtual } = contexto
+      const totalArcos = contexto.analiseArcos.totalArcos
+      
+      if (quantidadeModelosArcos === 1) {
+        return 'todos'
+      } else if (quantidadeModelosArcos === 2) {
+        return arcoAtual % 2 === 1 ? 'impar' : 'par'
+      } else if (quantidadeModelosArcos === 3) {
+        if (arcoAtual === 1 || arcoAtual === totalArcos) {
+          return 'frente_fundo'
+        } else {
+          return arcoAtual % 2 === 0 ? 'par' : 'impar'
         }
-        // Para arcos intermediários: a partir do 2º arco, par primeiro, depois ímpar
-        const isParIntermediario = numeroArco % 2 === 0
-        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
-        return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
-      }
-
-      // 4 modelos: 1º = frente, último = fundo, intermediários par e ímpar intercalados
-      if (quantidadeModelos === 4) {
-        if (numeroArco === 1) {
-          return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'frente') || this.modelosArcos[1] || null
+      } else if (quantidadeModelosArcos === 4) {
+        if (arcoAtual === 1) {
+          return 'frente'
+        } else if (arcoAtual === totalArcos) {
+          return 'fundo'
+        } else {
+          return arcoAtual % 2 === 0 ? 'par' : 'impar'
         }
-        if (numeroArco === totalArcos) {
-          return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === 'fundo') || this.modelosArcos[1] || null
-        }
-        // Para arcos intermediários: par primeiro, depois ímpar
-        const isParIntermediario = numeroArco % 2 === 0
-        const posicaoProcurada = isParIntermediario ? 'par' : 'impar'
-        return Object.values(this.modelosArcos).find(modelo => modelo && modelo.posicao === posicaoProcurada) || this.modelosArcos[1] || null
       }
+      
+      return 'todos'
+    },
 
-      return this.modelosArcos[1] || null
+    // Método auxiliar para determinar o tipo do arco consolidando lógica duplicada
+    determinarTipoArco() {
+      if (!this.analiseArcos) return 'todos'
+      
+      const { quantidadeModelosArcos, arcoAtual } = this
+      const totalArcos = this.analiseArcos.totalArcos
+      
+      if (quantidadeModelosArcos === 1) {
+        return 'todos'
+      } else if (quantidadeModelosArcos === 2) {
+        return arcoAtual % 2 === 1 ? 'impar' : 'par'
+      } else if (quantidadeModelosArcos === 3) {
+        if (arcoAtual === 1 || arcoAtual === totalArcos) {
+          return 'frente_fundo'
+        } else {
+          return arcoAtual % 2 === 0 ? 'par' : 'impar'
+        }
+      } else if (quantidadeModelosArcos === 4) {
+        if (arcoAtual === 1) {
+          return 'frente'
+        } else if (arcoAtual === totalArcos) {
+          return 'fundo'
+        } else {
+          return arcoAtual % 2 === 0 ? 'par' : 'impar'
+        }
+      }
+      
+      return 'todos'
     },
 
     getBadgeClass() {
-      if (!this.analiseArcos) return 'badge bg-info'
-
+      const tipoArco = this.determinarTipoArco()
       const classes = ['badge']
-
-      if (this.quantidadeModelosArcos === 1) {
-        classes.push('bg-info')
-      } else if (this.quantidadeModelosArcos === 2) {
-        classes.push(this.arcoAtual % 2 === 1 ? 'bg-warning' : 'bg-primary')
-      } else if (this.quantidadeModelosArcos === 3) {
-        if (this.arcoAtual === 1 || this.arcoAtual === this.analiseArcos.totalArcos) {
-          classes.push('bg-success')
-        } else {
-          classes.push(this.arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning')
-        }
-      } else if (this.quantidadeModelosArcos === 4) {
-        if (this.arcoAtual === 1) {
-          classes.push('bg-success')
-        } else if (this.arcoAtual === this.analiseArcos.totalArcos) {
-          classes.push('bg-danger')
-        } else {
-          classes.push(this.arcoAtual % 2 === 0 ? 'bg-primary' : 'bg-warning')
-        }
+      
+      const classesPorTipo = {
+        'todos': 'bg-info',
+        'impar': 'bg-warning',
+        'par': 'bg-primary',
+        'frente_fundo': 'bg-success',
+        'frente': 'bg-success',
+        'fundo': 'bg-danger'
       }
-
+      
+      classes.push(classesPorTipo[tipoArco] || 'bg-info')
       return classes.join(' ')
     },
 
     getBadgeText() {
-      if (!this.analiseArcos) return 'TODOS'
-
-      if (this.quantidadeModelosArcos === 1) {
-        return 'TODOS'
-      } else if (this.quantidadeModelosArcos === 2) {
-        return this.arcoAtual % 2 === 1 ? 'ÍMPAR' : 'PAR'
-      } else if (this.quantidadeModelosArcos === 3) {
-        if (this.arcoAtual === 1 || this.arcoAtual === this.analiseArcos.totalArcos) {
-          return 'F/F'
-        } else {
-          return this.arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'
-        }
-      } else if (this.quantidadeModelosArcos === 4) {
-        if (this.arcoAtual === 1) {
-          return 'FRENTE'
-        } else if (this.arcoAtual === this.analiseArcos.totalArcos) {
-          return 'FUNDO'
-        } else {
-          return this.arcoAtual % 2 === 0 ? 'PAR' : 'ÍMPAR'
-        }
+      const tipoArco = this.determinarTipoArco()
+      
+      const textosPorTipo = {
+        'todos': 'TODOS',
+        'impar': 'ÍMPAR',
+        'par': 'PAR',
+        'frente_fundo': 'F/F',
+        'frente': 'FRENTE',
+        'fundo': 'FUNDO'
       }
-
-      return 'TODOS'
+      
+      return textosPorTipo[tipoArco] || 'TODOS'
     },
 
     mudarArco(novoArco, forcarAplicarConfiguracao = true) {
@@ -1532,7 +1425,6 @@ export default {
 
     // Método para resetar apenas as posições visuais após salvamento no banco
     resetarTudoAposSalvamentoBanco() {
-      console.log('🔄 [resetarTudoAposSalvamentoBanco] Iniciando reset visual após salvamento no banco')
 
       // FIXO CRÍTICO: NÃO resetar as dimensões configuradas pelo usuário
       // Preservar as dimensões atuais do armazém que foram configuradas pelo usuário
@@ -1554,7 +1446,6 @@ export default {
         tipo_fundo: this.configArmazem.tipo_fundo
       }
 
-      console.log('💾 [resetarTudoAposSalvamentoBanco] Preservando dimensões configuradas:', dimensoesPreservadas)
 
       // 1. Resetar configuração do armazém MANTENDO as dimensões configuradas pelo usuário
       this.configArmazem = {
@@ -1621,7 +1512,6 @@ export default {
       this.configuracaoAplicada = null
 
       // 7. IMPORTANTE: NÃO limpar localStorage - manter dados dos modelos salvos para o banco
-      console.log('💾 [resetarTudoAposSalvamentoBanco] PRESERVANDO localStorage com dados dos modelos para banco')
 
       // 8. Regenerar dados exemplares com configuração padrão
       this.criarDadosExemplaresArmazem()
@@ -1629,17 +1519,11 @@ export default {
       // 9. Atualizar SVG
       this.updateSVG()
 
-      console.log('✅ [resetarTudoAposSalvamentoBanco] Reset visual finalizado - DIMENSÕES PRESERVADAS:', {
-        'LarguraBase (lb)': this.configArmazem.lb,
-        'AlturaTopo (ht)': this.configArmazem.ht,
-        'dimensões completas': dimensoesPreservadas
-      })
     },
 
     salvarModeloAtualCompleto() {
       if (!this.modeloArcoAtual) return
 
-      console.log(`💾 [salvarModeloAtualCompleto] Salvando modelo ${this.modeloArcoAtual} COM posições manuais`)
 
       // Criar configuração consolidada do modelo atual com todas as configurações preservadas
       const configuracaoModelo = {
@@ -1764,35 +1648,6 @@ export default {
         validado: true
       }
 
-      console.log(`📊 [salvarModeloAtualCompleto] Configuração completa sendo salva:`, {
-        dimensoesBasicas: {
-          pb: configuracaoModelo.pb,
-          lb: configuracaoModelo.lb,
-          hb: configuracaoModelo.hb,
-          hf: configuracaoModelo.hf,
-          lf: configuracaoModelo.lf,
-          le: configuracaoModelo.le,
-          ht: configuracaoModelo.ht
-        },
-        telhado: {
-          tipo: configuracaoModelo.tipo_telhado,
-          curvatura: configuracaoModelo.curvatura_topo,
-          pontas_redondas: configuracaoModelo.pontas_redondas,
-          raio_pontas: configuracaoModelo.raio_pontas,
-          estilo_laterais: configuracaoModelo.estilo_laterais,
-          curvatura_laterais: configuracaoModelo.curvatura_laterais
-        },
-        fundo: {
-          tipo: configuracaoModelo.tipo_fundo,
-          altura_fundo_reto: configuracaoModelo.altura_fundo_reto,
-          altura_funil_v: configuracaoModelo.altura_funil_v,
-          altura_duplo_v: configuracaoModelo.altura_duplo_v
-        },
-        posicoesManuais: {
-          pendulos: Object.keys(configuracaoModelo.posicoesManualPendulos || {}).length,
-          sensores: Object.keys(configuracaoModelo.posicoesManualSensores || {}).length
-        }
-      })
 
       // Atualizar o modelo local com as posições manuais
       if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
@@ -1812,17 +1667,12 @@ export default {
 
       if (resultado.success) {
         this.modelosSalvos[this.modeloArcoAtual] = true
-        console.log(`✅ [salvarModeloAtualCompleto] Modelo ${this.modeloArcoAtual} salvo no localStorage COM posições manuais:`, {
-          pendulosComPosicao: Object.keys(this.posicoesManualPendulos).length,
-          sensoresComPosicao: Object.keys(this.posicoesManualSensores).length
-        })
       } else {
         console.error(`❌ [salvarModeloAtualCompleto] Erro ao salvar modelo ${this.modeloArcoAtual}:`, resultado.message)
       }
     },
 
     limparVariaveisParaNovoModelo() {
-      console.log('🧹 [limparVariaveisParaNovoModelo] Limpando variáveis para começar novo modelo')
 
       // Limpar posições de cabos
       this.posicoesCabos = {}
@@ -1844,13 +1694,11 @@ export default {
       this.configPreviewAplicada = null
       this.configuracaoAplicada = null
 
-      console.log('✅ [limparVariaveisParaNovoModelo] Variáveis limpas - pronto para novo modelo')
     },
 
     // Método para limpar apenas dados temporários do localStorage (OPCIONAL - apenas se necessário)
     limparLocalStorageTemporario() {
       try {
-        console.log('🧹 [limparLocalStorageTemporario] Limpando apenas dados temporários')
 
         // Limpar apenas configurações temporárias - NÃO tocar nos modelos salvos
         const chavesTempParaLimpar = [
@@ -1863,7 +1711,6 @@ export default {
         chavesTempParaLimpar.forEach(chave => {
           if (localStorage.getItem(chave)) {
             localStorage.removeItem(chave)
-            console.log(`🗑️ [limparLocalStorageTemporario] Removido temporário: ${chave}`)
           }
         })
 
@@ -1875,19 +1722,16 @@ export default {
           prefixosTemporarios.forEach(prefixo => {
             if (chave.startsWith(prefixo)) {
               localStorage.removeItem(chave)
-              console.log(`🗑️ [limparLocalStorageTemporario] Removido prefixo temporário ${prefixo}: ${chave}`)
             }
           })
         })
 
-        console.log('✅ [limparLocalStorageTemporario] Limpeza temporária concluída - modelos preservados')
       } catch (error) {
         console.error('❌ [limparLocalStorageTemporario] Erro ao limpar temporários:', error)
       }
     },
 
     resetarConfigArmParaPadrao() {
-      console.log('🔄 [resetarConfigArmParaPadrao] PRESERVANDO dimensões configuradas pelo usuário')
 
       // FIXO CRÍTICO: Preservar as dimensões atuais configuradas pelo usuário
       const dimensoesAtuaisPreservadas = {
@@ -1937,19 +1781,12 @@ export default {
       // Atualizar SVG com valores atualizados (mas dimensões preservadas)
       this.updateSVG()
 
-      console.log('✅ [resetarConfigArmParaPadrao] Configuração resetada PRESERVANDO dimensões:', {
-        'LarguraBase (lb)': this.configArmazem.lb,
-        'AlturaTopo (ht)': this.configArmazem.ht,
-        'dimensões preservadas': dimensoesAtuaisPreservadas
-      })
     },
 
     carregarConfiguracaoModelo(numeroModelo) {
-      console.log(`🔄 [carregarConfiguracaoModelo] Carregando modelo ${numeroModelo}`)
 
       const modelo = this.modelosArcos[numeroModelo]
       if (!modelo) {
-        console.warn(`⚠️ [carregarConfiguracaoModelo] Modelo ${numeroModelo} não encontrado`)
         return
       }
 
@@ -1962,14 +1799,9 @@ export default {
       this.posicoesManualPendulos = { ...modelo.posicoesManualPendulos || {} }
       this.posicoesManualSensores = { ...modelo.posicoesManualSensores || {} }
 
-      console.log(`📍 [carregarConfiguracaoModelo] Posições manuais carregadas:`, {
-        pendulos: Object.keys(this.posicoesManualPendulos).length,
-        sensores: Object.keys(this.posicoesManualSensores).length
-      })
 
       // Carregar estado completo se disponível
       if (modelo.estadoCompleto) {
-        console.log(`📊 [carregarConfiguracaoModelo] Restaurando estado completo do modelo ${numeroModelo}`)
 
         // Restaurar configuração do armazém
         if (modelo.estadoCompleto.configArmazem) {
@@ -2006,7 +1838,6 @@ export default {
         }
       }
 
-      console.log(`✅ [carregarConfiguracaoModelo] Modelo ${numeroModelo} carregado com sucesso`)
     },
 
     aplicarConfiguracaoGeralArmazem() {
@@ -2027,7 +1858,6 @@ export default {
             timestamp: new Date().toISOString(),
             tipo: 'modelo_individual'
           }))
-          console.log(`💾 [salvarModeloNoLocalStorage] Modelo ${numeroModelo} salvo individualmente no localStorage`)
         } catch (error) {
           console.error(`❌ [salvarModeloNoLocalStorage] Erro ao salvar modelo ${numeroModelo}:`, error)
         }
@@ -2067,22 +1897,7 @@ export default {
 
     resetarPadrao() {
       if (this.tipoAtivo === 'silo') {
-        this.configSilo = {
-          lb: 200,
-          hs: 180,
-          hb: 15,
-          eb: 5,
-          escala_sensores: 16,
-          dist_y_sensores: 12,
-          pos_x_cabos_uniforme: 1,
-          pos_x_cabo: [50, 25],
-          pos_y_cabo: [160, 160, 160, 160, 160],
-          aeradores_ativo: false,
-          na: 4,
-          ds: 30,
-          dy: 0,
-          da: 35
-        }
+        this.configSilo = getDefaultSiloConfig()
       } else {
         this.resetarModelosParaPadrao()
       }
@@ -2090,48 +1905,12 @@ export default {
     },
 
     resetarModelosParaPadrao() {
-      const configPadrao = {
-        pb: 185,
-        lb: 350,
-        hb: 30,
-        hf: 6,
-        lf: 250,
-        le: 15,
-        ht: 50,
-        tipo_telhado: 1,
-        curvatura_topo: 30,
-        pontas_redondas: false,
-        raio_pontas: 15,
-        estilo_laterais: 'reta',
-        curvatura_laterais: 0,
-        tipo_fundo: 0,
-        altura_fundo_reto: 10,
-        altura_funil_v: 18,
-        posicao_ponta_v: 0,
-        inclinacao_funil_v: 1,
-        largura_abertura_v: 20,
-        altura_duplo_v: 22,
-        posicao_v_esquerdo: -1,
-        posicao_v_direito: 1,
-        largura_abertura_duplo_v: 2,
-        altura_plataforma_duplo_v: 0.3,
-        largura_plataforma_duplo_v: 10,
-        deslocamento_horizontal_fundo: 0,
-        deslocamento_vertical_fundo: -1,
-        escala_sensores: 16,
-        dist_y_sensores: 12,
-        dist_x_sensores: 0,
-        posicao_horizontal: 0,
-        posicao_vertical: 0,
-        afastamento_vertical_pendulo: 0
-      }
-
-      this.configArmazem = { ...configPadrao }
+      this.configArmazem = getDefaultArmazemConfig()
       this.quantidadeModelosArcos = 1
       this.modelosArcos = {
         1: {
           posicao: 'todos',
-          config: { ...configPadrao },
+          config: getDefaultArmazemConfig(),
           nome: 'Modelo Único',
           quantidadePendulos: 3,
           sensoresPorPendulo: {
@@ -2302,126 +2081,72 @@ export default {
         const configSalva = localStorage.getItem(chave)
 
         if (configSalva) {
-          const dadosCarregados = JSON.parse(configSalva)
-
-          if (this.tipoAtivo === 'silo') {
-            this.carregarConfiguracaoV4(dadosCarregados, nomeConfig) // Usando v4 para carregar silo também
-            this.mostrarToast('Configuração do silo carregada com sucesso!', 'success')
-          } else {
-            // Sistema de carregamento baseado na versão
-            if (dadosCarregados.versao === '4.0' && dadosCarregados.tipo === 'configuracao_armazem_completa') {
-              // Nova versão v4.0 - sistema completo de modelos
-              this.carregarConfiguracaoV4(dadosCarregados, nomeConfig)
-            } else if (dadosCarregados.tipo === 'configuracao_armazem_hierarquica') {
-              // Configuração hierárquica v3.0
-              this.carregarConfiguracaoHierarquica(dadosCarregados, nomeConfig)
-            } else if (dadosCarregados.modelosArcos && dadosCarregados.tipo === 'configuracao_armazem_completa') {
-              // Configuração completa v2.0
-              this.carregarConfiguracaoCompleta(dadosCarregados, nomeConfig)
+          try {
+            const dadosCarregados = JSON.parse(configSalva)
+            
+            // 🎯 MÉTODO UNIFICADO: Usar configuracaoService para carregar qualquer versão
+            const configCarregada = { dados: dadosCarregados, nome: nomeConfig }
+            const resultado = configuracaoService.aplicarConfiguracaoCompleta(configCarregada, this.tipoAtivo)
+            
+            if (resultado.success) {
+              this.aplicarConfiguracaoUnificada(resultado.dados, nomeConfig)
+              this.mostrarToast(`Configuração "${nomeConfig}" carregada com sucesso!`, 'success')
             } else {
-              // Configuração simples v1.0
-              this.carregarConfiguracaoSimples(dadosCarregados, nomeConfig)
+              this.mostrarToast(`Erro ao carregar configuração: ${resultado.message}`, 'error')
             }
-          }
 
-          if (!nome) {
-            this.nomeConfiguracao = nomeConfig
+            if (!nome) {
+              this.nomeConfiguracao = nomeConfig
+            }
+            this.updateSVG()
+          } catch (error) {
+            console.error('Erro ao processar configuração:', error)
+            this.mostrarToast('Erro ao carregar configuração!', 'error')
           }
-          this.updateSVG()
         } else {
           this.mostrarToast('Configuração não encontrada!', 'error')
         }
       }
     },
 
-    // Nova função para carregar configurações v4.0
-    carregarConfiguracaoV4(dados, nomeConfig) {
-      console.log('Carregando configuração v4.0:', dados)
-
+    aplicarConfiguracaoUnificada(dados, nomeConfig) {
+      
       // Limpar estado atual
       this.resetarEstadoModelos()
-
-      // Restaurar sistema de modelos
-      const sistemaModelos = dados.sistemaModelos
-      this.quantidadeModelosArcos = sistemaModelos.quantidadeModelos
-
-      // Recriar modelos baseado na configuração salva
-      const novosModelos = {}
-      const novosSalvos = {}
-
-      Object.keys(sistemaModelos.modelosDefinidos).forEach(numeroModelo => {
-        const modeloSalvo = sistemaModelos.modelosDefinidos[numeroModelo]
-
-        const modelo = {
-          numero: parseInt(numeroModelo),
-          nome: modeloSalvo.nome,
-          posicao: modeloSalvo.posicao,
-          quantidadePendulos: modeloSalvo.quantidadePendulos || 3,
-          sensoresPorPendulo: { ...modeloSalvo.sensoresPorPendulo },
-          posicoesCabos: { ...modeloSalvo.posicoesCabos },
-          config: { ...modeloSalvo.configuracao }
+      
+      if (dados.tipo === 'silo') {
+        // Configuração de silo
+        this.configSilo = { ...dados.configuracaoGlobal }
+        if (dados.dimensoesSVG) {
+          this.larguraSVG = dados.dimensoesSVG.largura
+          this.alturaSVG = dados.dimensoesSVG.altura
         }
-
-        novosModelos[numeroModelo] = modelo
-        novosSalvos[numeroModelo] = true
-      })
-
-      this.modelosArcos = novosModelos
-      this.modelosSalvos = novosSalvos
-
-      // Restaurar modelo selecionado se disponível
-      this.modeloArcoAtual = sistemaModelos.modeloAtualSelecionado || null
-
-      // Restaurar layouts se disponível
-      if (dados.layoutsAutomaticos) {
-        this.layoutsAutomaticos = dados.layoutsAutomaticos
-      }
-
-      // Restaurar dados originais se disponíveis
-      if (dados.dadosOriginais) {
-        if (dados.dadosOriginais.dadosPortal) {
-          this.dadosPortal = dados.dadosOriginais.dadosPortal
+      } else if (dados.tipo === 'armazem') {
+        // Configuração de armazém
+        this.quantidadeModelosArcos = dados.quantidadeModelos || 1
+        this.modelosArcos = dados.modelosArcos || {}
+        this.modelosSalvos = dados.modelosArcos || {}
+        
+        // Aplicar configurações globais
+        if (dados.configuracaoGlobal) {
+          this.configArmazem = { ...dados.configuracaoGlobal }
         }
-        if (dados.dadosOriginais.analiseArcos) {
-          this.analiseArcos = dados.dadosOriginais.analiseArcos
+        
+        // Aplicar dimensões SVG se disponíveis
+        if (dados.dimensoesSVG) {
+          this.larguraSVG = dados.dimensoesSVG.largura
+          this.alturaSVG = dados.dimensoesSVG.altura
         }
-        if (dados.dadosOriginais.dados) {
-          this.dados = dados.dadosOriginais.dados
+        
+        // Restaurar dados originais se disponíveis
+        if (dados.dadosOriginais) {
+          this.dadosPortal = dados.dadosOriginais.dadosPortal || this.dadosPortal
+          this.analiseArcos = dados.dadosOriginais.analiseArcos || this.analiseArcos
+          this.dados = dados.dadosOriginais.dados || this.dados
         }
       }
-
-      // Restaurar dimensões SVG se disponíveis
-      if (dados.dimensoesSVG) {
-        this.larguraSVG = dados.dimensoesSVG.largura
-        this.alturaSVG = dados.dimensoesSVG.altura
-      }
-
-      // Restaurar estado da aplicação se disponível
-      if (dados.estadoAtual) {
-        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
-        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
-        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
-      }
-
-      // Aplicar configuração do primeiro modelo no preview
-      setTimeout(() => {
-        const primeiroModelo = novosModelos[1]
-        if (primeiroModelo) {
-          this.configArmazem = { ...primeiroModelo.config }
-          this.inicializarPosicoesCabos()
-        }
-      }, 100)
-
-      const logica = sistemaModelos.logicaDistribuicao?.nome || 'Personalizada'
-      this.mostrarToast(
-        `✅ Configuração v4.0 "${nomeConfig}" carregada!\n\n` +
-        `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s) com estado completo\n` +
-        `🎯 Lógica: ${logica}\n` +
-        `📐 Dimensões: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}\n\n` +
-        `💡 Cada modelofoi restaurado com todas as configurações originais!`,
-        'success'
-      )
     },
+
 
     // Função para resetar estado dos modelos
     resetarEstadoModelos() {
@@ -2436,167 +2161,8 @@ export default {
 
 
 
-    // Carregar configuração hierárquica v3.0
-    carregarConfiguracaoHierarquica(dados, nomeConfig) {
 
-      // Restaurar configuração dos modelos
-      const configModelos = dados.configModelos
-      this.quantidadeModelosArcos = configModelos.quantidadeModelos || 1
 
-      // Converter modelos do formato hierárquico para o formato de trabalho
-      const modelosConvertidos = {}
-      const modelosSalvosConvertidos = {}
-
-      Object.keys(configModelos.modelosDefinidos || {}).forEach(key => {
-        const modeloHierarquico = configModelos.modelosDefinidos[key]
-        const modeloConvertido = {
-          nome: modeloHierarquico.nome,
-          posicao: modeloHierarquico.posicao,
-          config: { ...modeloHierarquico.configuracao }, // Deep copy para preservar todas as propriedades
-          criadoEm: modeloHierarquico.metadados?.criadoEm,
-          ultimaModificacao: modeloHierarquico.metadados?.ultimaModificacao,
-          quantidadePendulos: modeloHierarquico.quantidadePendulos || 5 // Garantir que quantidadePendulos seja carregado
-        }
-        modelosConvertidos[key] = modeloConvertido
-
-        if (modeloHierarquico.status === 'salvo') {
-          modelosSalvosConvertidos[key] = modeloConvertido
-        }
-      })
-
-      this.modelosArcos = modelosConvertidos
-      this.modelosSalvos = modelosSalvosConvertidos
-
-      // Restaurar modelo selecionado se disponível
-      this.modeloArcoAtual = configModelos.modeloAtualSelecionado || null
-
-      // Restaurar layouts se disponível
-      if (dados.layoutsAutomaticos) {
-        this.layoutsAutomaticos = dados.layoutsAutomaticos
-      }
-
-      // Restaurar dados originais se disponíveis
-      if (dados.dadosOriginais) {
-        if (dados.dadosOriginais.dadosPortal) {
-          this.dadosPortal = dados.dadosOriginais.dadosPortal
-        }
-        if (dados.dadosOriginais.analiseArcos) {
-          this.analiseArcos = dados.dadosOriginais.analiseArcos
-        }
-        if (dados.dadosOriginais.dados) {
-          this.dados = dados.dadosOriginais.dados
-        }
-      }
-
-      // Restaurar dimensões SVG se disponíveis
-      if (dados.dimensoesSVG) {
-        this.larguraSVG = dados.dimensoesSVG.largura
-        this.alturaSVG = dados.dimensoesSVG.altura
-      }
-
-      // Restaurar estado da aplicação se disponível
-      if (dados.estadoAtual) {
-        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
-        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
-        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
-      }
-
-      // Aplicar configuração para o arco atual - com todas as propriedades
-      setTimeout(() => {
-        const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
-        if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
-          // Garantir que todas as propriedades sejam restauradas
-          this.configArmazem = {
-            // Valores padrão primeiro
-            pb: 185, lb: 350, hb: 30, hf: 5, lf: 250, le: 15, ht: 50,
-            tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false, raio_pontas: 15,
-            estilo_laterais: 'reta', curvatura_laterais: 0, tipo_fundo: 0,
-            altura_fundo_reto: 10, altura_funil_v: 18, posicao_ponta_v: 0,
-            inclinacao_funil_v: 1, largura_abertura_v: 20, altura_duplo_v: 22,
-            posicao_v_esquerdo: -1, posicao_v_direito: 1, largura_abertura_duplo_v: 2,
-            altura_plataforma_duplo_v: 0.3, largura_plataforma_duplo_v: 10,
-            deslocamento_horizontal_fundo: 0, deslocamento_vertical_fundo: -1,
-            escala_sensores: 16, dist_y_sensores: 12, dist_x_sensores: 0,
-            posicao_horizontal: 0, posicao_vertical: 0, afastamento_vertical_pendulo: 0,
-            // Depois sobrescrever com valores salvos
-            ...modeloParaArcoAtual.config
-          }
-        } else if (dados.configuracaoPadrao) {
-          this.configArmazem = {
-            // Valores padrão primeiro
-            pb: 185, lb: 350, hb: 30, hf: 5, lf: 250, le: 15, ht: 50,
-            tipo_telhado: 1, curvatura_topo: 30, pontas_redondas: false, raio_pontas: 15,
-            estilo_laterais: 'reta', curvatura_laterais: 0, tipo_fundo: 0,
-            altura_fundo_reto: 10, altura_funil_v: 18, posicao_ponta_v: 0,
-            inclinacao_funil_v: 1, largura_abertura_v: 20, altura_duplo_v: 22,
-            posicao_v_esquerdo: -1, posicao_v_direito: 1, largura_abertura_duplo_v: 2,
-            altura_plataforma_duplo_v: 0.3, largura_plataforma_duplo_v: 10,
-            deslocamento_horizontal_fundo: 0, deslocamento_vertical_fundo: -1,
-            escala_sensores: 16, dist_y_sensores: 12, dist_x_sensores: 0,
-            posicao_horizontal: 0, posicao_vertical: 0, afastamento_vertical_pendulo: 0,
-            // Depois sobrescrever com valores salvos
-            ...dados.configuracaoPadrao
-          }
-        }
-      }, 100)
-
-      const totalArcos = dados.estruturaArmazem?.totalArcos || 'N/A'
-      const logica = configModelos.logicaDistribuicao?.nome || 'Padrão'
-
-      this.mostrarToast(
-        `Configuração hierárquica "${nomeConfig}" carregada!\n` +
-        `📊 ${totalArcos} arcos, ${this.quantidadeModelosArcos} modelo(s)\n` +
-        `🎯 Lógica: ${logica}\n` +
-        `📐 Dimensões SVG: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}`,
-        'success'
-      )
-    },
-
-    carregarConfiguracaoCompleta(dadosCarregados, nomeConfig) {
-      // Carregamento de configuração completa com modelos (v2.0)
-      this.quantidadeModelosArcos = dadosCarregados.quantidadeModelos || 1
-      this.modelosArcos = dadosCarregados.modelosArcos || {}
-      this.modelosSalvos = dadosCarregados.modelosArcos || {}
-      this.modeloArcoAtual = null
-
-      // Validar e corrigir posições dos modelos se necessário
-      Object.keys(this.modelosArcos).forEach(key => {
-        const numeroModelo = parseInt(key)
-        const posicaoCorreta = this.determinarPosicaoDoModelo(numeroModelo, this.quantidadeModelosArcos)
-        if (this.modelosArcos[key].posicao !== posicaoCorreta) {
-          this.modelosArcos[key].posicao = posicaoCorreta
-        }
-      })
-
-      setTimeout(() => {
-        const modeloParaArcoAtual = this.determinarModeloParaArco(this.arcoAtual)
-        if (modeloParaArcoAtual && modeloParaArcoAtual.config) {
-          this.configArmazem = { ...modeloParaArcoAtual.config }
-        } else {
-          const primeiroModelo = dadosCarregados.modelosArcos[1]
-          if (primeiroModelo && primeiroModelo.config) {
-            this.configArmazem = { ...primeiroModelo.config }
-          }
-        }
-      }, 100)
-
-      this.mostrarToast(`Configuração "${nomeConfig}" carregada com ${this.quantidadeModelosArcos} modelo(s)!`, 'success')
-    },
-
-    carregarConfiguracaoSimples(dadosCarregados, nomeConfig) {
-      // Configuração simples (formato antigo) - converter para novo formato
-      this.configArmazem = dadosCarregados
-      this.quantidadeModelosArcos = 1
-      const modeloUnico = {
-        posicao: 'todos',
-        config: dadosCarregados,
-        nome: 'Modelo Único'
-      }
-      this.modelosArcos = { 1: modeloUnico }
-      this.modelosSalvos = { 1: modeloUnico }
-      this.modeloArcoAtual = null
-      this.mostrarToast(`Configuração "${nomeConfig}" convertida para o novo formato hierárquico!`, 'info')
-    },
 
     deletarConfiguracao(nome) {
       if (typeof localStorage !== 'undefined') {
@@ -2681,10 +2247,8 @@ export default {
 
         if (response && response.data) {
           this.modelosBanco = Array.isArray(response.data) ? response.data : []
-          console.log('Modelos carregados do banco:', this.modelosBanco)
         } else {
           this.modelosBanco = []
-          console.warn('Resposta inválida da API:', response)
         }
       } catch (error) {
         console.error('Erro ao carregar modelos do banco:', error)
@@ -2702,7 +2266,6 @@ export default {
         return
       }
 
-      console.log('🔄 [aplicarModeloBancoNoPreview] ID selecionado:', this.configuracaoPreviewSelecionada)
 
       try {
         const response = await modeloSvgService.buscarModeloPorId(this.configuracaoPreviewSelecionada)
@@ -2738,11 +2301,6 @@ export default {
 
               this.configPreviewAplicada = this.mesclarConfiguracaoComPadrao(configPadrao, configSalva)
 
-              console.log('🎨 [aplicarModeloBancoNoPreview] Configuração silo aplicada:', {
-                configPadrao: Object.keys(configPadrao).length,
-                configSalva: Object.keys(configSalva).length,
-                configFinal: Object.keys(this.configPreviewAplicada).length
-              })
 
             } else {
               // Para armazém, determinar modelo para o arco atual e mesclar configurações
@@ -2753,19 +2311,11 @@ export default {
                 const configSalva = modeloParaArco.config || modeloParaArco.configuracao
                 this.configPreviewAplicada = this.mesclarConfiguracaoComPadrao(configPadrao, configSalva)
 
-                console.log('🎨 [aplicarModeloBancoNoPreview] Configuração armazém aplicada:', {
-                  modeloUtilizado: modeloParaArco.nome || 'Sem nome',
-                  arcoAtual: this.arcoAtual,
-                  configPadrao: Object.keys(configPadrao).length,
-                  configSalva: Object.keys(configSalva).length,
-                  configFinal: Object.keys(this.configPreviewAplicada).length
-                })
               } else {
                 // Fallback para configuração global se disponível
                 const configGlobal = dadosSVG.configuracaoGlobal || dadosSVG
                 this.configPreviewAplicada = this.mesclarConfiguracaoComPadrao(configPadrao, configGlobal)
 
-                console.log('🎨 [aplicarModeloBancoNoPreview] Configuração global aplicada (fallback)')
               }
             }
 
@@ -2801,10 +2351,6 @@ export default {
 
     // Método para mesclar configuração salva com configuração padrão
     mesclarConfiguracaoComPadrao(configPadrao, configSalva) {
-      console.log('🔄 [mesclarConfiguracaoComPadrao] Mesclando configurações:', {
-        configPadrao: Object.keys(configPadrao || {}).length + ' chaves',
-        configSalva: Object.keys(configSalva || {}).length + ' chaves'
-      })
 
       if (!configSalva || typeof configSalva !== 'object') {
         console.warn('⚠️ [mesclarConfiguracaoComPadrao] Configuração salva inválida, usando padrão')
@@ -2823,34 +2369,19 @@ export default {
           // Verificar se o valor salvo é realmente diferente do padrão
           if (valorSalvo !== configPadrao[chave]) {
             configMesclada[chave] = valorSalvo
-            console.log(`✅ [mesclarConfiguracaoComPadrao] Aplicando ${chave}: ${configPadrao[chave]} → ${valorSalvo}`)
           } else {
-            console.log(`➡️ [mesclarConfiguracaoComPadrao] Mantendo ${chave}: ${valorSalvo} (igual ao padrão)`)
           }
         } else if (!configPadrao.hasOwnProperty(chave)) {
           // Se a chave não existe no padrão, adicionar mesmo assim (nova funcionalidade)
           configMesclada[chave] = valorSalvo
-          console.log(`🆕 [mesclarConfiguracaoComPadrao] Nova variável ${chave}: ${valorSalvo}`)
         }
       })
 
-      console.log('✅ [mesclarConfiguracaoComPadrao] Configuração mesclada criada:', {
-        totalChaves: Object.keys(configMesclada).length,
-        chavesAlteradas: Object.keys(configSalva).filter(k =>
-          configSalva[k] !== undefined &&
-          configSalva[k] !== null &&
-          configPadrao[k] !== configSalva[k]
-        ).length
-      })
 
       return configMesclada
     },
 
     determinarModeloParaArcoAtual(dadosProcessados) {
-      console.log('🔍 [determinarModeloParaArcoAtual] Dados recebidos:', {
-        dadosProcessados: !!dadosProcessados,
-        tiposDados: dadosProcessados ? Object.keys(dadosProcessados) : 'null'
-      })
 
       if (!dadosProcessados) {
         console.warn('⚠️ [determinarModeloParaArcoAtual] Dados processados não fornecidos')
@@ -2865,25 +2396,21 @@ export default {
       if (dadosProcessados.modelosDefinidos) {
         modelos = dadosProcessados.modelosDefinidos
         quantidadeModelos = dadosProcessados.quantidadeModelos || Object.keys(modelos).length
-        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v5.0')
       }
       // Estrutura v4.0 (sistemaModelos)
       else if (dadosProcessados.sistemaModelos && dadosProcessados.sistemaModelos.modelosDefinidos) {
         modelos = dadosProcessados.sistemaModelos.modelosDefinidos
         quantidadeModelos = dadosProcessados.sistemaModelos.quantidadeModelos || Object.keys(modelos).length
-        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v4.0 (sistemaModelos)')
       }
       // Estrutura v3.0 (modelos)
       else if (dadosProcessados.modelos) {
         modelos = dadosProcessados.modelos
         quantidadeModelos = dadosProcessados.quantidadeModelos || Object.keys(modelos).length
-        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v3.0 (modelos)')
       }
       // Estrutura v2.0 (modelosArcos)
       else if (dadosProcessados.modelosArcos) {
         modelos = dadosProcessados.modelosArcos
         quantidadeModelos = dadosProcessados.quantidadeModelos || Object.keys(modelos).length
-        console.log('📦 [determinarModeloParaArcoAtual] Usando estrutura v2.0 (modelosArcos)')
       }
 
       if (!modelos || Object.keys(modelos).length === 0) {
@@ -2894,17 +2421,10 @@ export default {
       const numeroArco = this.arcoAtual
       const totalArcos = this.analiseArcos?.totalArcos || 1
 
-      console.log('🔍 [determinarModeloParaArcoAtual] Parâmetros:', {
-        numeroArco,
-        quantidadeModelos,
-        totalArcos,
-        modelosDisponiveis: Object.keys(modelos)
-      })
 
       // Aplicar mesma lógica de distribuição de modelos
       if (quantidadeModelos === 1) {
         const modelo = modelos[1] || modelos['1'] || Object.values(modelos)[0]
-        console.log('✅ [determinarModeloParaArcoAtual] Modelo único selecionado:', modelo?.nome || 'Sem nome')
         return modelo
       }
 
@@ -2922,10 +2442,6 @@ export default {
           modeloEncontrado = modelos[isImpar ? 1 : 2] || Object.values(modelos)[0]
         }
 
-        console.log('✅ [determinarModeloParaArcoAtual] Modelo 2x selecionado:', {
-          posicaoProcurada,
-          modeloNome: modeloEncontrado?.nome || 'Sem nome'
-        })
         return modeloEncontrado
       }
 
@@ -2935,7 +2451,6 @@ export default {
             modelo.posicao === 'frente_fundo'
           ) || modelos[1] || Object.values(modelos)[0]
 
-          console.log('✅ [determinarModeloParaArcoAtual] Modelo 3x frente/fundo selecionado:', modeloEncontrado?.nome || 'Sem nome')
           return modeloEncontrado
         } else {
           const isParIntermediario = numeroArco % 2 === 0
@@ -2945,10 +2460,6 @@ export default {
             modelo.posicao === posicaoProcurada
           ) || modelos[isParIntermediario ? 2 : 3] || Object.values(modelos)[0]
 
-          console.log('✅ [determinarModeloParaArcoAtual] Modelo 3x intermediário selecionado:', {
-            posicaoProcurada,
-            modeloNome: modeloEncontrado?.nome || 'Sem nome'
-          })
           return modeloEncontrado
         }
       }
@@ -2959,7 +2470,6 @@ export default {
             modelo.posicao === 'frente'
           ) || modelos[1] || Object.values(modelos)[0]
 
-          console.log('✅ [determinarModeloParaArcoAtual] Modelo 4x frente selecionado:', modeloEncontrado?.nome || 'Sem nome')
           return modeloEncontrado
         }
         if (numeroArco === totalArcos) {
@@ -2967,7 +2477,6 @@ export default {
             modelo.posicao === 'fundo'
           ) || modelos[4] || Object.values(modelos)[0]
 
-          console.log('✅ [determinarModeloParaArcoAtual] Modelo 4x fundo selecionado:', modeloEncontrado?.nome || 'Sem nome')
           return modeloEncontrado
         }
         const isParIntermediario = numeroArco % 2 === 0
@@ -2977,15 +2486,10 @@ export default {
           modelo.posicao === posicaoProcurada
         ) || modelos[isParIntermediario ? 2 : 3] || Object.values(modelos)[0]
 
-        console.log('✅ [determinarModeloParaArcoAtual] Modelo 4x intermediário selecionado:', {
-          posicaoProcurada,
-          modeloNome: modeloEncontrado?.nome || 'Sem nome'
-        })
         return modeloEncontrado
       }
 
       const modeloPadrao = modelos[1] || Object.values(modelos)[0]
-      console.log('✅ [determinarModeloParaArcoAtual] Modelo padrão selecionado:', modeloPadrao?.nome || 'Sem nome')
       return modeloPadrao
     },
 
@@ -3009,20 +2513,19 @@ export default {
     updateSVG() {
       // Não atualizar SVG durante drag para evitar sobrescrever posições
       if (this.isDragging) {
-        console.log('⚠️ updateSVG bloqueado durante drag para preservar posições')
         return
       }
 
       this.calcularDimensoesSVG()
       this.generateSVG()
 
-      // Se há dados de sensores, readicionar event listeners após renderização
-      if (this.tipoAtivo === 'armazem' && this.dados) {
+      // 🔧 SOLUÇÃO ROBUSTA: Sempre reestabelecer event listeners após regeneração do SVG
+      // Centralizada aqui para cobrir TODOS os cenários de regeneração de SVG
+      if (this.tipoAtivo === 'armazem') {
         this.$nextTick(() => {
-          setTimeout(() => {
-            // Readicionar event listeners após regeneração do SVG
-            this.adicionarEventListeners()
-          }, 100)
+          // IDEMPOTENTE: Sempre remove listeners existentes antes de adicionar novos
+          // Isso evita listeners duplicados e garante estado limpo
+          this.reestabelecerEventListenersSeguro()
         })
       }
     },
@@ -3157,7 +2660,6 @@ export default {
           localStorage.setItem('timestampArcoArmazem', dadosParaArmazem.timestamp.toString());
         }
 
-        console.log(`Enviando dados do arco ${this.arcoAtual} para o preview do armazém:`, dadosParaArmazem);
 
         // Navegar para o Armazem
         if (this.$router) {
@@ -3221,7 +2723,6 @@ export default {
     },
 
     onModeloDadosAtualizados(dados) {
-      console.log('📊 [ModeladorSVG] onModeloDadosAtualizados recebido:', dados)
 
       if (dados.modeloAtual && this.modelosArcos[dados.modeloAtual]) {
         // Atualizar modelo com novos dados
@@ -3421,7 +2922,6 @@ export default {
         delete this.layoutsAutomaticos[`arco_${this.arcoAtual}`]
         this.layoutsAutomaticos[`arco_${this.arcoAtual}`] = layoutArco
 
-        console.log(`Layout regenerado para ${novaQuantidade} pêndulos:`, layoutArco)
 
         // Recalcular dimensões do SVG se necessário
         this.calcularDimensoesSVG()
@@ -3430,10 +2930,8 @@ export default {
 
     // Métodos para controle de sensores por pêndulo
     onSensoresCaboChange(data) {
-      console.log('🔧 [ModeladorSVG] onSensoresCaboChange:', data)
 
       if (!this.modeloArcoAtual || !this.modelosArcos[this.modeloArcoAtual]) {
-        console.warn('⚠️ [ModeladorSVG] Nenhum modelo selecionado')
         return
       }
 
@@ -3447,7 +2945,6 @@ export default {
       // Atualizar quantidade de sensores para o pêndulo específico
       this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo[numeroPendulo] = quantidade
 
-      console.log('✅ [ModeladorSVG] Sensores atualizados:', this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo)
 
       // Regenerar dados exemplares com nova configuração
       this.criarDadosExemplaresComNovaQuantidadeSensores()
@@ -3463,7 +2960,6 @@ export default {
     },
 
     onAplicarSensoresUniformes(dados) {
-      console.log('🔧 [ModeladorSVG] onAplicarSensoresUniformes recebido:', dados)
 
       if (!this.modeloArcoAtual) {
         this.mostrarToast('Selecione um modelo primeiro!', 'warning')
@@ -3487,7 +2983,6 @@ export default {
       // Garantir que a atualização seja aplicada corretamente
       this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo = sensoresUniformes
 
-      console.log('✅ [ModeladorSVG] Sensores uniformizados:', sensoresUniformes)
 
       // Forçar atualização dos dados exemplares com a nova configuração de sensores
       this.atualizarDadosExemplaresComNovaSensorConfig(numero, totalPendulos)
@@ -3509,7 +3004,6 @@ export default {
 
     // Método específico para atualizar dados exemplares com nova configuração de sensores
     atualizarDadosExemplaresComNovaSensorConfig(numeroSensores, quantidadePendulos) {
-      console.log('🔄 [atualizarDadosExemplaresComNovaSensorConfig] Atualizando com:', { numeroSensores, quantidadePendulos })
 
       if (!this.dadosPortal.arcos[this.arcoAtual]) {
         this.dadosPortal.arcos[this.arcoAtual] = {}
@@ -3543,10 +3037,6 @@ export default {
       const dadosConvertidos = this.converterDadosParaRenderizacao(this.dadosPortal, this.arcoAtual)
       this.dados = dadosConvertidos
 
-      console.log('✅ [atualizarDadosExemplaresComNovaSensorConfig] Dados atualizados:', {
-        novaAnalise: novaAnalise.arcos[this.arcoAtual],
-        dadosConvertidos: dadosConvertidos.leitura
-      })
     },
 
     onPosicaoSensorChange() {
@@ -3556,7 +3046,6 @@ export default {
 
     // Métodos para carregar configuração do banco
     carregarConfiguracaoDoBanco(configuracaoCarregada) {
-      console.log('🔄 [ModeladorSVG] Carregando configuração do banco:', configuracaoCarregada)
 
       const { nome, dados, tipo, tipoConfiguracao } = configuracaoCarregada
 
@@ -3573,15 +3062,15 @@ export default {
         this.tipoAtivo = 'armazem'
 
         // Verificar tipo de configuração
-        if (dados.tipoConfiguracao === 'armazem_completo_v4' || dados.versao === '4.0') {
-          // Nova estrutura v4.0 com sistema completo de modelos
-          this.carregarConfiguracaoCompletaV4(dados, nome)
-        } else if (tipoConfiguracao === 'configuracao_armazem_completa' && dados.quantidadeModelos) {
-          // Estrutura v3.0 com sistema de modelos
-          this.carregarConfiguracaoCompletaV3(dados, nome)
+        // 🎯 USAR MÉTODO UNIFICADO: Sempre usar configuracaoService
+        const configCarregada = { dados, nome }
+        const resultado = configuracaoService.aplicarConfiguracaoCompleta(configCarregada, this.tipoAtivo)
+        
+        if (resultado.success) {
+          this.aplicarConfiguracaoUnificada(resultado.dados, nome)
         } else {
-          // Configuração simples (compatibilidade)
-          this.carregarConfiguracaoSimplesCompatibilidade(dados, nome)
+          console.error('❌ Erro ao processar configuração:', resultado.message)
+          this.mostrarToast(`Erro ao processar configuração: ${resultado.message}`, 'error')
         }
 
         // Resetar estado de edição
@@ -3594,210 +3083,29 @@ export default {
         // Atualizar preview
         this.updateSVG()
 
-        console.log(`✅ [ModeladorSVG] Configuração "${nome}" carregada com sucesso`)
       }
     },
 
-    carregarConfiguracaoCompletaV4(dados, nome) {
-      console.log('📦 [carregarConfiguracaoCompletaV4] Carregando configuração v4.0 completa')
 
-      // Restaurar sistema de modelos
-      if (dados.sistemaModelos) {
-        this.quantidadeModelosArcos = dados.sistemaModelos.quantidadeModelos
 
-        // Restaurar modelos de arcos com estado completo
-        const novosModelos = {}
-        const novosSalvos = {}
-
-        if (dados.sistemaModelos.modelosDefinidos) {
-          Object.keys(dados.sistemaModelos.modelosDefinidos).forEach(key => {
-            const modelo = dados.sistemaModelos.modelosDefinidos[key]
-            novosModelos[key] = {
-              ...modelo,
-              config: modelo.configuracao || {}, // Usar 'configuracao' da v4.0
-              quantidadePendulos: modelo.quantidadePendulos || 3,
-              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-              posicoesCabos: modelo.posicoesCabos || {},
-              // NOVO: Restaurar posições manuais dos pêndulos e sensores
-              posicoesManualPendulos: modelo.posicoesManualPendulos || {},
-              posicoesManualSensores: modelo.posicoesManualSensores || {},
-              // Restaurar estado completo se disponível
-              estadoCompleto: modelo.estadoCompleto || null,
-              timestampSalvamento: modelo.timestampUltimaEdicao || new Date().toISOString(),
-              versaoModelo: modelo.metadados?.versaoModelo || '4.0'
-            }
-            novosSalvos[key] = modelo.status === 'salvo'
-          })
-
-          this.modelosArcos = novosModelos
-          this.modelosSalvos = novosSalvos
-        }
-      }
-
-      // Restaurar configuração global
-      if (dados.configuracaoGlobal) {
-        this.configArmazem = { ...dados.configuracaoGlobal }
-      }
-
-      // Restaurar layouts automáticos
-      if (dados.layoutsAutomaticos) {
-        this.layoutsAutomaticos = dados.layoutsAutomaticos
-      }
-
-      // Restaurar dados originais se disponíveis
-      if (dados.dadosOriginais?.dadosPortal) {
-        this.dadosPortal = dados.dadosOriginais.dadosPortal
-        this.analiseArcos = dados.dadosOriginais.analiseArcos || this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
-      }
-
-      // Restaurar dimensões SVG
-      if (dados.dimensoesSVG) {
-        this.larguraSVG = dados.dimensoesSVG.largura || 350
-        this.alturaSVG = dados.dimensoesSVG.altura || 200
-      }
-
-      // Restaurar estado da aplicação se disponível
-      if (dados.estadoAtual) {
-        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
-        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
-        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
-      }
-
-      // Aplicar configuração do primeiro modelo no preview
-      setTimeout(() => {
-        const primeiroModelo = Object.values(this.modelosArcos)[0]
-        if (primeiroModelo) {
-          this.configArmazem = { ...primeiroModelo.config }
-          this.inicializarPosicoesCabos()
-        }
-      }, 100)
-
-      const logica = dados.sistemaModelos?.logicaDistribuicao?.nome || 'Personalizada'
-      this.mostrarToast(
-        `✅ Configuração v4.0 "${nome}" carregada!\n\n` +
-        `📊 ${this.quantidadeModelosArcos} modelo(s) restaurado(s) com estado completo\n` +
-        `🎯 Lógica: ${logica}\n` +
-        `📐 Dimensões: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}\n\n` +
-        `💡 Cada modelofoi restaurado com todas as configurações originais!`,
-        'success'
-      )
-    },
-
-    carregarConfiguracaoCompletaV3(dados, nome) {
-      console.log('📦 [carregarConfiguracaoCompletaV3] Carregando configuração v3.0')
-
-      this.quantidadeModelosArcos = dados.quantidadeModelos || 1
-
-      // Restaurar modelos de arcos (compatibilidade v3.0)
-      const novosModelos = {}
-      const novosSalvos = {}
-
-      if (dados.modelosArcos) {
-        Object.keys(dados.modelosArcos).forEach(key => {
-          const modelo = dados.modelosArcos[key]
-          novosModelos[key] = {
-            posicao: modelo.posicao || this.determinarPosicaoDoModelo(parseInt(key), dados.quantidadeModelos),
-            config: { ...modelo.config },
-            nome: modelo.nome || `Modelo ${key}`,
-            quantidadePendulos: modelo.quantidadePendulos || 3,
-            sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-            posicoesCabos: modelo.posicoesCabos || {},
-            // NOVO: Restaurar posições manuais se existirem
-            posicoesManualPendulos: modelo.posicoesManualPendulos || {},
-            posicoesManualSensores: modelo.posicoesManualSensores || {}
-          }
-          novosSalvos[key] = true
-        })
-
-        this.modelosArcos = novosModelos
-        this.modelosSalvos = novosSalvos
-      }
-
-      // Restaurar configuração global
-      if (dados.configuracaoGlobal) {
-        this.configArmazem = { ...dados.configuracaoGlobal }
-      }
-
-      // Restaurar dados originais se disponíveis
-      if (dados.dadosOriginais?.dadosPortal) {
-        this.dadosPortal = dados.dadosOriginais.dadosPortal
-        this.analiseArcos = this.analisarEstruturaArcos(dados.dadosOriginais.dadosPortal)
-      }
-
-      // Restaurar dimensões SVG se disponíveis
-      if (dados.dimensoesSVG) {
-        this.larguraSVG = dados.dimensoesSVG.largura
-        this.alturaSVG = dados.dimensoesSVG.altura
-      }
-
-      // Restaurar estado da aplicação se disponível
-      if (dados.estadoAtual) {
-        this.arcoAtual = dados.estadoAtual.arcoAtual || this.arcoAtual
-        this.dadosVindosDoPreview = dados.estadoAtual.dadosVindosDoPreview || false
-        this.configuracaoPreviewSelecionada = dados.estadoAtual.configuracaoPreviewSelecionada || ''
-      }
-
-      // Aplicar configuração inicial (geralmente do primeiro modelo)
-      setTimeout(() => {
-        const primeiroModelo = Object.values(this.modelosArcos)[0]
-        if (primeiroModelo) {
-          this.configArmazem = { ...primeiroModelo.config }
-          this.inicializarPosicoesCabos() // Re-inicializar cabos com base no modelo carregado
-        }
-      }, 100)
-
-      const totalArcos = dados.estruturaArmazem?.totalArcos || 'N/A'
-      const logica = dados.configModelos?.logicaDistribuicao?.nome || 'Padrão'
-
-      this.mostrarToast(
-        `Configuração hierárquica "${nome}" carregada!\n` +
-        `📊 ${totalArcos} arcos, ${this.quantidadeModelosArcos} modelo(s)\n` +
-        `🎯 Lógica: ${logica}\n` +
-        `📐 Dimensões SVG: ${dados.dimensoesSVG?.largura || 'N/A'} x ${dados.dimensoesSVG?.altura || 'N/A'}`,
-        'success'
-      )
-    },
-
-    carregarConfiguracaoSimplesCompatibilidade(dados, nome) {
-      console.log('📦 [carregarConfiguracaoSimplesCompatibilidade] Carregando configuração simples')
-
-      this.quantidadeModelosArcos = 1
-      this.modelosArcos = {
-        1: {
-          posicao: 'todos',
-          config: { ...dados },
-          nome: 'Modelo Único',
-          quantidadePendulos: 3,
-          sensoresPorPendulo: { 1: 4, 2: 3, 3: 5 }
-        }
-      }
-      this.modelosSalvos = { 1: true }
-      this.configArmazem = { ...dados }
-
-      this.mostrarToast(`Configuração simples "${nome}" convertida para novo formato!`, 'info')
-    },
 
     // Métodos do Gerenciador de Configurações
     handleModeloSalvo(modelo) {
       // Este método é chamado quando um modelo é salvo através do Gerenciador de Modelos do Banco
       // A lógica para atualizar `modelosArcos` já deve estar sendo tratada dentro de GerenciadorModelosBanco
-      console.log('Modelo salvo via Gerenciador de Modelos do Banco:', modelo);
     },
 
     handleModelosSalvos(modelos) {
-      console.log('Modelos de arcos atualizados:', modelos);
       // Poderia ser usado para atualizar o estado global se necessário
     },
 
     handleConfiguracaoSalva(dadosConfig) {
-      console.log('Configuração salva via Gerenciador de Configurações:', dadosConfig);
       // Lógica para salvar a configuração no localStorage ou API
       // A função `salvarConfiguracao` já faz isso, então aqui podemos apenas confirmar
       this.mostrarToast(`Configuração "${dadosConfig.nome}" salva!`, 'success');
     },
 
     handleConfiguracaoCarregada(dadosConfig) {
-      console.log('Configuração carregada via Gerenciador de Configurações:', dadosConfig);
       // Aqui, vamos restaurar o estado da aplicação com base nos dados carregados
 
       if (!dadosConfig) return;
@@ -3862,7 +3170,6 @@ export default {
     },
 
     handleConfiguracaoLegadoCarregada(dadosLegado) {
-      console.log('Configuração Legado carregada:', dadosLegado);
       // Para configurações legadas, apenas carregamos a configuração base,
       // e resetamos os modelos para o estado padrão.
       this.configArmazem = { ...dadosLegado.configuracao };
@@ -3876,17 +3183,14 @@ export default {
       this.imagemFundoData = { ...novaImagemData }
       // Salvar também na storage por tipo
       this.imagensFundoPorTipo[this.tipoAtivo] = { ...novaImagemData }
-      console.log(`Dados da imagem de fundo atualizados para ${this.tipoAtivo}:`, this.imagemFundoData)
     },
 
     // MÉTODOS PARA COMUNICAÇÃO COM COMPONENTE ARMAZEM SVG
     onDimensoesAtualizadas(novasDimensoes) {
-      console.log('📐 [ModeladorSVG] Dimensões atualizadas pelo ArmazemSvg:', novasDimensoes)
       // Não interferir - deixar o ArmazemSvg gerenciar suas próprias dimensões
     },
 
     onDimensoesAplicadas(dimensoesAplicadas) {
-      console.log('📐 [ModeladorSVG] Dimensões aplicadas pelo ArmazemSvg:', dimensoesAplicadas)
 
       // Se as dimensões vieram do banco de dados, salvar na configuração
       if (dimensoesAplicadas.origem === 'banco_dados') {
@@ -3907,7 +3211,6 @@ export default {
 
     // 🎯 NOVO: Handler para salvar dimensões calculadas no modelo
     onSalvarDimensoesModelo(dimensoesCalculadas) {
-      console.log('📐 [ModeladorSVG] Salvando dimensões calculadas no modelo:', dimensoesCalculadas)
 
       // Atualizar dimensões locais
       this.larguraSVG = dimensoesCalculadas.largura
@@ -3915,7 +3218,6 @@ export default {
 
       // 🎯 CRÍTICO: Garantir que lb seja atualizado para refletir a largura
       if (dimensoesCalculadas.largura && dimensoesCalculadas.largura !== this.configArmazem.lb) {
-        console.log(`🔧 [ModeladorSVG] Atualizando lb: ${this.configArmazem.lb} → ${dimensoesCalculadas.largura}`)
         this.configArmazem.lb = dimensoesCalculadas.largura
       }
 
@@ -3984,9 +3286,57 @@ export default {
             document.dragListenersAdded = true
           }
 
-          console.log('🎯 Event listeners adicionados com sucesso')
         }, 50)
       })
+    },
+
+    // 🔧 MÉTODO ROBUSTO: Reestabelecimento seguro e idempotente de event listeners
+    reestabelecerEventListenersSeguro(retryCount = 0) {
+      if (this.tipoAtivo !== 'armazem') return
+
+      const MAX_RETRIES = 5
+
+      // 1. SEMPRE remover listeners existentes primeiro (idempotência)
+      this.removerEventListeners()
+
+      // 2. Aguardar um único ciclo do Vue para garantir que DOM foi atualizado
+      this.$nextTick(() => {
+        // 3. Verificar se container SVG existe e está pronto
+        const svgContainer = document.querySelector('.svg-container-responsive svg')
+        const elementosSVG = svgContainer ? svgContainer.querySelectorAll('[id^="C"]') : []
+        
+        if (!svgContainer || elementosSVG.length === 0) {
+          // SVG ainda não foi renderizado, tentar novamente com limite
+          if (retryCount < MAX_RETRIES) {
+            setTimeout(() => this.reestabelecerEventListenersSeguro(retryCount + 1), 50)
+          } else {
+            console.warn('⚠️ [reestabelecerEventListenersSeguro] Max retries reached - SVG elements not found')
+          }
+          return
+        }
+
+        // 4. Adicionar listeners de forma segura
+        this.adicionarListenersPendulos()
+        this.adicionarListenersSensores()
+
+        // 5. Gerenciar listeners globais de forma idempotente
+        this.garantirListenersGlobais()
+      })
+    },
+
+    // 🔧 Método para garantir listeners globais sem duplicação (específico da instância)
+    garantirListenersGlobais() {
+      // Remover primeiro se existir (específico desta instância)
+      if (this._globalsAdded) {
+        document.removeEventListener('mousemove', this.continuarDrag)
+        document.removeEventListener('mouseup', this.finalizarDrag)
+        this._globalsAdded = false
+      }
+
+      // Adicionar novamente
+      document.addEventListener('mousemove', this.continuarDrag)
+      document.addEventListener('mouseup', this.finalizarDrag)
+      this._globalsAdded = true
     },
 
     adicionarListenersPendulos() {
@@ -4059,11 +3409,11 @@ export default {
         elemento.classList.remove('pendulo-draggable', 'sensor-draggable')
       })
 
-      // Remover listeners globais apenas uma vez
-      if (document.dragListenersAdded) {
+      // 🔧 Remover listeners globais específicos desta instância
+      if (this._globalsAdded) {
         document.removeEventListener('mousemove', this.continuarDrag)
         document.removeEventListener('mouseup', this.finalizarDrag)
-        document.dragListenersAdded = false
+        this._globalsAdded = false
       }
     },
 
@@ -4071,7 +3421,6 @@ export default {
       event.preventDefault()
       event.stopPropagation()
 
-      console.log(`🎯 Iniciando drag do pêndulo ${numeroPendulo}`)
 
       this.isDragging = true
       this.dragType = 'pendulo'
@@ -4113,7 +3462,6 @@ export default {
       event.preventDefault()
       event.stopPropagation()
 
-      console.log(`🎯 Iniciando drag do sensor ${numeroSensor} do pêndulo ${numeroPendulo}`)
 
       this.isDragging = true
       this.dragType = 'sensor'
@@ -4182,7 +3530,6 @@ export default {
     finalizarDrag(event) {
       if (!this.isDragging) return
 
-      console.log(`✅ Finalizando drag do ${this.dragType}`)
 
       const elementoMovido = this.dragElement
       const tipoMovido = this.dragType
@@ -4221,7 +3568,6 @@ export default {
 
       // Agendar novo salvamento após 300ms de inatividade
       this.saveTimeout = setTimeout(() => {
-        console.log(`💾 Salvando posições após movimento de ${tipoMovido}:`, elementoMovido)
 
         // Salvar posições no modelo atual se estiver editando
         if (this.modeloArcoAtual) {
@@ -4303,13 +3649,6 @@ export default {
       this.posicoesManualSensores[chaveSensor].y = novaY - posicaoOriginal.y
       this.posicoesManualSensores[chaveSensor].timestampAlteracao = Date.now()
 
-      console.log(`📍 [moverSensorIndividual] Sensor ${chaveSensor} movido:`, {
-        novaX,
-        novaY,
-        offsetX: this.posicoesManualSensores[chaveSensor].x,
-        offsetY: this.posicoesManualSensores[chaveSensor].y,
-        posicaoOriginal
-      })
 
       // Atualizar elemento DOM diretamente para feedback visual imediato
       this.atualizarSensorDOMDiretamente(numeroPendulo, numeroSensor)
@@ -4439,12 +3778,6 @@ export default {
         return
       }
 
-      console.log('💾 [salvarPosicoesNoModelo] Iniciando salvamento das posições', {
-        modelo: this.modeloArcoAtual,
-        posicoesManualPendulos: this.posicoesManualPendulos,
-        posicoesManualSensores: this.posicoesManualSensores,
-        totalSensores: Object.keys(this.posicoesManualSensores).length
-      })
 
       // Salvar posições manuais no modelo atual
       if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
@@ -4457,10 +3790,6 @@ export default {
       this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = { ...this.posicoesManualPendulos }
       this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = { ...this.posicoesManualSensores }
 
-      console.log('📊 [salvarPosicoesNoModelo] Posições salvas no modelo:', {
-        pendulosNoModelo: Object.keys(this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos).length,
-        sensoresNoModelo: Object.keys(this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores).length
-      })
 
       // 1. Salvar no preview local (estado atual)
       this.salvarNoPreviewLocal()
@@ -4471,13 +3800,6 @@ export default {
       // 3. Salvar no banco de dados
       this.salvarModeloAtualCompleto()
 
-      console.log('💾 Posições manuais salvas em todas as camadas:', {
-        modelo: this.modeloArcoAtual,
-        pendulos: this.posicoesManualPendulos,
-        sensores: this.posicoesManualSensores,
-        totalPendulos: Object.keys(this.posicoesManualPendulos).length,
-        totalSensores: Object.keys(this.posicoesManualSensores).length
-      })
     },
 
     salvarNoPreviewLocal() {
@@ -4493,7 +3815,6 @@ export default {
       if (typeof localStorage !== 'undefined') {
         try {
           localStorage.setItem('posicoesManualTemp', JSON.stringify(estadoAtual))
-          console.log('💾 [salvarNoPreviewLocal] Posições salvas temporariamente no localStorage')
         } catch (error) {
           console.error('❌ Erro ao salvar posições temporariamente:', error)
         }
@@ -4522,7 +3843,6 @@ export default {
 
     // NOVO MÉTODO: Limpeza automática apenas na inicialização
     limparPosicoesInicializacao() {
-      console.log('🧹 [limparPosicoesInicializacao] Limpando posições para inicialização limpa')
 
       // Limpar posições manuais de drag and drop
       this.posicoesManualPendulos = {}
@@ -4542,7 +3862,6 @@ export default {
             }
           })
 
-          console.log('✅ [limparPosicoesInicializacao] Posições limpas - ModeladorSVG iniciará organizado')
         } catch (error) {
           console.error('❌ Erro ao limpar posições na inicialização:', error)
         }
@@ -4565,10 +3884,6 @@ export default {
             this.posicoesManualPendulos = { ...estadoSalvo.posicoesManualPendulos }
             this.posicoesManualSensores = { ...estadoSalvo.posicoesManualSensores }
 
-            console.log('💾 [carregarPosicoesTemporarias] Posições temporárias carregadas:', {
-              pendulos: Object.keys(this.posicoesManualPendulos).length,
-              sensores: Object.keys(this.posicoesManualSensores).length
-            })
           } else {
             // Limpar dados antigos
             localStorage.removeItem('posicoesManualTemp')
@@ -4629,11 +3944,6 @@ export default {
         }
       })
 
-      console.log('📊 [construirAlturasSensores] Dados construídos:', {
-        alturasSensores,
-        posicoesManualSensores,
-        totalSensores: Object.keys(alturasSensores).length
-      })
 
       return { alturasSensores, posicoesManualSensores }
     }
@@ -4806,635 +4116,4 @@ export default {
   padding: 4px 8px;
 }
 
-.mobile-select {
-  max-width: 90px !important;
-  min-width: 75px !important;
-  height: 32px;
-  font-size: 13px;
-}
-
-.mobile-info {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.mobile-badge {
-  font-size: 0.65rem !important;
-  padding: 2px 4px !important;
-}
-
-.mobile-badges {
-  margin-bottom: 4px;
-}
-
-.mobile-model-name {
-  font-size: 0.7rem !important;
-  line-height: 1.2;
-}
-
-@media (max-width: 767.98px) {
-  .svg-container-responsive {
-    min-height: 180px;
-    padding: 0.5rem;
-  }
-
-  .card-body {
-    padding: 0.5rem !important;
-  }
-
-  .card-footer {
-    padding: 0.5rem !important;
-    position: relative;
-    z-index: 100;
-    background: #f8f9fa !important;
-    border-top: 2px solid #dee2e6;
-  }
-}
-
-@media (max-width: 575.98px) {
-  .svg-container-responsive {
-    min-height: 150px;
-    padding: 0.25rem;
-  }
-
-  .mobile-navigation {
-    margin: 2px -2px;
-    padding: 6px;
-  }
-
-  .mobile-nav-buttons {
-    gap: 2px !important;
-    justify-content: space-between;
-  }
-
-  .nav-btn {
-    min-width: 32px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 70px !important;
-    min-width: 60px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 4px !important;
-  }
-
-  .mobile-info {
-    padding: 4px;
-  }
-
-  .mobile-badge {
-    font-size: 0.6rem !important;
-    padding: 1px 3px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.65rem !important;
-  }
-
-  .card-footer {
-    padding: 0.25rem !important;
-    position: sticky;
-    bottom: 0;
-    z-index: 150;
-    background: rgba(248, 249, 250, 0.98) !important;
-    backdrop-filter: blur(4px);
-    border-top: 2px solid #007bff;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* Ajustes para telas muito pequenas */
-@media (max-width: 420px) {
-  .mobile-nav-buttons {
-    gap: 2px !important;
-  }
-
-  .nav-btn {
-    min-width: 28px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 55px !important;
-    min-width: 50px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 2px !important;
-  }
-
-  .mobile-badge {
-    font-size: 0.55rem !important;
-    padding: 1px 2px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.6rem !important;
-  }
-}
-
-/* Estilos para SVG */
-.svg-container-responsive {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-/* Estilos específicos para navegação mobile */
-.mobile-navigation {
-  background: rgba(248, 249, 250, 0.95);
-  border-radius: 6px;
-  padding: 8px;
-  margin: 4px 0;
-  border: 1px solid #dee2e6;
-}
-
-.mobile-nav-buttons {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.nav-btn {
-  min-width: 36px !important;
-  height: 32px;
-  font-weight: bold;
-  font-size: 14px;
-  padding: 4px 8px;
-}
-
-.mobile-select {
-  max-width: 90px !important;
-  min-width: 75px !important;
-  height: 32px;
-  font-size: 13px;
-}
-
-.mobile-info {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.mobile-badge {
-  font-size: 0.65rem !important;
-  padding: 2px 4px !important;
-}
-
-.mobile-badges {
-  margin-bottom: 4px;
-}
-
-.mobile-model-name {
-  font-size: 0.7rem !important;
-  line-height: 1.2;
-}
-
-@media (max-width: 767.98px) {
-  .svg-container-responsive {
-    min-height: 180px;
-    padding: 0.5rem;
-  }
-
-  .card-body {
-    padding: 0.5rem !important;
-  }
-
-  .card-footer {
-    padding: 0.5rem !important;
-    position: relative;
-    z-index: 100;
-    background: #f8f9fa !important;
-    border-top: 2px solid #dee2e6;
-  }
-}
-
-@media (max-width: 575.98px) {
-  .svg-container-responsive {
-    min-height: 150px;
-    padding: 0.25rem;
-  }
-
-  .mobile-navigation {
-    margin: 2px -2px;
-    padding: 6px;
-  }
-
-  .mobile-nav-buttons {
-    gap: 2px !important;
-    justify-content: space-between;
-  }
-
-  .nav-btn {
-    min-width: 32px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 70px !important;
-    min-width: 60px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 4px !important;
-  }
-
-  .mobile-info {
-    padding: 4px;
-  }
-
-  .mobile-badge {
-    font-size: 0.6rem !important;
-    padding: 1px 3px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.65rem !important;
-  }
-
-  .card-footer {
-    padding: 0.25rem !important;
-    position: sticky;
-    bottom: 0;
-    z-index: 150;
-    background: rgba(248, 249, 250, 0.98) !important;
-    backdrop-filter: blur(4px);
-    border-top: 2px solid #007bff;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* Ajustes para telas muito pequenas */
-@media (max-width: 420px) {
-  .mobile-nav-buttons {
-    gap: 2px !important;
-  }
-
-  .nav-btn {
-    min-width: 28px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 55px !important;
-    min-width: 50px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 2px !important;
-  }
-
-  .mobile-badge {
-    font-size: 0.55rem !important;
-    padding: 1px 2px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.6rem !important;
-  }
-}
-
-/* Estilos para SVG */
-.svg-container-responsive {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-/* Estilos específicos para navegação mobile */
-.mobile-navigation {
-  background: rgba(248, 249, 250, 0.95);
-  border-radius: 6px;
-  padding: 8px;
-  margin: 4px 0;
-  border: 1px solid #dee2e6;
-}
-
-.mobile-nav-buttons {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.nav-btn {
-  min-width: 36px !important;
-  height: 32px;
-  font-weight: bold;
-  font-size: 14px;
-  padding: 4px 8px;
-}
-
-.mobile-select {
-  max-width: 90px !important;
-  min-width: 75px !important;
-  height: 32px;
-  font-size: 13px;
-}
-
-.mobile-info {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.mobile-badge {
-  font-size: 0.65rem !important;
-  padding: 2px 4px !important;
-}
-
-.mobile-badges {
-  margin-bottom: 4px;
-}
-
-.mobile-model-name {
-  font-size: 0.7rem !important;
-  line-height: 1.2;
-}
-
-@media (max-width: 767.98px) {
-  .svg-container-responsive {
-    min-height: 180px;
-    padding: 0.5rem;
-  }
-
-  .card-body {
-    padding: 0.5rem !important;
-  }
-
-  .card-footer {
-    padding: 0.5rem !important;
-    position: relative;
-    z-index: 100;
-    background: #f8f9fa !important;
-    border-top: 2px solid #dee2e6;
-  }
-}
-
-@media (max-width: 575.98px) {
-  .svg-container-responsive {
-    min-height: 150px;
-    padding: 0.25rem;
-  }
-
-  .mobile-navigation {
-    margin: 2px -2px;
-    padding: 6px;
-  }
-
-  .mobile-nav-buttons {
-    gap: 2px !important;
-    justify-content: space-between;
-  }
-
-  .nav-btn {
-    min-width: 32px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 70px !important;
-    min-width: 60px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 4px !important;
-  }
-
-  .mobile-info {
-    padding: 4px;
-  }
-
-  .mobile-badge {
-    font-size: 0.6rem !important;
-    padding: 1px 3px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.65rem !important;
-  }
-
-  .card-footer {
-    padding: 0.25rem !important;
-    position: sticky;
-    bottom: 0;
-    z-index: 150;
-    background: rgba(248, 249, 250, 0.98) !important;
-    backdrop-filter: blur(4px);
-    border-top: 2px solid #007bff;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* Ajustes para telas muito pequenas */
-@media (max-width: 420px) {
-  .mobile-nav-buttons {
-    gap: 2px !important;
-  }
-
-  .nav-btn {
-    min-width: 28px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 55px !important;
-    min-width: 50px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 2px !important;
-  }
-
-  .mobile-badge {
-    font-size: 0.55rem !important;
-    padding: 1px 2px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.6rem !important;
-  }
-}
-
-/* Estilos para SVG */
-.svg-container-responsive {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-/* Estilos específicos para navegação mobile */
-.mobile-navigation {
-  background: rgba(248, 249, 250, 0.95);
-  border-radius: 6px;
-  padding: 8px;
-  margin: 4px 0;
-  border: 1px solid #dee2e6;
-}
-
-.mobile-nav-buttons {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.nav-btn {
-  min-width: 36px !important;
-  height: 32px;
-  font-weight: bold;
-  font-size: 14px;
-  padding: 4px 8px;
-}
-
-.mobile-select {
-  max-width: 90px !important;
-  min-width: 75px !important;
-  height: 32px;
-  font-size: 13px;
-}
-
-.mobile-info {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.mobile-badge {
-  font-size: 0.65rem !important;
-  padding: 2px 4px !important;
-}
-
-.mobile-badges {
-  margin-bottom: 4px;
-}
-
-.mobile-model-name {
-  font-size: 0.7rem !important;
-  line-height: 1.2;
-}
-
-@media (max-width: 767.98px) {
-  .svg-container-responsive {
-    min-height: 180px;
-    padding: 0.5rem;
-  }
-
-  .card-body {
-    padding: 0.5rem !important;
-  }
-
-  .card-footer {
-    padding: 0.5rem !important;
-    position: relative;
-    z-index: 100;
-    background: #f8f9fa !important;
-    border-top: 2px solid #dee2e6;
-  }
-}
-
-@media (max-width: 575.98px) {
-  .svg-container-responsive {
-    min-height: 150px;
-    padding: 0.25rem;
-  }
-
-  .mobile-navigation {
-    margin: 2px -2px;
-    padding: 6px;
-  }
-
-  .mobile-nav-buttons {
-    gap: 2px !important;
-    justify-content: space-between;
-  }
-
-  .nav-btn {
-    min-width: 32px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 70px !important;
-    min-width: 60px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 4px !important;
-  }
-
-  .mobile-info {
-    padding: 4px;
-  }
-
-  .mobile-badge {
-    font-size: 0.6rem !important;
-    padding: 1px 3px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.65rem !important;
-  }
-
-  .card-footer {
-    padding: 0.25rem !important;
-    position: sticky;
-    bottom: 0;
-    z-index: 150;
-    background: rgba(248, 249, 250, 0.98) !important;
-    backdrop-filter: blur(4px);
-    border-top: 2px solid #007bff;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* Ajustes para telas muito pequenas */
-@media (max-width: 420px) {
-  .mobile-nav-buttons {
-    gap: 2px !important;
-  }
-
-  .nav-btn {
-    min-width: 28px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 55px !important;
-    min-width: 50px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 2px !important;
-  }
-
-  .mobile-badge {
-    font-size: 0.55rem !important;
-    padding: 1px 2px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.6rem !important;
-  }
-}
 </style>

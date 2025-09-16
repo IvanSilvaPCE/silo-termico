@@ -14,42 +14,29 @@ const preservarPosicoesCabos = (dadosSvg) => {
 
     // 🎯 NOVA ESTRUTURA V6.0: Preservar estrutura de modelos conforme anexo
     if (dados.modelos) {
-      console.log(`💾 [PRESERVAÇÃO V6.0] Processando ${Object.keys(dados.modelos).length} modelos`);
 
       Object.keys(dados.modelos).forEach(modeloId => {
         const modelo = dados.modelos[modeloId];
 
         if (modelo && modelo.dimensoes && modelo.modeloEspecifico) {
-          console.log(`💾 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Preservando estrutura completa:`, {
-            nome: modelo.nome,
-            posicao: modelo.posicao,
-            quantidadePendulos: modelo.modeloEspecifico.quantidadePendulos,
-            dimensoes: modelo.dimensoes,
-            telhado: modelo.telhado?.tipo,
-            fundo: modelo.fundo?.tipo
-          });
 
           // 🔒 PRESERVAR TOTALMENTE as dimensões já salvas - NÃO alterar
           if (modelo.dimensoes) {
-            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Dimensões preservadas INTACTAS:`, modelo.dimensoes);
           }
 
           // 🔒 PRESERVAR posições dos pêndulos
           if (modelo.modeloEspecifico.posicoesPendulos) {
             const totalPosicoes = Object.keys(modelo.modeloEspecifico.posicoesPendulos).length;
-            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalPosicoes} posições de pêndulos preservadas`);
           }
 
           // 🔒 PRESERVAR posições manuais dos sensores
           if (modelo.modeloEspecifico.posicoesManualSensores) {
             const totalSensores = Object.keys(modelo.modeloEspecifico.posicoesManualSensores).length;
-            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalSensores} posições manuais de sensores preservadas`);
           }
 
           // 🔒 PRESERVAR sensores por pêndulo
           if (modelo.modeloEspecifico.sensoresPorPendulo) {
             const totalSensoresPorPendulo = Object.keys(modelo.modeloEspecifico.sensoresPorPendulo).length;
-            console.log(`✅ [PRESERVAÇÃO V6.0] Modelo ${modeloId} - ${totalSensoresPorPendulo} configurações de sensores preservadas`);
           }
         }
       });
@@ -66,18 +53,15 @@ const preservarPosicoesCabos = (dadosSvg) => {
           const config = modelo.configuracao;
           const quantidadePendulos = modelo.quantidadePendulos || 3;
 
-          console.log(`💾 [PRESERVAÇÃO LEGACY] Modelo ${modeloKey} - Salvando dimensões e posições dos ${quantidadePendulos} pêndulos`);
 
           // 🔒 PRESERVAR TOTALMENTE as dimensões - NÃO sobrescrever se já existem
           const dimensoesSalvas = ['pb', 'lb', 'hb', 'hf', 'lf', 'le', 'ht'];
           dimensoesSalvas.forEach(dim => {
             if (config[dim] !== undefined && config[dim] !== null) {
-              console.log(`✅ [PRESERVAÇÃO LEGACY] ${dim} preservado: ${config[dim]}`);
             } else {
               // Apenas aplicar defaults se realmente não existir
               const defaults = { pb: 185, lb: 350, hb: 30, hf: 6, lf: 250, le: 15, ht: 50 };
               config[dim] = defaults[dim];
-              console.log(`🆕 [PRESERVAÇÃO LEGACY] ${dim} definido como default: ${config[dim]}`);
             }
           });
 
@@ -129,7 +113,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
           // CRÍTICO: Preservar posições manuais dos sensores do modeloEspecifico
           if (modelo.modeloEspecifico && modelo.modeloEspecifico.posicoesManualSensores) {
             config.posicoesManualSensores = { ...modelo.modeloEspecifico.posicoesManualSensores };
-            console.log(`📍 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Posições manuais sensores preservadas:`, Object.keys(config.posicoesManualSensores).length);
           }
 
           // NOVO: Preservar posições manuais dos pêndulos
@@ -140,19 +123,16 @@ const preservarPosicoesCabos = (dadosSvg) => {
           // CRÍTICO: Preservar posições manuais dos pêndulos do modeloEspecifico
           if (modelo.modeloEspecifico && modelo.modeloEspecifico.posicoesManualPendulos) {
             config.posicoesManualPendulos = { ...modelo.modeloEspecifico.posicoesManualPendulos };
-            console.log(`📍 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Posições manuais pêndulos preservadas:`, Object.keys(config.posicoesManualPendulos).length);
           }
 
           // NOVO: Garantir que posicoesManualSensores sempre existe na estrutura V6.0
           if (!modelo.modeloEspecifico.posicoesManualSensores) {
             modelo.modeloEspecifico.posicoesManualSensores = {};
-            console.log(`🆕 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Campo posicoesManualSensores criado`);
           }
 
           // NOVO: Garantir que posicoesManualPendulos sempre existe na estrutura V6.0
           if (!modelo.modeloEspecifico.posicoesManualPendulos) {
             modelo.modeloEspecifico.posicoesManualPendulos = {};
-            console.log(`🆕 [PRESERVAÇÃO V6.0] Modelo ${modeloId} - Campo posicoesManualPendulos criado`);
           }
 
           // Garantir estrutura para cada cabo, mas SEM alterar posições existentes
@@ -169,7 +149,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
                 numeroSensores: 3, // Número de sensores neste cabo/pêndulo
                 timestampAlteracao: Date.now()
               };
-              console.log(`🆕 [PRESERVAÇÃO] Modelo ${modeloKey} - Cabo ${i} - Estrutura inicial criada`);
             } else {
               // PRESERVAR TOTALMENTE as posições já salvas
               const posicaoExistente = config.posicoesCabos[i];
@@ -182,7 +161,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
               if (posicaoExistente.numeroSensores === undefined) posicaoExistente.numeroSensores = 3;
               if (!posicaoExistente.timestampAlteracao) posicaoExistente.timestampAlteracao = Date.now();
 
-              console.log(`✅ [PRESERVAÇÃO] Modelo ${modeloKey} - Cabo ${i} - Posição preservada EXATA: x=${posicaoExistente.x}, y=${posicaoExistente.y}`);
             }
           }
 
@@ -190,7 +168,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
           const totalPendulosManual = Object.keys(config.posicoesManualPendulos).length;
           const totalSensoresManual = Object.keys(config.posicoesManualSensores).length;
           if (totalPendulosManual > 0 || totalSensoresManual > 0) {
-            console.log(`📍 [PRESERVAÇÃO] Modelo ${modeloKey} - Posições manuais preservadas: ${totalPendulosManual} pêndulos, ${totalSensoresManual} sensores`);
           }
 
           // Construir array pos_x_cabo baseado nas posições individuais salvas
@@ -228,38 +205,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
           config.informacoesModelo.timestampUltimaEdicao = Date.now();
           config.informacoesModelo.posicionamentoPersonalizado = true;
 
-          console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Configuração completa preservada:`, {
-            quantidadePendulos: quantidadePendulos,
-            dimensoesBasicas: {
-              pb: config.pb,
-              lb: config.lb,
-              hb: config.hb,
-              hf: config.hf,
-              lf: config.lf,
-              le: config.le,
-              ht: config.ht
-            },
-            telhado: {
-              tipo_telhado: config.tipo_telhado,
-              curvatura_topo: config.curvatura_topo,
-              pontas_redondas: config.pontas_redondas,
-              raio_pontas: config.raio_pontas,
-              estilo_laterais: config.estilo_laterais,
-              curvatura_laterais: config.curvatura_laterais
-            },
-            fundo: {
-              tipo_fundo: config.tipo_fundo,
-              altura_fundo_reto: config.altura_fundo_reto,
-              altura_funil_v: config.altura_funil_v,
-              altura_duplo_v: config.altura_duplo_v,
-              deslocamento_horizontal_fundo: config.deslocamento_horizontal_fundo,
-              deslocamento_vertical_fundo: config.deslocamento_vertical_fundo
-            },
-            posicoesCabos: config.posicoesCabos,
-            pos_x_cabo: config.pos_x_cabo,
-            distancia_entre_cabos: config.distancia_entre_cabos,
-            totalPropriedades: Object.keys(config).length
-          });
 
           // VALIDAÇÃO CRÍTICA: Verificar se dimensões básicas estão sendo preservadas
           const dimensoesCriticas = ['pb', 'lb', 'hb', 'hf', 'lf', 'le', 'ht'];
@@ -271,18 +216,12 @@ const preservarPosicoesCabos = (dadosSvg) => {
             dimensoesComValores[dim] = config[dim];
           });
 
-          console.log(`🔍 [VALIDAÇÃO] Modelo ${modeloKey} - Dimensões preservadas: ${dimensoesPreservadas.length}/${dimensoesCriticas.length}`, {
-            preservadas: dimensoesPreservadas,
-            faltando: dimensoesCriticas.filter(dim => config[dim] === undefined || config[dim] === null),
-            valoresDimensoes: dimensoesComValores
-          });
         }
       });
     }
 
     return typeof dadosSvg === 'string' ? JSON.stringify(dados) : dados;
   } catch (error) {
-    console.warn('⚠️ [PRESERVAÇÃO] Erro ao preservar posições de cabos:', error);
     return dadosSvg;
   }
 };
@@ -306,17 +245,6 @@ const validarDadosModelo = (dados) => {
     try { JSON.parse(dados.dado_svg); } catch { erros.push("Dados SVG devem ser um JSON válido"); }
   }
 
-  console.log("🔍 [validarDadosModelo] Validação detalhada:", {
-    nm_modelo: { valor: dados.nm_modelo, valido: !!(dados.nm_modelo && dados.nm_modelo.trim()) },
-    tp_svg: { valor: dados.tp_svg, valido: !!dados.tp_svg && ["A", "S"].includes(dados.tp_svg) },
-    vista_svg: { valor: dados.vista_svg, valido: !!dados.vista_svg && ["F", "L", "T"].includes(dados.vista_svg) },
-    dado_svg: {
-      valor: dados.dado_svg ? dados.dado_svg.substring(0, 50) + "..." : null,
-      tamanho: dados.dado_svg ? dados.dado_svg.length : 0,
-      valido: !!(dados.dado_svg && dados.dado_svg.length > 2),
-    },
-    erros,
-  });
 
   return { valido: erros.length === 0, erros };
 };

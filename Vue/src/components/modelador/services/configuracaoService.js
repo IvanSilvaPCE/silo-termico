@@ -157,10 +157,9 @@ const salvarModeloIndividual = (numeroModelo, configuracaoModelo) => {
 
     localStorage.setItem(chaveModelo, JSON.stringify(dadosModelo))
 
-    console.log(`✅ [configuracaoService] Modelo ${numeroModelo} salvo no localStorage`)
     return { success: true, message: `Modelo ${numeroModelo} salvo com sucesso!` }
   } catch (error) {
-    console.error(`❌ [configuracaoService] Erro ao salvar modelo ${numeroModelo}:`, error)
+    console.error(`Erro ao salvar modelo ${numeroModelo}:`, error)
     return { success: false, message: `Erro ao salvar modelo ${numeroModelo}` }
   }
 }
@@ -174,7 +173,7 @@ const carregarModeloIndividual = (numeroModelo) => {
     }
     return null
   } catch (error) {
-    console.error(`❌ [configuracaoService] Erro ao carregar modelo ${numeroModelo}:`, error)
+    console.error(`Erro ao carregar modelo ${numeroModelo}:`, error)
     return null
   }
 }
@@ -197,12 +196,10 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
     const modelosConsolidados = {}
     let modelosEncontrados = 0
 
-    console.log(`🔄 [consolidarModelosParaBanco] Iniciando consolidação OTIMIZADA v6.0 de ${quantidadeModelos} modelos`)
 
     // Processar modelos em ordem crescente (1, 2, 3, ...)
     for (let i = 1; i <= quantidadeModelos; i++) {
       const modelo = carregarModeloIndividual(i)
-      console.log(`🔍 [consolidarModelosParaBanco] Verificando modelo ${i}:`, modelo)
 
       if (modelo && modelo.configuracao) {
         modelosEncontrados++
@@ -217,11 +214,6 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
         const quantidadePendulos = config.quantidadePendulos || 3
         const dadosSensoresOtimizados = consolidarDadosSensores(config, quantidadePendulos)
 
-        console.log(`🎯 [consolidarModelosParaBanco] Modelo ${i} - Dados OTIMIZADOS:`, {
-          posicoesCabos: Object.keys(posicoesCabosConsolidadas).length,
-          sensores: dadosSensoresOtimizados,
-          eliminandoRedundancias: true
-        })
 
         // 🎯 ESTRUTURA OTIMIZADA v6.0: Sem redundâncias
         modelosConsolidados[i.toString()] = criarEstruturaOtimizadaV6(
@@ -231,7 +223,6 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
           dadosSensoresOtimizados
         )
       } else {
-        console.warn(`⚠️ [consolidarModelosParaBanco] Modelo ${i} não encontrado ou sem configuração`)
       }
     }
 
@@ -242,7 +233,6 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
     }
 
     if (modelosEncontrados < quantidadeModelos) {
-      console.warn(`⚠️ [consolidarModelosParaBanco] Encontrados ${modelosEncontrados}/${quantidadeModelos} modelos`)
       return { success: false, message: `Apenas ${modelosEncontrados} de ${quantidadeModelos} modelos foram encontrados. Configure e salve todos os modelos antes de salvar no banco.` }
     }
 
@@ -254,17 +244,6 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
       }
     }
 
-    console.log(`✅ [consolidarModelosParaBanco] Modelos ordenados corretamente:`, {
-      ordemOriginal: Object.keys(modelosConsolidados),
-      ordemFinal: Object.keys(modelosOrdenados),
-      detalhesModelos: Object.keys(modelosOrdenados).map(key => ({
-        chave: key,
-        numeroModelo: modelosOrdenados[key].numeroModelo,
-        nome: modelosOrdenados[key].nome,
-        quantidadePendulos: modelosOrdenados[key].quantidadePendulos,
-        sensoresCompletos: Object.keys(modelosOrdenados[key].sensoresPorPenduloCompletos || {}).length
-      }))
-    })
 
     // VERIFICAÇÃO FINAL: Garantir que todos os dados estão presentes antes de criar dado_svg
     const verificacaoFinal = {
@@ -304,7 +283,6 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
       }
     })
 
-    console.log('🔍 [consolidarModelosParaBanco] VERIFICAÇÃO FINAL antes de salvar no banco:', verificacaoFinal)
 
     // 🎯 ESTRUTURA FINAL OTIMIZADA v6.0: 60-80% menos dados
     const dadosSvgFinal = {
@@ -346,13 +324,6 @@ const consolidarModelosParaBanco = (quantidadeModelos, nomeConfiguracao) => {
       })
     }
 
-    console.log('✅ [consolidarModelosParaBanco] Consolidação concluída:', {
-      nomeConfiguracao,
-      quantidadeModelos,
-      modelosEncontrados,
-      modelosProcessados: Object.keys(modelosConsolidados).length,
-      tamanhoFinal: JSON.stringify(dadosSvgFinal.dado_svg).length
-    })
 
     return { success: true, dados: dadosSvgFinal }
   } catch (error) {
@@ -416,7 +387,6 @@ const listarConfiguracoesSalvas = () => {
             })
           }
         } catch (error) {
-          console.warn(`Configuração inválida encontrada: ${chave}`)
         }
       }
     }
@@ -500,11 +470,6 @@ const aplicarPosicoesCabos = (modelos) => {
       modelo.configuracao.posicoesCabosPersonalizadas = posicoesCabosConsolidadas
       modelo.posicoesCabos = posicoesCabosConsolidadas
 
-      console.log(`🎯 [aplicarPosicoesCabos] Modelo ${modeloKey} - Posições aplicadas:`, {
-        quantidadeCabos: Object.keys(posicoesCabosConsolidadas).length,
-        cabos: Object.keys(posicoesCabosConsolidadas),
-        posicoes: posicoesCabosConsolidadas
-      })
     }
   })
 }
@@ -540,12 +505,10 @@ const validarPosicaoDentroDoFundo = (posicao, limitesFundo, escala_sensores = 16
 
   // Ajustar posição se estiver fora dos limites
   if (posicao < xMinimo) {
-    console.warn(`⚠️ [VALIDAÇÃO] Posição ${posicao} ajustada para ${xMinimo} (limite mínimo do fundo)`);
     return xMinimo;
   }
 
   if (posicao > xMaximo) {
-    console.warn(`⚠️ [VALIDAÇÃO] Posição ${posicao} ajustada para ${xMaximo} (limite máximo do fundo)`);
     return xMaximo;
   }
 
@@ -582,7 +545,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
           const config = modelo.configuracao;
           const quantidadePendulos = modelo.quantidadePendulos || 3;
 
-          console.log(`💾 [PRESERVAÇÃO] Modelo ${modeloKey} - Salvando posições exatas dos ${quantidadePendulos} pêndulos`);
 
           // Garantir que propriedades básicas existam (sem alterar valores)
           if (config.escala_sensores === undefined) config.escala_sensores = 16;
@@ -604,7 +566,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
 
           // NOVO: Calcular limites do fundo do armazém
           const limitesFundo = calcularLimitesFundoArmazem(config);
-          console.log(`📐 [LIMITES] Modelo ${modeloKey} - Limites do fundo:`, limitesFundo);
 
           // IMPORTANTE: Preservar posições individuais dos cabos EXATAMENTE como foram salvas
           if (!config.posicoesCabos) {
@@ -631,7 +592,6 @@ const preservarPosicoesCabos = (dadosSvg) => {
                 timestampAlteracao: Date.now(),
                 dentroDoFundo: true // Flag indicando que está dentro dos limites
               };
-              console.log(`🆕 [PRESERVAÇÃO] Modelo ${modeloKey} - Cabo ${i} - Posição inicial dentro do fundo: ${posicaoPadrao}`);
             } else {
               // PRESERVAR posições já salvas, mas VALIDAR se estão dentro do fundo
               const posicaoExistente = config.posicoesCabos[i];
@@ -656,12 +616,10 @@ const preservarPosicoesCabos = (dadosSvg) => {
                 posicaoExistente.timestampAlteracao = Date.now();
                 posicaoExistente.ajustadoParaFundo = true;
 
-                console.log(`🔧 [AJUSTE] Modelo ${modeloKey} - Cabo ${i} - Posição ajustada para dentro do fundo: ${posicaoValidada}`);
               }
 
               posicaoExistente.dentroDoFundo = true;
 
-              console.log(`✅ [PRESERVAÇÃO] Modelo ${modeloKey} - Cabo ${i} - Posição validada: x=${posicaoExistente.x}, y=${posicaoExistente.y}`);
             }
           }
         }
@@ -679,7 +637,6 @@ const converterV6ParaModeladorSVG = (configV6) => {
     const modelosSalvos = {}; // Para compatibilidade com sistemas que esperam essa chave
 
     if (!configV6.modelos) {
-      console.warn('⚠️ [converterV6ParaModeladorSVG] Nenhuma configuração de modelos encontrada na v6.0.');
       return null;
     }
 
@@ -741,10 +698,6 @@ const converterV6ParaModeladorSVG = (configV6) => {
       modelosSalvos[modeloKey] = modeloParaModelador; // Para compatibilidade
     });
 
-    console.log('✅ [converterV6ParaModeladorSVG] Conversão concluída com sucesso.', {
-      quantidadeModelosArcos: Object.keys(modelosArcos).length,
-      quantidadeModelosSalvos: Object.keys(modelosSalvos).length
-    });
 
     return {
       quantidadeModelosArcos: Object.keys(modelosArcos).length,
@@ -760,11 +713,6 @@ const converterV6ParaModeladorSVG = (configV6) => {
 // Função para aplicar configuração completa carregada do banco
 const aplicarConfiguracaoCompleta = (configuracaoCarregada, tipoAtivo) => {
   try {
-    console.log('🔄 [configuracaoService] Aplicando configuração carregada:', {
-      nome: configuracaoCarregada.nome,
-      tipo: typeof configuracaoCarregada.dados,
-      tipoAtivo
-    })
 
     const dados = configuracaoCarregada.dados
 
@@ -783,7 +731,6 @@ const aplicarConfiguracaoCompleta = (configuracaoCarregada, tipoAtivo) => {
       // Para armazém, verificar versão e estrutura
       if (dados.versao === '6.0' || dados.tipoConfiguracao === 'armazem_completo_v6') {
         // 🎯 NOVA VERSÃO v6.0: Configuração otimizada
-        console.log('📦 [configuracaoService] Processando configuração v6.0 otimizada')
 
         // Converter v6.0 para formato compatível com ModeladorSVG
         const dadosConvertidos = converterV6ParaModeladorSVG(dados)
@@ -814,7 +761,6 @@ const aplicarConfiguracaoCompleta = (configuracaoCarregada, tipoAtivo) => {
         }
       } else if (dados.tipoConfiguracao === 'armazem_completo_v5' || dados.versao === '5.0' || dados.quantidadeModelos) {
         // CORREÇÃO: Detectar configuração com modelos (v5.0 ou com modelosDefinidos)
-        console.log('📦 [configuracaoService] Processando configuração v5.0 completa com posições preservadas')
 
         const modelosDefinidos = dados.modelosDefinidos || dados.sistemaModelos?.modelosDefinidos || {}
 
@@ -889,7 +835,6 @@ const aplicarConfiguracaoCompleta = (configuracaoCarregada, tipoAtivo) => {
         }
       } else if (dados.versao && (dados.versao.startsWith('3.') || dados.versao.startsWith('2.'))) {
         // Configuração com sistema de modelos (versões anteriores)
-        console.log('📦 [configuracaoService] Processando configuração v3.x/v2.x')
 
         return {
           success: true,
@@ -906,7 +851,6 @@ const aplicarConfiguracaoCompleta = (configuracaoCarregada, tipoAtivo) => {
         }
       } else {
         // Configuração simples (compatibilidade)
-        console.log('📦 [configuracaoService] Processando configuração simples (compatibilidade)')
 
         return {
           success: true,
@@ -1008,7 +952,6 @@ const limparVariaveisModelo = () => {
       localStorage.removeItem(item)
     })
 
-    console.log('🧹 [configuracaoService] Variáveis do modelo limpa para próximo modelo')
 
     return { success: true, message: 'Variáveis limpas com sucesso' }
   } catch (error) {
@@ -1106,9 +1049,7 @@ const validarConfiguracao = (configuracao, modelos, quantidadeModelos, tipo) => 
     }
 
     if (validacaoResultado.valido) {
-      console.log('✅ [configuracaoService] Configuração validada com sucesso')
     } else {
-      console.warn('⚠️ [configuracaoService] Configuração com problemas:', erros)
     }
 
     return validacaoResultado
