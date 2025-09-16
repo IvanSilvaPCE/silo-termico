@@ -1171,11 +1171,28 @@ export default {
           }
         }
 
+        // 🔧 CRÍTICO: Reestabelecer event listeners após mudança de modelo
+        this.$nextTick(() => {
+          this.updateSVG()
+          // Aguardar um pouco mais para garantir que o SVG foi completamente renderizado
+          setTimeout(() => {
+            this.reestabelecerEventListenersSeguro()
+          }, 150)
+        })
+
         // Mostrar feedback visual sobre o modelo sendo editado
         this.mostrarToast(`Editando ${this.modelosArcos[this.modeloArcoAtual]?.nome || `Modelo ${this.modeloArcoAtual}`}`, 'info')
       } else {
         // Se desmarcou modelo, voltar ao estado geral
         this.aplicarConfiguracaoGeralArmazem()
+        
+        // 🔧 CRÍTICO: Reestabelecer event listeners também quando desmarca modelo
+        this.$nextTick(() => {
+          this.updateSVG()
+          setTimeout(() => {
+            this.reestabelecerEventListenersSeguro()
+          }, 150)
+        })
       }
     },
 
@@ -1837,6 +1854,14 @@ export default {
           this.posicoesCabos = { ...modelo.posicoesCabos }
         }
       }
+
+      // 🔧 GARANTIR que o SVG seja atualizado e os event listeners reestabelecidos
+      this.$nextTick(() => {
+        this.updateSVG()
+        setTimeout(() => {
+          this.reestabelecerEventListenersSeguro()
+        }, 100)
+      })
 
     },
 
@@ -2525,7 +2550,9 @@ export default {
         this.$nextTick(() => {
           // IDEMPOTENTE: Sempre remove listeners existentes antes de adicionar novos
           // Isso evita listeners duplicados e garante estado limpo
-          this.reestabelecerEventListenersSeguro()
+          setTimeout(() => {
+            this.reestabelecerEventListenersSeguro()
+          }, 50) // Delay ligeiramente maior para garantir renderização completa
         })
       }
     },
