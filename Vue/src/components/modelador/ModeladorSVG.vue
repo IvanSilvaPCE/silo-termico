@@ -179,6 +179,7 @@
                       @dimensoes-atualizadas="onDimensoesAtualizadas"
                       @dimensoes-aplicadas="onDimensoesAplicadas"
                       @salvar-dimensoes-modelo="onSalvarDimensoesModelo"
+                      @posicoes-atualizadas="onPosicoesAtualizadas"
                       style="width: 100%; height: 100%; min-height: 400px;"
                     />
                   </div>
@@ -3288,7 +3289,68 @@ export default {
       })
     },
 
+    // 🎯 NOVO: Handler para salvar posições manuais dos pêndulos e sensores
+    onPosicoesAtualizadas(eventoPosicoesData) {
+      console.log('💾 [onPosicoesAtualizadas] Recebido evento de posições:', eventoPosicoesData)
 
+      const { tipoMovido, elementoMovido } = eventoPosicoesData
+
+      if (tipoMovido === 'pendulo') {
+        // Calcular offset da posição original para o pêndulo
+        const numeroPendulo = elementoMovido
+        const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+        
+        // Buscar posição atual no DOM
+        const elementoPendulo = document.getElementById(`C${numeroPendulo}`)
+        if (elementoPendulo) {
+          const xAtual = parseFloat(elementoPendulo.getAttribute('x')) + (parseFloat(elementoPendulo.getAttribute('width')) || 16) / 2
+          const yAtual = parseFloat(elementoPendulo.getAttribute('y'))
+          
+          const offsetX = xAtual - posicaoOriginal.x
+          const offsetY = yAtual - posicaoOriginal.y
+
+          // Salvar nas posições manuais
+          if (!this.posicoesManualPendulos[numeroPendulo]) {
+            this.posicoesManualPendulos[numeroPendulo] = { x: 0, y: 0 }
+          }
+          this.posicoesManualPendulos[numeroPendulo].x = offsetX
+          this.posicoesManualPendulos[numeroPendulo].y = offsetY
+
+          console.log(`✅ [onPosicoesAtualizadas] Pêndulo ${numeroPendulo} salvo - offset: (${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`)
+        }
+      } 
+      else if (tipoMovido === 'sensor') {
+        // Calcular offset da posição original para o sensor
+        const { pendulo: numeroPendulo, sensor: numeroSensor } = elementoMovido
+        const chaveManualSensor = `${numeroPendulo}-${numeroSensor}`
+        
+        const posicaoOriginal = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
+        
+        // Buscar posição atual no DOM
+        const elementoSensor = document.getElementById(`C${numeroPendulo}S${numeroSensor}`)
+        if (elementoSensor) {
+          const xAtual = parseFloat(elementoSensor.getAttribute('x')) + (parseFloat(elementoSensor.getAttribute('width')) || 16) / 2
+          const yAtual = parseFloat(elementoSensor.getAttribute('y'))
+          
+          const offsetX = xAtual - posicaoOriginal.x
+          const offsetY = yAtual - posicaoOriginal.y
+
+          // Salvar nas posições manuais dos sensores
+          if (!this.posicoesManualSensores[chaveManualSensor]) {
+            this.posicoesManualSensores[chaveManualSensor] = { x: 0, y: 0 }
+          }
+          this.posicoesManualSensores[chaveManualSensor].x = offsetX
+          this.posicoesManualSensores[chaveManualSensor].y = offsetY
+
+          console.log(`✅ [onPosicoesAtualizadas] Sensor ${chaveManualSensor} salvo - offset: (${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`)
+        }
+      }
+
+      // Salvar posições no modelo atual se estiver editando
+      if (this.modeloArcoAtual) {
+        this.salvarPosicoesNoModelo()
+      }
+    },
 
     // MÉTODOS PARA DRAG AND DROP
     adicionarEventListeners() {
