@@ -231,8 +231,6 @@
                       @dimensoes-atualizadas="onDimensoesAtualizadas"
                       @dimensoes-aplicadas="onDimensoesAplicadas"
                       @salvar-dimensoes-modelo="onSalvarDimensoesModelo"
-                      @posicao-pendulo-alterada="onPosicaoPenduloAlterada"
-                      @posicao-sensor-alterada="onPosicaoSensorAlterada"
                       style="width: 100%; height: 100%; min-height: 400px;"
                     />
                   </div>
@@ -1560,7 +1558,7 @@ export default {
 
       // 1. Resetar configuração do armazém MANTENDO as dimensões configuradas pelo usuário
       this.configArmazem = {
-        // Preservar dimensões configuradas pelo usuário
+        // Preservar todas as dimensões configuradas pelo usuário
         ...dimensoesPreservadas,
         // Resetar apenas configurações que podem ser restauradas para padrão sem impactar o salvamento
         altura_fundo_reto: 10,
@@ -1743,7 +1741,7 @@ export default {
             const resultado = this.construirAlturasSensores(
               this.posicoesManualPendulos,
               this.posicoesManualSensores,
-              this.modelosArcos[this.modeloArcoAtual].sensoresPorPendulo
+              this.modelosArcos[this.modeloArcoAtual]?.sensoresPorPendulo
             )
             return resultado.alturasSensores || {}
           })(),
@@ -3205,7 +3203,7 @@ export default {
         for (let i = 1; i <= novaQuantidade; i++) {
           // Manter sensores existentes se já configurados, senão usar 3 como padrão
           const sensoresExistentes = this.modelosArcos[modeloAtual].sensoresPorPendulo?.[i]
-          sensoresPorPendulo[i] = sensoresExistentes ||3
+          sensoresPorPendulo[i] = sensoresExistentes || 3
         }
         this.modelosArcos[modeloAtual].sensoresPorPendulo = sensoresPorPendulo
 
@@ -3611,27 +3609,29 @@ export default {
         const novosModelos = {}
         const novosSalvos = {}
 
-        Object.keys(dados.sistemaModelos.modelosDefinidos).forEach(key => {
-          const modeloSalvo = dados.sistemaModelos.modelosDefinidos[key]
-          novosModelos[key] = {
-            ...modeloSalvo,
-            config: modeloSalvo.configuracao || {}, // Usar 'configuracao' da v4.0
-            quantidadePendulos: modeloSalvo.quantidadePendulos || 3,
-            sensoresPorPendulo: modeloSalvo.sensoresPorPendulo || {},
-            posicoesCabos: modeloSalvo.posicoesCabos || {},
-            // NOVO: Restaurar posições manuais dos pêndulos e sensores
-            posicoesManualPendulos: modeloSalvo.posicoesManualPendulos || {},
-            posicoesManualSensores: modeloSalvo.posicoesManualSensores || {},
-            // Restaurar estado completo se disponível
-            estadoCompleto: modeloSalvo.estadoCompleto || null,
-            timestampSalvamento: modeloSalvo.timestampUltimaEdicao || new Date().toISOString(),
-            versaoModelo: modeloSalvo.metadados?.versaoModelo || '4.0'
-          }
-          novosSalvos[key] = modeloSalvo.status === 'salvo'
-        })
+        if (dados.sistemaModelos.modelosDefinidos) {
+          Object.keys(dados.sistemaModelos.modelosDefinidos).forEach(key => {
+            const modelo = dados.sistemaModelos.modelosDefinidos[key]
+            novosModelos[key] = {
+              ...modelo,
+              config: modelo.configuracao || {}, // Usar 'configuracao' da v4.0
+              quantidadePendulos: modelo.quantidadePendulos || 3,
+              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
+              posicoesCabos: modelo.posicoesCabos || {},
+              // NOVO: Restaurar posições manuais dos pêndulos e sensores
+              posicoesManualPendulos: modelo.posicoesManualPendulos || {},
+              posicoesManualSensores: modelo.posicoesManualSensores || {},
+              // Restaurar estado completo se disponível
+              estadoCompleto: modelo.estadoCompleto || null,
+              timestampSalvamento: modelo.timestampUltimaEdicao || new Date().toISOString(),
+              versaoModelo: modelo.metadados?.versaoModelo || '4.0'
+            }
+            novosSalvos[key] = modelo.status === 'salvo'
+          })
 
-        this.modelosArcos = novosModelos
-        this.modelosSalvos = novosSalvos
+          this.modelosArcos = novosModelos
+          this.modelosSalvos = novosSalvos
+        }
       }
 
       // Restaurar configuração global
@@ -3905,78 +3905,56 @@ export default {
       }
     },
 
-    // 🎯 NOVO MÉTODO: Handler para salvar dimensões calculadas no modelo com sincronização garantida
+    // 🎯 NOVO: Handler para salvar dimensões calculadas no modelo
     onSalvarDimensoesModelo(dimensoesCalculadas) {
-      console.log('📐 [ModeladorSVG] Salvando dimensões calculadas no modelo (SINCRONIZADO):', dimensoesCalculadas)
+      console.log('📐 [ModeladorSVG] Salvando dimensões calculadas no modelo:', dimensoesCalculadas)
 
-      // 🔒 ORDEM CRÍTICA: Atualizar dimensões locais PRIMEIRO
-      const larguraAnterior = this.larguraSVG
-      const alturaAnterior = this.alturaSVG
-      const lbAnterior = this.configArmazem.lb
-
+      // Atualizar dimensões locais
       this.larguraSVG = dimensoesCalculadas.largura
       this.alturaSVG = dimensoesCalculadas.altura
 
-      // 🎯 CRÍTICO: Sincronizar lb imediatamente
+      // 🎯 CRÍTICO: Garantir que lb seja atualizado para refletir a largura
       if (dimensoesCalculadas.largura && dimensoesCalculadas.largura !== this.configArmazem.lb) {
-        console.log(`🔧 [SINCRONIZAÇÃO CRÍTICA] Atualizando lb: ${this.configArmazem.lb} → ${dimensoesCalculadas.largura}`)
+        console.log(`🔧 [ModeladorSVG] Atualizando lb: ${this.configArmazem.lb} → ${dimensoesCalculadas.largura}`)
         this.configArmazem.lb = dimensoesCalculadas.largura
       }
 
-      // 🔒 Salvar na configuração global com marcação de sincronização
+      // Salvar na configuração global
       this.configArmazem.dimensoesSvgFundo = {
         largura: dimensoesCalculadas.largura,
         altura: dimensoesCalculadas.altura,
-        baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_sincronizado',
-        calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString(),
-        sincronizadoEm: new Date().toISOString(),
-        configLbAtualizado: dimensoesCalculadas.configLbAtualizado || false
+        baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_otimizado',
+        calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString()
       }
 
-      // 🎯 CRÍTICO: Se estiver editando um modelo específico, garantir sincronização completa
+      // Se estiver editando um modelo específico, salvar também no modelo
       if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
-        // Atualizar TODAS as dimensões no modelo de forma sincronizada
-        this.modelosArcos[this.modeloArcoAtual].config = {
-          ...this.modelosArcos[this.modeloArcoAtual].config,
-          lb: dimensoesCalculadas.largura, // CRÍTICO: Sincronizar lb
-          dimensoesSvgFundo: {
-            largura: dimensoesCalculadas.largura,
-            altura: dimensoesCalculadas.altura,
-            baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_sincronizado',
-            calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString(),
-            sincronizadoEm: new Date().toISOString()
-          }
+        // 🎯 CRÍTICO: Atualizar TODAS as dimensões no modelo
+        this.modelosArcos[this.modeloArcoAtual].config.lb = dimensoesCalculadas.largura
+        this.modelosArcos[this.modeloArcoAtual].config.dimensoesSvgFundo = {
+          largura: dimensoesCalculadas.largura,
+          altura: dimensoesCalculadas.altura,
+          baseadoEm: dimensoesCalculadas.baseadoEm || 'calculo_otimizado',
+          calculadoEm: dimensoesCalculadas.calculadoEm || new Date().toISOString()
         }
 
-        console.log('💾 [SINCRONIZAÇÃO MODELO] Salvando com dimensões sincronizadas:', {
+        console.log('💾 [ModeladorSVG] Salvando no modelo:', {
           modelo: this.modeloArcoAtual,
-          alteracoes: {
-            larguraSVG: `${larguraAnterior} → ${this.larguraSVG}`,
-            alturaSVG: `${alturaAnterior} → ${this.alturaSVG}`,
-            configLb: `${lbAnterior} → ${this.configArmazem.lb}`,
-            modeloLb: this.modelosArcos[this.modeloArcoAtual].config.lb
-          },
-          dimensoesSalvas: this.modelosArcos[this.modeloArcoAtual].config.dimensoesSvgFundo
+          lb: this.modelosArcos[this.modeloArcoAtual].config.lb,
+          dimensoesSvgFundo: this.modelosArcos[this.modeloArcoAtual].config.dimensoesSvgFundo
         })
 
-        // Salvar modelo completo para persistir as dimensões sincronizadas
+        // Salvar modelo completo para persistir as dimensões
         this.salvarModeloAtualCompleto()
       }
 
-      // Salvar automaticamente com dados sincronizados
+      // Salvar automaticamente
       this.salvarModelosAutomatico()
 
-      console.log('✅ [SINCRONIZAÇÃO COMPLETA] Dimensões salvas e sincronizadas:', {
-        dimensoes: {
-          largura: dimensoesCalculadas.largura,
-          altura: dimensoesCalculadas.altura
-        },
-        sincronizacao: {
-          larguraSVG: this.larguraSVG,
-          alturaSVG: this.alturaSVG,
-          configLb: this.configArmazem.lb,
-          modeloLb: this.modeloArcoAtual ? this.modelosArcos[this.modeloArcoAtual].config.lb : 'N/A'
-        },
+      console.log('✅ [ModeladorSVG] Dimensões salvas com sucesso:', {
+        largura: dimensoesCalculadas.largura,
+        altura: dimensoesCalculadas.altura,
+        lb_atualizado: this.configArmazem.lb,
         modeloAtual: this.modeloArcoAtual
       })
     },
@@ -4035,7 +4013,7 @@ export default {
 
     adicionarListenersSensores() {
       // Capturar fundo, texto e nome dos sensores
-      const elementosSensores = document.querySelectorAll('[id^="C"][id*="S"], [id^="TC"][id*="S"], [id^="TIND"][id*="S"]')
+      const elementosSensores = document.querySelectorAll('[id^="C"][id*="S"], [id^="TC"][id*="S"], [id^="TIND"]')
 
       elementosSensores.forEach(elemento => {
         const id = elemento.id
@@ -4542,7 +4520,7 @@ export default {
       this.mostrarToast('Posições manuais resetadas!', 'success')
     },
 
-    // 🎯 NOVO MÉTODO: Limpeza automática apenas na inicialização
+    // NOVO MÉTODO: Limpeza automática apenas na inicialização
     limparPosicoesInicializacao() {
       console.log('🧹 [limparPosicoesInicializacao] Limpando posições para inicialização limpa')
 
@@ -4627,25 +4605,17 @@ export default {
           const chaveSensor = `${penduloNum}-${s}`
           const offsetSensor = posicoesSensores[chaveSensor] || { x: 0, y: 0 }
 
-          // 🔧 CORRIGIDO: Manter espaçamento adequado entre sensores
-          // Usar posição absoluta baseada na configuração visual, não compactar
-          const yBasePendulo = config.pb + 10 + config.posicao_vertical || 0
-          const ySensorBase = yBasePendulo - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
-
-          // Aplicar offsets manuais se existirem
-          const alturaSensor = ySensorBase + offsetPenduloY + offsetSensor.y
+          // Calcular a altura vertical relativa ao topo do pêndulo
+          const alturaSensor = (offsetPenduloY + offsetSensor.y) - (dist_y_sensores * s) - 30 - afastamento_vertical_pendulo
 
           // Salvar altura do sensor
           alturasSensores[chaveSensor] = {
             altura: alturaSensor,
             posicaoX: offsetPenduloX + offsetSensor.x,
-            posicaoY: ySensorBase + offsetSensor.y,
+            posicaoY: offsetPenduloY + offsetSensor.y,
             pendulo: parseInt(penduloNum),
             sensor: s,
-            timestampAlteracao: Date.now(),
-            // 🎯 CRÍTICO: Manter referência do espaçamento original
-            espacamentoOriginal: dist_y_sensores,
-            yBase: ySensorBase
+            timestampAlteracao: Date.now()
           }
 
           // CRÍTICO: Salvar posições manuais dos sensores no formato correto
@@ -4654,19 +4624,15 @@ export default {
             y: offsetSensor.y,
             pendulo: parseInt(penduloNum),
             sensor: s,
-            timestampAlteracao: Date.now(),
-            // Preservar informações de espaçamento
-            espacamentoVertical: dist_y_sensores,
-            posicaoRelativa: s
+            timestampAlteracao: Date.now()
           }
         }
       })
 
-      console.log('📊 [construirAlturasSensores] Dados construídos com espaçamento preservado:', {
+      console.log('📊 [construirAlturasSensores] Dados construídos:', {
         alturasSensores,
         posicoesManualSensores,
-        totalSensores: Object.keys(alturasSensores).length,
-        espacamentoUsado: dist_y_sensores
+        totalSensores: Object.keys(alturasSensores).length
       })
 
       return { alturasSensores, posicoesManualSensores }
@@ -4805,172 +4771,6 @@ export default {
   /* Compactar controles de posicionamento */
   .row.g-1 .col-6 {
     padding: 0.1rem;
-  }
-}
-
-/* Estilos para SVG */
-.svg-container-responsive {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 200px;
-}
-
-/* Estilos específicos para navegação mobile */
-.mobile-navigation {
-  background: rgba(248, 249, 250, 0.95);
-  border-radius: 6px;
-  padding: 8px;
-  margin: 4px 0;
-  border: 1px solid #dee2e6;
-}
-
-.mobile-nav-buttons {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.nav-btn {
-  min-width: 36px !important;
-  height: 32px;
-  font-weight: bold;
-  font-size: 14px;
-  padding: 4px 8px;
-}
-
-.mobile-select {
-  max-width: 90px !important;
-  min-width: 75px !important;
-  height: 32px;
-  font-size: 13px;
-}
-
-.mobile-info {
-  background: white;
-  border-radius: 4px;
-  padding: 6px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-}
-
-.mobile-badge {
-  font-size: 0.65rem !important;
-  padding: 2px 4px !important;
-}
-
-.mobile-badges {
-  margin-bottom: 4px;
-}
-
-.mobile-model-name {
-  font-size: 0.7rem !important;
-  line-height: 1.2;
-}
-
-@media (max-width: 767.98px) {
-  .svg-container-responsive {
-    min-height: 180px;
-    padding: 0.5rem;
-  }
-
-  .card-body {
-    padding: 0.5rem !important;
-  }
-
-  .card-footer {
-    padding: 0.5rem !important;
-    position: relative;
-    z-index: 100;
-    background: #f8f9fa !important;
-    border-top: 2px solid #dee2e6;
-  }
-}
-
-@media (max-width: 575.98px) {
-  .svg-container-responsive {
-    min-height: 150px;
-    padding: 0.25rem;
-  }
-
-  .mobile-navigation {
-    margin: 2px -2px;
-    padding: 6px;
-  }
-
-  .mobile-nav-buttons {
-    gap: 2px !important;
-    justify-content: space-between;
-  }
-
-  .nav-btn {
-    min-width: 32px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 70px !important;
-    min-width: 60px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 4px !important;
-  }
-
-  .mobile-info {
-    padding: 4px;
-  }
-
-  .mobile-badge {
-    font-size: 0.6rem !important;
-    padding: 1px 3px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.65rem !important;
-  }
-
-  .card-footer {
-    padding: 0.25rem !important;
-    position: sticky;
-    bottom: 0;
-    z-index: 150;
-    background: rgba(248, 249, 250, 0.98) !important;
-    backdrop-filter: blur(4px);
-    border-top: 2px solid #007bff;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
-  }
-}
-
-/* Ajustes para telas muito pequenas */
-@media (max-width: 420px) {
-  .mobile-nav-buttons {
-    gap: 2px !important;
-  }
-
-  .nav-btn {
-    min-width: 28px !important;
-    height: 26px;
-    font-size: 11px;
-    padding: 1px 4px;
-  }
-
-  .mobile-select {
-    max-width: 55px !important;
-    min-width: 50px !important;
-    height: 26px;
-    font-size: 11px;
-    margin: 0 2px !important;
-  }
-
-  .mobile-badge {
-    font-size: 0.55rem !important;
-    padding: 1px 2px !important;
-  }
-
-  .mobile-model-name {
-    font-size: 0.6rem !important;
   }
 }
 

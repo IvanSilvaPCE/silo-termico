@@ -147,9 +147,9 @@ export default {
       modeloAtualIndex: 0,
       modeloAtual: null,
 
-      // Dimensões SVG - serão calculadas dinamicamente igual ao ModeladorSVG
-      larguraSVG: 350, // Valor inicial
-      alturaSVG: 300,  // Valor inicial
+      // Dimensões SVG
+      larguraSVG: 350,
+      alturaSVG: 300,
 
       // Configuração base padrão
       configPadrao: {
@@ -308,19 +308,11 @@ export default {
           tipo: dadosSvg.tipo || 'modelo_basico',
           quantidadeModelos: dadosSvg.quantidadeModelos || 1,
           logica: this.extrairLogicaDistribuicao(dadosSvg),
-          // 🎯 PRESERVAR dimensões originais do ModeladorSVG
           dimensoesSVG: dadosSvg.dimensoesSVG || { largura: 350, altura: 300 }
         }
 
         // Extrair modelos individuais
         this.modelosCarregados = this.extrairModelosIndividuais(dadosSvg)
-
-        // 🎯 APLICAR dimensões globais se existirem (antes de aplicar modelo)
-        if (this.modeloCarregado.dimensoesSVG) {
-          this.larguraSVG = this.modeloCarregado.dimensoesSVG.largura
-          this.alturaSVG = this.modeloCarregado.dimensoesSVG.altura
-          console.log('📐 [BANCO] Aplicando dimensões globais do modelo:', this.modeloCarregado.dimensoesSVG)
-        }
 
         // Inicializar com primeiro modelo
         this.modeloAtualIndex = 0
@@ -563,8 +555,19 @@ export default {
         posicoesExistentes: this.modeloAtual.configuracao?.pos_x_cabo
       })
 
-      // 🎯 CRÍTICO: Usar exatamente as mesmas dimensões que foram usadas no ModeladorSVG
-      this.sincronizarDimensoesComModeladorSVG()
+      // Aplicar dimensões SVG baseadas na configuração específica deste modelo
+      if (this.modeloAtual.configuracao && (this.modeloAtual.configuracao.lb || this.modeloAtual.configuracao.largura)) {
+        // Usar dimensões específicas deste modelo
+        const larguraModelo = this.modeloAtual.configuracao.lb || this.modeloAtual.configuracao.largura
+        this.larguraSVG = larguraModelo
+        console.log(`📐 [APLICAR] Modelo ${numeroModelo} - Usando largura específica: ${larguraModelo}`)
+      } else if (this.modeloCarregado.dimensoesSVG) {
+        // Fallback para dimensões globais
+        this.larguraSVG = this.modeloCarregado.dimensoesSVG.largura || 350
+        this.alturaSVG = this.modeloCarregado.dimensoesSVG.altura || 300
+      } else {
+        this.calcularDimensoesSVG()
+      }
 
       // Sempre preservar posições salvas sem validação/correção
       this.preservarPosicoesCabos()
@@ -640,33 +643,6 @@ export default {
       this.dadosSensores = null
       this.calcularDimensoesSVG()
       this.mostrarToast('Modelo limpo - voltou ao padrão', 'info')
-    },
-
-    // 🎯 NOVO: Sincronizar dimensões exatamente com o ModeladorSVG
-    sincronizarDimensoesComModeladorSVG() {
-      const config = this.configAtual
-      const numeroModelo = this.modeloAtual?.numero || (this.modeloAtualIndex + 1)
-
-      // PRIORIDADE 1: Usar dimensões salvas que foram usadas no ModeladorSVG
-      if (config.dimensoesSvgFundo && config.dimensoesSvgFundo.largura && config.dimensoesSvgFundo.altura) {
-        this.larguraSVG = config.dimensoesSvgFundo.largura
-        this.alturaSVG = config.dimensoesSvgFundo.altura
-        console.log(`🎯 [SINCRONIZAÇÃO] Modelo ${numeroModelo} - Usando dimensões salvas do ModeladorSVG:`, {
-          largura: this.larguraSVG,
-          altura: this.alturaSVG,
-          origem: 'dimensoesSvgFundo'
-        })
-        return
-      }
-
-      // PRIORIDADE 2: Calcular usando EXATAMENTE a mesma lógica do ModeladorSVG
-      this.calcularDimensoesSVG()
-      
-      console.log(`📐 [SINCRONIZAÇÃO] Modelo ${numeroModelo} - Calculado igual ModeladorSVG:`, {
-        largura: this.larguraSVG,
-        altura: this.alturaSVG,
-        origem: 'calculo_sincronizado'
-      })
     },
 
     calcularDimensoesSVG() {
