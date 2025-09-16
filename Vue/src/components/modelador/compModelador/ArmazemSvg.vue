@@ -339,7 +339,7 @@ export default {
       if (config.lb && typeof config.lb === 'number' && config.lb > 0) {
         larguraBase = config.lb
         console.log('📐 [calcularDimensoesBaseadoNoFundo] Usando largura da config atual:', larguraBase)
-      } 
+      }
       // Prioridade 2: Configuração do modelo atual
       else if (this.modeloAtual?.configuracao?.lb && typeof this.modeloAtual.configuracao.lb === 'number' && this.modeloAtual.configuracao.lb > 0) {
         larguraBase = this.modeloAtual.configuracao.lb
@@ -640,37 +640,19 @@ export default {
     },
 
     renderSensores() {
-      // 🎯 REPLICAR EXATAMENTE A LÓGICA DO ModeladorSVG.vue
+      // 🎯 SISTEMA DE COORDENADAS UNIFICADO - IDÊNTICO AO ModeladorSVG
       let elementos = ''
 
-      // Determinar estrutura dos pêndulos baseada no modelo atual (igual ModeladorSVG)
-      let estruturaPendulos
-      const modeloAtual = this.modeloAtual
+      // 📐 USAR EXATAMENTE A MESMA REFERÊNCIA DO POLÍGONO DO TOPO
+      const referenciaPoligono = this.calcularReferenciaPoligonoTopo()
 
-      if (modeloAtual && (modeloAtual.quantidadePendulos || modeloAtual.sensoresPorPendulo)) {
-        // Usar configuração do modelo para o arco
-        const quantidade = modeloAtual.quantidadePendulos || 3
-        const sensoresPorPendulo = modeloAtual.sensoresPorPendulo || {}
+      console.log('🔄 [ArmazemSvg] Usando referência idêntica ao ModeladorSVG:', referenciaPoligono)
 
-        estruturaPendulos = {
-          pendulos: Array.from({ length: quantidade }, (_, i) => ({
-            numero: i + 1,
-            totalSensores: sensoresPorPendulo[i + 1] || 1
-          }))
-        }
-      } else {
-        // Fallback para estrutura mínima
-        estruturaPendulos = {
-          pendulos: Array.from({ length: 3 }, (_, i) => ({
-            numero: i + 1,
-            totalSensores: 3
-          }))
-        }
-      }
-
+      // Determinar estrutura dos pêndulos (igual ModeladorSVG)
+      let estruturaPendulos = this.obterEstruturaPendulos()
       if (!estruturaPendulos) return ''
 
-      // Usar configuração aplicada (igual ModeladorSVG)
+      // Configurações (igual ModeladorSVG)
       const config = this.config
       const escala_sensores = config.escala_sensores || 16
       const dist_y_sensores = config.dist_y_sensores || 12
@@ -679,87 +661,47 @@ export default {
       const posicao_vertical = config.posicao_vertical || 0
       const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
-      // 🎯 POSICIONAMENTO OTIMIZADO DOS SENSORES (sem espaço desnecessário)
+      // 🎯 POSICIONAMENTO BASEADO NA REFERÊNCIA DO POLÍGONO (igual ModeladorSVG)
       const pb = config.pb || 185
-      const yPendulo = pb + 10 + posicao_vertical // Reduzir espaçamento
+      const yPendulo = pb + 10 + posicao_vertical
 
       const totalCabos = estruturaPendulos.pendulos.length
       const indiceCentral = Math.floor((totalCabos - 1) / 2)
 
-      // 🎯 CALCULAR POSIÇÕES DOS CABOS DINAMICAMENTE IGUAL ModeladorSVG.vue
-      const larguraTotal = config.lb || this.dimensoesCalculadas.largura || 350
-      const margemLateral = 35  // EXATAMENTE igual ModeladorSVG
-      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
-      const posicoesCabosCalculadas = []
-
-      if (totalCabos === 1) {
-        posicoesCabosCalculadas.push(larguraTotal / 2)
-      } else {
-        const espacamento = larguraUtilizavel / (totalCabos - 1)
-        for (let i = 0; i < totalCabos; i++) {
-          posicoesCabosCalculadas.push(margemLateral + (i * espacamento))
-        }
-      }
+      // 🎯 USAR SISTEMA DE COORDENADAS IDÊNTICO AO ModeladorSVG
+      const posicoesCabosCalculadas = this.calcularPosicoesCabosIgualModelador(totalCabos, referenciaPoligono)
 
       console.log(`🎯 [ArmazemSvg] Cálculo DINÂMICO igual ModeladorSVG:`, {
-        larguraTotal,
-        margemLateral,
-        larguraUtilizavel,
+        larguraTotal: referenciaPoligono.larguraTotal,
+        margemLateral: 35,
+        larguraUtilizavel: referenciaPoligono.larguraTotal - 70,
         totalCabos,
-        espacamento: totalCabos > 1 ? larguraUtilizavel / (totalCabos - 1) : 0,
+        espacamento: totalCabos > 1 ? (referenciaPoligono.larguraTotal - 70) / (totalCabos - 1) : 0,
         posicoesCabosCalculadas
       })
 
       estruturaPendulos.pendulos.forEach((pendulo, index) => {
-        // 📏 USAR POSIÇÕES CALCULADAS DINAMICAMENTE (igual ModeladorSVG)
+        // 📏 POSIÇÃO BASE CALCULADA (igual ModeladorSVG)
         const xCaboBase = posicoesCabosCalculadas[index]
         const distanciaDoMeio = index - indiceCentral
         const deslocamentoX = distanciaDoMeio * dist_x_sensores
 
-        // 🎯 APLICAR OFFSET INDIVIDUAL DO PÊNDULO (apenas para o pêndulo, não influenciar sensores)
-        let offsetPenduloX = 0
-        let offsetPenduloY = 0
+        // 🎯 APLICAR POSIÇÕES SALVAS USANDO REFERÊNCIA DO POLÍGONO
+        const { offsetX: offsetPenduloX, offsetY: offsetPenduloY } = this.aplicarPosicoesSalvasComReferencia(pendulo.numero, referenciaPoligono)
 
-        console.log(`🔍 [renderSensoresArmazem] P${pendulo.numero} - Verificando posições do pêndulo:`, {
-          temPosicoesManualPendulos: !!(this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]),
-          temModeloEspecificoManual: !!(this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesManualPendulos && this.config.modeloEspecifico.posicoesManualPendulos[pendulo.numero]),
-          temModeloEspecificoPosicoes: !!(this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]),
-          temPosicoesCabos: !!(this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero])
-        })
-
-        // 🎯 BUSCAR POSIÇÃO MANUAL ESPECÍFICA DO PÊNDULO (não dos sensores)
-        if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesManualPendulos && this.config.modeloEspecifico.posicoesManualPendulos[pendulo.numero]) {
-          // PRIORIDADE 1: Posições manuais da estrutura v6.0 (posicoesManualPendulos)
-          const posManualPenduloV6 = this.config.modeloEspecifico.posicoesManualPendulos[pendulo.numero]
-          offsetPenduloX = parseFloat(posManualPenduloV6.x) || 0
-          offsetPenduloY = parseFloat(posManualPenduloV6.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posição manual do pêndulo v6.0:`, { x: offsetPenduloX, y: offsetPenduloY })
-        } else if (this.config.posicoesManualPendulos && this.config.posicoesManualPendulos[pendulo.numero]) {
-          // PRIORIDADE 2: Posições manuais de drag and drop do ModeladorSVG (compatibilidade)
-          const posManualPendulo = this.config.posicoesManualPendulos[pendulo.numero]
-          offsetPenduloX = parseFloat(posManualPendulo.x) || 0
-          offsetPenduloY = parseFloat(posManualPendulo.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posição manual do pêndulo compatibilidade:`, { x: offsetPenduloX, y: offsetPenduloY })
-        } else if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesPendulos && this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]) {
-          // PRIORIDADE 3: Posições do modeloEspecifico (formato v6.0+ estrutural)
-          const posEspecPendulo = this.config.modeloEspecifico.posicoesPendulos[pendulo.numero]
-          offsetPenduloX = parseFloat(posEspecPendulo.x) || 0
-          offsetPenduloY = parseFloat(posEspecPendulo.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando modeloEspecifico posicoesPendulos:`, { x: offsetPenduloX, y: offsetPenduloY })
-        } else if (this.config.posicoesCabos && this.config.posicoesCabos[pendulo.numero]) {
-          // PRIORIDADE 4: Posições dos cabos (compatibilidade)
-          const posCaboPendulo = this.config.posicoesCabos[pendulo.numero]
-          offsetPenduloX = parseFloat(posCaboPendulo.x) || 0
-          offsetPenduloY = parseFloat(posCaboPendulo.y) || 0
-          console.log(`✅ [renderSensoresArmazem] P${pendulo.numero} - Usando posicoesCabos:`, { x: offsetPenduloX, y: offsetPenduloY })
-        } else {
-          console.log(`⚠️ [renderSensoresArmazem] P${pendulo.numero} - Nenhuma posição customizada encontrada, usando posição base calculada`)
-        }
-
-        // 🎯 POSIÇÕES FINAIS DO PÊNDULO
+        // 🎯 POSIÇÕES FINAIS IDÊNTICAS AO ModeladorSVG
         const xCabo = xCaboBase + posicao_horizontal + deslocamentoX + offsetPenduloX
         const yPenduloFinal = yPendulo + offsetPenduloY
         const numSensores = pendulo.totalSensores
+
+        console.log(`📐 [ArmazemSvg] P${pendulo.numero} SINCRONIZADO:`, {
+          xCaboBase,
+          offsetPenduloX,
+          offsetPenduloY,
+          xCaboFinal: xCabo,
+          yPenduloFinal,
+          referenciaPoligono: referenciaPoligono.centroX
+        })
 
         // 🎨 DETERMINAR COR DO PÊNDULO (igual ModeladorSVG)
         const corPendulo = "#3A78FD"
@@ -805,36 +747,30 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensorBase = yPenduloFinal - dist_y_sensores * s - 25 - afastamento_vertical_pendulo
 
-          let xSensorFinal = xCabo
-          let ySensorFinal = ySensorBase
+          let xSensorFinal = xCabo  // Posição X base do pêndulo
+          let ySensorFinal = ySensorBase // Posição Y base do sensor
 
           // 🎯 VERIFICAR POSIÇÕES MANUAIS DOS SENSORES (independente do pêndulo)
           const chaveManualSensor = `${pendulo.numero}-${s}`
-          
-          // 🎯 CALCULAR POSIÇÃO BASE DO SENSOR (relativa ao pêndulo)
-          let xSensorBase = xCabo  // Posição X base do pêndulo (já com offset aplicado)
-          let ySensorBaseCalc = ySensorBase  // Posição Y padrão do sensor
-          
-          // PRIORIDADE 1: Posições manuais da estrutura v6.0
+
+          // PRIORIDADE 1: Posições manuais da estrutura v6.0 (com offset)
           if (this.config.modeloEspecifico && this.config.modeloEspecifico.posicoesManualSensores && this.config.modeloEspecifico.posicoesManualSensores[chaveManualSensor]) {
             const posManualSensorV6 = this.config.modeloEspecifico.posicoesManualSensores[chaveManualSensor]
-            // 🔧 CORRIGIDO: Aplicar offset do sensor à posição base do armazém, não do pêndulo
-            xSensorFinal = xCaboBase + posicao_horizontal + deslocamentoX + (parseFloat(posManualSensorV6.x) || 0)
+            xSensorFinal = xCaboBase + (parseFloat(posManualSensorV6.x) || 0)
             ySensorFinal = yPendulo + (parseFloat(posManualSensorV6.y) || 0)
-            console.log(`✅ [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual v6.0:`, { 
-              offsetSensor: { x: posManualSensorV6.x, y: posManualSensorV6.y }, 
+            console.log(`✅ [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual v6.0:`, {
+              offsetSensor: { x: posManualSensorV6.x, y: posManualSensorV6.y },
               final: { x: xSensorFinal, y: ySensorFinal },
               basePendulo: { x: xCaboBase, y: yPendulo }
             })
           }
-          // PRIORIDADE 2: Posições manuais de compatibilidade
+          // PRIORIDADE 2: Posições manuais de compatibilidade (com offset)
           else if (this.config.posicoesManualSensores && this.config.posicoesManualSensores[chaveManualSensor]) {
             const posManualSensor = this.config.posicoesManualSensores[chaveManualSensor]
-            // 🔧 CORRIGIDO: Aplicar offset do sensor à posição base do armazém, não do pêndulo
-            xSensorFinal = xCaboBase + posicao_horizontal + deslocamentoX + (parseFloat(posManualSensor.x) || 0)
+            xSensorFinal = xCaboBase + (parseFloat(posManualSensor.x) || 0)
             ySensorFinal = yPendulo + (parseFloat(posManualSensor.y) || 0)
-            console.log(`✅ [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual compatibilidade:`, { 
-              offsetSensor: { x: posManualSensor.x, y: posManualSensor.y }, 
+            console.log(`✅ [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição manual compatibilidade:`, {
+              offsetSensor: { x: posManualSensor.x, y: posManualSensor.y },
               final: { x: xSensorFinal, y: ySensorFinal },
               basePendulo: { x: xCaboBase, y: yPendulo }
             })
@@ -843,8 +779,8 @@ export default {
           else {
             xSensorFinal = xCabo  // Seguir posição X do pêndulo (com seu offset)
             ySensorFinal = ySensorBase  // Manter posição Y padrão do sensor
-            console.log(`📍 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição padrão seguindo pêndulo:`, { 
-              pendulo: { x: xCabo, y: yPenduloFinal }, 
+            console.log(`📍 [renderSensoresArmazem] P${pendulo.numero}S${s} - Usando posição padrão seguindo pêndulo:`, {
+              pendulo: { x: xCabo, y: yPenduloFinal },
               sensor: { x: xSensorFinal, y: ySensorFinal }
             })
           }
@@ -927,7 +863,7 @@ export default {
         }
       })
 
-      console.log(`✅ [ArmazemSvg] Renderização DINÂMICA concluída: ${totalCabos} pêndulos distribuídos conforme largura ${larguraTotal}px`)
+      console.log(`✅ [ArmazemSvg] Renderização DINÂMICA concluída: ${totalCabos} pêndulos distribuídos conforme largura ${referenciaPoligono.larguraTotal}px`)
       return elementos
     },
 
@@ -944,6 +880,175 @@ export default {
       else if (temp < 35) return '#ff2200'
       else if (temp < 50) return '#ff0090'
       else return '#f700ff'
+    },
+
+    // 🎯 MÉTODOS DE SINCRONIZAÇÃO PERFEITA COM ModeladorSVG
+    calcularReferenciaPoligonoTopo() {
+      const { pb = 185, lb = 350, hb = 30, ht = 50 } = this.config
+
+      // EXATAMENTE igual ao modeloSvgService.js
+      const pontosCentralizados = [
+        [lb / 2, ht],
+        [lb - 15, ht + 15],
+        [lb - 15, pb],
+        [15, pb],
+        [15, ht + 15]
+      ]
+
+      return {
+        centroX: lb / 2,
+        centroY: ht + (pb - ht) / 2,
+        larguraUtil: lb - 30,
+        alturaUtil: pb - ht - 15,
+        coordenadasPoligono: pontosCentralizados,
+        larguraTotal: lb,
+        alturaTotal: pb + ht
+      }
+    },
+
+    obterEstruturaPendulos() {
+      const modeloAtual = this.modeloAtual
+
+      if (modeloAtual && (modeloAtual.quantidadePendulos || modeloAtual.sensoresPorPendulo)) {
+        const quantidade = modeloAtual.quantidadePendulos || 3
+        const sensoresPorPendulo = modeloAtual.sensoresPorPendulo || {}
+
+        return {
+          pendulos: Array.from({ length: quantidade }, (_, i) => ({
+            numero: i + 1,
+            totalSensores: sensoresPorPendulo[i + 1] || 1
+          }))
+        }
+      }
+
+      return {
+        pendulos: Array.from({ length: 3 }, (_, i) => ({
+          numero: i + 1,
+          totalSensores: 3
+        }))
+      }
+    },
+
+    calcularPosicoesCabosIgualModelador(totalCabos, referenciaPoligono) {
+      // EXATAMENTE igual ao ModeladorSVG.vue
+      const larguraTotal = referenciaPoligono.larguraTotal
+      const margemLateral = 35
+      const larguraUtilizavel = larguraTotal - (2 * margemLateral)
+      const posicoesCabosCalculadas = []
+
+      if (totalCabos === 1) {
+        posicoesCabosCalculadas.push(larguraTotal / 2)
+      } else {
+        const espacamento = larguraUtilizavel / (totalCabos - 1)
+        for (let i = 0; i < totalCabos; i++) {
+          posicoesCabosCalculadas.push(margemLateral + (i * espacamento))
+        }
+      }
+
+      console.log('📐 [ArmazemSvg] Posições calculadas IGUAL ModeladorSVG:', {
+        larguraTotal,
+        margemLateral,
+        larguraUtilizavel,
+        totalCabos,
+        posicoesCabosCalculadas
+      })
+
+      return posicoesCabosCalculadas
+    },
+
+    aplicarPosicoesSalvasComReferencia(numeroPendulo, referenciaPoligono) {
+      // Aplicar posições salvas usando a mesma referência do polígono (PIXEL-PERFECT)
+      let offsetX = 0
+      let offsetY = 0
+
+      // PRIORIDADE 1: modeloEspecifico (v6.0+) - usar posições diretas
+      if (this.config.modeloEspecifico?.posicoesPendulos?.[numeroPendulo]) {
+        const posicao = this.config.modeloEspecifico.posicoesPendulos[numeroPendulo]
+
+        // 🎯 SISTEMA SIMPLIFICADO: usar coordenadas diretas salvas
+        offsetX = posicao.x || 0
+        offsetY = posicao.y || 0
+
+        console.log(`🎯 [ArmazemSvg] P${numeroPendulo} DIRETO:`, {
+          offsetX,
+          offsetY,
+          salvoEm: posicao.timestamp
+        })
+        return { offsetX, offsetY }
+      }
+
+      // PRIORIDADE 2: posições manuais com coordenadas relativas ao polígono
+      if (this.config.posicoesManualPendulos?.[numeroPendulo]) {
+        const posicao = this.config.posicoesManualPendulos[numeroPendulo]
+
+        // Se tem coordenadas relativas ao polígono, converter para offset (PIXEL-PERFECT)
+        if (posicao.relPoligonoX !== undefined && posicao.relPoligonoY !== undefined) {
+          // Converter coordenadas relativas para posição absoluta
+          const posicaoAbsoluta = this.converterReferenciaPoligonoParaPosicao(
+            { relX: posicao.relPoligonoX, relY: posicao.relPoligonoY },
+            referenciaPoligono
+          )
+
+          // Calcular offset baseado na diferença com a posição original
+          const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
+          offsetX = posicaoAbsoluta.x - posicaoOriginal.x
+          offsetY = posicaoAbsoluta.y - posicaoOriginal.y
+
+          console.log(`🎯 [ArmazemSvg] P${numeroPendulo} manual PIXEL-PERFECT aplicado:`, {
+            coordenadasRelativas: { relX: posicao.relPoligonoX, relY: posicao.relPoligonoY },
+            posicaoAbsoluta,
+            posicaoOriginal,
+            offsetFinal: { offsetX, offsetY }
+          })
+          return { offsetX, offsetY }
+        } else {
+          offsetX = posicao.x || 0
+          offsetY = posicao.y || 0
+        }
+
+        console.log(`🎯 [ArmazemSvg] P${numeroPendulo} - Posição manual aplicada:`, { offsetX, offsetY })
+        return { offsetX, offsetY }
+      }
+
+      // PRIORIDADE 3: posições dos cabos (compatibilidade)
+      if (this.config.posicoesCabos?.[numeroPendulo]) {
+        const posicao = this.config.posicoesCabos[numeroPendulo]
+        offsetX = posicao.x || 0
+        offsetY = posicao.y || 0
+        console.log(`🎯 [ArmazemSvg] P${numeroPendulo} - Posição cabo aplicada:`, { offsetX, offsetY })
+        return { offsetX, offsetY }
+      }
+
+      return { offsetX: 0, offsetY: 0 }
+    },
+
+    // 🎯 CONVERTER COORDENADAS RELATIVAS PARA POSIÇÃO ABSOLUTA (IDÊNTICO AO ModeladorSVG)
+    converterReferenciaPoligonoParaPosicao(posicaoRelativa, novaReferenciaPoligono) {
+      const absX = novaReferenciaPoligono.centroX + (posicaoRelativa.relX * novaReferenciaPoligono.larguraUtil)
+      const absY = novaReferenciaPoligono.centroY + (posicaoRelativa.relY * novaReferenciaPoligono.alturaUtil)
+
+      return {
+        x: Math.round(absX * 100) / 100,
+        y: Math.round(absY * 100) / 100
+      }
+    },
+
+    // 🎯 CALCULAR POSIÇÃO ORIGINAL DO PÊNDULO (IDÊNTICO AO ModeladorSVG)
+    calcularPosicaoOriginalPendulo(numeroPendulo) {
+      const config = this.config
+      const pb = config.pb || 185
+      const yPendulo = pb + 10
+
+      const referenciaPoligono = this.calcularReferenciaPoligonoTopo()
+      const posicoesCabosCalculadas = this.calcularPosicoesCabosIgualModelador(
+        this.obterEstruturaPendulos().pendulos.length,
+        referenciaPoligono
+      )
+
+      const index = numeroPendulo - 1
+      const xCabo = posicoesCabosCalculadas[index] || referenciaPoligono.centroX
+
+      return { x: xCabo, y: yPendulo }
     },
 
     // Método para forçar recálculo de dimensões
