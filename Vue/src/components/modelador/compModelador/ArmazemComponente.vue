@@ -22,13 +22,13 @@
             </small>
           </div>
           <div class="col-md-8">
-            <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center flex-wrap gap-2">
               <select
                 v-model="modeloSelecionado"
                 @change="carregarModeloSelecionado"
-                class="form-control form-control-sm me-2"
+                class="form-control form-control-sm"
                 :disabled="carregandoModelos"
-                style="font-size: 0.8rem;">
+                style="font-size: 0.8rem; min-width: 200px;">
                 <option value="">{{ carregandoModelos ? 'Carregando...' : 'Selecione um modelo salvo' }}</option>
                 <option v-for="modelo in modelosDisponiveis" :key="modelo.id_svg" :value="modelo.id_svg">
                   {{ modelo.nm_modelo }} - {{ getDescricaoModelo(modelo) }}
@@ -36,7 +36,7 @@
               </select>
               <button
                 @click="buscarModelosSalvos"
-                class="btn btn-sm btn-outline-light me-2"
+                class="btn btn-sm btn-outline-light"
                 :disabled="carregandoModelos"
                 title="Atualizar lista">
                 <i class="fa fa-refresh" :class="{ 'fa-spin': carregandoModelos }"></i>
@@ -44,10 +44,48 @@
               <button
                 v-if="modeloSelecionado"
                 @click="limparModelo"
-                class="btn btn-sm btn-outline-light me-2"
+                class="btn btn-sm btn-outline-light"
                 title="Limpar seleção">
                 ×
               </button>
+              
+              <!-- 🎯 NOVO SELECT: Buscar dados de armazém -->
+              <div class="d-flex align-items-center gap-1">
+                <input
+                  v-model="buscaDados.id"
+                  type="number"
+                  class="form-control form-control-sm"
+                  placeholder="ID"
+                  style="width: 60px; font-size: 0.7rem;"
+                  min="1">
+                <input
+                  v-model="buscaDados.celula"
+                  type="number"
+                  class="form-control form-control-sm"
+                  placeholder="Cel"
+                  style="width: 50px; font-size: 0.7rem;"
+                  min="1">
+                <input
+                  v-model="buscaDados.leitura"
+                  type="number"
+                  class="form-control form-control-sm"
+                  placeholder="Leit"
+                  style="width: 50px; font-size: 0.7rem;"
+                  min="1">
+                <input
+                  v-model="buscaDados.data"
+                  type="datetime-local"
+                  class="form-control form-control-sm"
+                  style="width: 150px; font-size: 0.7rem;">
+                <button
+                  @click="buscarDadosArmazem"
+                  class="btn btn-sm btn-outline-light"
+                  :disabled="carregandoBuscaDados || !podeRealizarBusca"
+                  title="Buscar dados do armazém">
+                  <i class="fa fa-search" :class="{ 'fa-spin': carregandoBuscaDados }"></i>
+                </button>
+              </div>
+              
               <button
                 v-if="modeloCarregado"
                 @click="salvarModeloNoServidor"
@@ -296,7 +334,16 @@ export default {
 
       // 🎯 DADOS SINCRONIZADOS - modelo aplicado ao arco atual baseado na API
       modeloSincronizado: null,
-      dadosSensoresSincronizados: null
+      dadosSensoresSincronizados: null,
+
+      // 🎯 NOVOS DADOS: Busca manual de dados de armazém
+      buscaDados: {
+        id: '',
+        celula: 1,
+        leitura: 1,
+        data: ''
+      },
+      carregandoBuscaDados: false
     }
   },
   computed: {
@@ -386,6 +433,14 @@ export default {
     // Configuração atual - agora aponta para a versão alinhada com ModeladorSVG
     configAtual() {
       return this.configArmazemParaComponente
+    },
+
+    // Validar se pode realizar busca
+    podeRealizarBusca() {
+      return this.buscaDados.id && 
+             this.buscaDados.celula && 
+             this.buscaDados.leitura && 
+             this.buscaDados.data
     }
   },
   mounted() {
@@ -394,6 +449,10 @@ export default {
     // Chamada para inicializar posições dos cabos com base na configuração padrão
     // Isso garante que as propriedades existam desde o início
     this.inicializarPosicoesCabos()
+    
+    // Inicializar data com valor padrão (data atual)
+    const agora = new Date()
+    this.buscaDados.data = agora.toISOString().slice(0, 16) // formato datetime-local
     
     // 🎯 NOVA FUNCIONALIDADE: Carregar dados reais da API
     this.carregarDadosAPI()
@@ -1820,6 +1879,88 @@ export default {
       this.aplicarModeloParaArco(novoArco)
       
       console.log(`🔄 Navegado para arco ${novoArco}`)
+    },
+
+    // 🎯 NOVO MÉTODO: Buscar dados específicos do armazém
+    async buscarDadosArmazem() {
+      if (!this.podeRealizarBusca) {
+        this.mostrarToast('Preencha todos os campos: ID, Célula, Leitura e Data', 'warning')
+        return
+      }
+
+      this.carregandoBuscaDados = true
+      this.errorAPI = null
+
+      try {
+        // Obter token dinâmico do localStorage
+        const token = localStorage.getItem('token') || ''
+        const authToken = token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : ''
+
+        if (!authToken || authToken === 'Bearer ') {
+          throw new Error('Token de autenticação não encontrado no localStorage')
+        }
+
+        // Construir URL baseada no padrão fornecido
+        const baseUrl = process.env.VUE_APP_API_URL || 'https://cloud.pce-eng.com.br/cloud/api/public/api'
+        const urlBusca = `${baseUrl}/armazem/buscardado/${this.buscaDados.id}?celula=${this.buscaDados.celula}&leitura=${this.buscaDados.leitura}&data=${encodeURIComponent(this.buscaDados.data)}`
+
+        console.log('🔍 Buscando dados do armazém:', {
+          url: urlBusca,
+          parametros: this.buscaDados
+        })
+
+        const response = await axios.get(urlBusca, {
+          headers: {
+            'Authorization': authToken,
+            'Content-Type': 'application/json'
+          },
+          timeout: 15000
+        })
+
+        if (!response.data) {
+          throw new Error('Resposta da API vazia')
+        }
+
+        // Armazenar dados originais da API
+        this.dadosPortal = response.data
+
+        // Analisar estrutura dos arcos baseada na nova busca
+        const analise = this.analisarEstruturaArcos(response.data)
+        this.analiseArcos = analise
+
+        // Reiniciar para o primeiro arco
+        this.arcoAtual = 1
+
+        // Gerar dados de sensores baseados na nova API
+        this.gerarDadosSensoresReais()
+
+        // Sincronizar com modelos carregados
+        this.sincronizarModelosComDados()
+
+        this.mostrarToast(
+          `✅ Dados carregados com sucesso!\n\n` +
+          `🆔 ID: ${this.buscaDados.id}\n` +
+          `📱 Célula: ${this.buscaDados.celula}\n` +
+          `📊 Leitura: ${this.buscaDados.leitura}\n` +
+          `📅 Data: ${this.buscaDados.data}\n\n` +
+          `📈 Total de arcos: ${analise.totalArcos}`,
+          'success'
+        )
+
+        console.log('✅ Dados do armazém carregados com sucesso:', {
+          totalArcos: analise.totalArcos,
+          parametrosBusca: this.buscaDados,
+          analise: analise
+        })
+
+      } catch (error) {
+        console.error('❌ Erro ao buscar dados do armazém:', error)
+        const errorMessage = this.tratarErroAPI(error)
+        this.errorAPI = errorMessage
+        this.mostrarToast(`❌ Erro ao buscar dados:\n\n${errorMessage}`, 'error')
+      } finally {
+        this.carregandoBuscaDados = false
+      }
     },
   }
 }
