@@ -2,7 +2,7 @@
 <template>
   <div class="card mb-3">
     <div class="card-header bg-info text-white">
-      <h6 class="mb-0">🔧 Controle de Sensores por Pêndulo</h6>
+      <h6 class="mb-0"><i class="fa fa-wrench me-2"></i>Controle de Sensores por Pêndulo</h6>
     </div>
     <div class="card-body p-2">
       <div v-if="!modeloArcoAtual" class="alert alert-warning p-2">
@@ -76,7 +76,7 @@
                 class="btn btn-outline-success btn-sm w-100"
                 @click="aplicarSensoresUniformes"
               >
-                📊 Aplicar Uniforme
+                <i class="fa fa-bar-chart me-1"></i>Aplicar Uniforme
               </button>
             </div>
             <div class="col-6">
@@ -85,7 +85,7 @@
                 class="btn btn-outline-warning btn-sm w-100"
                 @click="resetarSensoresParaPadrao"
               >
-                🔄 Resetar Padrão
+                <i class="fa fa-refresh me-1"></i>Resetar Padrão
               </button>
             </div>
           </div>

@@ -2,7 +2,7 @@
 <template>
   <div class="card mb-3 border-primary">
     <div class="card-header bg-primary text-white">
-      <h6 class="mb-0">🎯 Posicionamento dos Pêndulos/Cabos</h6>
+      <h6 class="mb-0"><i class="fa fa-crosshairs me-2"></i>Posicionamento dos Pêndulos/Cabos</h6>
     </div>
     <div class="card-body p-2">
       <!-- Seletor de Cabo para Posicionamento Individual -->
@@ -27,7 +27,7 @@
             </button>
           </div>
           <small v-if="caboSelecionadoPosicionamento" class="text-warning d-block mt-1">
-            🟠 Cabo {{ caboSelecionadoPosicionamento }} selecionado - visível em laranja no preview
+            <i class="fa fa-dot-circle-o me-1" style="color: orange;"></i>Cabo {{ caboSelecionadoPosicionamento }} selecionado - visível em laranja no preview
           </small>
         </div>
       </div>

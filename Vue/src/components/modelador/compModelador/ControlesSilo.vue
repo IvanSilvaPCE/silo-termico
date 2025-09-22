@@ -1,6 +1,6 @@
 <template>
   <div v-if="tipoAtivo === 'silo'" class="card mb-3">
-      <div class="card-header bg-primary text-white">
+      <div class="card-header text-white" style="background-color: #06335E;">
         <h6 class="mb-0">⚙️ Configurações do Silo</h6>
       </div>
       <div class="card-body">
@@ -54,7 +54,7 @@
         </div>
 
         <!-- Seção: Sensores -->
-        <h6 class="text-primary mb-3">📊 Configurações dos Sensores</h6>
+        <h6 class="mb-3" style="color: #06335E;">📊 Configurações dos Sensores</h6>
 
         <div class="mb-3">
           <label class="form-label">Escala dos Sensores: {{ configSilo.escala_sensores }}px</label>
@@ -81,7 +81,7 @@
         </div>
 
         <!-- Seção: Aeradores -->
-        <h6 class="text-primary mb-3">💨 Configurações dos Aeradores</h6>
+        <h6 class="mb-3" style="color: #06335E;">💨 Configurações dos Aeradores</h6>
 
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" v-model="configSilo.aeradores_ativo" id="aeradoresAtivo"

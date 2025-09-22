@@ -1,6 +1,6 @@
 <template>
   <div class="card mb-3">
-    <div class="card-header bg-dark text-white">
+    <div class="card-header text-white" style="background-color: #06335E;">
       <h6 class="mb-0">🏗️ Modelos de Arcos do Armazém</h6>
     </div>
 
@@ -118,7 +118,7 @@
 
         <div class="text-center">
           <small class="text-muted d-block">(0 a 50 pêndulos)</small>
-          <small class="text-info d-block">💡 Aplicado automaticamente no preview</small>
+          <small class="d-block" style="color: #06335E;">💡 Aplicado automaticamente no preview</small>
         </div>
 
         <!-- Controles de Posicionamento dos Pêndulos/Cabos -->

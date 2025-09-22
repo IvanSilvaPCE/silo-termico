@@ -6,7 +6,7 @@
       <div class="d-flex align-items-center justify-content-center mb-2 flex-wrap gap-1 mobile-nav-buttons">
         <button 
           type="button" 
-          class="btn btn-outline-primary btn-sm nav-btn"
+          class="btn btn-outline-secondary btn-sm nav-btn"
           @click="$emit('mudar-arco', Math.max(1, arcoAtual - 1))" 
           :disabled="arcoAtual <= 1"
           title="Arco anterior"
@@ -24,7 +24,7 @@
         </select>
         <button 
           type="button" 
-          class="btn btn-outline-primary btn-sm nav-btn"
+          class="btn btn-outline-secondary btn-sm nav-btn"
           @click="$emit('mudar-arco', Math.min(totalArcos, arcoAtual + 1))"
           :disabled="arcoAtual >= totalArcos" 
           title="Próximo arco"
@@ -37,11 +37,11 @@
       <div class="text-center mobile-info">
         <div class="mb-1">
           <small><strong>{{ arcoAtual }}/{{ totalArcos }}</strong></small>
-          <span v-if="modeloEditando" class="badge bg-warning text-dark ms-1 mobile-badge">EDIT</span>
-          <span v-if="configuracaoBanco" class="badge bg-success text-white ms-1 mobile-badge">BANCO</span>
+          <span v-if="modeloEditando" class="badge ms-1 mobile-badge" style="background-color: #D32626; color: white;">EDIT</span>
+          <span v-if="configuracaoBanco" class="badge text-white ms-1 mobile-badge" style="background-color: #06335E;">BANCO</span>
         </div>
         <div class="mb-1 d-flex justify-content-center align-items-center flex-wrap gap-1 mobile-badges">
-          <span class="badge bg-info text-white mobile-badge">
+          <span class="badge text-white mobile-badge" style="background-color: #06335E;">
             {{ totalPendulos }}P
           </span>
           <span class="badge bg-secondary text-white mobile-badge">
@@ -63,7 +63,7 @@
           <div class="d-flex align-items-center justify-content-center justify-content-lg-start">
             <button 
               type="button" 
-              class="btn btn-outline-primary btn-sm me-1"
+              class="btn btn-outline-secondary btn-sm me-1"
               @click="$emit('mudar-arco', Math.max(1, arcoAtual - 1))" 
               :disabled="arcoAtual <= 1"
               title="Arco anterior"
@@ -82,7 +82,7 @@
             </select>
             <button 
               type="button" 
-              class="btn btn-outline-primary btn-sm ms-1"
+              class="btn btn-outline-secondary btn-sm ms-1"
               @click="$emit('mudar-arco', Math.min(totalArcos, arcoAtual + 1))"
               :disabled="arcoAtual >= totalArcos" 
               title="Próximo arco"
@@ -96,8 +96,8 @@
         <div class="col-md-4 col-lg-3 text-center">
           <div>
             <strong class="text-nowrap">Arco {{ arcoAtual }}/{{ totalArcos }}</strong>
-            <span v-if="modeloEditando" class="badge bg-warning text-dark ms-1">EDITANDO</span>
-            <span v-if="configuracaoBanco" class="badge bg-success text-white ms-1">BANCO</span>
+            <span v-if="modeloEditando" class="badge ms-1" style="background-color: #D32626; color: white;">EDITANDO</span>
+            <span v-if="configuracaoBanco" class="badge text-white ms-1" style="background-color: #06335E;">BANCO</span>
           </div>
           <small class="text-muted d-block">{{ nomeModelo }}</small>
         </div>
@@ -105,7 +105,7 @@
         <!-- Badges de Contadores -->
         <div class="col-md-4 col-lg-6 text-center text-md-end">
           <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
-            <span class="badge bg-info text-white">
+            <span class="badge text-white" style="background-color: #06335E;">
               {{ totalPendulos }} Pêndulos
             </span>
             <span class="badge bg-secondary text-white">

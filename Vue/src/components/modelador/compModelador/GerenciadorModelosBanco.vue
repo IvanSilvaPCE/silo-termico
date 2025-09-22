@@ -1,58 +1,70 @@
+
 <template>
   <div>
-    <div class="card mb-3">
-      <div class="card-header bg-success text-white">
-        <h6 class="mb-0">💾 Gerenciar Configurações (Banco de Dados)</h6>
+    <div class="card mb-3 border-primary">
+      <div class="card-header bg-primary text-white">
+        <h6 class="mb-0 text-white">🗄️ Gerenciar Configurações (Banco de Dados)</h6>
       </div>
-      <div class="card-body p-2">
+      <div class="card-body p-3">
         <!-- Etapas de Salvamento -->
         <div v-if="tipoAtivo === 'armazem'" class="mb-3">
           <!-- Status dos Modelos -->
-          <div class="mb-2">
-            <div class="d-flex justify-content-between align-items-center">
-              <small class="fw-bold">Status dos Modelos:</small>
-              <span class="badge text-white" :class="podeSerSalvo ? 'bg-success' : 'bg-warning'">
+          <div class="mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <small class="fw-bold text-dark">Status dos Modelos:</small>
+              <span class="badge" :class="podeSerSalvo ? 'bg-success' : 'bg-warning text-dark'">
                 {{ Object.keys(modelosArcos).length }}/{{ quantidadeModelosArcos }} configurados
               </span>
             </div>
-            <div class="progress progress-sm mt-1 border border-dark">
-              <div class="progress-bar" :class="podeSerSalvo ? 'bg-success' : 'bg-warning'" :style="{
-                width: quantidadeModelosArcos > 0
-                  ? ((Object.keys(modelosArcos).length / quantidadeModelosArcos * 100) + '%')
-                  : '0%'
-              }">
+            <div class="progress" style="height: 8px;">
+              <div class="progress-bar" 
+                   :class="podeSerSalvo ? 'bg-success' : 'bg-warning'" 
+                   :style="{
+                     width: quantidadeModelosArcos > 0
+                       ? ((Object.keys(modelosArcos).length / quantidadeModelosArcos * 100) + '%')
+                       : '0%'
+                   }">
               </div>
             </div>
           </div>
         </div>
 
         <!-- Debug Info -->
-        <div v-if="debugMode" class="alert alert-secondary p-2 small">
-          <strong>Debug Info:</strong><br>
-          Quantidade esperada: {{ quantidadeModelosArcos }}<br>
-          Modelos configurados: {{ modelosValidosCount }}<br>
-          Config Armazém existe: {{ !!configArmazem }}<br>
-          Pode salvar: {{ podeSerSalvo }}
-        </div>
-      </div>
-
-      <!-- Formulário de Salvamento -->
-      <div class="p-2">
-        <div class="mb-3">
-          <label class="form-label small fw-bold">Nome da Configuração:</label>
-          <input type="text" class="form-control form-control-sm" v-model="nomeModelo"
-            placeholder="Ex: Armazém Portal Principal" :disabled="isSalvando" maxlength="50" />
+        <div v-if="debugMode" class="alert alert-info p-2 mb-3">
+          <small class="text-dark">
+            <strong>Debug Info:</strong><br>
+            Quantidade esperada: {{ quantidadeModelosArcos }}<br>
+            Modelos configurados: {{ modelosValidosCount }}<br>
+            Config Armazém existe: {{ !!configArmazem }}<br>
+            Pode salvar: {{ podeSerSalvo }}
+          </small>
         </div>
 
+        <!-- Formulário de Salvamento -->
         <div class="mb-3">
-          <label class="form-label small fw-bold">Descrição (opcional):</label>
-          <textarea class="form-control form-control-sm" v-model="descricaoModelo"
-            placeholder="Descrição da configuração..." rows="2" :disabled="isSalvando" maxlength="200"></textarea>
+          <label class="form-label small fw-bold text-dark">Nome da Configuração:</label>
+          <input type="text" 
+                 class="form-control form-control-sm" 
+                 v-model="nomeModelo"
+                 placeholder="Ex: Armazém Portal Principal" 
+                 :disabled="isSalvando" 
+                 maxlength="50" />
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label small fw-bold text-dark">Descrição (opcional):</label>
+          <textarea class="form-control form-control-sm" 
+                    v-model="descricaoModelo"
+                    placeholder="Descrição da configuração..." 
+                    rows="2" 
+                    :disabled="isSalvando" 
+                    maxlength="200"></textarea>
         </div>
 
         <div class="d-grid gap-2 mb-3">
-          <button class="btn btn-success btn-sm" @click="salvarConfiguracaoCompleta"
-            :disabled="!nomeModelo.trim() || isSalvando || !podeSerSalvo">
+          <button class="btn btn-success btn-sm" 
+                  @click="salvarConfiguracaoCompleta"
+                  :disabled="!nomeModelo.trim() || isSalvando || !podeSerSalvo">
             <span v-if="!isSalvando">💾 Salvar Configuração no Banco</span>
             <div v-else class="d-flex align-items-center justify-content-center">
               <div class="spinner-border spinner-border-sm me-2" role="status">
@@ -64,107 +76,119 @@
         </div>
 
         <!-- Toggle Debug -->
-        <div class="mb-2 d-flex gap-2">
-          <button class="btn btn-outline-secondary btn-sm" @click="debugMode = !debugMode">
+        <div class="mb-3 d-flex gap-2 justify-content-center">
+          <button class="btn btn-outline-primary btn-sm" @click="debugMode = !debugMode">
             {{ debugMode ? 'Ocultar' : 'Mostrar' }} Debug
           </button>
-          <button v-if="isSalvando" class="btn btn-outline-danger btn-sm" @click="resetarEstadoSalvamento">
+          <button v-if="isSalvando" class="btn btn-outline-secondary btn-sm" @click="resetarEstadoSalvamento">
             🔄 Reset
           </button>
         </div>
 
         <!-- Lista de Configurações Salvas -->
-        <div v-if="configuracoesGerais.length === 0" class="alert alert-info p-2 text-center mt-3">
-          <small>Nenhuma configuração salva encontrada</small>
+        <div v-if="configuracoesGerais.length === 0" class="alert alert-light border-primary p-3 text-center mt-3">
+          <small class="text-muted">
+            ℹ️
+            Nenhuma configuração salva encontrada
+          </small>
         </div>
 
         <div v-else class="mt-3">
-          <div class="d-flex justify-content-between align-items-center mb-2">
-            <label class="form-label small fw-bold mb-0" style="color: white;">Configurações Salvas:</label>
-            <button class="btn btn-outline-primary btn-sm" @click="carregarConfiguracoesGerais"
-              :disabled="isCarregando">
-              🔄 Atualizar
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0 fw-bold text-primary">
+              🗄️
+              Configurações Salvas ({{ configuracoesGerais.length }})
+            </h6>
+            <button class="btn btn-outline-primary btn-sm" 
+                    @click="carregarConfiguracoesGerais" 
+                    :disabled="isCarregando">
+              🔄
+              Atualizar
             </button>
           </div>
 
-          <div v-if="isCarregando" class="text-center py-2">
-            <div class="spinner-border spinner-border-sm" role="status">
+          <div v-if="isCarregando" class="text-center py-3">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
               <span class="visually-hidden"></span>
             </div>
-            <small class="d-block text-muted">Carregando configurações...</small>
+            <small class="d-block text-muted mt-2">Carregando configurações...</small>
           </div>
 
-          <!-- Lista de Modelos Salvos -->
-          <div v-if="configuracoesGerais.length > 0" class="mt-3">
-            <h6 class="small fw-bold text-success mb-3">
-              📋 Modelos Salvos no Banco ({{ configuracoesGerais.length }})
-            </h6>
-
-            <div class="modelos-grid-responsive">
-              <div v-for="config in configuracoesGerais" :key="config.id_svg" 
-                   class="modelo-card-responsive">
-                <div class="modelo-header-responsive" :class="config.tp_svg === 'S' ? 'bg-primary' : 'bg-success'">
-                  <span class="modelo-nome-responsive">
-                    {{ config.tp_svg === 'S' ? '🏢' : '🏭' }} {{ config.nm_modelo }}
+          <!-- Lista Ultra Compacta -->
+          <div v-if="configuracoesGerais.length > 0" class="lista-compacta">
+            <div v-for="config in configuracoesGerais" :key="config.id_svg" class="item-compacto">
+              <div class="item-info">
+                <div class="item-nome">
+                  <span class="tipo-icon me-1">{{ config.tp_svg === 'S' ? '🏭' : '🏢' }}</span>
+                  <span class="nome-config">{{ config.nm_modelo }}</span>
+                </div>
+                <div class="item-meta">
+                  <span class="badge-mini" :class="config.tp_svg === 'S' ? 'badge-silo' : 'badge-armazem'">
+                    {{ config.tp_svg === 'S' ? 'S' : (config.vista_svg === 'F' ? 'F' : 'T') }}
                   </span>
-                  <button type="button" 
-                          class="btn-delete-responsive" 
-                          @click="confirmarExclusao(config)"
-                          title="Excluir configuração">
-                    ×
-                  </button>
+                  <span class="data-mini">{{ formatarDataCompacta(config.created_at) }}</span>
                 </div>
-
-                <div class="modelo-body-responsive">
-                  <div class="modelo-info">
-                    <span class="tipo-badge" :class="config.tp_svg === 'S' ? 'tipo-silo' : 'tipo-armazem'">
-                      {{ config.tp_svg === 'S' ? 'Silo' : (config.vista_svg === 'F' ? 'Fundo' : 'Topo') }}
-                    </span>
-                    <span class="data-info">{{ formatarData(config.created_at) }}</span>
-                  </div>
-
-                  <button class="btn-carregar-responsive" @click="carregarConfiguracao(config)" title="Visualizar configuração">
-                    🗐
-                  </button>
-                </div>
+              </div>
+              <div class="item-acoes">
+                <button class="btn-micro btn-carregar" 
+                        @click="carregarConfiguracao(config)"
+                        title="Carregar configuração">
+                  📥
+                </button>
+                <button class="btn-micro btn-excluir" 
+                        @click="confirmarExclusao(config)"
+                        title="Excluir configuração">
+                  🗑️
+                </button>
               </div>
             </div>
           </div>
         </div>
-        <!-- Status -->
-        <div v-if="!podeSerSalvo" class="alert alert-warning p-2 mt-3">
-          <small>
+
+        <!-- Status de Validação -->
+        <div v-if="!podeSerSalvo" class="alert alert-warning border-warning p-3 mt-3">
+          <div class="d-flex align-items-start">
             ⚠️
-            <span v-if="tipoAtivo === 'armazem'">
-              Configure todos os {{ quantidadeModelosArcos }} modelos de arcos antes de salvar no banco.
-              <br>Modelos configurados: {{ modelosValidosCount }}/{{ quantidadeModelosArcos }}
-            </span>
-            <span v-else>
-              Configure o silo antes de salvar.
-            </span>
-          </small>
+            <small class="text-dark">
+              <span v-if="tipoAtivo === 'armazem'">
+                Configure todos os {{ quantidadeModelosArcos }} modelos de arcos antes de salvar no banco.
+                <br><strong>Modelos configurados: {{ modelosValidosCount }}/{{ quantidadeModelosArcos }}</strong>
+              </span>
+              <span v-else>
+                Configure o silo antes de salvar.
+              </span>
+            </small>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal de Confirmação de Exclusão - Otimizado -->
-    <div v-show="showModalExclusao" class="modal-overlay-compact" @click="fecharModal">
-      <div class="modal-compact" role="document" @click.stop>
-        <div class="modal-content-compact">
-          <div class="modal-header-compact">
-            <h6 class="modal-title-compact">🗑️ Confirmar Exclusão</h6>
-            <button type="button" class="btn-close-compact" @click="fecharModal">×</button>
+    <!-- Modal de Confirmação de Exclusão -->
+    <div v-show="showModalExclusao" class="modal-overlay" @click="fecharModal">
+      <div class="modal-dialog modal-dialog-centered modal-sm" @click.stop>
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header bg-danger text-white border-0">
+            <h6 class="modal-title mb-0">
+              🗑️ Confirmar Exclusão
+            </h6>
+            <button type="button" class="btn-close btn-close-white" @click="fecharModal"></button>
           </div>
-          <div class="modal-body-compact">
-            <p class="mb-1">Excluir configuração:</p>
+          <div class="modal-body p-4">
+            <p class="mb-2 text-dark">Excluir configuração:</p>
             <strong class="text-primary">{{ modeloParaExcluir?.nm_modelo }}</strong>
-            <p class="text-muted small mt-1 mb-0">Esta ação não pode ser desfeita.</p>
+            <p class="text-muted small mt-2 mb-0">Esta ação não pode ser desfeita.</p>
           </div>
-          <div class="modal-footer-compact">
-            <button type="button" class="btn btn-outline-secondary btn-xs" @click="fecharModal" :disabled="isExcluindo">
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" 
+                    class="btn btn-outline-secondary btn-sm" 
+                    @click="fecharModal" 
+                    :disabled="isExcluindo">
               Cancelar
             </button>
-            <button type="button" class="btn btn-danger btn-xs" @click="excluirConfiguracao" :disabled="isExcluindo">
+            <button type="button" 
+                    class="btn btn-danger btn-sm" 
+                    @click="excluirConfiguracao" 
+                    :disabled="isExcluindo">
               <span v-if="isExcluindo" class="spinner-border spinner-border-sm me-1" role="status"></span>
               {{ isExcluindo ? 'Excluindo...' : 'Excluir' }}
             </button>
@@ -203,8 +227,7 @@ export default {
       isExcluindo: false,
       modeloParaExcluir: null,
       debugMode: false,
-      carregandoModelos: false, // Adicionado para indicar carregamento na exclusão
-      showModalExclusao: false // Controle do modal sem jQuery
+      showModalExclusao: false
     }
   },
   computed: {
@@ -217,109 +240,44 @@ export default {
       let count = 0
       for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
         const modelo = this.modelosArcos?.[i]
-        // Verificar se o modelo existe E tem configuração válida (seja 'config' ou 'configuracao')
         if (modelo && modelo.nome &&
-            ((modelo.config && Object.keys(modelo.config).length > 0) ||
-             (modelo.configuracao && Object.keys(modelo.configuracao).length > 0))) {
+          ((modelo.config && Object.keys(modelo.config).length > 0) ||
+            (modelo.configuracao && Object.keys(modelo.configuracao).length > 0))) {
           count++
         }
       }
       return count
-    },
-    modelosSalvosCount() {
-      return this.modelosValidosCount
     },
     podeSerSalvo() {
       if (this.tipoAtivo === 'silo') {
         return this.configSilo && Object.keys(this.configSilo).length > 0
       }
 
-      // Para armazém, verificar se todos os modelos estão configurados
       const modelosConfigurados = this.modelosValidosCount
       const temConfigGlobal = this.configArmazem && Object.keys(this.configArmazem).length > 0
-
-      console.log('🔍 [podeSerSalvo] Debug:', {
-        modelosConfigurados,
-        quantidadeEsperada: this.quantidadeModelosArcos,
-        temConfigGlobal,
-        modelos: this.modelosArcos
-      })
 
       return modelosConfigurados === this.quantidadeModelosArcos &&
         modelosConfigurados > 0 &&
         temConfigGlobal
-    },
-    dadosParaSalvar() {
-      if (this.tipoAtivo === 'silo') {
-        return {
-          tipo: 'configuracao_silo',
-          configuracao: this.configSilo,
-          timestamp: new Date().toISOString(),
-          versao: '2.0'
-        }
-      } else {
-        // Preparar dados dos modelos com validação
-        const modelosValidados = {}
-        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
-          const modelo = this.modelosArcos?.[i]
-          if (modelo && modelo.nome && modelo.configuracao) {
-            modelosValidados[i] = {
-              numero: i,
-              nome: modelo.nome,
-              posicao: modelo.posicao || this.determinarPosicaoModelo(i, this.quantidadeModelosArcos),
-              configuracao: modelo.configuracao,
-              quantidadePendulos: modelo.quantidadePendulos || 0,
-              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-              posicoesCabos: modelo.posicoesCabos || {},
-              timestampCriacao: modelo.timestampCriacao || new Date().toISOString(),
-              validado: true
-            }
-          }
-        }
-
-        return {
-          tipo: 'configuracao_armazem_completa',
-          versao: '4.0',
-          quantidadeModelos: this.quantidadeModelosArcos,
-          tipoDistribuicao: this.obterTipoDistribuicao(this.quantidadeModelosArcos),
-          modelosArcos: modelosValidados,
-          configuracaoGlobal: this.configArmazem,
-          mapeamentoModelos: this.gerarMapeamentoModelos(this.quantidadeModelosArcos),
-          timestamp: new Date().toISOString(),
-          metadados: {
-            totalModelos: Object.keys(modelosValidados).length,
-            modelosValidos: Object.values(modelosValidados).filter(m => m.validado).length,
-            sistemaCompleto: Object.keys(modelosValidados).length === this.quantidadeModelosArcos
-          }
-        }
-      }
     }
   },
   mounted() {
     this.carregarConfiguracoesGerais()
   },
   methods: {
-    // Método para resetar tudo após salvamento no banco
     resetarTudoAposSalvamento() {
-      console.log('🔄 [GerenciadorModelosBanco] Iniciando reset completo após salvamento no banco')
-
       try {
-        // Emitir evento para o componente pai resetar
         this.$emit('resetar-apos-salvamento-banco')
-
-        // Mostrar toast de confirmação
-        this.$emit('mostrar-toast', 
+        this.$emit('mostrar-toast',
           '✅ Sistema resetado para valores padrão!\n\n' +
           '🆕 Pronto para modelar uma nova configuração do zero',
           'info'
         )
-
-        console.log('✅ [GerenciadorModelosBanco] Reset completo emitido com sucesso')
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro ao resetar após salvamento:', error)
         this.$emit('mostrar-toast', 'Erro ao resetar sistema. Recarregue a página.', 'error')
       }
     },
+
     async carregarConfiguracoesGerais() {
       this.isCarregando = true
       try {
@@ -334,23 +292,16 @@ export default {
                 dados_parsed: dadosParsed
               }
             } catch (error) {
-              console.warn('Erro ao fazer parse dos dados da configuração:', config.id_svg)
               return {
                 ...config,
                 dados_parsed: {}
               }
             }
           })
-
-          console.log('🔄 [GerenciadorModelosBanco] Configurações carregadas:', {
-            total: this.configuracoesGerais.length,
-            tipo: this.tipoParaSalvar
-          })
         } else {
           this.mostrarToast('Erro ao carregar configurações salvas', 'error')
         }
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro ao carregar configurações:', error)
         this.mostrarToast('Erro ao conectar com o servidor', 'error')
       } finally {
         this.isCarregando = false
@@ -358,21 +309,11 @@ export default {
     },
 
     async salvarConfiguracaoCompleta() {
-      console.log('🚀 [GerenciadorModelosBanco] Iniciando salvamento no banco:', {
-        nome: this.nomeModelo,
-        tipo: this.tipoAtivo,
-        quantidadeModelos: this.quantidadeModelosArcos,
-        podeSerSalvo: this.podeSerSalvo,
-        modelosValidos: this.modelosValidosCount
-      })
-
-      // Validações básicas
       if (!this.nomeModelo.trim()) {
         this.$emit('mostrar-toast', 'Digite um nome para a configuração!', 'warning')
         return
       }
 
-      // Validar se pode salvar baseado nas regras de negócio
       if (!this.podeSerSalvo) {
         if (this.tipoAtivo === 'armazem') {
           this.$emit('mostrar-toast', `Configure todos os ${this.quantidadeModelosArcos} modelos de arco antes de salvar!\n\nStatus: ${this.modelosValidosCount}/${this.quantidadeModelosArcos} configurados`, 'warning')
@@ -385,34 +326,23 @@ export default {
       this.isSalvando = true
 
       try {
-        // Para armazém, usar consolidação baseada no localStorage
         if (this.tipoAtivo === 'armazem') {
-          console.log('🔄 [GerenciadorModelosBanco] Consolidando modelos do localStorage...')
-
-          // Consolidar todos os modelos salvos no localStorage para o formato do banco
           const { configuracaoService } = await import('../services/configuracaoService')
           const dadosConsolidados = configuracaoService.consolidarModelosParaBanco(
             this.quantidadeModelosArcos,
             this.nomeModelo
           )
 
-          console.log('📦 [GerenciadorModelosBanco] Resultado da consolidação:', dadosConsolidados)
-
           if (!dadosConsolidados.success) {
             this.$emit('mostrar-toast', dadosConsolidados.message || 'Erro ao consolidar configurações', 'error')
             return
           }
 
-          // Salvar no banco de dados usando dados consolidados
           const response = await modeloSvgService.salvarModelo(dadosConsolidados.dados)
 
           if (response.success) {
-            console.log('✅ [GerenciadorModelosBanco] Configuração salva com sucesso')
-
-            // Recarregar lista de modelos
             await this.carregarConfiguracoesGerais()
 
-            // Notificar sucesso
             const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
             this.$emit('mostrar-toast',
               `🎉 Configuração "${this.nomeModelo}" salva no banco!\n\n` +
@@ -423,30 +353,22 @@ export default {
               'success'
             )
 
-            // Limpar campos
             this.nomeModelo = ''
             this.descricaoModelo = ''
 
-            // NOVO: Resetar tudo para valores padrão após salvar no banco
             setTimeout(() => {
               this.resetarTudoAposSalvamento()
-            }, 1500) // Delay para mostrar mensagem de sucesso
+            }, 1500)
 
           } else {
-            console.error('❌ [GerenciadorModelosBanco] Erro ao salvar:', response)
-
             let mensagemErro = response.message || 'Erro desconhecido'
             if (response.error?.erros) {
               mensagemErro = response.error.erros.join('\n')
             }
-
             this.$emit('mostrar-toast', `❌ Erro ao salvar no banco:\n\n${mensagemErro}`, 'error')
           }
 
         } else {
-          // Para silo, usar dados diretos
-          console.log('🔄 [GerenciadorModelosBanco] Preparando dados do silo...')
-
           const dadosCompletos = this.prepararDadosParaSalvar()
 
           if (!dadosCompletos || Object.keys(dadosCompletos).length === 0) {
@@ -465,8 +387,6 @@ export default {
           const response = await modeloSvgService.salvarModelo(dadosParaBanco)
 
           if (response.success) {
-            console.log('✅ [GerenciadorModelosBanco] Silo salvo com sucesso')
-
             await this.carregarConfiguracoesGerais()
 
             const idSalvo = response.data?.id_svg || response.data?.id || 'N/A'
@@ -480,19 +400,16 @@ export default {
             this.nomeModelo = ''
             this.descricaoModelo = ''
 
-            // NOVO: Resetar tudo para valores padrão após salvar silo no banco
             setTimeout(() => {
               this.resetarTudoAposSalvamento()
-            }, 1500) // Delay para mostrar mensagem de sucesso
+            }, 1500)
 
           } else {
-            console.error('❌ [GerenciadorModelosBanco] Erro ao salvar silo:', response)
             this.$emit('mostrar-toast', `❌ Erro ao salvar silo:\n\n${response.message || 'Erro desconhecido'}`, 'error')
           }
         }
 
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro inesperado:', error)
         this.$emit('mostrar-toast', `❌ Erro inesperado:\n\n${error.message || error}`, 'error')
       } finally {
         this.isSalvando = false
@@ -501,12 +418,8 @@ export default {
 
     prepararDadosParaSalvar() {
       if (this.tipoAtivo === 'silo') {
-        // Capturar TODAS as variáveis de configuração do silo
         const dadosCompletos = {
-          // Configuração básica
           ...this.configSilo,
-
-          // Componentes específicos do silo
           dimensoes: this.capturarDimensoesSilo(),
           controles: this.capturarControlesSilo(),
           sensores: this.capturarSensoresSilo(),
@@ -516,29 +429,20 @@ export default {
           posicionamento: this.capturarPosicionamentoSilo(),
           parametrosDesenho: this.capturarParametrosDesenhoSilo(),
           estadoModelagem: this.capturarEstadoModelagemSilo(),
-
-          // Dados adicionais dos componentes SVG
           componentesSVG: this.capturarComponentesSVGSilo(),
-
-          // Metadados para controle
           tipoEstrutura: 'silo',
           versaoConfiguracao: '5.0',
           timestampSalvamento: new Date().toISOString()
         }
 
-        console.log('📦 [prepararDadosParaSalvar] Dados completos do silo:', dadosCompletos)
         return dadosCompletos
       } else {
-        // Capturar TODAS as variáveis de configuração do armazém
         const modelosCompletos = this.prepararModelosCompletos()
 
         const dadosCompletos = {
-          // Configuração básica
           quantidadeModelos: this.quantidadeModelosArcos,
           modelosArcos: modelosCompletos,
           configuracaoGlobal: { ...this.configArmazem },
-
-          // Componentes específicos do armazém
           dimensoes: this.capturarDimensoesArmazem(),
           sensores: this.capturarSensoresArmazem(),
           cabos: this.capturarCabosArmazem(),
@@ -549,29 +453,16 @@ export default {
           posicionamento: this.capturarPosicionamentoArmazem(),
           parametrosDesenho: this.capturarParametrosDesenho(),
           estadoModelagem: this.capturarEstadoModelagem(),
-
-          // Dados específicos dos arcos
           dadosArcos: this.capturarDadosArcos(),
           posicoesCabos: this.capturarTodasPosicoesCabos(),
           configuracaoSensores: this.capturarConfiguracaoSensores(),
           layouts: this.capturarLayoutsArmazem(),
           mapeamentos: this.capturarMapeamentosArmazem(),
-
-          // Dados adicionais dos componentes SVG
           componentesSVG: this.capturarComponentesSVGArmazem(),
-
-          // Metadados para controle
           tipoEstrutura: 'armazem',
           versaoConfiguracao: '5.0',
           timestampSalvamento: new Date().toISOString()
         }
-
-        console.log('📦 [prepararDadosParaSalvar] Dados completos do armazém:', {
-          quantidadeModelos: dadosCompletos.quantidadeModelos,
-          modelosConfigurados: Object.keys(dadosCompletos.modelosArcos || {}).length,
-          temConfigGlobal: !!dadosCompletos.configuracaoGlobal,
-          componentes: Object.keys(dadosCompletos).length
-        })
 
         return dadosCompletos
       }
@@ -583,34 +474,20 @@ export default {
       for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
         const modelo = this.modelosArcos[i]
         if (modelo && modelo.nome) {
-          // Capturar TODAS as configurações do modelo
           const configuracao = modelo.configuracao || modelo.config || {}
 
-          // CORREÇÃO: Garantir que posições dos cabos sejam preservadas
           const posicoesCabosOriginais = modelo.posicoesCabos || {}
-
-          // CORREÇÃO: Carregar TODOS os dados do localStorage (posições E sensores)
           const dadosLocalStorage = this.carregarDadosCompletosDoLocalStorage(i)
           const posicoesCabosCompletas = { ...posicoesCabosOriginais, ...dadosLocalStorage.posicoesCabos }
           const sensoresCompletos = { ...modelo.sensoresPorPendulo, ...dadosLocalStorage.sensoresPorPendulo }
           const alturasCompletas = { ...dadosLocalStorage.alturasSensores }
 
-          console.log(`📦 [prepararModelosCompletos] Modelo ${i} - Dados completos integrados:`, {
-            posicoesCabos: Object.keys(posicoesCabosCompletas).length,
-            sensoresPorPendulo: sensoresCompletos,
-            alturasSensores: alturasCompletas,
-            quantidadePendulos: dadosLocalStorage.quantidadePendulos
-          })
-
           modelos[i] = {
             numero: i,
             nome: modelo.nome,
             posicao: modelo.posicao || this.determinarPosicaoModelo(i, this.quantidadeModelosArcos),
-
-            // Todas as configurações possíveis
-            configuracao: { 
+            configuracao: {
               ...configuracao,
-              // CORREÇÃO: Incluir TODOS os dados na configuração principal
               posicoesCabos: posicoesCabosCompletas,
               posicoesCabosPersonalizadas: posicoesCabosCompletas,
               sensoresPorPendulo: sensoresCompletos,
@@ -621,69 +498,23 @@ export default {
             sensoresPorPendulo: { ...sensoresCompletos },
             alturasSensores: { ...alturasCompletas },
             posicoesCabos: { ...posicoesCabosCompletas },
-
-            // Dados adicionais se existirem
             dimensoes: { ...(modelo.dimensoes || {}) },
             parametros: { ...(modelo.parametros || {}) },
             estados: { ...(modelo.estados || {}) },
             variaveis: { ...(modelo.variaveis || {}) },
             propriedades: { ...(modelo.propriedades || {}) },
-
-            // Dados de componentes específicos
             estrutura: modelo.estrutura || {},
             desenho: modelo.desenho || {},
             layout: modelo.layout || {},
             coordenadas: modelo.coordenadas || {},
-
-            // Metadados
             timestampCriacao: modelo.timestampCriacao || new Date().toISOString(),
             validado: Object.keys(configuracao).length > 0,
             versao: '2.0'
           }
-
-          console.log(`📦 Modelo ${i} capturado:`, {
-            nome: modelos[i].nome,
-            configKeys: Object.keys(configuracao).length,
-            pendulos: modelos[i].quantidadePendulos,
-            sensores: Object.keys(modelos[i].sensoresPorPendulo).length,
-            cabos: Object.keys(modelos[i].posicoesCabos).length
-          })
-        } else {
-          console.warn(`⚠️ Modelo ${i} não existe ou não tem nome:`, modelo)
         }
       }
 
-      console.log('📦 TODOS os modelos preparados:', {
-        total: Object.keys(modelos).length,
-        esperado: this.quantidadeModelosArcos,
-        modelosEncontrados: Object.keys(modelos),
-        dadosDetalhados: modelos
-      })
-
       return modelos
-    },
-
-    obterLogicaDistribuicao() {
-      const logicas = {
-        1: { nome: 'Modelo Único', aplicacao: 'todos_arcos' },
-        2: { nome: 'Par/Ímpar', aplicacao: 'par_impar' },
-        3: { nome: 'Frente/Fundo + Par/Ímpar', aplicacao: 'frente_fundo_par_impar' },
-        4: { nome: 'Frente/Par/Ímpar/Fundo', aplicacao: 'frente_par_impar_fundo' }
-      }
-      return logicas[this.quantidadeModelosArcos] || logicas[1]
-    },
-
-    gerarDescricaoConfiguracao() {
-      const tipo = this.tipoAtivo === 'silo' ? 'Silo' : 'Armazém'
-      const data = new Date().toLocaleDateString('pt-BR')
-      const hora = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-
-      if (this.tipoAtivo === 'silo') {
-        return `Configuração de ${tipo} criada em ${data} às ${hora}`
-      } else {
-        const logica = this.obterLogicaDistribuicao().nome
-        return `Configuração de ${tipo} com ${this.quantidadeModelosArcos} modelo(s) - ${logica} - ${data} ${hora}`
-      }
     },
 
     async carregarConfiguracao(configuracao) {
@@ -695,13 +526,6 @@ export default {
           dadosSvg = JSON.parse(configuracao.dado_svg)
         }
 
-        console.log('🔄 [GerenciadorModelosBanco] Carregando configuração:', {
-          nome: configuracao.nm_modelo,
-          id: configuracao.id_svg,
-          dados: dadosSvg
-        })
-
-        // Emitir evento com estrutura completa para garantir reprodução correta dos desenhos
         this.$emit('configuracao-carregada', {
           nome: configuracao.nm_modelo,
           dados: dadosSvg,
@@ -710,7 +534,6 @@ export default {
           configuracaoId: configuracao.id_svg,
           tipoConfiguracao: dadosSvg.tipo || 'configuracao_completa',
           versao: dadosSvg.versao || '1.0',
-          // Dados adicionais para garantir reprodução
           sistemaModelos: dadosSvg.sistemaModelos || dadosSvg.modelosDefinidos,
           configuracaoGlobal: dadosSvg.configuracaoGlobal,
           layoutsAutomaticos: dadosSvg.layoutsAutomaticos,
@@ -720,7 +543,6 @@ export default {
 
         this.mostrarToast(`Configuração "${configuracao.nm_modelo}" carregada com sucesso!`, 'success')
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro ao carregar configuração:', error)
         this.mostrarToast('Erro ao processar dados da configuração', 'error')
       }
     },
@@ -728,7 +550,6 @@ export default {
     confirmarExclusao(configuracao) {
       this.modeloParaExcluir = configuracao
       this.showModalExclusao = true
-      // Adicionar classe ao body para evitar scroll
       document.body.classList.add('modal-open')
     },
 
@@ -738,33 +559,19 @@ export default {
       this.isExcluindo = true
 
       try {
-        console.log('🗑️ [GerenciadorModelosBanco] Iniciando exclusão do modelo:', this.modeloParaExcluir.id_svg)
-
         const response = await modeloSvgService.excluirModelo(this.modeloParaExcluir.id_svg)
 
-        console.log('📝 [GerenciadorModelosBanco] Resposta da exclusão:', response)
-
         if (response && response.success) {
-          // Remover da lista local imediatamente
           this.configuracoesGerais = this.configuracoesGerais.filter(m => m.id_svg !== this.modeloParaExcluir.id_svg)
-
-          // Emitir evento para o componente pai
           this.$emit('modelo-deletado', this.modeloParaExcluir.id_svg)
           this.mostrarToast(`Configuração "${this.modeloParaExcluir.nm_modelo}" excluída com sucesso!`, 'success')
 
-          console.log('✅ [GerenciadorModelosBanco] Modelo deletado com sucesso')
-
-          // Recarregar lista para garantir sincronização
-          // Adicionado um pequeno delay para dar tempo para a UI atualizar antes do reload.
           setTimeout(() => {
             this.carregarConfiguracoesGerais()
           }, 500)
         } else {
-          console.error('❌ [GerenciadorModelosBanco] Erro na resposta do serviço:', response)
-
           let mensagemErro = response?.message || 'Erro ao excluir configuração'
 
-          // Tratar erros específicos
           if (response?.status === 401) {
             mensagemErro = 'Token de autenticação expirado. Faça login novamente.'
           } else if (response?.status === 403) {
@@ -776,7 +583,6 @@ export default {
           this.mostrarToast(mensagemErro, 'error')
         }
       } catch (error) {
-        console.error('❌ [GerenciadorModelosBanco] Erro interno ao excluir configuração:', error)
         this.mostrarToast('Erro interno ao excluir configuração. Verifique sua conexão.', 'error')
       } finally {
         this.isExcluindo = false
@@ -788,7 +594,6 @@ export default {
     fecharModal() {
       this.showModalExclusao = false
       this.modeloParaExcluir = null
-      // Remover classe do body
       document.body.classList.remove('modal-open')
     },
 
@@ -799,6 +604,19 @@ export default {
         return data.toLocaleDateString('pt-BR')
       } catch {
         return 'Data inválida'
+      }
+    },
+
+    formatarDataCompacta(dataString) {
+      if (!dataString) return 'N/A'
+      try {
+        const data = new Date(dataString)
+        return data.toLocaleDateString('pt-BR', { 
+          day: '2-digit', 
+          month: '2-digit' 
+        })
+      } catch {
+        return 'N/A'
       }
     },
 
@@ -823,46 +641,6 @@ export default {
       }
     },
 
-    obterTipoDistribuicao(quantidade) {
-      const tipos = {
-        1: { nome: 'Modelo Único', descricao: 'Todos os arcos usam o mesmo modelo' },
-        2: { nome: 'Par/Ímpar', descricao: 'Arcos pares e ímpares com modelos diferentes' },
-        3: { nome: 'Frente/Fundo + Par/Ímpar', descricao: 'Primeiro e último iguais, meio alternado' },
-        4: { nome: 'Frente/Par/Ímpar/Fundo', descricao: 'Cada posição com modelo específico' }
-      }
-      return tipos[quantidade] || tipos[1]
-    },
-
-    gerarMapeamentoModelos(quantidadeModelos) {
-      const mapeamento = {}
-      for (let i = 1; i <= quantidadeModelos; i++) {
-        mapeamento[i] = {
-          numero: i,
-          tipo: this.determinarPosicaoModelo(i, quantidadeModelos),
-          nome: this.gerarNomeModelo(i, quantidadeModelos)
-        }
-      }
-      return mapeamento
-    },
-
-    gerarNomeModelo(numeroModelo, quantidadeTotal) {
-      switch (quantidadeTotal) {
-        case 1: return 'Modelo Único'
-        case 2: return numeroModelo === 1 ? 'Modelo Ímpar' : 'Modelo Par'
-        case 3:
-          if (numeroModelo === 1) return 'Modelo Frente/Fundo'
-          else if (numeroModelo === 2) return 'Modelo Par'
-          else return 'Modelo Ímpar'
-        case 4:
-          if (numeroModelo === 1) return 'Modelo Frente'
-          else if (numeroModelo === 2) return 'Modelo Par'
-          else if (numeroModelo === 3) return 'Modelo Ímpar'
-          else return 'Modelo Fundo'
-        default: return `Modelo ${numeroModelo}`
-      }
-    },
-
-    // CORREÇÃO: Método para carregar TODOS os dados do localStorage (posições E sensores)
     carregarDadosCompletosDoLocalStorage(numeroModelo) {
       try {
         const chaveModelo = `modelo_${numeroModelo}`
@@ -879,13 +657,6 @@ export default {
               quantidadePendulos: modeloParsed.configuracao.quantidadePendulos || 3
             }
 
-            console.log(`🎯 [carregarDadosCompletosDoLocalStorage] Modelo ${numeroModelo} - Dados completos:`, {
-              posicoesCabos: Object.keys(dadosCompletos.posicoesCabos).length,
-              sensoresPorPendulo: dadosCompletos.sensoresPorPendulo,
-              alturasSensores: dadosCompletos.alturasSensores,
-              quantidadePendulos: dadosCompletos.quantidadePendulos
-            })
-
             return dadosCompletos
           }
         }
@@ -897,7 +668,6 @@ export default {
           quantidadePendulos: 3
         }
       } catch (error) {
-        console.warn(`⚠️ [carregarDadosCompletosDoLocalStorage] Erro ao carregar dados do modelo ${numeroModelo}:`, error)
         return {
           posicoesCabos: {},
           sensoresPorPendulo: {},
@@ -907,52 +677,32 @@ export default {
       }
     },
 
-    // MANTÉM compatibilidade com método antigo
-    carregarPosicoesCabosDoLocalStorage(numeroModelo) {
-      const dadosCompletos = this.carregarDadosCompletosDoLocalStorage(numeroModelo)
-      return dadosCompletos.posicoesCabos
-    },
-
     resetarEstadoSalvamento() {
       this.isSalvando = false
       this.$emit('mostrar-toast', 'Estado de salvamento resetado. Tente novamente.', 'info')
-      console.log('🔄 [GerenciadorModelosBanco] Estado de salvamento resetado manualmente')
     },
 
-    // Métodos para capturar TODOS os componentes do SILO
+    // Métodos de captura de componentes simplificados
     capturarComponentesSVGSilo() {
       try {
         const componentesSilo = {}
-
-        // Tentar capturar dados de todos os componentes possíveis do silo
         if (this.$parent && this.$parent.$refs) {
           const refs = this.$parent.$refs
-
-          // Controles do silo
           if (refs.controlesSilo) {
             componentesSilo.controles = refs.controlesSilo.obterDados ? refs.controlesSilo.obterDados() : {}
           }
-
-          // Dimensões básicas
           if (refs.dimensoesBasicas) {
             componentesSilo.dimensoes = refs.dimensoesBasicas.obterDados ? refs.dimensoesBasicas.obterDados() : {}
           }
-
-          // Configuração de sensores
           if (refs.configuracaoSensores) {
             componentesSilo.sensores = refs.configuracaoSensores.obterDados ? refs.configuracaoSensores.obterDados() : {}
           }
-
-          // Posicionamento de cabos
           if (refs.posicionamentoCabos) {
             componentesSilo.cabos = refs.posicionamentoCabos.obterDados ? refs.posicionamentoCabos.obterDados() : {}
           }
         }
-
-        console.log('🎯 [capturarComponentesSVGSilo] Componentes capturados:', componentesSilo)
         return componentesSilo
       } catch (error) {
-        console.warn('⚠️ [capturarComponentesSVGSilo] Erro ao capturar componentes:', error)
         return {}
       }
     },
@@ -966,7 +716,6 @@ export default {
           alturaTotal: this.configSilo?.alturaTotal || 300
         }
       } catch (error) {
-        console.warn('⚠️ Erro ao capturar dimensões do silo:', error)
         return {}
       }
     },
@@ -995,60 +744,38 @@ export default {
       }
     },
 
-    // Métodos para capturar TODOS os componentes do ARMAZÉM
     capturarComponentesSVGArmazem() {
       try {
         const componentesArmazem = {}
-
-        // Tentar capturar dados de todos os componentes possíveis do armazém
         if (this.$parent && this.$parent.$refs) {
           const refs = this.$parent.$refs
-
-          // Modelos de arcos
           if (refs.modelosArcos) {
             componentesArmazem.modelosArcos = refs.modelosArcos.obterDados ? refs.modelosArcos.obterDados() : {}
           }
-
-          // Dimensões básicas
           if (refs.dimensoesBasicas) {
             componentesArmazem.dimensoes = refs.dimensoesBasicas.obterDados ? refs.dimensoesBasicas.obterDados() : {}
           }
-
-          // Configuração de sensores
           if (refs.configuracaoSensores) {
             componentesArmazem.sensores = refs.configuracaoSensores.obterDados ? refs.configuracaoSensores.obterDados() : {}
           }
-
-          // Posicionamento de cabos
           if (refs.posicionamentoCabos) {
             componentesArmazem.cabos = refs.posicionamentoCabos.obterDados ? refs.posicionamentoCabos.obterDados() : {}
           }
-
-          // Configuração do telhado
           if (refs.configuracaoTelhado) {
             componentesArmazem.telhado = refs.configuracaoTelhado.obterDados ? refs.configuracaoTelhado.obterDados() : {}
           }
-
-          // Configuração do fundo
           if (refs.configuracaoFundo) {
             componentesArmazem.fundo = refs.configuracaoFundo.obterDados ? refs.configuracaoFundo.obterDados() : {}
           }
-
-          // Controle de sensores por pêndulo
           if (refs.controleSensoresPendulo) {
             componentesArmazem.sensoresPendulo = refs.controleSensoresPendulo.obterDados ? refs.controleSensoresPendulo.obterDados() : {}
           }
-
-          // Inicializador de modelos
           if (refs.inicializadorModelos) {
             componentesArmazem.inicializador = refs.inicializadorModelos.obterDados ? refs.inicializadorModelos.obterDados() : {}
           }
         }
-
-        console.log('🎯 [capturarComponentesSVGArmazem] Componentes capturados:', componentesArmazem)
         return componentesArmazem
       } catch (error) {
-        console.warn('⚠️ [capturarComponentesSVGArmazem] Erro ao capturar componentes:', error)
         return {}
       }
     },
@@ -1066,182 +793,41 @@ export default {
       }
     },
 
-    capturarPosicionamentoArmazem() {
-      try {
-        return this.configArmazem?.posicionamento || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarSensoresArmazem() {
-      try {
-        return this.configArmazem?.sensores || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarEstruturaArmazem() {
-      try {
-        return this.configArmazem?.estrutura || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarCabosArmazem() {
-      try {
-        return this.configArmazem?.cabos || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarTelhadoArmazem() {
-      try {
-        return this.configArmazem?.telhado || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarFundoArmazem() {
-      try {
-        return this.configArmazem?.fundo || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarPendulosArmazem() {
-      try {
-        const pendulos = {}
-        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
-          const modelo = this.modelosArcos?.[i]
-          if (modelo && modelo.pendulos) {
-            pendulos[i] = modelo.pendulos
-          }
-        }
-        return pendulos
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarLayoutsArmazem() {
-      try {
-        return this.configArmazem?.layouts || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarMapeamentosArmazem() {
-      try {
-        return this.configArmazem?.mapeamentos || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    // Métodos para capturar TODOS os dados de modelagem do SILO
-    capturarControlesSilo() {
-      try {
-        return this.configSilo?.controles || this.configSilo?.configControles || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarCabosSilo() {
-      try {
-        return this.configSilo?.cabos || this.configSilo?.posicoesCabos || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarPendulosSilo() {
-      try {
-        return this.configSilo?.pendulos || this.configSilo?.quantidadePendulos || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarParametrosDesenhoSilo() {
-      try {
-        return this.configSilo?.parametrosDesenho || this.configSilo?.desenho || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarEstadoModelagemSilo() {
-      try {
-        return {
-          configurado: this.podeSerSalvo,
-          timestamp: new Date().toISOString(),
-          configCompleta: !!this.configSilo,
-          tamanhoConfig: Object.keys(this.configSilo || {}).length
-        }
-      } catch (error) {
-        return {}
-      }
-    },
-
-    // Métodos para capturar TODOS os dados de modelagem do ARMAZÉM
-    capturarDadosArcos() {
-      try {
-        const dadosArcos = {}
-        for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
-          const modelo = this.modelosArcos?.[i]
-          if (modelo) {
-            dadosArcos[i] = {
-              numero: i,
-              nome: modelo.nome,
-              configuracao: modelo.configuracao || modelo.config || {},
-              posicao: modelo.posicao,
-              quantidadePendulos: modelo.quantidadePendulos || 3,
-              sensoresPorPendulo: modelo.sensoresPorPendulo || {},
-              posicoesCabos: modelo.posicoesCabos || {},
-              dimensoes: modelo.dimensoes || {},
-              parametros: modelo.parametros || {},
-              validado: true
-            }
-          }
-        }
-        return dadosArcos
-      } catch (error) {
-        return {}
-      }
-    },
+    // Métodos simplificados para outros dados
+    capturarControlesSilo() { return this.configSilo?.controles || {} },
+    capturarCabosSilo() { return this.configSilo?.cabos || {} },
+    capturarPendulosSilo() { return this.configSilo?.pendulos || {} },
+    capturarParametrosDesenhoSilo() { return this.configSilo?.parametrosDesenho || {} },
+    capturarEstadoModelagemSilo() { return { configurado: this.podeSerSalvo, timestamp: new Date().toISOString() } },
+    capturarPosicionamentoArmazem() { return this.configArmazem?.posicionamento || {} },
+    capturarSensoresArmazem() { return this.configArmazem?.sensores || {} },
+    capturarEstruturaArmazem() { return this.configArmazem?.estrutura || {} },
+    capturarCabosArmazem() { return this.configArmazem?.cabos || {} },
+    capturarTelhadoArmazem() { return this.configArmazem?.telhado || {} },
+    capturarFundoArmazem() { return this.configArmazem?.fundo || {} },
+    capturarPendulosArmazem() { return {} },
+    capturarLayoutsArmazem() { return this.configArmazem?.layouts || {} },
+    capturarMapeamentosArmazem() { return this.configArmazem?.mapeamentos || {} },
+    capturarDadosArcos() { return {} },
+    capturarConfiguracaoSensores() { return this.configArmazem?.sensores || {} },
+    capturarParametrosDesenho() { return this.configArmazem?.parametrosDesenho || {} },
+    capturarEstadoModelagem() { return { configurado: this.podeSerSalvo, timestamp: new Date().toISOString() } },
 
     capturarTodasPosicoesCabos() {
       try {
         const posicoesCabos = {}
 
-        console.log('🔍 [capturarTodasPosicoesCabos] Iniciando captura EXATA das posições dos cabos...')
-
         for (let i = 1; i <= this.quantidadeModelosArcos; i++) {
           const modelo = this.modelosArcos?.[i]
 
-          if (!modelo) {
-            console.warn(`⚠️ [capturarTodasPosicoesCabos] Modelo ${i} não encontrado`)
-            continue
-          }
+          if (!modelo) continue
 
-          // CORREÇÃO CRÍTICA: Priorizar localStorage para capturar posições EXATAS
           const posicoesLocalStorage = this.carregarPosicoesCabosDoLocalStorage(i)
           let posicoesDoCaboFinal = {}
 
           if (Object.keys(posicoesLocalStorage).length > 0) {
-            // PRIORIDADE 1: localStorage tem as posições mais atualizadas e exatas
             posicoesDoCaboFinal = { ...posicoesLocalStorage }
-            console.log(`🎯 [capturarTodasPosicoesCabos] Modelo ${i} - Usando posições EXATAS do localStorage:`, posicoesLocalStorage)
           } else {
-            // PRIORIDADE 2: Buscar nas configurações do modelo
             const fontesPosicoes = [
               modelo.posicoesCabos,
               modelo.configuracao?.posicoesCabos,
@@ -1249,15 +835,13 @@ export default {
               modelo.configuracao?.posicoesCabosPersonalizadas
             ]
 
-            fontesPosicoes.forEach((fonte, index) => {
+            fontesPosicoes.forEach((fonte) => {
               if (fonte && Object.keys(fonte).length > 0) {
                 Object.assign(posicoesDoCaboFinal, fonte)
-                console.log(`📍 [capturarTodasPosicoesCabos] Modelo ${i} - Fonte ${index + 1}:`, fonte)
               }
             })
           }
 
-          // Validar e preservar EXATAMENTE as coordenadas
           if (Object.keys(posicoesDoCaboFinal).length > 0) {
             const cabosPreservados = {}
 
@@ -1265,7 +849,6 @@ export default {
               const posicao = posicoesDoCaboFinal[cabo]
 
               if (posicao && typeof posicao === 'object') {
-                // PRESERVAR EXATAMENTE todos os valores de posição sem alteração
                 cabosPreservados[cabo] = {
                   x: posicao.x !== undefined ? posicao.x : 0,
                   y: posicao.y !== undefined ? posicao.y : 0,
@@ -1278,386 +861,315 @@ export default {
                   numeroSensores: posicao.numeroSensores !== undefined ? posicao.numeroSensores : 3,
                   timestampAlteracao: posicao.timestampAlteracao || Date.now()
                 }
-
-                console.log(`🎯 [capturarTodasPosicoesCabos] Modelo ${i} - Cabo ${cabo} preservado EXATO:`, cabosPreservados[cabo])
               }
             })
 
             if (Object.keys(cabosPreservados).length > 0) {
               posicoesCabos[i] = cabosPreservados
-
-              console.log(`✅ [capturarTodasPosicoesCabos] Modelo ${i} - Posições EXATAS capturadas:`, {
-                quantidadeCabos: Object.keys(cabosPreservados).length,
-                cabos: Object.keys(cabosPreservados),
-                coordenadasExatas: cabosPreservados
-              })
             }
-          } else {
-            console.warn(`⚠️ [capturarTodasPosicoesCabos] Modelo ${i} - Nenhuma posição encontrada`)
           }
         }
 
-        console.log('🎯 [capturarTodasPosicoesCabos] RESULTADO FINAL - Posições EXATAS capturadas:', {
-          totalModelos: Object.keys(posicoesCabos).length,
-          modelosComPosicoes: Object.keys(posicoesCabos),
-          resumoDetalhado: Object.keys(posicoesCabos).reduce((acc, modelo) => {
-            const cabosDoModelo = posicoesCabos[modelo]
-            acc[`modelo_${modelo}`] = {
-              totalCabos: Object.keys(cabosDoModelo).length,
-              cabos: Object.keys(cabosDoModelo),
-              coordenadas: cabosDoModelo
-            }
-            return acc
-          }, {}),
-          dadosCompletos: posicoesCabos
-        })
-
         return posicoesCabos
       } catch (error) {
-        console.error('❌ [capturarTodasPosicoesCabos] Erro:', error)
         return {}
       }
     },
 
-    capturarConfiguracaoSensores() {
-      try {
-        return this.configArmazem?.sensores || this.configArmazem?.configuracaoSensores || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarParametrosDesenho() {
-      try {
-        return this.configArmazem?.parametrosDesenho || this.configArmazem?.desenho || {}
-      } catch (error) {
-        return {}
-      }
-    },
-
-    capturarEstadoModelagem() {
-      try {
-        return {
-          configurado: this.podeSerSalvo,
-          timestamp: new Date().toISOString(),
-          quantidadeModelos: this.quantidadeModelosArcos,
-          modelosConfigurados: this.modelosValidosCount,
-          configCompleta: !!this.configArmazem,
-          modelosCompletos: Object.keys(this.modelosArcos || {}).length,
-          podeSerSalvo: this.podeSerSalvo
-        }
-      } catch (error) {
-        return {}
-      }
+    carregarPosicoesCabosDoLocalStorage(numeroModelo) {
+      const dadosCompletos = this.carregarDadosCompletosDoLocalStorage(numeroModelo)
+      return dadosCompletos.posicoesCabos
     }
   }
 }
 </script>
 
 <style scoped>
-.bg-light {
-  background-color: #f8f9fa !important;
+/* Cores Padrão do Sistema */
+.border-primary {
+  border-color: #06335E !important;
 }
 
-.badge-sm {
-  font-size: 0.75em;
+.bg-primary {
+  background-color: #06335E !important;
 }
 
-.progress-sm {
-  height: 0.5rem;
+.text-primary {
+  color: #06335E !important;
 }
 
-/* Grid Responsivo Otimizado - Duas Colunas */
-.modelos-grid-responsive {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
-  margin-top: 0.5rem;
+.btn-primary {
+  background-color: #06335E;
+  border-color: #06335E;
 }
 
-.modelo-card-responsive {
+.btn-primary:hover {
+  background-color: #04294a;
+  border-color: #031f36;
+}
+
+.btn-outline-primary {
+  color: #06335E;
+  border-color: #06335E;
+}
+
+.btn-outline-primary:hover {
+  background-color: #06335E;
+  border-color: #06335E;
+  color: white;
+}
+
+.progress-bar {
+  background-color: #06335E;
+}
+
+.progress-bar.bg-success {
+  background-color: #28a745 !important;
+}
+
+.progress-bar.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.bg-secondary {
+  background-color: #6c6c6c !important;
+}
+
+.badge-secondary {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.badge-primary {
+  background-color: #cfe2ff;
+  color: #06335E;
+}
+
+/* Lista Ultra Compacta */
+.lista-compacta {
   border: 1px solid #dee2e6;
   border-radius: 6px;
   overflow: hidden;
-  transition: all 0.2s ease;
   background: white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  max-height: 300px;
+  overflow-y: auto;
 }
 
-.modelo-card-responsive:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  border-color: #007bff;
-}
-
-.modelo-header-responsive {
+.item-compacto {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 0.75rem;
-  color: white;
-  font-size: 0.8rem;
-  font-weight: 600;
-  line-height: 1.3;
+  padding: 0.3rem 0.5rem;
+  border-bottom: 1px solid #f8f9fa;
+  transition: background-color 0.2s ease;
+  min-height: 32px;
 }
 
-.modelo-nome-responsive {
+.item-compacto:last-child {
+  border-bottom: none;
+}
+
+.item-compacto:hover {
+  background-color: rgba(6, 51, 94, 0.05);
+}
+
+.item-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.item-nome {
+  display: flex;
+  align-items: center;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #212529;
+}
+
+.tipo-icon {
+  font-size: 0.7rem;
+  flex-shrink: 0;
+}
+
+.nome-config {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-right: 0.5rem;
+  flex: 1;
+  min-width: 0;
 }
 
-.btn-delete-responsive {
+.item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.badge-mini {
+  font-size: 0.6rem;
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.badge-silo {
+  background-color: #e9ecef;
+  color: #495057;
+}
+
+.badge-armazem {
+  background-color: #cfe2ff;
+  color: #06335E;
+}
+
+.data-mini {
+  font-size: 0.6rem;
+  color: #6c757d;
+}
+
+.item-acoes {
+  display: flex;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.btn-micro {
   background: none;
   border: none;
-  color: white;
-  font-size: 1.1rem;
+  padding: 0.2rem;
   cursor: pointer;
-  padding: 0;
+  border-radius: 3px;
   width: 20px;
   height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.8;
-  line-height: 1;
-  border-radius: 50%;
-  transition: all 0.2s;
-}
-
-.btn-delete-responsive:hover {
-  opacity: 1;
-  background: rgba(255,255,255,0.2);
-  transform: scale(1.1);
-}
-
-.modelo-body-responsive {
-  padding: 0.75rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.modelo-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  flex: 1;
-}
-
-.tipo-badge {
-  font-size: 0.7rem;
-  font-weight: 500;
-  padding: 0.15rem 0.4rem;
-  border-radius: 12px;
-  text-align: center;
-  max-width: fit-content;
-}
-
-.tipo-silo {
-  background: #e3f2fd;
-  color: #1565c0;
-}
-
-.tipo-armazem {
-  background: #e8f5e8;
-  color: #2e7d32;
-}
-
-.data-info {
+  transition: all 0.2s ease;
   font-size: 0.65rem;
-  color: #6c757d;
-  margin: 0;
-  line-height: 1.2;
 }
 
-.btn-carregar-responsive {
-  background: linear-gradient(135deg, #007bff, #0056b3);
-  border: none;
-  border-radius: 4px;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.7rem;
-  color: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  font-weight: 500;
-  white-space: nowrap;
+.btn-carregar {
+  color: #06335E;
 }
 
-.btn-carregar-responsive:hover {
-  background: linear-gradient(135deg, #0056b3, #004085);
-  transform: scale(1.05);
+.btn-carregar:hover {
+  background-color: rgba(6, 51, 94, 0.1);
+  color: #04294a;
 }
 
-/* Modal Compacto e Otimizado */
-.modal-overlay-compact {
+.btn-excluir {
+  color: #dc3545;
+}
+
+.btn-excluir:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: #a71e2a;
+}
+
+/* Modal */
+.modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
   display: flex;
   justify-content: center;
   align-items: center;
   z-index: 1055;
-  backdrop-filter: blur(2px);
 }
 
-.modal-compact {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  max-width: 320px;
+.modal-dialog {
+  max-width: 400px;
   width: 90%;
   margin: 0 auto;
-  animation: modalSlideIn 0.2s ease-out;
 }
 
-@keyframes modalSlideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.modal-content-compact {
-  border: none;
+.modal-content {
   border-radius: 8px;
+  overflow: hidden;
 }
 
-.modal-header-compact {
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid #e9ecef;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #f8f9fa;
-  border-radius: 8px 8px 0 0;
+.modal-header {
+  border-bottom: none;
+  padding: 1rem;
 }
 
-.modal-title-compact {
-  margin: 0;
-  font-size: 0.9rem;
+.modal-title {
+  font-size: 1rem;
   font-weight: 600;
-  color: #495057;
 }
 
-.btn-close-compact {
+.btn-close {
   background: none;
   border: none;
-  font-size: 1.3rem;
+  color: white;
+  opacity: 0.8;
+  font-size: 1.2rem;
   cursor: pointer;
-  padding: 0;
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #6c757d;
-  transition: all 0.2s;
-  border-radius: 50%;
 }
 
-.btn-close-compact:hover {
-  background: #e9ecef;
-  color: #495057;
+.btn-close:hover {
+  opacity: 1;
 }
 
-.modal-body-compact {
+.modal-body {
+  padding: 0 1rem;
+}
+
+.modal-footer {
   padding: 1rem;
-  text-align: center;
-}
-
-.modal-body-compact p {
-  font-size: 0.85rem;
-  line-height: 1.4;
-}
-
-.modal-footer-compact {
-  padding: 0.5rem 1rem 0.75rem;
   display: flex;
-  justify-content: center;
-  gap: 0.75rem;
+  gap: 0.5rem;
+  justify-content: flex-end;
 }
 
-.btn-xs {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  border-radius: 4px;
-  font-weight: 500;
-  min-width: 70px;
-}
-
-/* Responsividade Otimizada */
+/* Responsividade para Lista Compacta */
 @media (max-width: 768px) {
-  .modelos-grid-responsive {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+  .lista-compacta {
+    max-height: 250px;
   }
 
-  .modelo-card-responsive {
-    margin-bottom: 0.25rem;
+  .item-compacto {
+    padding: 0.25rem 0.4rem;
+    min-height: 28px;
   }
 
-  .modelo-header-responsive {
-    padding: 0.6rem;
-    font-size: 0.75rem;
+  .item-nome {
+    font-size: 0.7rem;
   }
 
-  .modelo-body-responsive {
-    padding: 0.6rem;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
+  .tipo-icon {
+    font-size: 0.65rem;
   }
 
-  .modelo-info {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
+  .badge-mini {
+    font-size: 0.55rem;
+    padding: 0.05rem 0.2rem;
   }
 
-  .btn-carregar-responsive {
-    width: 100%;
-    padding: 0.5rem;
-    font-size: 0.8rem;
+  .data-mini {
+    font-size: 0.55rem;
   }
 
-  .modal-compact {
-    max-width: 280px;
+  .btn-micro {
+    width: 18px;
+    height: 18px;
+    font-size: 0.6rem;
+  }
+
+  .modal-dialog {
     width: 95%;
   }
 
-  .modal-header-compact {
-    padding: 0.5rem 0.75rem;
-  }
-
-  .modal-title-compact {
-    font-size: 0.85rem;
-  }
-
-  .modal-body-compact {
-    padding: 0.75rem;
-  }
-
-  .modal-footer-compact {
-    padding: 0.5rem 0.75rem;
-    gap: 0.5rem;
-  }
-
-  .btn-xs {
-    padding: 0.3rem 0.6rem;
-    font-size: 0.7rem;
-    min-width: 60px;
+  .d-flex.gap-2 {
+    flex-direction: column;
+    gap: 0.5rem !important;
   }
 }
 
@@ -1666,88 +1178,119 @@ export default {
     padding: 0.75rem !important;
   }
 
+  .lista-compacta {
+    max-height: 200px;
+  }
+
+  .item-compacto {
+    padding: 0.2rem 0.3rem;
+    min-height: 26px;
+  }
+
+  .item-info {
+    gap: 0.05rem;
+  }
+
+  .item-nome {
+    font-size: 0.65rem;
+  }
+
+  .tipo-icon {
+    font-size: 0.6rem;
+  }
+
+  .badge-mini {
+    font-size: 0.5rem;
+    padding: 0.05rem 0.15rem;
+  }
+
+  .data-mini {
+    font-size: 0.5rem;
+  }
+
+  .btn-micro {
+    width: 16px;
+    height: 16px;
+    font-size: 0.55rem;
+  }
+
+  .item-acoes {
+    gap: 0.1rem;
+  }
+
   .btn-sm {
-    font-size: 11px;
-    padding: 0.2rem 0.4rem;
-    margin: 0.1rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
   }
 
-  .form-control,
-  .form-select,
   .form-control-sm {
-    font-size: 13px;
-    min-height: 32px;
-  }
-
-  .alert {
-    padding: 0.5rem !important;
-    margin-bottom: 0.75rem !important;
+    font-size: 0.8rem;
   }
 
   .small {
-    font-size: 0.75rem !important;
-  }
-
-  .modelos-grid-responsive {
-    gap: 0.4rem;
-  }
-
-  .modelo-card-responsive {
-    border-radius: 4px;
-  }
-
-  .modelo-header-responsive {
-    padding: 0.5rem;
-    font-size: 0.7rem;
-  }
-
-  .modelo-body-responsive {
-    padding: 0.5rem;
-  }
-
-  .tipo-badge {
-    font-size: 0.65rem;
-    padding: 0.1rem 0.3rem;
-  }
-
-  .data-info {
-    font-size: 0.6rem;
+    font-size: 0.8rem !important;
   }
 }
 
-@media (max-width: 768px) {
-  .modelos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+@media (max-width: 360px) {
+  .lista-compacta {
+    max-height: 180px;
   }
 
-  .d-flex.gap-1 {
-    gap: 0.5rem !important;
+  .item-compacto {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+    padding: 0.2rem;
+    min-height: auto;
   }
 
-  .btn-outline-light {
-    min-width: auto;
-    padding: 0.25rem 0.5rem;
-    font-size: 0.8rem;
+  .item-acoes {
+    align-self: flex-end;
+    margin-top: -18px;
   }
 }
 
-/* Layout para telas maiores - Três colunas quando há espaço */
-@media (min-width: 1200px) {
-  .modelos-grid-responsive {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
+.alert-light {
+  background-color: rgba(248, 249, 250, 0.8);
+  border-color: rgba(6, 51, 94, 0.2);
 }
 
-@media (min-width: 992px) and (max-width: 1199px) {
-  .modelos-grid-responsive {
-    gap: 0.875rem;
-  }
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
 }
 
-@media (max-width: 992px) {
-  .modelos-grid-responsive {
-    gap: 0.75rem;
-  }
+.text-dark {
+  color: #212529 !important;
+}
+
+.text-muted {
+  color: #6c757d !important;
+}
+
+.fw-bold {
+  font-weight: 700 !important;
+}
+
+.badge {
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+}
+
+.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.bg-success {
+  background-color: #28a745 !important;
+}
+
+.border-warning {
+  border-color: #ffc107 !important;
+}
+
+.text-warning {
+  color: #ffc107 !important;
 }
 </style>

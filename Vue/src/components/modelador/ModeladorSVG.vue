@@ -6,70 +6,219 @@
         height: isMobile ? 'auto' : '100vh',
         overflowY: isMobile ? 'visible' : 'auto',
         position: 'relative',
-        borderRight: '2px solid #dee2e6',
+        borderRight: '2px solid #C6C6C6',
         backgroundColor: '#f8f9fa',
         zIndex: 1000,
         maxHeight: isMobile ? 'none' : '100vh'
       }">
-        <div class="p-3">
-          <h4 class="text-center mb-4">Modelador de Layouts</h4>
+        <div class="p-2">
+          <h5 class="text-center mb-3" style="color: #06335E; font-weight: 600;">Modelador de Layouts</h5>
 
           <!-- Seletor de Tipo -->
           <SeletorTipo v-model="tipoAtivo" @input="onTipoChange" />
 
-          <!-- Controles para Silo -->
-          <ControlesSilo :tipo-ativo="tipoAtivo" :config-silo="configSilo" @silo-change="onSiloChange"
-            @reset-field="resetSiloField" />
+          <!-- Configurações para Silo -->
+          <div v-if="tipoAtivo === 'silo'" class="card mb-2">
+            <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                 @click="toggleAcordeon('configuracoes')"
+                 role="button" 
+                 tabindex="0"
+                 :aria-expanded="acordeonAberto.configuracoes"
+                 @keydown.enter="toggleAcordeon('configuracoes')"
+                 @keydown.space.prevent="toggleAcordeon('configuracoes')">
+              <div class="d-flex justify-content-between align-items-center text-white">
+                <div class="d-flex align-items-center">
+                  <i class="fa fa-cogs me-2"></i>
+                  <span class="fw-bold">Configurações do Silo</span>
+                </div>
+                <i :class="['fa', acordeonAberto.configuracoes ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+              </div>
+            </div>
+            <div v-show="acordeonAberto.configuracoes">
+              <ControlesSilo :tipo-ativo="tipoAtivo" :config-silo="configSilo" @silo-change="onSiloChange"
+                @reset-field="resetSiloField" />
+            </div>
+          </div>
 
-          <!-- Controles para Armazém -->
+          <!-- Seções para Armazém -->
           <template v-if="tipoAtivo === 'armazem'">
-            <!-- Seção 0: Configuração de Modelos de Arcos -->
-            <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
-              :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
-              :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
-              :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
-              @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
-              @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
-              @quantidade-pendulos-change="onQuantidadePendulosChange"
-              @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
-              @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
-              @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
+            <!-- Modelos de Arcos -->
+            <div class="accordion-item mb-2">
+              <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                   @click="toggleAcordeon('modelosArcos')"
+                   role="button" 
+                   tabindex="0"
+                   :aria-expanded="acordeonAberto.modelosArcos"
+                   @keydown.enter="toggleAcordeon('modelosArcos')"
+                   @keydown.space.prevent="toggleAcordeon('modelosArcos')">
+                <div class="d-flex justify-content-between align-items-center text-white">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-cubes me-2"></i>
+                    <span class="fw-bold">Modelos de Arcos</span>
+                  </div>
+                  <i :class="['fa', acordeonAberto.modelosArcos ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </div>
+              </div>
+              <div v-show="acordeonAberto.modelosArcos">
+                <ModelosArcos :quantidade-modelos-arcos="quantidadeModelosArcos" :modelo-arco-atual="modeloArcoAtual"
+                  :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :modelo-nome="modeloNome"
+                  :modelo-posicao="modeloPosicao" :cabo-selecionado-posicionamento="caboSelecionadoPosicionamento"
+                  :posicoes-cabos="posicoesCabos" @quantidade-modelos-change="onQuantidadeModelosChange"
+                  @modelo-arco-change="onModeloArcoChange" @nome-modelo-change="onNomeModeloChange"
+                  @posicao-arco-change="onPosicaoArcoChange" @alterar-quantidade-pendulos="alterarQuantidadePendulos"
+                  @quantidade-pendulos-change="onQuantidadePendulosChange"
+                  @update:cabo-selecionado-posicionamento="caboSelecionadoPosicionamento = $event"
+                  @posicao-cabo-change="onPosicaoCaboChange" @resetar-posicoes-cabos="resetarPosicoesCabos"
+                  @salvar-modelo-atual="salvarModeloAtual" @modelo-dados-atualizados="onModeloDadosAtualizados" />
+              </div>
+            </div>
 
-            <!-- Seção 1: Dimensões Básicas -->
-            <DimensoesBasicas
-              :config-armazem="configArmazem"
-              @armazem-change="onArmazemChange"
-              @dimensoes-alteradas="onDimensoesAlteradas" />
+            <!-- Dimensões Básicas -->
+            <div class="accordion-item mb-2">
+              <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                   @click="toggleAcordeon('dimensoes')"
+                   role="button" 
+                   tabindex="0"
+                   :aria-expanded="acordeonAberto.dimensoes"
+                   @keydown.enter="toggleAcordeon('dimensoes')"
+                   @keydown.space.prevent="toggleAcordeon('dimensoes')">
+                <div class="d-flex justify-content-between align-items-center text-white">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-arrows-alt me-2"></i>
+                    <span class="fw-bold">Dimensões Básicas</span>
+                  </div>
+                  <i :class="['fa', acordeonAberto.dimensoes ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </div>
+              </div>
+              <div v-show="acordeonAberto.dimensoes">
+                <DimensoesBasicas :config-armazem="configArmazem" @armazem-change="onArmazemChange"
+                  @dimensoes-alteradas="onDimensoesAlteradas" />
+              </div>
+            </div>
 
-            <!-- Seção 2: Configuração do Telhado -->
-            <ConfiguracaoTelhado :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+            <!-- Configuração do Telhado -->
+            <div class="accordion-item mb-2">
+              <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                   @click="toggleAcordeon('telhado')"
+                   role="button" 
+                   tabindex="0"
+                   :aria-expanded="acordeonAberto.telhado"
+                   @keydown.enter="toggleAcordeon('telhado')"
+                   @keydown.space.prevent="toggleAcordeon('telhado')">
+                <div class="d-flex justify-content-between align-items-center text-white">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-home me-2"></i>
+                    <span class="fw-bold">Configuração do Telhado</span>
+                  </div>
+                  <i :class="['fa', acordeonAberto.telhado ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </div>
+              </div>
+              <div v-show="acordeonAberto.telhado">
+                <ConfiguracaoTelhado :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+              </div>
+            </div>
 
-            <!-- Seção 3: Configuração do Fundo -->
-            <ConfiguracaoFundo :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+            <!-- Configuração do Fundo -->
+            <div class="accordion-item mb-2">
+              <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                   @click="toggleAcordeon('fundo')"
+                   role="button" 
+                   tabindex="0"
+                   :aria-expanded="acordeonAberto.fundo"
+                   @keydown.enter="toggleAcordeon('fundo')"
+                   @keydown.space.prevent="toggleAcordeon('fundo')">
+                <div class="d-flex justify-content-between align-items-center text-white">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-level-down me-2"></i>
+                    <span class="fw-bold">Configuração do Fundo</span>
+                  </div>
+                  <i :class="['fa', acordeonAberto.fundo ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </div>
+              </div>
+              <div v-show="acordeonAberto.fundo">
+                <ConfiguracaoFundo :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+              </div>
+            </div>
 
-            <!-- Seção 4: Configuração dos Sensores -->
-            <ConfiguracaoSensores :config-armazem="configArmazem" :modelo-arco-atual="modeloArcoAtual"
-              :quantidade-pendulos="modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 0) : 0"
-              :sensores-por-pendulo="modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.sensoresPorPendulo || {}) : {}"
-              @armazem-change="onArmazemChange" @sensores-cabo-change="onSensoresCaboChange"
-              @aplicar-sensores-uniformes="onAplicarSensoresUniformes" />
+            <!-- Configuração dos Sensores -->
+            <div class="accordion-item mb-2">
+              <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                   @click="toggleAcordeon('sensores')"
+                   role="button" 
+                   tabindex="0"
+                   :aria-expanded="acordeonAberto.sensores"
+                   @keydown.enter="toggleAcordeon('sensores')"
+                   @keydown.space.prevent="toggleAcordeon('sensores')">
+                <div class="d-flex justify-content-between align-items-center text-white">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-wifi me-2"></i>
+                    <span class="fw-bold">Configuração dos Sensores</span>
+                  </div>
+                  <i :class="['fa', acordeonAberto.sensores ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </div>
+              </div>
+              <div v-show="acordeonAberto.sensores">
+                <ConfiguracaoSensores :config-armazem="configArmazem" :modelo-arco-atual="modeloArcoAtual"
+                  :quantidade-pendulos="modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.quantidadePendulos || 0) : 0"
+                  :sensores-por-pendulo="modeloArcoAtual ? (modelosArcos[modeloArcoAtual]?.sensoresPorPendulo || {}) : {}"
+                  @armazem-change="onArmazemChange" @sensores-cabo-change="onSensoresCaboChange"
+                  @aplicar-sensores-uniformes="onAplicarSensoresUniformes" />
+              </div>
+            </div>
           </template>
 
-          <!-- Botões de Reset -->
-          <BotoesControle :tipo-ativo="tipoAtivo" :dados-vindos-do-preview="dadosVindosDoPreview"
-            @resetar-padrao="resetarPadrao" @resetar-modelos-padrao="resetarModelosParaPadrao"
-            @voltar-preview="voltarParaPreview" @resetar-posicoes-manual="resetarPosicoesManual" />
+          <!-- Controles -->
+          <div class="accordion-item mb-2">
+            <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                 @click="toggleAcordeon('controles')"
+                 role="button" 
+                 tabindex="0"
+                 :aria-expanded="acordeonAberto.controles"
+                 @keydown.enter="toggleAcordeon('controles')"
+                 @keydown.space.prevent="toggleAcordeon('controles')">
+              <div class="d-flex justify-content-between align-items-center text-white">
+                <div class="d-flex align-items-center">
+                  <i class="fa fa-gamepad me-2"></i>
+                  <span class="fw-bold">Controles</span>
+                </div>
+                <i :class="['fa', acordeonAberto.controles ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+              </div>
+            </div>
+            <div v-show="acordeonAberto.controles" class="p-2">
+              <BotoesControle :tipo-ativo="tipoAtivo" :dados-vindos-do-preview="dadosVindosDoPreview"
+                @resetar-padrao="resetarPadrao" @resetar-modelos-padrao="resetarModelosParaPadrao"
+                @voltar-preview="voltarParaPreview" @resetar-posicoes-manual="resetarPosicoesManual" />
+            </div>
+          </div>
 
+          <!-- Gerenciamento -->
+          <div class="accordion-item mb-2">
+            <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                 @click="toggleAcordeon('gerenciamento')"
+                 role="button" 
+                 tabindex="0"
+                 :aria-expanded="acordeonAberto.gerenciamento"
+                 @keydown.enter="toggleAcordeon('gerenciamento')"
+                 @keydown.space.prevent="toggleAcordeon('gerenciamento')">
+              <div class="d-flex justify-content-between align-items-center text-white">
+                <div class="d-flex align-items-center">
+                  <i class="fa fa-database me-2"></i>
+                  <span class="fw-bold">Gerenciamento</span>
+                </div>
+                <i :class="['fa', acordeonAberto.gerenciamento ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+              </div>
+            </div>
+            <div v-show="acordeonAberto.gerenciamento" class="p-2">
+              <!-- Gerenciador de Configurações (Banco de Dados) -->
+              <GerenciadorModelosBanco :tipo-ativo="tipoAtivo" :quantidade-modelos-arcos="quantidadeModelosArcos"
+                :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :config-silo="configSilo"
+                :config-armazem="configArmazem" @configuracao-carregada="carregarConfiguracaoDoBanco"
+                @mostrar-toast="mostrarToast" @resetar-apos-salvamento-banco="resetarTudoAposSalvamentoBanco" />
 
-
-          <!-- Gerenciador de Configurações (Banco de Dados) -->
-          <GerenciadorModelosBanco :tipo-ativo="tipoAtivo" :quantidade-modelos-arcos="quantidadeModelosArcos"
-            :modelos-arcos="modelosArcos" :modelos-salvos="modelosSalvos" :config-silo="configSilo"
-            :config-armazem="configArmazem" @configuracao-carregada="carregarConfiguracaoDoBanco"
-            @mostrar-toast="mostrarToast" @resetar-apos-salvamento-banco="resetarTudoAposSalvamentoBanco" />
-
-          <!-- Gerenciador de Configurações (Backup Local) -->
-          <GerenciadorConfiguracoes />
+              <!-- Gerenciador de Configurações (Backup Local) -->
+              <GerenciadorConfiguracoes />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -87,34 +236,28 @@
             maxHeight: 'calc(100vh - 60px)',
             height: 'calc(100vh - 60px)'
           }">
-            <div class="card-header bg-primary text-white">
-              <div
-                class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
-                <h6 class="mb-2 mb-md-1">
+            <div class="card-header text-white" style="background-color: #06335E;">
+              <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between">
+                <h6 class="mb-2 mb-md-1" style="font-weight: 500;">
                   Preview - {{ tipoAtivo === 'silo' ? 'Silo' : `${modeloArcoAtual ? `EDITANDO:
                   ${modelosArcos[modeloArcoAtual]?.nome || 'Modelo ' + modeloArcoAtual}` : 'Visualização Geral'}` }}
-                  <span v-if="dadosVindosDoPreview" class="badge bg-success ms-2"
+                  <span v-if="dadosVindosDoPreview" class="badge ms-2" style="background-color: #D32626;"
                     title="Dados carregados do preview do Armazém">
-                    📊 PREVIEW
+                    <i class="fa fa-bar-chart me-1"></i>PREVIEW
                   </span>
                 </h6>
                 <div class="d-flex align-items-center">
                   <small v-if="tipoAtivo === 'armazem'" class="text-white-50 me-3">
                     {{ modeloArcoAtual ?
                       `${quantidadeModelosArcos === 1 ? 'Modelo Único' : modelosArcos[modeloArcoAtual]?.posicao || ''} |
-                    ${modeloArcoAtual}/${quantidadeModelosArcos}` :
+                                        ${modeloArcoAtual}/${quantidadeModelosArcos}` :
                       `${determinarModeloParaArco(arcoAtual)?.nome || 'Padrão'} | ${quantidadeModelosArcos}
-                    modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
+                                        modelo${quantidadeModelosArcos > 1 ? 's' : ''}`
                     }}
                   </small>
                   <!-- Componente de Imagem de Fundo -->
-                  <ImagemFundo
-                    :container-dimensions="containerDimensions"
-                    :imagem-inicial="imagemFundoData"
-                    :tipo-ativo="tipoAtivo"
-                    @imagem-mudou="onImagemFundoMudou"
-                    @mostrar-toast="mostrarToast"
-                  />
+                  <ImagemFundo :container-dimensions="containerDimensions" :imagem-inicial="imagemFundoData"
+                    :tipo-ativo="tipoAtivo" @imagem-mudou="onImagemFundoMudou" @mostrar-toast="mostrarToast" />
                 </div>
               </div>
             </div>
@@ -148,7 +291,8 @@
                     position: 'relative',
                     zIndex: 2,
                     opacity: imagemFundoData.url ? 0.85 : 1
-                  }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContentComFundo">
+                  }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
+                    v-html="svgContentComFundo">
                   </svg>
                 </template>
 
@@ -170,30 +314,24 @@
                     alignItems: 'center',
                     justifyContent: 'center'
                   }">
-                    <Armazem
-                      :config="configArmazemParaComponente"
-                      :dados-sensores="dados"
+                    <Armazem :config="configArmazemParaComponente" :dados-sensores="dados"
                       :modelo-atual="modeloAtualParaComponente"
-                      :dimensoes-personalizadas="dimensoesPersonalizadasParaComponente"
-                      :imagem-fundo="imagemFundoData"
-                      @dimensoes-atualizadas="onDimensoesAtualizadas"
-                      @dimensoes-aplicadas="onDimensoesAplicadas"
-                      @salvar-dimensoes-modelo="onSalvarDimensoesModelo"
-                      @posicoes-atualizadas="onPosicoesAtualizadas"
-                      style="width: 100%; height: 100%; min-height: 400px;"
-                    />
+                      :dimensoes-personalizadas="dimensoesPersonalizadasParaComponente" :imagem-fundo="imagemFundoData"
+                      @dimensoes-atualizadas="onDimensoesAtualizadas" @dimensoes-aplicadas="onDimensoesAplicadas"
+                      @salvar-dimensoes-modelo="onSalvarDimensoesModelo" @posicoes-atualizadas="onPosicoesAtualizadas"
+                      style="width: 100%; height: 100%; min-height: 400px;" />
                   </div>
                 </template>
               </div>
             </div>
 
             <!-- Navegação de Arcos para Armazém -->
-            <div v-if="tipoAtivo === 'armazem'" class="card-footer bg-light p-1"
-              style="position: relative; z-index: 10;">
+            <div v-if="tipoAtivo === 'armazem'" class="card-footer p-2"
+              style="background-color: #f5f5f5; position: relative; z-index: 10;">
               <!-- Seletor de Configuração Salva no Preview -->
               <div class="row mb-2">
                 <div class="col-12">
-                  <label class="form-label small">⚙️ Modelo do Banco:</label>
+                  <label class="form-label small"><i class="fa fa-cogs me-1"></i>Modelo do Banco:</label>
                   <div class="d-flex gap-2 align-items-center">
                     <select class="form-select form-select-sm" v-model="configuracaoPreviewSelecionada"
                       @change="aplicarModeloBancoNoPreview" :disabled="carregandoModelosBanco">
@@ -202,7 +340,7 @@
                         {{ modelo.nm_modelo }}
                       </option>
                     </select>
-                    <button v-if="configuracaoPreviewSelecionada" type="button" class="btn btn-outline-secondary btn-sm"
+                    <button v-if="configuracaoPreviewSelecionada" type="button" class="btn btn-outline-danger btn-sm"
                       @click="limparConfiguracaoPreview" title="Voltar ao padrão">
                       ×
                     </button>
@@ -213,35 +351,21 @@
 
               <!-- Navegação mobile/desktop consolidada -->
               <div class="d-block d-md-none">
-                <NavegacaoArcos
-                  :is-mobile="true"
-                  :arco-atual="arcoAtual"
-                  :total-arcos="analiseArcos.totalArcos"
+                <NavegacaoArcos :is-mobile="true" :arco-atual="arcoAtual" :total-arcos="analiseArcos.totalArcos"
                   :total-pendulos="analiseArcos.arcos[arcoAtual]?.totalPendulos || 0"
-                  :total-sensores="analiseArcos.arcos[arcoAtual]?.totalSensores || 0"
-                  :badge-class="getBadgeClass()"
-                  :badge-text="getBadgeText()"
-                  :nome-modelo="determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'"
-                  :modelo-editando="!!modeloArcoAtual"
-                  :configuracao-banco="!!configuracaoPreviewSelecionada"
-                  @mudar-arco="mudarArco($event, false)"
-                />
+                  :total-sensores="analiseArcos.arcos[arcoAtual]?.totalSensores || 0" :badge-class="getBadgeClass()"
+                  :badge-text="getBadgeText()" :nome-modelo="determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'"
+                  :modelo-editando="!!modeloArcoAtual" :configuracao-banco="!!configuracaoPreviewSelecionada"
+                  @mudar-arco="mudarArco($event, false)" />
               </div>
 
               <div class="d-none d-md-block">
-                <NavegacaoArcos
-                  :is-mobile="false"
-                  :arco-atual="arcoAtual"
-                  :total-arcos="analiseArcos.totalArcos"
+                <NavegacaoArcos :is-mobile="false" :arco-atual="arcoAtual" :total-arcos="analiseArcos.totalArcos"
                   :total-pendulos="analiseArcos.arcos[arcoAtual]?.totalPendulos || 0"
-                  :total-sensores="analiseArcos.arcos[arcoAtual]?.totalSensores || 0"
-                  :badge-class="getBadgeClass()"
-                  :badge-text="getBadgeText()"
-                  :nome-modelo="determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'"
-                  :modelo-editando="!!modeloArcoAtual"
-                  :configuracao-banco="!!configuracaoPreviewSelecionada"
-                  @mudar-arco="mudarArco($event, false)"
-                />
+                  :total-sensores="analiseArcos.arcos[arcoAtual]?.totalSensores || 0" :badge-class="getBadgeClass()"
+                  :badge-text="getBadgeText()" :nome-modelo="determinarModeloParaArco(arcoAtual)?.nome || 'Modelo Padrão'"
+                  :modelo-editando="!!modeloArcoAtual" :configuracao-banco="!!configuracaoPreviewSelecionada"
+                  @mudar-arco="mudarArco($event, false)" />
               </div>
             </div>
           </div>
@@ -448,7 +572,19 @@ export default {
 
       // Estados para edição de modelos do banco
       modoEdicaoModeloBanco: false,
-      modeloBancoEmEdicao: null
+      modeloBancoEmEdicao: null,
+
+      // Estados para o sistema de acordeon
+      acordeonAberto: {
+        configuracoes: true,      // Configurações principais (silo/armazém)
+        modelosArcos: false,      // Modelos de arcos (somente armazém)
+        dimensoes: false,         // Dimensões básicas (somente armazém)
+        telhado: false,          // Configuração do telhado (somente armazém)
+        fundo: false,            // Configuração do fundo (somente armazém)
+        sensores: false,         // Configuração dos sensores (somente armazém)
+        controles: false,        // Botões de controle
+        gerenciamento: false     // Gerenciadores de configurações
+      }
     }
   },
   computed: {
@@ -652,6 +788,11 @@ export default {
     }
   },
   methods: {
+    // Método para alternar seções do acordeon
+    toggleAcordeon(secao) {
+      this.acordeonAberto[secao] = !this.acordeonAberto[secao]
+    },
+    
     async verificarDadosArcoRecebidos() {
       try {
         if (typeof localStorage !== 'undefined') {
@@ -1186,7 +1327,7 @@ export default {
       } else {
         // Se desmarcou modelo, voltar ao estado geral
         this.aplicarConfiguracaoGeralArmazem()
-        
+
         // 🔧 CRÍTICO: Reestabelecer event listeners também quando desmarca modelo
         this.$nextTick(() => {
           this.updateSVG()
@@ -1232,7 +1373,7 @@ export default {
 
     getDescricaoModelo(modeloNum) {
       const tipo = this.determinarTipoPorNumeroModelo(modeloNum, this.quantidadeModelosArcos)
-      
+
       const descricoesPorTipo = {
         'todos': 'todos',
         'par': 'par',
@@ -1241,7 +1382,7 @@ export default {
         'frente': 'frente',
         'fundo': 'fundo'
       }
-      
+
       return descricoesPorTipo[tipo] || ''
     },
 
@@ -1257,22 +1398,22 @@ export default {
       // Usar a lógica consolidada de determinação de tipo
       const analiseArcos = { totalArcos: this.analiseArcos?.totalArcos || 1 }
       const quantidadeModelos = Object.keys(this.modelosArcos).length
-      
+
       // Simular o contexto necessário para determinarTipoArco
       const contextoTemporario = {
         analiseArcos,
         quantidadeModelosArcos: quantidadeModelos,
         arcoAtual: numeroArco
       }
-      
+
       const tipoArco = this.determinarTipoArcoParaContexto(contextoTemporario)
-      
+
       // Buscar modelo pela posição/tipo
       if (tipoArco === 'todos') {
         return this.modelosArcos[1] || null
       }
-      
-      return Object.values(this.modelosArcos).find(modelo => 
+
+      return Object.values(this.modelosArcos).find(modelo =>
         modelo && modelo.posicao === tipoArco
       ) || this.modelosArcos[1] || null
     },
@@ -1280,10 +1421,10 @@ export default {
     // Versão reutilizável do determinarTipoArco que aceita contexto customizado
     determinarTipoArcoParaContexto(contexto) {
       if (!contexto.analiseArcos) return 'todos'
-      
+
       const { quantidadeModelosArcos, arcoAtual } = contexto
       const totalArcos = contexto.analiseArcos.totalArcos
-      
+
       if (quantidadeModelosArcos === 1) {
         return 'todos'
       } else if (quantidadeModelosArcos === 2) {
@@ -1303,17 +1444,17 @@ export default {
           return arcoAtual % 2 === 0 ? 'par' : 'impar'
         }
       }
-      
+
       return 'todos'
     },
 
     // Método auxiliar para determinar o tipo do arco consolidando lógica duplicada
     determinarTipoArco() {
       if (!this.analiseArcos) return 'todos'
-      
+
       const { quantidadeModelosArcos, arcoAtual } = this
       const totalArcos = this.analiseArcos.totalArcos
-      
+
       if (quantidadeModelosArcos === 1) {
         return 'todos'
       } else if (quantidadeModelosArcos === 2) {
@@ -1333,14 +1474,14 @@ export default {
           return arcoAtual % 2 === 0 ? 'par' : 'impar'
         }
       }
-      
+
       return 'todos'
     },
 
     getBadgeClass() {
       const tipoArco = this.determinarTipoArco()
       const classes = ['badge']
-      
+
       const classesPorTipo = {
         'todos': 'bg-info',
         'impar': 'bg-warning',
@@ -1349,14 +1490,14 @@ export default {
         'frente': 'bg-success',
         'fundo': 'bg-danger'
       }
-      
+
       classes.push(classesPorTipo[tipoArco] || 'bg-info')
       return classes.join(' ')
     },
 
     getBadgeText() {
       const tipoArco = this.determinarTipoArco()
-      
+
       const textosPorTipo = {
         'todos': 'TODOS',
         'impar': 'ÍMPAR',
@@ -1365,7 +1506,7 @@ export default {
         'frente': 'FRENTE',
         'fundo': 'FUNDO'
       }
-      
+
       return textosPorTipo[tipoArco] || 'TODOS'
     },
 
@@ -1622,17 +1763,17 @@ export default {
           // Posições dos pêndulos seguindo formato do exemplo fornecido
           posicoesPendulos: Object.keys(this.posicoesManualPendulos || {}).length > 0
             ? Object.keys(this.posicoesManualPendulos).reduce((acc, penduloNum) => {
-                const pos = this.posicoesManualPendulos[penduloNum]
-                acc[penduloNum] = {
-                  x: pos.x || 0,
-                  y: pos.y || 0,
-                  altura: 0,
-                  offsetX: pos.offsetX || 0,
-                  offsetY: pos.offsetY || 0,
-                  timestampAlteracao: pos.timestampAlteracao || Date.now()
-                }
-                return acc
-              }, {})
+              const pos = this.posicoesManualPendulos[penduloNum]
+              acc[penduloNum] = {
+                x: pos.x || 0,
+                y: pos.y || 0,
+                altura: 0,
+                offsetX: pos.offsetX || 0,
+                offsetY: pos.offsetY || 0,
+                timestampAlteracao: pos.timestampAlteracao || Date.now()
+              }
+              return acc
+            }, {})
             : {},
 
           // CRÍTICO: Salvar posições manuais dos sensores
@@ -2109,11 +2250,11 @@ export default {
         if (configSalva) {
           try {
             const dadosCarregados = JSON.parse(configSalva)
-            
+
             // 🎯 MÉTODO UNIFICADO: Usar configuracaoService para carregar qualquer versão
             const configCarregada = { dados: dadosCarregados, nome: nomeConfig }
             const resultado = configuracaoService.aplicarConfiguracaoCompleta(configCarregada, this.tipoAtivo)
-            
+
             if (resultado.success) {
               this.aplicarConfiguracaoUnificada(resultado.dados, nomeConfig)
               this.mostrarToast(`Configuração "${nomeConfig}" carregada com sucesso!`, 'success')
@@ -2136,10 +2277,10 @@ export default {
     },
 
     aplicarConfiguracaoUnificada(dados, nomeConfig) {
-      
+
       // Limpar estado atual
       this.resetarEstadoModelos()
-      
+
       if (dados.tipo === 'silo') {
         // Configuração de silo
         this.configSilo = { ...dados.configuracaoGlobal }
@@ -2152,18 +2293,18 @@ export default {
         this.quantidadeModelosArcos = dados.quantidadeModelos || 1
         this.modelosArcos = dados.modelosArcos || {}
         this.modelosSalvos = dados.modelosArcos || {}
-        
+
         // Aplicar configurações globais
         if (dados.configuracaoGlobal) {
           this.configArmazem = { ...dados.configuracaoGlobal }
         }
-        
+
         // Aplicar dimensões SVG se disponíveis
         if (dados.dimensoesSVG) {
           this.larguraSVG = dados.dimensoesSVG.largura
           this.alturaSVG = dados.dimensoesSVG.altura
         }
-        
+
         // Restaurar dados originais se disponíveis
         if (dados.dadosOriginais) {
           this.dadosPortal = dados.dadosOriginais.dadosPortal || this.dadosPortal
@@ -3093,7 +3234,7 @@ export default {
         // 🎯 USAR MÉTODO UNIFICADO: Sempre usar configuracaoService
         const configCarregada = { dados, nome }
         const resultado = configuracaoService.aplicarConfiguracaoCompleta(configCarregada, this.tipoAtivo)
-        
+
         if (resultado.success) {
           this.aplicarConfiguracaoUnificada(resultado.dados, nome)
         } else {
@@ -3299,13 +3440,13 @@ export default {
         // Calcular offset da posição original para o pêndulo
         const numeroPendulo = elementoMovido
         const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
-        
+
         // Buscar posição atual no DOM
         const elementoPendulo = document.getElementById(`C${numeroPendulo}`)
         if (elementoPendulo) {
           const xAtual = parseFloat(elementoPendulo.getAttribute('x')) + (parseFloat(elementoPendulo.getAttribute('width')) || 16) / 2
           const yAtual = parseFloat(elementoPendulo.getAttribute('y'))
-          
+
           const offsetX = xAtual - posicaoOriginal.x
           const offsetY = yAtual - posicaoOriginal.y
 
@@ -3318,20 +3459,20 @@ export default {
 
           console.log(`✅ [onPosicoesAtualizadas] Pêndulo ${numeroPendulo} salvo - offset: (${offsetX.toFixed(1)}, ${offsetY.toFixed(1)})`)
         }
-      } 
+      }
       else if (tipoMovido === 'sensor') {
         // Calcular offset da posição original para o sensor
         const { pendulo: numeroPendulo, sensor: numeroSensor } = elementoMovido
         const chaveManualSensor = `${numeroPendulo}-${numeroSensor}`
-        
+
         const posicaoOriginal = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
-        
+
         // Buscar posição atual no DOM
         const elementoSensor = document.getElementById(`C${numeroPendulo}S${numeroSensor}`)
         if (elementoSensor) {
           const xAtual = parseFloat(elementoSensor.getAttribute('x')) + (parseFloat(elementoSensor.getAttribute('width')) || 16) / 2
           const yAtual = parseFloat(elementoSensor.getAttribute('y'))
-          
+
           const offsetX = xAtual - posicaoOriginal.x
           const offsetY = yAtual - posicaoOriginal.y
 
@@ -3393,7 +3534,7 @@ export default {
         // 3. Verificar se container SVG existe e está pronto
         const svgContainer = document.querySelector('.svg-container-responsive svg')
         const elementosSVG = svgContainer ? svgContainer.querySelectorAll('[id^="C"]') : []
-        
+
         if (!svgContainer || elementosSVG.length === 0) {
           // SVG ainda não foi renderizado, tentar novamente com limite
           if (retryCount < MAX_RETRIES) {
@@ -3810,10 +3951,10 @@ export default {
     calcularPosicaoOriginalPendulo(numeroPendulo) {
       // 🎯 USAR LIMITES DO FUNDO (área cinza claro) IGUAL ArmazemSvg.vue
       const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
-      
+
       // 🎯 CALCULAR LIMITES DO FUNDO com todos os parâmetros (incluindo deslocamentos)
       const limitesFundo = this.calcularLimitesFundoCompleto(config)
-      
+
       // 🎯 Y: Posição baseada no pb (base do armazém)
       const pb = config.pb || 185
       const posicao_horizontal = config.posicao_horizontal || 0
@@ -3825,7 +3966,7 @@ export default {
       if (!arcoInfo) return { x: limitesFundo.centro, y: yPendulo }
 
       const totalCabos = arcoInfo.pendulos.length
-      
+
       let xCabo
       if (totalCabos === 1) {
         xCabo = limitesFundo.centro
@@ -3849,8 +3990,8 @@ export default {
       const deslocamento_horizontal_fundo = config.deslocamento_horizontal_fundo || 0
 
       // Calcular limites do fundo considerando deslocamento horizontal
-      const inicioFundo = (lb - lf) / 2 + deslocamento_horizontal_fundo; 
-      const fimFundo = inicioFundo + lf; 
+      const inicioFundo = (lb - lf) / 2 + deslocamento_horizontal_fundo;
+      const fimFundo = inicioFundo + lf;
 
       // Margem de segurança para os sensores não ficarem na borda
       const margemSeguranca = 20;
@@ -4251,5 +4392,4 @@ export default {
   font-size: 14px;
   padding: 4px 8px;
 }
-
 </style>

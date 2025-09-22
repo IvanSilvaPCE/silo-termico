@@ -1,14 +1,14 @@
 <template>
   <div class="card mb-3">
-    <div class="card-header bg-success text-white">
+    <div class="card-header text-white" style="background-color: #06335E;">
       <h6 class="mb-0">🌡️ Configuração dos Sensores</h6>
     </div>
     <div class="card-body">
       <!-- Seção para configurar sensores por pêndulo -->
       <div v-if="modeloArcoAtual && quantidadePendulos > 0" class="mb-3">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <label class="small fw-bold text-primary">📊 Sensores por Pêndulo:</label>
-          <button type="button" class="btn btn-outline-primary btn-sm"
+          <label class="small fw-bold" style="color: #06335E;">📊 Sensores por Pêndulo:</label>
+          <button type="button" class="btn btn-outline-secondary btn-sm"
             @click="abrirModalUniformizar" title="Aplicar mesma quantidade para todos">
             Uniformizar
           </button>
@@ -48,7 +48,8 @@
           <h6 class="small fw-bold mb-2">📊 Resumo dos Sensores:</h6>
           <div class="d-flex flex-wrap gap-1">
             <span v-for="pendulo in quantidadePendulos" :key="pendulo" 
-              :class="['badge text-white', penduloSelecionado === pendulo ? 'bg-primary' : 'bg-secondary']"
+              :class="['badge text-white', penduloSelecionado === pendulo ? '' : 'bg-secondary']"
+              :style="penduloSelecionado === pendulo ? 'background-color: #06335E;' : ''"
               style="cursor: pointer; font-size: 0.75rem;"
               @click="penduloSelecionado = pendulo"
               :title="`Clique para selecionar Pêndulo ${pendulo}`">
@@ -151,7 +152,7 @@
     <div v-if="mostrarModalUniformizar" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
+          <div class="modal-header text-white" style="background-color: #06335E;">
             <h5 class="modal-title">⚖️ Uniformizar Sensores</h5>
             <button type="button" class="btn-close btn-close-white" @click="fecharModalUniformizar"></button>
           </div>
@@ -184,7 +185,7 @@
             <button type="button" class="btn btn-secondary btn-sm" @click="fecharModalUniformizar">
               Cancelar
             </button>
-            <button type="button" class="btn btn-primary btn-sm" @click="confirmarUniformizar">
+            <button type="button" class="btn btn-sm" style="background-color: #06335E; color: white;" @click="confirmarUniformizar">
               ⚖️ Aplicar Uniformização
             </button>
           </div>

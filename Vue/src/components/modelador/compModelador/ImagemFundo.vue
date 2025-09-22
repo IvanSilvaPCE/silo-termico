@@ -198,9 +198,9 @@
               class="form-select form-select-sm mb-2" 
               v-model="tipoOpacidadeAtivo"
               style="font-size: 0.75rem;">
-              <option value="geral">🎯 SVG Completo</option>
-              <option value="pendulos">📊 Apenas Pêndulos/Sensores</option>
-              <option value="estrutura">🏗️ Apenas Estrutura</option>
+              <option value="geral"><i class="fa fa-crosshairs me-1"></i>SVG Completo</option>
+              <option value="pendulos"><i class="fa fa-bar-chart me-1"></i>Apenas Pêndulos/Sensores</option>
+              <option value="estrutura"><i class="fa fa-cubes me-1"></i>Apenas Estrutura</option>
             </select>
 
             <!-- Controle de Opacidade Geral do SVG -->

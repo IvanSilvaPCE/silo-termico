@@ -1,10 +1,6 @@
 
 <template>
-  <div class="card mb-3">
-    <div class="card-header bg-primary text-white">
-      <h6 class="mb-0">📐 Dimensões Básicas do Armazém</h6>
-    </div>
-    <div class="card-body">
+  <div class="card-body">
       <div class="mb-2">
         <label class="small fw-bold">Profundidade Base (pb):</label>
         <div class="input-group input-group-sm">

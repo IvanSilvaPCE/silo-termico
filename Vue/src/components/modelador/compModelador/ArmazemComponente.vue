@@ -13,7 +13,7 @@
       width: '100%'
     }">
       <!-- Header com controles -->
-      <div class="card-header bg-primary text-white text-center">
+      <div class="card-header text-white text-center" style="background-color: #06335E;">
         <h4 class="mb-0">Preview - Armazém</h4>
         <div class="row align-items-center mt-2">
           <div class="col-md-4">
@@ -44,9 +44,16 @@
               <button
                 v-if="modeloSelecionado"
                 @click="limparModelo"
-                class="btn btn-sm btn-outline-light"
+                class="btn btn-sm btn-outline-light me-2"
                 title="Limpar seleção">
                 ×
+              </button>
+              <button
+                v-if="modeloCarregado"
+                @click="salvarModeloNoServidor"
+                class="btn btn-sm" style="background-color: #06335E; color: white;"
+                title="Salvar alterações no servidor">
+                <i class="fa fa-save"></i> Salvar
               </button>
             </div>
           </div>
@@ -56,14 +63,48 @@
         <div v-if="modeloCarregado" class="row mt-2">
           <div class="col-12">
             <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
-              <span class="badge bg-success">
+              <span class="badge text-white" style="background-color: #06335E;">
                 {{ modeloCarregado.quantidadeModelos || 1 }} Modelo{{ (modeloCarregado.quantidadeModelos || 1) > 1 ? 's' : '' }}
               </span>
-              <span class="badge bg-info">
+              <span class="badge bg-secondary text-white">
                 {{ modeloCarregado.logica || 'Modelo Único' }}
               </span>
-              <span v-if="modeloAtual" class="badge bg-warning">
+              <span v-if="modeloSincronizado" class="badge bg-success">
+                Sincronizado: {{ modeloSincronizado.nome || 'Modelo' }}
+              </span>
+              <span v-else-if="modeloAtual" class="badge bg-warning">
                 Editando: {{ modeloAtual.nome || 'Modelo' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎯 NOVA SEÇÃO: Informações dos dados reais da API -->
+        <div v-if="analiseArcos" class="row mt-2">
+          <div class="col-12">
+            <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+              <span class="badge bg-info text-white">
+                📊 Dados Reais: {{ analiseArcos.totalArcos }} Arcos
+              </span>
+              <span class="badge bg-primary text-white">
+                Arco {{ arcoAtual }}: {{ analiseArcos.arcos[arcoAtual]?.totalPendulos || 0 }} Pêndulos
+              </span>
+              <span class="badge bg-dark text-white">
+                {{ analiseArcos.arcos[arcoAtual]?.totalSensores || 0 }} Sensores
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 🎯 NOVA SEÇÃO: Status da sincronização -->
+        <div v-if="carregandoDadosAPI || errorAPI" class="row mt-2">
+          <div class="col-12">
+            <div class="d-flex justify-content-center align-items-center">
+              <span v-if="carregandoDadosAPI" class="badge bg-warning text-dark">
+                🔄 Carregando dados da API...
+              </span>
+              <span v-else-if="errorAPI" class="badge bg-danger text-white">
+                ❌ Erro API: {{ errorAPI }}
               </span>
             </div>
           </div>
@@ -76,16 +117,52 @@
         minHeight: '400px'
       }">
         <ArmazemSvg
-          :config="configAtual"
-          :dados-sensores="dadosSensores"
-          :modelo-atual="modeloAtual"
-          :largura-svg="larguraSVG"
-          :altura-svg="alturaSVG"
+          :config="configArmazemParaComponente"
+          :dados-sensores="dadosSensoresSincronizados || dadosSensores"
+          :modelo-atual="modeloAtualParaComponente"
+          :dimensoes-personalizadas="dimensoesPersonalizadasParaComponente"
         />
       </div>
 
+      <!-- 🎯 NOVA NAVEGAÇÃO: Navegação entre Arcos Reais -->
+      <div v-if="analiseArcos && analiseArcos.totalArcos > 1" class="card-footer bg-info text-white p-2">
+        <div class="row align-items-center">
+          <div class="col-md-8">
+            <div class="d-flex align-items-center justify-content-center justify-content-md-start">
+              <span class="me-2">📊 Dados Reais:</span>
+              <button type="button" class="btn btn-outline-light btn-sm me-2"
+                @click="mudarArco(arcoAtual - 1)" :disabled="arcoAtual <= 1"
+                title="Arco anterior">
+                ← Anterior
+              </button>
+              <select class="form-select form-select-sm mx-2" style="min-width: 150px; max-width: 200px;"
+                v-model.number="arcoAtual" @change="mudarArco(arcoAtual)">
+                <option v-for="numeroArco in analiseArcos.totalArcos" :key="numeroArco" :value="numeroArco">
+                  Arco {{ numeroArco }} - {{ analiseArcos.arcos[numeroArco]?.totalPendulos || 0 }} pêndulos, {{ analiseArcos.arcos[numeroArco]?.totalSensores || 0 }} sensores
+                </option>
+              </select>
+              <button type="button" class="btn btn-outline-light btn-sm ms-2"
+                @click="mudarArco(arcoAtual + 1)" :disabled="arcoAtual >= analiseArcos.totalArcos"
+                title="Próximo arco">
+                Próximo →
+              </button>
+            </div>
+          </div>
+          <div class="col-md-4 text-center text-md-end">
+            <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
+              <span class="badge bg-light text-dark">
+                {{ modeloCarregado?.quantidadeModelos === 1 ? 'Modelo Único' : `Modelo ${determinarIndiceModeloPara4Modelos(arcoAtual) + 1}/4` }}
+              </span>
+              <span class="badge bg-dark text-white">
+                {{ dadosSensoresSincronizados ? 'Sincronizado' : 'Não Sincronizado' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Navegação de Modelos -->
-      <div v-if="modeloCarregado && modeloCarregado.quantidadeModelos > 1" class="card-footer bg-light p-2">
+      <div v-if="modeloCarregado && modeloCarregado.quantidadeModelos > 1 && !analiseArcos" class="card-footer bg-light p-2">
         <div class="row align-items-center">
           <div class="col-md-6">
             <div class="d-flex align-items-center justify-content-center justify-content-md-start">
@@ -129,6 +206,7 @@
 <script>
 import { modeloSvgService } from '../services/modeloSvgService.js'
 import ArmazemSvg from './ArmazemSvg.vue'
+import axios from 'axios'
 
 export default {
   name: 'ArmazemView',
@@ -147,9 +225,7 @@ export default {
       modeloAtualIndex: 0,
       modeloAtual: null,
 
-      // Dimensões SVG
-      larguraSVG: 350,
-      alturaSVG: 300,
+      // Dimensões SVG removidas - deixar ArmazemSvg calcular dinamicamente
 
       // Configuração base padrão
       configPadrao: {
@@ -197,45 +273,119 @@ export default {
       quantidadeModelosArcos: 0,
       modelosArcos: {},
       modelosSalvos: {},
-      tipoAtivo: 'armazem'
+      tipoAtivo: 'armazem',
+      
+      // Estados para posições manuais de drag and drop (igual ModeladorSVG)
+      posicoesManualPendulos: {},
+      posicoesManualSensores: {},
+      posicoesCabos: {},
+
+      // 🎯 NOVOS DADOS PARA SINCRONIZAÇÃO COM API REAL
+      dadosPortal: null, // Dados brutos da API
+      analiseArcos: null, // Análise da estrutura dos arcos reais
+      arcoAtual: 1, // Arco atualmente sendo visualizado
+      carregandoDadosAPI: false,
+      errorAPI: null,
+      apiConfig: {
+        url: process.env.VUE_APP_API_URL || 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47',
+        get token() {
+          const token = localStorage.getItem('token') || ''
+          return token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : 'Bearer [TOKEN_REQUIRED]'
+        }
+      },
+
+      // 🎯 DADOS SINCRONIZADOS - modelo aplicado ao arco atual baseado na API
+      modeloSincronizado: null,
+      dadosSensoresSincronizados: null
     }
   },
   computed: {
-    configAtual() {
+    // Configuração preparada para o componente ArmazemSvg (igual ModeladorSVG)
+    configArmazemParaComponente() {
       if (this.modeloAtual?.configuracao) {
         const config = this.modeloAtual.configuracao
 
         // 🎯 ESTRUTURA V6.0: Passar modeloEspecifico diretamente para ArmazemSvg
         if (config.modeloEspecifico) {
-          console.log('🎯 [configAtual] Estrutura v6.0 detectada - usando modeloEspecifico')
 
           const configComV6 = {
             ...this.configPadrao,
             ...config,
             // 🎯 MANTER modeloEspecifico intacto para ArmazemSvg processar
-            modeloEspecifico: config.modeloEspecifico
+            modeloEspecifico: config.modeloEspecifico,
+            // 🎯 PRESERVAR: Posições existentes do modelo + posições locais sobrescritas
+            posicoesManualPendulos: { ...(config.posicoesManualPendulos || {}), ...(this.posicoesManualPendulos || {}) },
+            posicoesManualSensores: { ...(config.posicoesManualSensores || {}), ...(this.posicoesManualSensores || {}) },
+            // Posições dos cabos (preservar existentes, permitir sobrescrita local)
+            posicoesCabos: { ...(config.posicoesCabos || {}), ...(this.posicoesCabos || {}) }
           }
-
-          console.log('📊 [configAtual] Config v6.0 preparada:', {
-            temModeloEspecifico: !!configComV6.modeloEspecifico,
-            quantidadePendulos: configComV6.modeloEspecifico?.quantidadePendulos,
-            sensoresPorPendulo: configComV6.modeloEspecifico?.sensoresPorPendulo,
-            posicoesPendulos: Object.keys(configComV6.modeloEspecifico?.posicoesPendulos || {}).length
-          })
 
           return configComV6
         }
 
         // Estrutura legado
+        
         const configComCabos = {
           ...this.configPadrao,
           ...config,
-          posicoesCabos: config.posicoesCabos || this.configPadrao.posicoesCabos,
-          distancia_entre_cabos: config.distancia_entre_cabos || this.configPadrao.distancia_entre_cabos
+          distancia_entre_cabos: config.distancia_entre_cabos ?? this.configPadrao.distancia_entre_cabos,
+          // 🎯 PRESERVAR: Posições existentes do modelo + posições locais sobrescritas
+          posicoesManualPendulos: { ...(config.posicoesManualPendulos || {}), ...(this.posicoesManualPendulos || {}) },
+          posicoesManualSensores: { ...(config.posicoesManualSensores || {}), ...(this.posicoesManualSensores || {}) },
+          // Posições dos cabos: preferir do config, fallback para local/padrão
+          posicoesCabos: { ...(config.posicoesCabos || this.configPadrao.posicoesCabos || {}), ...(this.posicoesCabos || {}) }
         }
+
         return configComCabos
       }
-      return this.configPadrao
+      
+      const configPadraoComPosicoes = {
+        ...this.configPadrao,
+        // 🎯 PADRÃO: Apenas posições locais (sem modelo carregado)
+        posicoesManualPendulos: { ...this.posicoesManualPendulos },
+        posicoesManualSensores: { ...this.posicoesManualSensores },
+        posicoesCabos: { ...this.posicoesCabos }
+      }
+      
+      return configPadraoComPosicoes
+    },
+
+    // Modelo atual preparado para o componente - agora usa dados sincronizados
+    modeloAtualParaComponente() {
+      // 🎯 USAR MODELO SINCRONIZADO se disponível (baseado na API)
+      if (this.modeloSincronizado) {
+        return {
+          quantidadePendulos: this.modeloSincronizado.quantidadePendulos || 3,
+          sensoresPorPendulo: this.modeloSincronizado.sensoresPorPendulo || {},
+          configuracao: this.modeloSincronizado.configuracao || {}
+        }
+      }
+      
+      // Fallback para modelo tradicional
+      if (this.modeloAtual) {
+        return {
+          quantidadePendulos: this.modeloAtual.quantidadePendulos || 3,
+          sensoresPorPendulo: this.modeloAtual.sensoresPorPendulo || {},
+          configuracao: this.modeloAtual.configuracao || {}
+        }
+      }
+      
+      return {
+        quantidadePendulos: 3,
+        sensoresPorPendulo: {},
+        configuracao: {}
+      }
+    },
+
+    // Dimensões personalizadas se necessário (igual ModeladorSVG)
+    dimensoesPersonalizadasParaComponente() {
+      // Sempre retornar null para deixar o ArmazemSvg calcular suas próprias dimensões
+      return null
+    },
+
+    // Configuração atual - agora aponta para a versão alinhada com ModeladorSVG
+    configAtual() {
+      return this.configArmazemParaComponente
     }
   },
   mounted() {
@@ -244,6 +394,9 @@ export default {
     // Chamada para inicializar posições dos cabos com base na configuração padrão
     // Isso garante que as propriedades existam desde o início
     this.inicializarPosicoesCabos()
+    
+    // 🎯 NOVA FUNCIONALIDADE: Carregar dados reais da API
+    this.carregarDadosAPI()
   },
   methods: {
     async buscarModelosSalvos() {
@@ -349,20 +502,12 @@ export default {
     extrairModelosIndividuais(dadosSvg) {
       const modelos = []
 
-      console.log('🔍 [extrairModelosIndividuais] Processando dadosSvg:', {
-        versao: dadosSvg.versao,
-        tipo: dadosSvg.tipo,
-        chavesDisponíveis: Object.keys(dadosSvg),
-        temModelos: !!dadosSvg.modelos,
-        temModelosDefinidos: !!dadosSvg.modelosDefinidos
-      })
 
       // 🎯 DETECTAR E PROCESSAR ESTRUTURAS V6.0 E V6.1 CORRETAMENTE
       if ((dadosSvg.versao === '6.0' || dadosSvg.versao === '6.1') && 
           (dadosSvg.tipo === 'armazem_completo_otimizado' || dadosSvg.tipoConfiguracao === 'armazem_completo_v6') && 
           (dadosSvg.modelos || dadosSvg.modelosDefinidos)) {
 
-        console.log(`✅ [extrairModelosIndividuais] Estrutura ${dadosSvg.versao || 'v6.x'} detectada - processando modelos`)
 
         // Suportar tanto 'modelos' (v6.0) quanto 'modelosDefinidos' (v6.1+)
         const modelosData = dadosSvg.modelos || dadosSvg.modelosDefinidos || {}
@@ -370,83 +515,77 @@ export default {
         Object.keys(modelosData).forEach(key => {
           const modeloV6 = modelosData[key]
 
-          console.log(`🔧 [extrairModelosIndividuais] Processando modelo ${dadosSvg.versao || 'v6.x'} - ${key}:`, {
-            modeloCompleto: modeloV6,
-            temModeloEspecifico: !!modeloV6.modeloEspecifico,
-            temConfiguracao: !!modeloV6.configuracao,
-            quantidadePendulos: modeloV6.modeloEspecifico?.quantidadePendulos || modeloV6.quantidadePendulos,
-            sensoresPorPendulo: modeloV6.modeloEspecifico?.sensoresPorPendulo || modeloV6.sensoresPorPendulo,
-            posicoesPendulos: modeloV6.modeloEspecifico?.posicoesPendulos || modeloV6.posicoesManualPendulos
-          })
 
           // 🎯 CONSTRUIR configuração compatível - priorizar dados salvos do ModeladorSVG
-          let configuracao = {}
+          let configuracao = { ...this.configPadrao }
 
           // Verificar se é v6.1+ com configuração direta (dados do ModeladorSVG)
           if (modeloV6.configuracao) {
-            console.log(`📦 [extrairModelosIndividuais] Modelo ${key} v6.1+ - usando configuração direta`)
             configuracao = {
-              ...this.configPadrao,
+              ...configuracao,
               ...modeloV6.configuracao // Preservar TODAS as configurações salvas
             }
           } else if (modeloV6.dimensoes || modeloV6.telhado || modeloV6.fundo) {
-            console.log(`📦 [extrairModelosIndividuais] Modelo ${key} v6.0 - construindo configuração`)
-            // Estrutura v6.0 separada
+            // Estrutura v6.0 separada - mapear corretamente
             configuracao = {
+              ...configuracao,
               // Dimensões básicas
-              pb: modeloV6.dimensoes?.pb || 185,
-              lb: modeloV6.dimensoes?.lb || 350,
-              hb: modeloV6.dimensoes?.hb || 30,
-              hf: modeloV6.dimensoes?.hf || 6,
-              lf: modeloV6.dimensoes?.lf || 250,
-              le: modeloV6.dimensoes?.le || 15,
-              ht: modeloV6.dimensoes?.ht || 50,
+              pb: modeloV6.dimensoes?.pb || configuracao.pb,
+              lb: modeloV6.dimensoes?.lb || configuracao.lb,
+              hb: modeloV6.dimensoes?.hb || configuracao.hb,
+              hf: modeloV6.dimensoes?.hf || configuracao.hf,
+              lf: modeloV6.dimensoes?.lf || configuracao.lf,
+              le: modeloV6.dimensoes?.le || configuracao.le,
+              ht: modeloV6.dimensoes?.ht || configuracao.ht,
 
               // Telhado
-              tipo_telhado: modeloV6.telhado?.tipo || 1,
-              curvatura_topo: modeloV6.telhado?.curvatura_topo || 30,
-              pontas_redondas: modeloV6.telhado?.pontas_redondas || false,
-              raio_pontas: modeloV6.telhado?.raio_pontas || 15,
-              estilo_laterais: modeloV6.telhado?.estilo_laterais || 'reta',
-              curvatura_laterais: modeloV6.telhado?.curvatura_laterais || 0,
+              tipo_telhado: modeloV6.telhado?.tipo !== undefined ? modeloV6.telhado.tipo : configuracao.tipo_telhado,
+              curvatura_topo: modeloV6.telhado?.curvatura_topo ?? configuracao.curvatura_topo,
+              pontas_redondas: modeloV6.telhado?.pontas_redondas !== undefined ? modeloV6.telhado.pontas_redondas : configuracao.pontas_redondas,
+              raio_pontas: modeloV6.telhado?.raio_pontas || configuracao.raio_pontas,
+              estilo_laterais: modeloV6.telhado?.estilo_laterais || configuracao.estilo_laterais,
+              curvatura_laterais: modeloV6.telhado?.curvatura_laterais ?? configuracao.curvatura_laterais,
 
               // Fundo
-              tipo_fundo: modeloV6.fundo?.tipo || 0,
-              altura_fundo_reto: modeloV6.fundo?.altura_fundo_reto || 10,
-              altura_funil_v: modeloV6.fundo?.altura_funil_v || 18,
-              posicao_ponta_v: modeloV6.fundo?.posicao_ponta_v || 0,
-              inclinacao_funil_v: modeloV6.fundo?.inclinacao_funil_v || 1,
-              largura_abertura_v: modeloV6.fundo?.largura_abertura_v || 20,
-              altura_duplo_v: modeloV6.fundo?.altura_duplo_v || 22,
-              posicao_v_esquerdo: modeloV6.fundo?.posicao_v_esquerdo || -1,
-              posicao_v_direito: modeloV6.fundo?.posicao_v_direito || 1,
-              largura_abertura_duplo_v: modeloV6.fundo?.largura_abertura_duplo_v || 2,
-              altura_plataforma_duplo_v: modeloV6.fundo?.altura_plataforma_duplo_v || 0.3,
-              largura_plataforma_duplo_v: modeloV6.fundo?.largura_plataforma_duplo_v || 10,
-              deslocamento_horizontal_fundo: modeloV6.fundo?.deslocamento_horizontal_fundo || 0,
-              deslocamento_vertical_fundo: modeloV6.fundo?.deslocamento_vertical_fundo || -1,
+              tipo_fundo: modeloV6.fundo?.tipo !== undefined ? modeloV6.fundo.tipo : configuracao.tipo_fundo,
+              altura_fundo_reto: modeloV6.fundo?.altura_fundo_reto || configuracao.altura_fundo_reto,
+              altura_funil_v: modeloV6.fundo?.altura_funil_v || configuracao.altura_funil_v,
+              posicao_ponta_v: modeloV6.fundo?.posicao_ponta_v !== undefined ? modeloV6.fundo.posicao_ponta_v : configuracao.posicao_ponta_v,
+              inclinacao_funil_v: modeloV6.fundo?.inclinacao_funil_v !== undefined ? modeloV6.fundo.inclinacao_funil_v : configuracao.inclinacao_funil_v,
+              largura_abertura_v: modeloV6.fundo?.largura_abertura_v ?? configuracao.largura_abertura_v,
+              altura_duplo_v: modeloV6.fundo?.altura_duplo_v || configuracao.altura_duplo_v,
+              posicao_v_esquerdo: modeloV6.fundo?.posicao_v_esquerdo !== undefined ? modeloV6.fundo.posicao_v_esquerdo : configuracao.posicao_v_esquerdo,
+              posicao_v_direito: modeloV6.fundo?.posicao_v_direito !== undefined ? modeloV6.fundo.posicao_v_direito : configuracao.posicao_v_direito,
+              largura_abertura_duplo_v: modeloV6.fundo?.largura_abertura_duplo_v ?? configuracao.largura_abertura_duplo_v,
+              altura_plataforma_duplo_v: modeloV6.fundo?.altura_plataforma_duplo_v ?? configuracao.altura_plataforma_duplo_v,
+              largura_plataforma_duplo_v: modeloV6.fundo?.largura_plataforma_duplo_v ?? configuracao.largura_plataforma_duplo_v,
+              deslocamento_horizontal_fundo: modeloV6.fundo?.deslocamento_horizontal_fundo !== undefined ? modeloV6.fundo.deslocamento_horizontal_fundo : configuracao.deslocamento_horizontal_fundo,
+              deslocamento_vertical_fundo: modeloV6.fundo?.deslocamento_vertical_fundo !== undefined ? modeloV6.fundo.deslocamento_vertical_fundo : configuracao.deslocamento_vertical_fundo
+            }
 
-              // Sensores padrão se não especificado
-              escala_sensores: 16,
-              dist_y_sensores: 12,
-              dist_x_sensores: 0,
-              posicao_horizontal: 0,
-              posicao_vertical: 0,
-              afastamento_vertical_pendulo: 0
+            // 🎯 MAPEAR configuração global de sensores se existir
+            if (modeloV6.modeloEspecifico?.configuracaoGlobal) {
+              const configGlobal = modeloV6.modeloEspecifico.configuracaoGlobal
+              configuracao.escala_sensores = configGlobal.escala_sensores || configuracao.escala_sensores
+              configuracao.dist_y_sensores = configGlobal.dist_y_sensores || configuracao.dist_y_sensores
+              configuracao.dist_x_sensores = configGlobal.dist_x_sensores || configuracao.dist_x_sensores
+              configuracao.posicao_horizontal = configGlobal.posicao_horizontal || configuracao.posicao_horizontal
+              configuracao.posicao_vertical = configGlobal.posicao_vertical || configuracao.posicao_vertical
+              configuracao.afastamento_vertical_pendulo = configGlobal.afastamento_vertical_pendulo || configuracao.afastamento_vertical_pendulo
             }
           }
 
           // 🎯 PRESERVAR modeloEspecifico se existir
           if (modeloV6.modeloEspecifico) {
-            configuracao.modeloEspecifico = modeloV6.modeloEspecifico
+            configuracao.modeloEspecifico = { ...modeloV6.modeloEspecifico }
           }
 
           // 🎯 PRESERVAR posições manuais se existirem
           if (modeloV6.posicoesManualPendulos) {
-            configuracao.posicoesManualPendulos = modeloV6.posicoesManualPendulos
+            configuracao.posicoesManualPendulos = { ...modeloV6.posicoesManualPendulos }
           }
           if (modeloV6.posicoesManualSensores) {
-            configuracao.posicoesManualSensores = modeloV6.posicoesManualSensores
+            configuracao.posicoesManualSensores = { ...modeloV6.posicoesManualSensores }
           }
 
           // 🎯 EXTRAIR dados finais com compatibilidade total
@@ -457,18 +596,32 @@ export default {
           const posicoesPendulos = modeloV6.modeloEspecifico?.posicoesPendulos || 
                                    modeloV6.posicoesManualPendulos || {}
 
-          console.log(`📊 [extrairModelosIndividuais] Modelo ${key} ${dadosSvg.versao || 'v6.x'} - Dados extraídos:`, {
-            quantidadePendulos,
-            sensoresPorPendulo,
-            posicoesPendulos,
-            totalPosicoesDefinidas: Object.keys(posicoesPendulos).length,
-            configuracaoCompleta: {
-              telhado: configuracao.tipo_telhado,
-              curvatura: configuracao.curvatura_topo,
-              largura: configuracao.lb,
-              altura: configuracao.pb
-            }
-          })
+          // 🎯 CONVERTER posições de pêndulos para formato compatível com pos_x_cabo
+          if (Object.keys(posicoesPendulos).length > 0) {
+            configuracao.pos_x_cabo = []
+            configuracao.posicoesCabos = {}
+            
+            Object.keys(posicoesPendulos).forEach(pendId => {
+              const posicao = posicoesPendulos[pendId]
+              const index = parseInt(pendId) - 1
+              
+              // Mapear para array pos_x_cabo
+              configuracao.pos_x_cabo[index] = posicao.x || 0
+              
+              // Mapear para objeto posicoesCabos
+              configuracao.posicoesCabos[pendId] = {
+                x: posicao.x || 0,
+                y: posicao.y || 0,
+                altura: posicao.altura || 0,
+                offsetX: posicao.offsetX || 0,
+                offsetY: posicao.offsetY || 0,
+                distanciaHorizontal: posicao.distanciaHorizontal || 0,
+                timestampAlteracao: posicao.timestampAlteracao || Date.now()
+              }
+            })
+
+          }
+
 
           modelos.push({
             numero: parseInt(key),
@@ -507,7 +660,7 @@ export default {
               nome: modelo.nome || `Modelo ${key}`,
               posicao: modelo.posicao || 'todos',
               configuracao: configuracao,
-              quantidadePendulos: modelo.quantidadePendulos || 3,
+              quantidadePendulos: modelo.quantidadePendulos ?? 3,
               sensoresPorPendulo: modelo.sensoresPorPendulo || {},
               timestampSalvamento: modelo.timestampSalvamento || configuracao.timestampPosicoesCabos || null
             })
@@ -533,7 +686,6 @@ export default {
       }
 
       modelos.sort((a, b) => a.numero - b.numero)
-      console.log('📋 [extrairModelosIndividuais] Modelos extraídos:', modelos)
       return modelos
     },
 
@@ -547,20 +699,12 @@ export default {
       this.modeloAtual = this.modelosCarregados[this.modeloAtualIndex] || this.modelosCarregados[0]
 
       const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
-      console.log(`🔄 [APLICAR] Aplicando Modelo ${numeroModelo}:`, {
-        anteriorIndex: modeloAnterior ? (this.modelosCarregados.findIndex(m => m.numero === modeloAnterior.numero) + 1) : 'nenhum',
-        novoIndex: this.modeloAtualIndex + 1,
-        quantidadePendulos: this.modeloAtual.quantidadePendulos,
-        configLargura: this.modeloAtual.configuracao?.lb,
-        posicoesExistentes: this.modeloAtual.configuracao?.pos_x_cabo
-      })
 
       // Aplicar dimensões SVG baseadas na configuração específica deste modelo
       if (this.modeloAtual.configuracao && (this.modeloAtual.configuracao.lb || this.modeloAtual.configuracao.largura)) {
         // Usar dimensões específicas deste modelo
         const larguraModelo = this.modeloAtual.configuracao.lb || this.modeloAtual.configuracao.largura
         this.larguraSVG = larguraModelo
-        console.log(`📐 [APLICAR] Modelo ${numeroModelo} - Usando largura específica: ${larguraModelo}`)
       } else if (this.modeloCarregado.dimensoesSVG) {
         // Fallback para dimensões globais
         this.larguraSVG = this.modeloCarregado.dimensoesSVG.largura || 350
@@ -589,10 +733,6 @@ export default {
         quantidadePendulos = modeloEspec.quantidadePendulos || 3
         sensoresPorPendulo = modeloEspec.sensoresPorPendulo || {}
 
-        console.log('🎯 [gerarDadosSensoresSimulados] Usando dados v6.0:', {
-          quantidadePendulos,
-          sensoresPorPendulo
-        })
       }
 
       for (let p = 1; p <= quantidadePendulos; p++) {
@@ -606,7 +746,6 @@ export default {
           numSensores = parseInt(sensoresPorPendulo[p.toString()]) || 3
         }
 
-        console.log(`📊 [gerarDadosSensoresSimulados] Pêndulo ${p} - ${numSensores} sensores`)
 
         for (let s = 1; s <= numSensores; s++) {
           const temp = Math.round((Math.random() * 20 + 15) * 10) / 10
@@ -616,10 +755,6 @@ export default {
 
       this.dadosSensores = { leitura: dadosSimulados }
 
-      console.log('📊 [gerarDadosSensoresSimulados] Dados simulados gerados:', {
-        totalPendulos: Object.keys(dadosSimulados).length,
-        dadosSimulados
-      })
     },
 
     navegarModelo(direcao) {
@@ -647,7 +782,7 @@ export default {
 
     calcularDimensoesSVG() {
       // 🎯 USAR EXATAMENTE A MESMA LÓGICA DO ModeladorSVG.vue calcularDimensoesSVG()
-      const config = this.configAtual
+      const config = this.configArmazemParaComponente
       const larguraBase = Math.max(config.lb, 300)
 
       // Calcular altura necessária considerando todos os elementos (igual ModeladorSVG)
@@ -681,12 +816,6 @@ export default {
         this.alturaSVG = alturaFinal
       }
 
-      console.log(`📐 [DIMENSÕES] Calculadas igual ModeladorSVG:`, {
-        larguraBase,
-        alturaFinal: this.alturaSVG,
-        extensaoFundo,
-        isMobile
-      })
     },
 
     recalcularPosicoesCabos() {
@@ -696,7 +825,6 @@ export default {
       const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
       const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
 
-      console.log(`🔄 [RECÁLCULO] Modelo ${numeroModelo} - Recalculando posições para nova largura: ${config.lb}`)
 
       // Preservar posições mantendo proporções e offsets personalizados
       this.preservarPosicoesCabos()
@@ -714,11 +842,6 @@ export default {
       const quantidadePendulos = this.modeloAtual.quantidadePendulos || 3
       const numeroModelo = this.modeloAtual.numero || (this.modeloAtualIndex + 1)
 
-      console.log(`💾 [PRESERVAÇÃO] Modelo ${numeroModelo} - Aplicando lógica EXATA do ModeladorSVG:`, {
-        quantidadePendulos,
-        larguraConfig: config.lb,
-        posicoesSalvas: config.posicoesCabos
-      })
 
       // 🎯 APLICAR EXATAMENTE A MESMA LÓGICA DE DISTRIBUIÇÃO DO ModeladorSVG.vue
       const larguraTotal = config.lb || 350
@@ -742,13 +865,6 @@ export default {
         }
       }
 
-      console.log(`📏 [PRESERVAÇÃO] Posições base calculadas (igual ModeladorSVG):`, {
-        larguraTotal,
-        margemLateral,
-        larguraUtilizavel,
-        espacamento: quantidadePendulos > 1 ? larguraUtilizavel / (quantidadePendulos - 1) : 0,
-        posicoesCabosCalculadas
-      })
 
       // 🎯 PRESERVAR/CRIAR posições individuais mantendo a estrutura EXATA do ModeladorSVG
       for (let i = 1; i <= quantidadePendulos; i++) {
@@ -767,7 +883,6 @@ export default {
             timestampAlteracao: Date.now()
           }
 
-          console.log(`🆕 [PRESERVAÇÃO] P${i} - Nova posição criada: ${xBaseCalculado}`)
         } else {
           // 🔧 PRESERVAR posições personalizadas EXATAMENTE como salvas (igual ModeladorSVG)
           const posicaoExistente = config.posicoesCabos[i]
@@ -781,7 +896,6 @@ export default {
           if (posicaoExistente.numeroSensores === undefined) posicaoExistente.numeroSensores = 3
           if (!posicaoExistente.timestampAlteracao) posicaoExistente.timestampAlteracao = Date.now()
 
-          console.log(`✅ [PRESERVAÇÃO] P${i} - Posição preservada EXATA: x=${posicaoExistente.x}, y=${posicaoExistente.y}`)
         }
       }
 
@@ -809,13 +923,6 @@ export default {
         config.distancia_entre_cabos = [0]
       }
 
-      console.log(`✅ [PRESERVAÇÃO] Modelo ${numeroModelo} - Distribuição ESPELHADA do ModeladorSVG:`, {
-        larguraTotal,
-        margemLateral,
-        pos_x_cabo: config.pos_x_cabo,
-        distancia_entre_cabos: config.distancia_entre_cabos,
-        posicoesCabos: config.posicoesCabos
-      })
     },
 
 
@@ -838,7 +945,6 @@ export default {
             };
           }
         }
-        console.log("✅ [Inicialização] Posições de cabos inicializadas na configuração padrão.");
         return;
       }
 
@@ -865,7 +971,6 @@ export default {
             offsetY: 0, // Ajuste fino vertical
             timestampAlteracao: Date.now()
           };
-          console.log(`🆕 [Inicialização] Modelo ${numeroModelo} - Criada posição para Cabo ${i}:`, config.posicoesCabos[i]);
         } else {
           // Se a posição individual já existe, garante que os campos obrigatórios estejam presentes
           if (posicoesCabosExistentes[i].y === undefined) posicoesCabosExistentes[i].y = 0
@@ -877,10 +982,8 @@ export default {
           if (config.pos_x_cabo && config.pos_x_cabo[i - 1] !== undefined) {
             posicoesCabosExistentes[i].x = config.pos_x_cabo[i - 1];
           }
-          console.log(`✅ [Inicialização] Modelo ${numeroModelo} - Posição preservada para Cabo ${i}:`, posicoesCabosExistentes[i]);
         }
       }
-      console.log(`✅ [Inicialização] Modelo ${numeroModelo} - Estrutura de posições de cabos garantida.`);
     },
 
 
@@ -909,7 +1012,6 @@ export default {
             offsetY: 0, // Ajuste fino vertical
             timestampAlteracao: Date.now()
           };
-          console.log(`🆕 [CABOS] Modelo ${numeroModelo} - Criada nova posição para Cabo ${i}:`, config.posicoesCabos[i])
         } else {
           // Se já existe, PRESERVAR as posições salvas e apenas garantir campos
           if (config.posicoesCabos[i].y === undefined) config.posicoesCabos[i].y = 0
@@ -918,14 +1020,9 @@ export default {
           if (!config.posicoesCabos[i].timestampAlteracao) config.posicoesCabos[i].timestampAlteracao = Date.now()
 
           // IMPORTANTE: NÃO sobrescrever a posição X se já foi customizada
-          console.log(`✅ [CABOS] Modelo ${numeroModelo} - Posição preservada para Cabo ${i}:`, config.posicoesCabos[i])
         }
       }
 
-      console.log(`🎯 [CABOS] Modelo ${numeroModelo} - Estrutura final garantida:`, {
-        pos_x_cabo: config.pos_x_cabo,
-        posicoesCabos: config.posicoesCabos
-      });
     },
 
     calcularTotalSensores() {
@@ -940,18 +1037,13 @@ export default {
 
       const total = Object.values(sensoresPorPendulo).reduce((sum, num) => sum + (parseInt(num) || 0), 0)
 
-      console.log('🔢 [calcularTotalSensores] Total calculado:', {
-        sensoresPorPendulo,
-        total,
-        estruturaV6: !!this.modeloAtual.configuracao?.modeloEspecifico
-      })
 
       return total
     },
 
     getDescricaoConfiguracaoAtual() {
       if (this.modeloAtual) {
-        const config = this.configAtual
+        const config = this.configArmazemParaComponente
         return `Tipo: ${this.getTipoTelhado(config.tipo_telhado)} | Fundo: ${this.getTipoFundo(config.tipo_fundo)}`
       }
       return 'Configuração padrão'
@@ -982,12 +1074,12 @@ export default {
 
       const posicao = this.modeloAtual.posicao
       const classes = {
-        'todos': 'badge bg-info',
-        'par': 'badge bg-primary',
+        'todos': 'badge bg-secondary',
+        'par': 'badge bg-secondary',
         'impar': 'badge bg-warning',
-        'frente': 'badge bg-success',
-        'fundo': 'badge bg-danger',
-        'frente_fundo': 'badge bg-success'
+        'frente': 'badge bg-secondary',
+        'fundo': 'badge bg-secondary',
+        'frente_fundo': 'badge bg-secondary'
       }
       return classes[posicao] || 'badge bg-secondary'
     },
@@ -1048,17 +1140,184 @@ export default {
       config.timestampPosicoesCabos = Date.now()
       config.posicionamentoPersonalizado = true // Flag para indicar que foi personalizado
 
-      // Salvar no localStorage após cada alteração
-      this.salvarPosicionamentoLocalStorage()
+      // Salvar no servidor após cada alteração (com fallback para localStorage)
+      this.salvarModeloNoServidor()
 
-      console.log(`🎯 [POSIÇÃO EXATA] Modelo ${numeroModelo} - Cabo ${numeroCabo} - ${propriedade}: ${valorNumerico}`, {
-        posicaoCompleta: config.posicoesCabos[numeroCabo],
-        arrayPosicoes: config.pos_x_cabo,
-        personalizado: true
-      })
 
       // Forçar atualização reativa do Vue
       this.$forceUpdate()
+    },
+
+    async salvarModeloNoServidor() {
+      if (!this.modeloCarregado || !this.modelosCarregados) return
+
+      try {
+        const dadosCompletos = this.construirDadosCompletos()
+
+        // Estrutura para salvar no servidor
+        const modeloParaSalvar = {
+          nm_modelo: this.modeloCarregado.nome,
+          tp_svg: 'A', // Armazém
+          vista_svg: 'F', // Frontal
+          ds_modelo: `Modelo atualizado em ${new Date().toLocaleDateString('pt-BR')}`,
+          dado_svg: JSON.stringify(dadosCompletos)
+        }
+
+        // Se já temos um ID do modelo selecionado, incluir para forçar atualização
+        if (this.modeloSelecionado) {
+          modeloParaSalvar.id_svg = this.modeloSelecionado
+        }
+
+
+        const resultado = await modeloSvgService.salvarModelo(modeloParaSalvar)
+
+        if (resultado.success) {
+          this.mostrarToast(`Modelo "${this.modeloCarregado.nome}" salvo com sucesso no servidor!`, 'success')
+        } else {
+          throw new Error(resultado.message || 'Erro desconhecido ao salvar')
+        }
+
+      } catch (error) {
+        console.error('❌ [SERVIDOR] Erro ao salvar modelo:', error)
+        this.mostrarToast(`Erro ao salvar no servidor: ${error.message}`, 'error')
+        // Fallback para localStorage
+        this.salvarPosicionamentoLocalStorage()
+      }
+    },
+
+    construirDadosCompletos() {
+      // 🎯 ESTRUTURA V6.0 COMPATÍVEL com o formato original
+      const dadosCompletos = {
+        tipo: 'armazem_completo_otimizado',
+        versao: '6.0',
+        modelos: {},
+        controle: {
+          ordemModelos: [],
+          modelosEncontrados: this.modelosCarregados.length,
+          quantidadeEsperada: this.modelosCarregados.length,
+          verificacaoIntegridade: {
+            totalModelos: this.modelosCarregados.length,
+            detalhesModelos: {},
+            modelosComSensores: 0,
+            modelosComPosicoesCabos: 0,
+            modelosComAlturasSensores: 0
+          }
+        },
+        otimizado: true,
+        timestamp: Date.now(),
+        distribuicao: {
+          nome: this.modeloCarregado.logica || 'Modelo Único',
+          aplicacao: 'todos_arcos'
+        },
+        reducaoTamanho: '60-80%',
+        tipoConfiguracao: 'armazem_completo_v6',
+        quantidadeModelos: this.modelosCarregados.length
+      }
+
+      // Construir modelos no formato v6.0
+      this.modelosCarregados.forEach((modelo, index) => {
+        const id = (index + 1).toString()
+        dadosCompletos.controle.ordemModelos.push(id)
+
+        const modeloV6 = {
+          id: index + 1,
+          nome: modelo.nome || `Modelo ${index + 1}`,
+          versao: '6.1',
+          posicao: modelo.posicao || 'todos',
+          validado: true,
+          timestamp: Date.now()
+        }
+
+        // Mapear dimensões
+        if (modelo.configuracao) {
+          const config = modelo.configuracao
+          
+          modeloV6.dimensoes = {
+            hb: config.hb ?? 30,
+            hf: config.hf ?? 6,
+            ht: config.ht ?? 50,
+            lb: config.lb ?? 350,
+            le: config.le ?? 15,
+            lf: config.lf ?? 250,
+            pb: config.pb ?? 185
+          }
+
+          modeloV6.telhado = {
+            tipo: config.tipo_telhado !== undefined ? config.tipo_telhado : 1,
+            raio_pontas: config.raio_pontas ?? 15,
+            curvatura_topo: config.curvatura_topo !== undefined ? config.curvatura_topo : 30,
+            estilo_laterais: config.estilo_laterais ?? 'reta',
+            pontas_redondas: config.pontas_redondas !== undefined ? config.pontas_redondas : false,
+            curvatura_laterais: config.curvatura_laterais !== undefined ? config.curvatura_laterais : 0
+          }
+
+          modeloV6.fundo = {
+            tipo: config.tipo_fundo !== undefined ? config.tipo_fundo : 0,
+            altura_duplo_v: config.altura_duplo_v ?? 22,
+            altura_funil_v: config.altura_funil_v ?? 18,
+            posicao_ponta_v: config.posicao_ponta_v !== undefined ? config.posicao_ponta_v : 0,
+            altura_fundo_reto: config.altura_fundo_reto ?? 10,
+            posicao_v_direito: config.posicao_v_direito !== undefined ? config.posicao_v_direito : 1,
+            inclinacao_funil_v: config.inclinacao_funil_v !== undefined ? config.inclinacao_funil_v : 1,
+            largura_abertura_v: config.largura_abertura_v ?? 20,
+            posicao_v_esquerdo: config.posicao_v_esquerdo !== undefined ? config.posicao_v_esquerdo : -1,
+            largura_abertura_duplo_v: config.largura_abertura_duplo_v !== undefined ? config.largura_abertura_duplo_v : 2,
+            altura_plataforma_duplo_v: config.altura_plataforma_duplo_v !== undefined ? config.altura_plataforma_duplo_v : 0.3,
+            largura_plataforma_duplo_v: config.largura_plataforma_duplo_v ?? 10,
+            deslocamento_vertical_fundo: config.deslocamento_vertical_fundo !== undefined ? config.deslocamento_vertical_fundo : -1,
+            deslocamento_horizontal_fundo: config.deslocamento_horizontal_fundo !== undefined ? config.deslocamento_horizontal_fundo : 0
+          }
+
+          // 🎯 PRESERVAR ou CONSTRUIR modeloEspecifico
+          if (config.modeloEspecifico) {
+            // Usar modeloEspecifico existente
+            modeloV6.modeloEspecifico = { ...config.modeloEspecifico }
+          } else {
+            // Construir modeloEspecifico baseado nos dados atuais
+            const posicoesPendulos = {}
+            const sensoresPorPendulo = {}
+            
+            if (config.posicoesCabos) {
+              Object.keys(config.posicoesCabos).forEach(cabId => {
+                const cabo = config.posicoesCabos[cabId]
+                posicoesPendulos[cabId] = {
+                  x: cabo.x ?? 0,
+                  y: cabo.y ?? 0,
+                  altura: cabo.altura ?? 0,
+                  offsetX: cabo.offsetX ?? 0,
+                  offsetY: cabo.offsetY ?? 0,
+                  timestampAlteracao: cabo.timestampAlteracao ?? Date.now(),
+                  distanciaHorizontal: cabo.distanciaHorizontal ?? 0
+                }
+              })
+            }
+
+            if (modelo.sensoresPorPendulo) {
+              Object.assign(sensoresPorPendulo, modelo.sensoresPorPendulo)
+            }
+
+            modeloV6.modeloEspecifico = {
+              quantidadePendulos: modelo.quantidadePendulos ?? 3,
+              sensoresPorPendulo: sensoresPorPendulo,
+              posicoesPendulos: posicoesPendulos,
+              configuracaoGlobal: {
+                dist_x_sensores: config.dist_x_sensores ?? 0,
+                dist_y_sensores: config.dist_y_sensores ?? 12,
+                escala_sensores: config.escala_sensores ?? 16,
+                posicao_vertical: config.posicao_vertical ?? 0,
+                posicao_horizontal: config.posicao_horizontal ?? 0,
+                afastamento_vertical_pendulo: config.afastamento_vertical_pendulo ?? 0
+              },
+              posicoesManualPendulos: config.posicoesManualPendulos ?? {},
+              posicoesManualSensores: config.posicoesManualSensores ?? {}
+            }
+          }
+        }
+
+        dadosCompletos.modelos[id] = modeloV6
+      })
+
+      return dadosCompletos
     },
 
     salvarPosicionamentoLocalStorage() {
@@ -1087,7 +1346,6 @@ export default {
         const chave = `config_posicionamento_${this.modeloCarregado.nome}_${Date.now()}`
         localStorage.setItem(chave, JSON.stringify(dadosCompletos))
 
-        console.log('💾 [LOCALSTORAGE] Posicionamento salvo:', chave, dadosCompletos)
 
       } catch (error) {
         console.error('❌ [LOCALSTORAGE] Erro ao salvar posicionamento:', error)
@@ -1149,7 +1407,6 @@ export default {
 
     // Métodos de carregamento de configuração (mantidos para referência, mas não chamados diretamente aqui)
     carregarConfiguracaoCompletaV4(dados, nome) {
-      console.log('📦 [carregarConfiguracaoCompletaV4] Carregando configuração v4.0 completa')
 
       // Restaurar sistema de modelos
       if (dados.sistemaModelos || dados.modelosDefinidos) {
@@ -1174,7 +1431,6 @@ export default {
             // IMPORTANTE: Preservar posições individuais dos cabos se existirem
             if (modelo.configuracao?.posicoesCabos && typeof modelo.configuracao.posicoesCabos === 'object') {
               configuracaoModelo.posicoesCabos = { ...modelo.configuracao.posicoesCabos }
-              console.log(`🎯 [carregarConfiguracaoCompletaV4] Modelo ${key} - Posições dos cabos preservadas:`, configuracaoModelo.posicoesCabos)
             } else {
               // Se não existem posições salvas, inicializa com base nas posições do array pos_x_cabo (se houver)
               configuracaoModelo.posicoesCabos = {}
@@ -1200,7 +1456,7 @@ export default {
               nome: modelo.nome || `Modelo ${key}`,
               posicao: modelo.posicao || this.determinarPosicaoDoModelo(numeroModelo, this.quantidadeModelosArcos),
               configuracao: configuracaoModelo,
-              quantidadePendulos: modelo.quantidadePendulos || 3,
+              quantidadePendulos: modelo.quantidadePendulos ?? 3,
               sensoresPorPendulo: modelo.sensoresPorPendulo || {},
               timestampSalvamento: modelo.timestampSalvamento || modelo.timestampUltimaEdicao || new Date().toISOString()
             }
@@ -1218,7 +1474,6 @@ export default {
     },
 
     carregarConfiguracaoCompletaV3(dados, nome) {
-      console.log('📦 [carregarConfiguracaoCompletaV3] Carregando configuração v3.0 completa')
       this.modeloCarregado = {
         nome: nome,
         quantidadeModelos: dados.quantidadeModelos || 1,
@@ -1236,7 +1491,6 @@ export default {
     },
 
     carregarConfiguracaoSimplesCompatibilidade(dados, nome) {
-      console.log('📦 [carregarConfiguracaoSimplesCompatibilidade] Carregando configuração simples')
       this.modeloCarregado = {
         nome: nome,
         quantidadeModelos: 1,
@@ -1287,6 +1541,285 @@ export default {
       this.modeloAtualIndex = 0
       this.aplicarModeloAtual()
       this.gerarDadosSensoresSimulados()
+    },
+
+    // 🎯 NOVOS MÉTODOS PARA SINCRONIZAÇÃO COM API REAL
+    async carregarDadosAPI() {
+      try {
+        this.carregandoDadosAPI = true
+        this.errorAPI = null
+
+        // Obter token dinâmico do localStorage
+        const token = localStorage.getItem('token') || ''
+        const authToken = token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : ''
+
+        if (!authToken || authToken === 'Bearer ') {
+          throw new Error('Token de autenticação não encontrado no localStorage')
+        }
+
+        const response = await axios.get(this.apiConfig.url, {
+          headers: {
+            'Authorization': authToken,
+            'Content-Type': 'application/json'
+          },
+          timeout: 15000
+        })
+
+        if (!response.data) {
+          throw new Error('Resposta da API vazia')
+        }
+
+        // Armazenar dados originais da API
+        this.dadosPortal = response.data
+
+        // Analisar estrutura dos arcos baseada na estrutura da API
+        const analise = this.analisarEstruturaArcos(response.data)
+        this.analiseArcos = analise
+
+        // Gerar dados de sensores baseados na API
+        this.gerarDadosSensoresReais()
+
+        // Sincronizar com modelos carregados
+        this.sincronizarModelosComDados()
+
+        console.log('✅ Dados da API carregados com sucesso:', {
+          totalArcos: analise.totalArcos,
+          analise: analise
+        })
+
+      } catch (error) {
+        console.error('❌ Erro ao carregar dados da API:', error)
+        this.errorAPI = this.tratarErroAPI(error)
+      } finally {
+        this.carregandoDadosAPI = false
+      }
+    },
+
+    // Analisar estrutura dos arcos baseada na estrutura da API (adaptado do Armazem2D)
+    analisarEstruturaArcos(dados) {
+      if (!dados.arcos) {
+        return this.criarEstruturaMinima()
+      }
+
+      const estrutura = {
+        totalArcos: 0,
+        arcos: {},
+        estatisticas: {
+          totalPendulos: 0,
+          totalSensores: 0
+        }
+      }
+
+      // Processar cada arco
+      Object.keys(dados.arcos).forEach(numeroArco => {
+        const dadosArco = dados.arcos[numeroArco]
+        const arcoNum = parseInt(numeroArco)
+
+        estrutura.totalArcos = Math.max(estrutura.totalArcos, arcoNum)
+
+        const infoArco = {
+          numero: arcoNum,
+          totalPendulos: 0,
+          totalSensores: 0,
+          pendulos: []
+        }
+
+        // Processar cada pêndulo no arco
+        Object.keys(dadosArco).forEach(numeroPendulo => {
+          const dadosPendulo = dadosArco[numeroPendulo]
+          const penduloNum = parseInt(numeroPendulo)
+
+          const infoPendulo = {
+            numero: penduloNum,
+            totalSensores: Object.keys(dadosPendulo).length
+          }
+
+          infoArco.pendulos.push(infoPendulo)
+          infoArco.totalPendulos++
+          infoArco.totalSensores += infoPendulo.totalSensores
+        })
+
+        // Ordenar pêndulos por número
+        infoArco.pendulos.sort((a, b) => a.numero - b.numero)
+
+        estrutura.arcos[arcoNum] = infoArco
+        estrutura.estatisticas.totalPendulos += infoArco.totalPendulos
+        estrutura.estatisticas.totalSensores += infoArco.totalSensores
+      })
+
+      return estrutura
+    },
+
+    criarEstruturaMinima() {
+      return {
+        totalArcos: 1,
+        arcos: {
+          1: {
+            numero: 1,
+            totalPendulos: 1,
+            totalSensores: 1,
+            pendulos: [{ numero: 1, totalSensores: 1 }]
+          }
+        },
+        estatisticas: {
+          totalPendulos: 1,
+          totalSensores: 1
+        }
+      }
+    },
+
+    tratarErroAPI(error) {
+      if (error.response) {
+        switch (error.response.status) {
+          case 401:
+            return 'Token de autenticação inválido ou expirado'
+          case 403:
+            return 'Acesso negado'
+          case 404:
+            return 'Endpoint da API não encontrado'
+          case 500:
+            return 'Erro interno do servidor'
+          default:
+            return `Erro HTTP ${error.response.status}: ${error.response.statusText}`
+        }
+      } else if (error.request) {
+        return 'Erro de conectividade'
+      } else {
+        return error.message || 'Erro desconhecido ao carregar dados'
+      }
+    },
+
+    // Sincronizar modelos carregados com os dados reais da API
+    sincronizarModelosComDados() {
+      if (!this.analiseArcos || !this.modeloCarregado) {
+        console.log('⚠️  Sem dados ou modelo para sincronizar')
+        return
+      }
+
+      console.log('🔄 Sincronizando modelos com dados reais:', {
+        totalArcos: this.analiseArcos.totalArcos,
+        quantidadeModelos: this.modeloCarregado.quantidadeModelos,
+        arcoAtual: this.arcoAtual
+      })
+
+      // Aplicar modelo baseado na lógica de distribuição
+      this.aplicarModeloParaArco(this.arcoAtual)
+    },
+
+    // Aplicar modelo específico para um arco baseado na lógica de distribuição
+    aplicarModeloParaArco(numeroArco) {
+      if (!this.modeloCarregado || !this.modelosCarregados.length) {
+        console.log('⚠️  Sem modelo carregado para aplicar')
+        return
+      }
+
+      const quantidadeModelos = this.modeloCarregado.quantidadeModelos
+      let modeloParaAplicar
+
+      if (quantidadeModelos === 1) {
+        // 🎯 1 MODELO = APLICAR A TODOS OS ARCOS
+        modeloParaAplicar = this.modelosCarregados[0]
+        console.log(`📋 Aplicando modelo único a todos os arcos: ${modeloParaAplicar.nome}`)
+      } else if (quantidadeModelos === 4) {
+        // 🎯 4 MODELOS = DISTRIBUIÇÃO ESPECÍFICA POR ARCO
+        const indiceModelo = this.determinarIndiceModeloPara4Modelos(numeroArco)
+        modeloParaAplicar = this.modelosCarregados[indiceModelo] || this.modelosCarregados[0]
+        console.log(`📋 Aplicando modelo ${indiceModelo + 1}/4 para arco ${numeroArco}: ${modeloParaAplicar.nome}`)
+      } else {
+        // Outras quantidades: usar o primeiro modelo ou implementar lógica específica
+        modeloParaAplicar = this.modelosCarregados[0]
+        console.log(`📋 Aplicando primeiro modelo para arco ${numeroArco}: ${modeloParaAplicar.nome}`)
+      }
+
+      // Atualizar modelo sincronizado
+      this.modeloSincronizado = { ...modeloParaAplicar }
+      
+      // Sincronizar dados de sensores para o arco atual
+      this.sincronizarDadosSensoresParaArco(numeroArco)
+    },
+
+    // Determinar qual índice de modelo usar para 4 modelos
+    determinarIndiceModeloPara4Modelos(numeroArco) {
+      // Lógica Frente/Par/Ímpar/Fundo baseada na posição do arco
+      const modelos = this.modelosCarregados
+      
+      for (let i = 0; i < modelos.length; i++) {
+        const modelo = modelos[i]
+        const posicao = modelo.posicao?.toLowerCase() || ''
+        
+        if (posicao.includes('frente') && numeroArco === 1) return i
+        if (posicao.includes('par') && numeroArco % 2 === 0) return i
+        if (posicao.includes('ímpar') && numeroArco % 2 === 1 && numeroArco > 1) return i
+        if (posicao.includes('fundo') && numeroArco === this.analiseArcos?.totalArcos) return i
+      }
+      
+      // Fallback: usar modelo baseado no índice do arco
+      return Math.min(numeroArco - 1, modelos.length - 1)
+    },
+
+    // Gerar dados de sensores baseados nos dados reais da API
+    gerarDadosSensoresReais() {
+      if (!this.dadosPortal?.arcos || !this.analiseArcos) {
+        this.dadosSensoresSincronizados = null
+        return
+      }
+
+      // Converter dados da API para formato compatível com ArmazemSvg
+      this.dadosSensoresSincronizados = this.converterDadosParaRenderizacao(this.dadosPortal, this.arcoAtual)
+    },
+
+    // Converter dados da API para formato de renderização (adaptado do Armazem2D)
+    converterDadosParaRenderizacao(dadosAPI, numeroArco) {
+      if (!dadosAPI.arcos || !dadosAPI.arcos[numeroArco]) {
+        return { leitura: {} }
+      }
+
+      const dadosArco = dadosAPI.arcos[numeroArco]
+      const leituraConvertida = {}
+
+      // Converter estrutura: arcos[numeroArco][pendulo][sensor] -> leitura[pendulo][sensor]
+      Object.keys(dadosArco).forEach(numeroPendulo => {
+        const sensoresPendulo = dadosArco[numeroPendulo]
+        leituraConvertida[numeroPendulo] = {}
+
+        Object.keys(sensoresPendulo).forEach(numeroSensor => {
+          const dadosSensor = sensoresPendulo[numeroSensor]
+          // Manter o formato original do sensor: [temp, pontoQuente, preAlarme, falha, nivel]
+          leituraConvertida[numeroPendulo][numeroSensor] = dadosSensor
+        })
+      })
+
+      return {
+        leitura: leituraConvertida,
+        arcoAtual: numeroArco,
+        timestamp: new Date().toISOString()
+      }
+    },
+
+    // Sincronizar dados de sensores para o arco específico
+    sincronizarDadosSensoresParaArco(numeroArco) {
+      if (!this.dadosPortal) return
+      
+      this.dadosSensoresSincronizados = this.converterDadosParaRenderizacao(this.dadosPortal, numeroArco)
+      
+      console.log(`🔄 Dados de sensores sincronizados para arco ${numeroArco}:`, {
+        totalPendulos: Object.keys(this.dadosSensoresSincronizados.leitura || {}).length,
+        timestamp: this.dadosSensoresSincronizados.timestamp
+      })
+    },
+
+    // 🎯 NOVOS MÉTODOS DE NAVEGAÇÃO ENTRE ARCOS REAIS
+    mudarArco(novoArco) {
+      if (!this.analiseArcos || novoArco < 1 || novoArco > this.analiseArcos.totalArcos) {
+        return
+      }
+
+      this.arcoAtual = novoArco
+      
+      // Aplicar modelo para o novo arco
+      this.aplicarModeloParaArco(novoArco)
+      
+      console.log(`🔄 Navegado para arco ${novoArco}`)
     },
   }
 }

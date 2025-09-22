@@ -1,7 +1,7 @@
 
 <template>
   <div class="card mb-3">
-    <div class="card-header bg-info text-white">
+    <div class="card-header text-white" style="background-color: #06335E;">
       <h6 class="mb-0">🏠 Configuração do Telhado</h6>
     </div>
     <div class="card-body">
