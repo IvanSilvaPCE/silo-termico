@@ -48,7 +48,7 @@
           stroke-miterlimit="22.9256"
           :d="pathCirculoSilo"
         />
-        
+
         <!-- Linhas divisórias radiais -->
         <g stroke="#999999" stroke-width="0.8465" stroke-miterlimit="22.9256" fill="none">
           <!-- Linha vertical -->
@@ -70,7 +70,7 @@
             :y2="centroY - raioSilo * Math.sin(Math.PI/4)" 
           />
         </g>
-        
+
         <!-- Círculo central -->
         <circle 
           :cx="centroX" 
@@ -80,7 +80,7 @@
           stroke="#999999" 
           stroke-width="0.8465"
         />
-        
+
         <!-- Círculo médio -->
         <circle 
           :cx="centroX" 
@@ -107,8 +107,31 @@
         </g>
       </g>
 
-      <!-- Cabos/Pêndulos posicionados -->
-      <g v-for="(cabo, index) in cabosComPosicao" :key="`cabo_${index + 1}`" :id="`cabo_${index + 1}`" :transform="cabo.transform">
+      <!-- Mapa térmico por camadas -->
+      <g v-if="modoMapaCalor">
+        <defs>
+          <filter id="blurFilterTopo">
+            <feGaussianBlur stdDeviation="1.5" />
+          </filter>
+          <clipPath id="clipSiloTopo">
+            <circle :cx="centroX" :cy="centroY" :r="raioSilo" />
+          </clipPath>
+        </defs>
+        <g filter="url(#blurFilterTopo)" clip-path="url(#clipSiloTopo)">
+          <rect 
+            v-for="(bloco, index) in blocosMapaCalorTopo" 
+            :key="`bloco-topo-${index}`" 
+            :x="bloco.x" 
+            :y="bloco.y"
+            :width="bloco.width" 
+            :height="bloco.height" 
+            :fill="bloco.fill" 
+          />
+        </g>
+      </g>
+
+      <!-- Cabos/Pêndulos posicionados (apenas no modo normal) -->
+      <g v-if="!modoMapaCalor" v-for="(cabo, index) in cabosComPosicao" :key="`cabo_${index + 1}`" :id="`cabo_${index + 1}`" :transform="cabo.transform">
         <!-- Círculo de pulso (animação quando há problema) -->
         <circle 
           v-if="temProblema(cabo.pendulo)"
@@ -119,7 +142,7 @@
         >
           <animate attributeName="r" from="8" to="5" begin="0s" dur="1s" repeatCount="indefinite" />
         </circle>
-        
+
         <!-- Círculo principal do cabo -->
         <circle 
           :cx="centroX" 
@@ -130,7 +153,7 @@
           stroke-width="0.8"
           :title="`Pêndulo ${cabo.label} - Temp. Média: ${getTemperaturaMediaPendulo(cabo.pendulo)}°C`"
         />
-        
+
         <!-- Texto do cabo -->
         <text 
           :x="centroX" 
@@ -142,7 +165,7 @@
         >
           {{ cabo.label }}
         </text>
-        
+
         <!-- Círculo de falha (overlay vermelho quando há erro) -->
         <circle 
           v-if="temFalha(cabo.pendulo)"
@@ -153,7 +176,30 @@
           fill-opacity="0.6"
         />
       </g>
+      
+
     </svg>
+
+    <!-- Navegação de camadas (só aparece quando mapa de calor está ativo) -->
+    <div v-if="modoMapaCalor && camadasPorProfundidade.length > 0" class="navegacao-camadas">
+      <button 
+        class="btn-navegacao anterior"
+        @click="anteriorCamada"
+      >
+        ← Anterior
+      </button>
+      
+      <div class="info-camada">
+        <small>{{ camadaAtualInfo }}</small>
+      </div>
+      
+      <button 
+        class="btn-navegacao proxima"
+        @click="proximaCamada"
+      >
+        Próxima →
+      </button>
+    </div>
   </div>
 </template>
 
@@ -168,13 +214,18 @@ export default {
     leitura: {
       type: Object,
       required: true
+    },
+    modoMapaCalor: {
+      type: Boolean,
+      default: false
     }
   },
   data() {
     return {
       largura: 138,
       altura: 134,
-      mostrarIndicadorNivel: true
+      mostrarIndicadorNivel: true,
+      camadaAtual: 0
     }
   },
   computed: {
@@ -197,9 +248,9 @@ export default {
     },
     cabosComPosicao() {
       if (!this.leitura || Object.keys(this.leitura).length === 0) return []
-      
+
       const cabos = Object.keys(this.leitura)
-      
+
       // Analisar número de sensores para cada cabo
       const cabosComSensores = cabos.map(pendulo => {
         const numSensores = Object.keys(this.leitura[pendulo]).length
@@ -209,20 +260,20 @@ export default {
           numSensores: numSensores
         }
       })
-      
+
       // Ordenar por número de sensores (decrescente) para facilitar agrupamento
       cabosComSensores.sort((a, b) => b.numSensores - a.numSensores)
-      
+
       // Encontrar quantidades únicas de sensores para criar grupos
       const quantidadesUnicas = [...new Set(cabosComSensores.map(c => c.numSensores))].sort((a, b) => b - a)
-      
+
       // Separar em 3 níveis baseado na quantidade de sensores
       let gruposCabos = {
         centro: [],    // Cabos com mais sensores
         meio: [],      // Cabos com quantidade intermediária
         externo: []    // Cabos com menos sensores
       }
-      
+
       if (quantidadesUnicas.length === 1) {
         // Se todos têm a mesma quantidade, distribui no círculo médio
         gruposCabos.meio = [...cabosComSensores]
@@ -234,17 +285,17 @@ export default {
         // Se há 3 ou mais quantidades: maior no centro, menor no externo, resto no meio
         const maiorQuantidade = quantidadesUnicas[0]
         const menorQuantidade = quantidadesUnicas[quantidadesUnicas.length - 1]
-        
+
         gruposCabos.centro = cabosComSensores.filter(c => c.numSensores === maiorQuantidade)
         gruposCabos.externo = cabosComSensores.filter(c => c.numSensores === menorQuantidade)
         gruposCabos.meio = cabosComSensores.filter(c => 
           c.numSensores !== maiorQuantidade && c.numSensores !== menorQuantidade
         )
       }
-      
+
       const resultado = []
       let indiceGlobal = 1
-      
+
       // Função para ordenar numericamente os pêndulos (P1, P2, P3, etc.)
       const ordenarNumericamente = (cabos) => {
         return cabos.sort((a, b) => {
@@ -253,12 +304,12 @@ export default {
           return numA - numB
         })
       }
-      
+
       // Ordenar cada grupo numericamente
       gruposCabos.centro = ordenarNumericamente(gruposCabos.centro)
       gruposCabos.meio = ordenarNumericamente(gruposCabos.meio)
       gruposCabos.externo = ordenarNumericamente(gruposCabos.externo)
-      
+
       // Posicionar primeiro grupo externo (cabos laterais) - cada grupo tem sua própria distribuição circular
       gruposCabos.externo.forEach((cabo, index) => {
         resultado.push({
@@ -268,7 +319,7 @@ export default {
           nivel: 'externo'
         })
       })
-      
+
       // Posicionar segundo grupo do meio (intermediários) - novo círculo independente
       gruposCabos.meio.forEach((cabo, index) => {
         resultado.push({
@@ -278,7 +329,7 @@ export default {
           nivel: 'meio'
         })
       })
-      
+
       // Posicionar por último grupo do centro (central)
       gruposCabos.centro.forEach((cabo, index) => {
         let transform
@@ -289,7 +340,7 @@ export default {
           // Múltiplos cabos centrais têm seu próprio círculo independente
           transform = this.calcularTransformCircularIndependente('centro', index, gruposCabos.centro.length)
         }
-        
+
         resultado.push({
           ...cabo,
           transform: transform,
@@ -297,20 +348,172 @@ export default {
           nivel: 'centro'
         })
       })
-      
+
       return resultado
-    }
+    },
+
+    // Propriedades para mapa de calor térmico por camadas de profundidade
+    camadasPorProfundidade() {
+      if (!this.leitura) return []
+
+      // Encontrar o número máximo de sensores para definir as camadas
+      const cabos = Object.keys(this.leitura)
+      let maxSensores = 0
+      
+      cabos.forEach(pendulo => {
+        const numSensores = Object.keys(this.leitura[pendulo]).length
+        if (numSensores > maxSensores) {
+          maxSensores = numSensores
+        }
+      })
+
+      // Criar camadas de 0 até maxSensores-1 (índices dos sensores)
+      // Sensor 0 = Topo, Sensor 1 = 2º nível, etc.
+      const camadas = []
+      for (let camadaIndex = 0; camadaIndex < maxSensores; camadaIndex++) {
+        let nomeCamada
+        if (camadaIndex === 0) {
+          nomeCamada = 'Topo (1º nível)'
+        } else {
+          nomeCamada = `${camadaIndex + 1}º nível`
+        }
+        
+        camadas.push({
+          indice: camadaIndex,
+          nome: `Sensor ${camadaIndex} - ${nomeCamada}`,
+          profundidade: camadaIndex + 1,
+          cor: this.getCorCamada(camadaIndex)
+        })
+      }
+
+      return camadas
+    },
+
+    // Blocos do mapa térmico para a camada atual
+    blocosMapaCalorTopo() {
+      if (!this.modoMapaCalor || !this.camadasPorProfundidade.length) return []
+
+      const camadaAtual = this.camadasPorProfundidade[this.camadaAtual]
+      const sensorIndex = camadaAtual.indice
+
+      // Coletar dados de temperatura para esta camada específica
+      const dadosTemperatura = []
+      const posicoesCabos = this.cabosComPosicao
+
+      posicoesCabos.forEach(cabo => {
+        if (this.leitura[cabo.pendulo] && this.leitura[cabo.pendulo][sensorIndex]) {
+          const dadosSensor = this.leitura[cabo.pendulo][sensorIndex]
+          const temp = parseFloat(dadosSensor[0])
+          const temGrao = dadosSensor[4]
+          const temErro = dadosSensor[3]
+
+          // Só incluir se tem grão, não tem erro e temperatura válida
+          if (temGrao && !temErro && temp !== -1000 && temp !== 0) {
+            // Converter posição do cabo (que está em transform) para coordenadas x,y
+            const match = cabo.transform.match(/translate\(([-\d.]+),([-\d.]+)\)/)
+            if (match) {
+              const x = parseFloat(match[1]) + this.centroX
+              const y = parseFloat(match[2]) + this.centroY
+              dadosTemperatura.push({ x, y, temp })
+            }
+          }
+        }
+      })
+
+      if (dadosTemperatura.length === 0) return []
+
+      // Gerar grade de blocos para o mapa térmico
+      const resolucao = 20 // Grade 20x20
+      const raio = this.raioSilo
+      const centro = { x: this.centroX, y: this.centroY }
+      const blocos = []
+
+      for (let i = 0; i < resolucao; i++) {
+        for (let j = 0; j < resolucao; j++) {
+          const x = centro.x - raio + (2 * raio * i) / resolucao
+          const y = centro.y - raio + (2 * raio * j) / resolucao
+
+          // Verificar se o ponto está dentro do círculo do silo
+          const distCentro = Math.hypot(x - centro.x, y - centro.y)
+          if (distCentro > raio) continue
+
+          // Interpolação IDW (Inverse Distance Weighting)
+          const tempInterpolada = this.calcularIDW(x, y, dadosTemperatura)
+          
+          if (tempInterpolada !== null) {
+            const tamanhoBloco = (2 * raio) / resolucao
+            blocos.push({
+              x: x - tamanhoBloco / 2,
+              y: y - tamanhoBloco / 2,
+              width: tamanhoBloco,
+              height: tamanhoBloco,
+              fill: this.corFaixaExata(tempInterpolada)
+            })
+          }
+        }
+      }
+
+      return blocos
+    },
+
+    
+
+    temperaturaMediaCamadaAtual() {
+      if (!this.modoMapaCalor || !this.camadasPorProfundidade.length) return null
+
+      const camadaAtual = this.camadasPorProfundidade[this.camadaAtual]
+      const sensorIndex = camadaAtual.indice
+
+      const temperaturas = []
+      const cabos = Object.keys(this.leitura)
+
+      cabos.forEach(pendulo => {
+        if (this.leitura[pendulo] && this.leitura[pendulo][sensorIndex]) {
+          const dadosSensor = this.leitura[pendulo][sensorIndex]
+          if (dadosSensor && dadosSensor[4] === true && dadosSensor[3] === false) {
+            const temp = parseFloat(dadosSensor[0])
+            if (temp !== null && temp !== -1000 && temp !== 0) {
+              temperaturas.push(temp)
+            }
+          }
+        }
+      })
+
+      if (temperaturas.length === 0) return null
+      return temperaturas.reduce((sum, temp) => sum + temp, 0) / temperaturas.length
+    },
+
+    camadaAtualInfo() {
+      if (!this.modoMapaCalor || !this.camadasPorProfundidade.length) return ''
+      const camada = this.camadasPorProfundidade[this.camadaAtual]
+      if (!camada) return ''
+      return `${camada.nome} - Média: ${this.temperaturaMediaCamadaAtual !== null ? this.temperaturaMediaCamadaAtual.toFixed(1) + '°C' : 'N/A'}`
+    },
+
+    camadaAnterior() {
+      if (!this.modoMapaCalor || !this.camadasPorProfundidade.length) return { cor: '#CCCCCC' }
+      const indiceAnterior = (this.camadaAtual - 1 + this.camadasPorProfundidade.length) % this.camadasPorProfundidade.length
+      return this.camadasPorProfundidade[indiceAnterior]
+    },
+
+    camadaProxima() {
+      if (!this.modoMapaCalor || !this.camadasPorProfundidade.length) return { cor: '#CCCCCC' }
+      const indiceProximo = (this.camadaAtual + 1) % this.camadasPorProfundidade.length
+      return this.camadasPorProfundidade[indiceProximo]
+    },
+
+    
   },
   methods: {
     // Função para converter coordenadas polares em retangulares (baseada no HTML original)
     polarParaRetangular(raio, angulo) {
       // Converte o ângulo de graus para radianos e inverte
       const anguloRad = (angulo * Math.PI) / 180 * -1
-      
+
       // Calcula o deslocamento em coordenadas retangulares
       const x = raio * Math.cos(anguloRad)
       const y = raio * Math.sin(anguloRad)
-      
+
       // Retorna a string de transform
       return `translate(${x},${y})`
     },
@@ -318,7 +521,7 @@ export default {
     // Função para calcular o transform com cada círculo independente, começando no minuto 15
     calcularTransformCircularIndependente(nivel, index, totalNoNivel) {
       let raio = 0
-      
+
       // Definir raio baseado no nível
       switch (nivel) {
         case 'centro':
@@ -331,10 +534,10 @@ export default {
           raio = 55 // Círculo externo
           break
       }
-      
+
       // Cada círculo começa no minuto 15 (0 graus)
       const anguloInicial = 0 // Minuto 15 do relógio (3 horas = 0 graus)
-      
+
       // Distribuir os cabos uniformemente pelo círculo completo (360°)
       let anguloFinal
       if (totalNoNivel === 1) {
@@ -345,156 +548,18 @@ export default {
         const incrementoAngulo = 360 / totalNoNivel // Dividir o círculo completo
         anguloFinal = anguloInicial + (incrementoAngulo * index)
       }
-      
+
       return this.polarParaRetangular(raio, anguloFinal)
     },
-    
-    // Função para calcular o transform com posicionamento anti-horário começando no minuto 15 (mantida para compatibilidade)
-    calcularTransformAntiHorario(nivel, posicaoGlobal, totalCabos) {
-      let raio = 0
-      
-      // Definir raio baseado no nível
-      switch (nivel) {
-        case 'centro':
-          raio = 15 // Círculo pequeno ao redor do centro
-          break
-        case 'meio':
-          raio = 37 // Círculo médio
-          break
-        case 'externo':
-          raio = 55 // Círculo externo
-          break
-      }
-      
-      // Começar no minuto 15 do relógio (0 graus) e ir em sentido anti-horário
-      const anguloInicial = 0 // Minuto 15 do relógio (3 horas = 0 graus)
-      const incrementoAngulo = 360 / totalCabos // Distribuição uniforme
-      const anguloFinal = anguloInicial + (incrementoAngulo * posicaoGlobal) // Anti-horário (soma devido à inversão em polarParaRetangular)
-      
-      return this.polarParaRetangular(raio, anguloFinal)
-    },
-    
-    // Função melhorada para calcular o transform baseado no nível e posição circular (mantida para compatibilidade)
-    calcularTransformCircular(nivel, index, totalNoNivel) {
-      let raio = 0
-      let anguloOffset = 0
-      
-      // Definir raio e offset de ângulo baseado no nível
-      switch (nivel) {
-        case 'centro':
-          if (totalNoNivel === 1) {
-            raio = 0 // Exatamente no centro se há apenas 1 cabo
-          } else {
-            raio = 15 // Círculo pequeno ao redor do centro para múltiplos cabos
-          }
-          anguloOffset = -90 // Começar do topo
-          break
-        case 'meio':
-          raio = 37 // Círculo médio
-          anguloOffset = -90 + (totalNoNivel > 0 ? 180 / totalNoNivel : 0) // Offset para evitar sobreposição
-          break
-        case 'externo':
-          raio = 55 // Círculo externo
-          anguloOffset = -90 + (totalNoNivel > 0 ? 90 / totalNoNivel : 0) // Offset diferente para variação visual
-          break
-      }
-      
-      // Se há apenas 1 cabo no nível e é o centro, posicionar exatamente no centro
-      if (nivel === 'centro' && totalNoNivel === 1) {
-        return this.polarParaRetangular(0, 0)
-      }
-      
-      // Distribuir uniformemente no círculo correspondente
-      // Começar do topo com offset e distribuir no sentido horário
-      const anguloDistribuicao = anguloOffset + (360 / totalNoNivel) * index
-      
-      return this.polarParaRetangular(raio, anguloDistribuicao)
-    },
-    
-    // Função para calcular o transform baseado no número de sensores e posição lógica (mantida para compatibilidade)
-    calcularTransformPorSensores(numSensores, index, total, tipo) {
-      if (tipo === 'central') {
-        // Cabos com mais sensores ficam no centro (raio 0 ou muito pequeno)
-        if (total === 1) {
-          return this.polarParaRetangular(0, 0) // Exatamente no centro
-        } else {
-          // Se há múltiplos cabos com o mesmo número máximo de sensores, distribuir em círculo pequeno
-          const anguloDistribuicao = (360 / total) * index
-          return this.polarParaRetangular(15, anguloDistribuicao) // Raio pequeno ao redor do centro
-        }
-      } else {
-        // Cabos periféricos: posicionamento baseado no número de sensores
-        let raio
-        
-        // Definir raio baseado no número de sensores
-        if (numSensores >= 10) {
-          raio = 30 // Sensores 10-11: próximos ao centro
-        } else if (numSensores >= 8) {
-          raio = 45 // Sensores 8-9: círculo médio
-        } else {
-          raio = 55 // Sensores 1-7: círculo externo
-        }
-        
-        // Distribuir uniformemente no círculo correspondente
-        const anguloDistribuicao = (360 / total) * index
-        
-        return this.polarParaRetangular(raio, anguloDistribuicao)
-      }
-    },
-    
-    // Função para calcular o transform de cada cabo baseado no número total de cabos (método antigo para fallback)
-    calcularTransformCabo(numCabos, index) {
-      switch (numCabos) {
-        case 1:
-          return this.polarParaRetangular(0, 0)
-        
-        case 3:
-          const angulos3 = [30, 150, 270]
-          return this.polarParaRetangular(37, angulos3[index])
-        
-        case 4:
-          const angulos4 = [75, 195, 315, 0]
-          const raios4 = [37, 37, 37, 0]
-          return this.polarParaRetangular(raios4[index], angulos4[index])
-        
-        case 5:
-          const angulos5 = [15, 90, 180, 270, 0]
-          const raios5 = [37, 37, 37, 37, 0]
-          return this.polarParaRetangular(raios5[index], angulos5[index])
-        
-        case 6:
-          const angulos6 = [30, 102, 174, 246, 318, 0]
-          const raios6 = [37, 37, 37, 37, 37, 0]
-          return this.polarParaRetangular(raios6[index], angulos6[index])
-        
-        case 10:
-          const angulos10 = [30, 90, 150, 210, 270, 330, 60, 180, 300, 0]
-          const raios10 = [50, 50, 50, 50, 50, 50, 30, 30, 30, 0]
-          return this.polarParaRetangular(raios10[index], angulos10[index])
-        
-        case 15:
-          const angulos15 = [40, 91.43, 142.86, 192.29, 245.72, 297.15, 348.58, 18, 69.43, 120.86, 172.29, 223.72, 275.15, 326.68, 0]
-          const raios15 = [50, 50, 50, 50, 50, 50, 50, 30, 30, 30, 30, 30, 30, 30, 0]
-          return this.polarParaRetangular(raios15[index], angulos15[index])
-        
-        case 19:
-          // Para 19 cabos, distribui uniformemente em círculo
-          const anguloBase19 = (360 / 19) * index
-          const raio19 = index < 18 ? 45 : 0
-          return this.polarParaRetangular(raio19, anguloBase19)
-        
-        default:
-          // Para outros números, distribui uniformemente
-          const anguloUniforme = (360 / numCabos) * index
-          const raioUniforme = numCabos > 12 ? 45 : 37
-          return this.polarParaRetangular(raioUniforme, anguloUniforme)
-      }
-    },
+
+
+
+
 
     temProblema(pendulo) {
       // Verifica se há algum problema nos sensores do pêndulo que justifique animação
       if (!this.leitura || !this.leitura[pendulo]) return false
-      
+
       const sensores = this.leitura[pendulo]
       for (const sensorKey in sensores) {
         const valores = sensores[sensorKey]
@@ -508,10 +573,10 @@ export default {
     temFalha(pendulo) {
       // Verifica se há falha crítica no pêndulo
       if (!this.leitura || !this.leitura[pendulo]) return false
-      
+
       const sensores = this.leitura[pendulo]
       let todosSensoresSemGrao = true
-      
+
       for (const sensorKey in sensores) {
         const valores = sensores[sensorKey]
         if (valores && valores[4] === true) { // Tem grão
@@ -519,7 +584,7 @@ export default {
           break
         }
       }
-      
+
       return todosSensoresSemGrao // Falha se todos os sensores estão sem grão
     },
 
@@ -527,14 +592,14 @@ export default {
       if (!this.leitura || !this.leitura[pendulo]) {
         return '#CCCCCC' // Cor padrão se não há dados
       }
-      
+
       const sensores = this.leitura[pendulo]
       const temperaturasValidas = []
-      
+
       // Coleta temperaturas válidas de todos os sensores do pêndulo
       for (const sensorKey in sensores) {
         const valores = sensores[sensorKey]
-        
+
         // Filtra sensores válidos: tem grão (valores[4] === true) e sem erro (valores[3] === false)
         // e temperatura válida (não 0, não -1000)
         if (valores && 
@@ -544,30 +609,30 @@ export default {
           temperaturasValidas.push(parseFloat(valores[0]))
         }
       }
-      
+
       // Se não há temperaturas válidas, retorna cor cinza
       if (temperaturasValidas.length === 0) {
         return '#CCCCCC'
       }
-      
+
       // Calcula média das temperaturas válidas
       const media = temperaturasValidas.reduce((sum, temp) => sum + temp, 0) / temperaturasValidas.length
-      
+
       // Aplica a mesma lógica de cores usada no sistema
       return this.corFaixaExata(media)
     },
-    
+
     getTemperaturaMediaPendulo(pendulo) {
       if (!this.leitura || !this.leitura[pendulo]) {
         return '---'
       }
-      
+
       const sensores = this.leitura[pendulo]
       const temperaturasValidas = []
-      
+
       for (const sensorKey in sensores) {
         const valores = sensores[sensorKey]
-        
+
         if (valores && 
             valores[4] === true && 
             valores[3] === false && 
@@ -575,21 +640,21 @@ export default {
           temperaturasValidas.push(parseFloat(valores[0]))
         }
       }
-      
+
       if (temperaturasValidas.length === 0) {
         return '---'
       }
-      
+
       const media = temperaturasValidas.reduce((sum, temp) => sum + temp, 0) / temperaturasValidas.length
       return media.toFixed(1)
     },
-    
+
     getCorTexto(corFundo) {
       // Define cor do texto baseado no contraste com a cor de fundo
       const coresEscuras = ['#ff2200', '#ff6600', '#ff9900']
       return coresEscuras.some(cor => corFundo.toLowerCase().includes(cor.substring(1))) ? 'white' : 'black'
     },
-    
+
     corFaixaExata(t) {
       // Função idêntica ao Silo2D para garantir cores consistentes
       if (t === -1000) return "#ff0000"
@@ -603,6 +668,60 @@ export default {
       else if (t < 35) return "#ff2200"
       else if (t < 50) return "#ff0090"
       else return "#f700ff"
+    },
+
+    getCorCamada(indice) {
+      // Define cores para as camadas do mapa de calor
+      const cores = [
+        '#ff2200', // Mais quente (profundidade 1)
+        '#ff6600',
+        '#ff9900',
+        '#fcf803',
+        '#07fc03',
+        '#03fcbe',
+        '#03e8fc', // Mais frio (profundidades maiores)
+      ]
+      return cores[indice % cores.length]
+    },
+
+    alternarModoMapaCalor() {
+      this.modoMapaCalor = !this.modoMapaCalor
+      // Sempre começar pela primeira camada (topo) quando ativar ou desativar
+      this.camadaAtual = 0
+    },
+
+    anteriorCamada() {
+      if (!this.modoMapaCalor) return
+      this.camadaAtual = (this.camadaAtual - 1 + this.camadasPorProfundidade.length) % this.camadasPorProfundidade.length
+    },
+
+    proximaCamada() {
+      if (!this.modoMapaCalor) return
+      this.camadaAtual = (this.camadaAtual + 1) % this.camadasPorProfundidade.length
+    },
+
+    // Método para calcular interpolação IDW (Inverse Distance Weighting)
+    calcularIDW(x, y, dadosTemperatura, power = 2) {
+      if (dadosTemperatura.length === 0) return null
+
+      let somaPesos = 0
+      let somaTemperaturas = 0
+
+      dadosTemperatura.forEach(dado => {
+        const distancia = Math.hypot(x - dado.x, y - dado.y)
+        
+        // Se está muito próximo de um ponto, usar exatamente essa temperatura
+        if (distancia < 0.1) {
+          return dado.temp
+        }
+
+        const peso = 1 / Math.pow(distancia, power)
+        somaPesos += peso
+        somaTemperaturas += dado.temp * peso
+      })
+
+      if (somaPesos === 0) return null
+      return somaTemperaturas / somaPesos
     }
   }
 }
@@ -611,13 +730,111 @@ export default {
 <style scoped>
 .topo-view-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
   width: 100%;
   background-color: #f8f9fa;
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Botões de controle abaixo do SVG */
+.botoes-controle {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-controle {
+  padding: 10px 20px;
+  border: 2px solid #007bff;
+  border-radius: 25px;
+  background-color: white;
+  color: #007bff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  text-align: center;
+}
+
+.btn-controle:hover {
+  background-color: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.btn-controle.ativo {
+  background-color: #007bff;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-controle.ativo:hover {
+  background-color: #0056b3;
+}
+
+.btn-topo.ativo {
+  background-color: #28a745;
+  border-color: #28a745;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.btn-topo.ativo:hover {
+  background-color: #218838;
+  border-color: #218838;
+}
+
+.btn-mapa-calor.ativo {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
+.btn-mapa-calor.ativo:hover {
+  background-color: #c82333;
+  border-color: #c82333;
+}
+
+.navegacao-camadas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-navegacao {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.btn-navegacao:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+}
+
+.info-camada {
+  text-align: center;
+  font-size: 11px;
+  color: #666;
+  max-width: 200px;
+  line-height: 1.3;
 }
 
 svg {
@@ -669,7 +886,7 @@ g[id^="cabo_"]:hover text {
   .topo-view-container {
     padding: 10px;
   }
-  
+
   .cabo-text {
     font-size: 4px;
   }
