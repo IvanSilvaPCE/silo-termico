@@ -423,15 +423,15 @@ export default {
     buildSiloStructure(numCabos, alturaSilo, raioSilo) {
       const alturaTopo = 1.2;
 
-      // Corpo principal do silo - cilindro
+      // Corpo principal do silo - cilindro com aparência mais realista
       const cylinderGeometry = new THREE.CylinderGeometry(raioSilo, raioSilo, alturaSilo, 48, 1, true);
       const cylinderMaterial = new THREE.MeshStandardMaterial({
-        color: 0xDDDDDD,
+        color: 0xE0E0E0, // Cinza claro metálico
         transparent: true,
-        opacity: 0.25,
+        opacity: 0.4, // Menos transparente
         side: THREE.DoubleSide,
-        metalness: 0.1,
-        roughness: 0.8
+        metalness: 0.7, // Mais metálico
+        roughness: 0.3  // Menos rugoso
       });
       const cylinder = new THREE.Mesh(cylinderGeometry, cylinderMaterial);
       cylinder.position.y = alturaSilo / 2;
@@ -439,39 +439,60 @@ export default {
       cylinder.receiveShadow = true;
       this.scene.add(cylinder);
 
-      // Base do silo
-      const baseGeometry = new THREE.CylinderGeometry(raioSilo + 0.1, raioSilo + 0.1, 0.3, 48);
+      // === ANÉIS HORIZONTAIS METÁLICOS (apenas alguns, mais simples) ===
+      const numAneis = Math.min(4, Math.floor(alturaSilo / 2)); // Máximo 4 anéis, mais espaçados
+      
+      for (let i = 1; i <= numAneis; i++) {
+        const alturaAnel = (i * alturaSilo) / (numAneis + 1);
+        
+        // Anel principal simples
+        const anelGeometry = new THREE.TorusGeometry(raioSilo * 1.01, 0.04, 6, 24);
+        const anelMaterial = new THREE.MeshStandardMaterial({
+          color: 0x999999, // Cinza metálico
+          metalness: 0.8,
+          roughness: 0.2
+        });
+        const anel = new THREE.Mesh(anelGeometry, anelMaterial);
+        anel.position.y = alturaAnel;
+        anel.rotation.x = Math.PI / 2;
+        anel.castShadow = true;
+        this.scene.add(anel);
+      }
+
+      // === BASE MELHORADA (mais grossa para baixo e mais baixa) ===
+      const baseGeometry = new THREE.CylinderGeometry(raioSilo + 0.15, raioSilo + 0.4, 0.4, 48);
       const baseMaterial = new THREE.MeshStandardMaterial({
-        color: 0x999999,
-        metalness: 0.5,
-        roughness: 0.5
+        color: 0x777777, // Cor de concreto
+        metalness: 0.2,
+        roughness: 0.7
       });
       const base = new THREE.Mesh(baseGeometry, baseMaterial);
-      base.position.y = 0;
+      base.position.y = -0.1; // Baixar a base para entrar um pouco no elemento geral
       base.receiveShadow = true;
       this.scene.add(base);
 
-      // Teto cônico do silo
-      const coneGeometry = new THREE.ConeGeometry(raioSilo * 1.1, alturaTopo, 32);
+      // === TETO CÔNICO MELHORADO (mais simples e realista) ===
+      const coneGeometry = new THREE.ConeGeometry(raioSilo * 1.05, alturaTopo, 32);
       const coneMaterial = new THREE.MeshStandardMaterial({
-        color: 0x999999,
-        metalness: 0.3,
-        roughness: 0.6
+        color: 0xB0B0B0, // Cor mais clara e natural
+        metalness: 0.7,   // Bem metálico
+        roughness: 0.2    // Bem liso
       });
       const cone = new THREE.Mesh(coneGeometry, coneMaterial);
       cone.position.y = alturaSilo + alturaTopo / 2;
       cone.castShadow = true;
       this.scene.add(cone);
 
-      // Tampa preta no topo do cone
-      const capGeometry = new THREE.CylinderGeometry(raioSilo * 0.15, raioSilo * 0.18, 0.08, 16);
+      // Chapéu melhorado que acompanha o fluxo do teto cônico
+      const capGeometry = new THREE.ConeGeometry(raioSilo * 0.15, 0.12, 16);
       const capMaterial = new THREE.MeshStandardMaterial({
-        color: 0x1a1a1a,
+        color: 0x2a2a2a,
         metalness: 0.8,
-        roughness: 0.2
+        roughness: 0.1
       });
       const cap = new THREE.Mesh(capGeometry, capMaterial);
-      cap.position.y = alturaSilo + alturaTopo - 0.02;
+      cap.position.y = alturaSilo + alturaTopo + 0.06; // Mais acima para ficar bem no topo
+      cap.castShadow = true;
       this.scene.add(cap);
     },
 
@@ -848,7 +869,8 @@ export default {
     },
 
     createCable(position, alturaSilo, penduloNome, sensores) {
-      const cableGeometry = new THREE.CylinderGeometry(0.08, 0.08, alturaSilo - 0.3, 16);
+      // Pêndulo mais fino como solicitado
+      const cableGeometry = new THREE.CylinderGeometry(0.04, 0.04, alturaSilo - 0.3, 12);
       const cableMaterial = new THREE.MeshStandardMaterial({
         color: 0x1a1a1a,
         metalness: 0.8,
@@ -949,8 +971,8 @@ export default {
       // Cor: cinza se não tem nível, cor da temperatura se tem nível
       const cor = ativo ? (temGrao ? this.corFaixaExata(temp) : 0xcccccc) : 0xcccccc;
 
-      // Sensor maior e mais visível
-      const sensorGeometry = new THREE.BoxGeometry(0.4, 0.2, 0.2);
+      // Sensor redondo como solicitado
+      const sensorGeometry = new THREE.SphereGeometry(0.15, 16, 12);
       const sensorMaterial = new THREE.MeshStandardMaterial({
         color: cor,
         emissive: alarme ? 0xff0000 : (temGrao ? cor : 0x444444),
