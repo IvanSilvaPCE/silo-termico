@@ -20,7 +20,11 @@
             maxHeight: 'calc(100vh - 140px)',
             overflow: 'auto'
           }">
-            <svg v-if="dados" width="100%" height="auto" :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
+            <!-- Vista de Topo Separada -->
+            <TopoView v-if="modo === 'topo' && dados && leitura" :dados="dados" :leitura="leitura" />
+            
+            <!-- SVG das outras vistas -->
+            <svg v-else-if="dados" width="100%" height="auto" :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
               maxWidth: '100%',
               maxHeight: modo === 'temperatura' ? '70vh' : '85vh',
               height: 'auto',
@@ -58,6 +62,81 @@
                   <g filter="url(#blurFilter)" clip-path="url(#clipSilo)">
                     <rect v-for="(bloco, index) in blocosMapaCalor" :key="`bloco-${index}`" :x="bloco.x" :y="bloco.y"
                       :width="bloco.width" :height="bloco.height" :fill="bloco.fill" />
+                  </g>
+                </g>
+
+                <!-- Vista de Topo (modo topo) -->
+                <!-- topo moved to TopoView --><g v-if="false">
+                  <!-- Fundo circular do topo do silo -->
+                  <defs>
+                    <radialGradient id="topoGradient" gradientUnits="objectBoundingBox" cx="0.5" cy="0.5" r="0.5">
+                      <stop offset="0" style="stop-color:whitesmoke"/>
+                      <stop offset="1" style="stop-color:#999999"/>
+                    </radialGradient>
+                  </defs>
+                  
+                  <!-- Círculo principal do silo -->
+                  <circle 
+                    :cx="larguraSVGTopo / 2" 
+                    :cy="alturaSVGTopo / 2" 
+                    :r="raioSiloTopo" 
+                    fill="url(#topoGradient)" 
+                    stroke="#999999" 
+                    stroke-width="1.7"
+                  />
+                  
+                  <!-- Linhas divisórias radiais -->
+                  <g stroke="#999999" stroke-width="0.85" opacity="0.7">
+                    <line :x1="larguraSVGTopo / 2" :y1="alturaSVGTopo / 2 - raioSiloTopo" :x2="larguraSVGTopo / 2" :y2="alturaSVGTopo / 2 + raioSiloTopo" />
+                    <line :x1="larguraSVGTopo / 2 - raioSiloTopo * Math.cos(Math.PI/4)" :y1="alturaSVGTopo / 2 - raioSiloTopo * Math.sin(Math.PI/4)" 
+                          :x2="larguraSVGTopo / 2 + raioSiloTopo * Math.cos(Math.PI/4)" :y2="alturaSVGTopo / 2 + raioSiloTopo * Math.sin(Math.PI/4)" />
+                    <line :x1="larguraSVGTopo / 2 - raioSiloTopo" :y1="alturaSVGTopo / 2" :x2="larguraSVGTopo / 2 + raioSiloTopo" :y2="alturaSVGTopo / 2" />
+                    <line :x1="larguraSVGTopo / 2 - raioSiloTopo * Math.cos(Math.PI/4)" :y1="alturaSVGTopo / 2 + raioSiloTopo * Math.sin(Math.PI/4)" 
+                          :x2="larguraSVGTopo / 2 + raioSiloTopo * Math.cos(Math.PI/4)" :y2="alturaSVGTopo / 2 - raioSiloTopo * Math.sin(Math.PI/4)" />
+                  </g>
+                  
+                  <!-- Círculo central -->
+                  <circle 
+                    :cx="larguraSVGTopo / 2" 
+                    :cy="alturaSVGTopo / 2" 
+                    :r="raioSiloTopo * 0.2" 
+                    fill="#E6E6E6" 
+                    stroke="#999999" 
+                    stroke-width="0.85"
+                  />
+                  
+                  <!-- Círculo médio -->
+                  <circle 
+                    :cx="larguraSVGTopo / 2" 
+                    :cy="alturaSVGTopo / 2" 
+                    :r="raioSiloTopo * 0.55" 
+                    fill="none" 
+                    stroke="#999999" 
+                    stroke-width="0.85"
+                  />
+                  
+                  <!-- Pêndulos/Cabos como círculos coloridos -->
+                  <g v-for="(posicao, index) in posicoesCabosTopo" :key="`cabo-topo-${index}`">
+                    <circle 
+                      :cx="posicao.x" 
+                      :cy="posicao.y" 
+                      :r="5.7" 
+                      :fill="getCorMediaPendulo(posicao.pendulo)"
+                      stroke="black" 
+                      stroke-width="0.8"
+                    />
+                    <text 
+                      :x="posicao.x" 
+                      :y="posicao.y" 
+                      text-anchor="middle" 
+                      dominant-baseline="central" 
+                      font-weight="bold" 
+                      font-size="5" 
+                      font-family="Arial"
+                      :fill="getCorMediaPendulo(posicao.pendulo) === '#ff2200' ? 'white' : 'black'"
+                    >
+                      {{ posicao.label }}
+                    </text>
                   </g>
                 </g>
 
@@ -116,8 +195,8 @@
                 </g>
               </g>
 
-              <!-- Aeradores -->
-              <g v-if="layout.aeradores && layout.aeradores.na > 0">
+              <!-- Aeradores (apenas nos modos lateral e mapa) -->
+              <g v-if="layout.aeradores && layout.aeradores.na > 0 && modo !== 'topo'">
                 <g v-for="id in layout.aeradores.na" :key="`aerador-${id}`" :id="`aerador_${id}`"
                   :transform="getTransformAerador(id)">
                   <circle :id="`fundo_aerador_${id}`" :cx="70 + 12.5 + 3.5" cy="24" r="10" :fill="getCorAerador(id)" />
@@ -149,7 +228,7 @@
           <div class="col-12">
             <div class="card">
               <div class="card-header bg-success text-white">
-                <h6 class="mb-0">⚙️ Configurações Salvas do Silo</h6>
+                <h6 class="mb-0"><i class="fa fa-cog"></i> Configurações Salvas do Silo</h6>
               </div>
               <div class="card-body">
                 <div class="row align-items-end">
@@ -168,7 +247,7 @@
                       @click="abrirModelador"
                       title="Abrir modelador para criar/editar configurações"
                     >
-                      🛠️ Modelador
+                      <i class="fa fa-wrench"></i> Modelador
                     </button>
                   </div>
                 </div>
@@ -184,9 +263,29 @@
         </div>
 
         <div class="d-flex justify-content-center py-2">
-          <button class="btn btn-primary" @click="trocarModo">
-            {{ modo === 'temperatura' ? 'Ver Mapa de Calor' : 'Ver Temperatura' }}
-          </button>
+          <div class="btn-group" role="group" aria-label="Modos de visualização">
+            <button 
+              class="btn" 
+              :class="modo === 'temperatura' ? 'btn-primary' : 'btn-outline-primary'"
+              @click="setModo('temperatura')"
+            >
+              <i class="fa fa-bar-chart"></i> Lateral
+            </button>
+            <button 
+              class="btn" 
+              :class="modo === 'mapa' ? 'btn-primary' : 'btn-outline-primary'"
+              @click="setModo('mapa')"
+            >
+              <i class="fa fa-fire"></i> Mapa Térmico
+            </button>
+            <button 
+              class="btn" 
+              :class="modo === 'topo' ? 'btn-primary' : 'btn-outline-primary'"
+              @click="setModo('topo')"
+            >
+              <i class="fa fa-refresh"></i> Topo
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -194,8 +293,13 @@
 </template>
 
 <script>
+import TopoView from './TopoView.vue'
+
 export default {
   name: 'Silo2D',
+  components: {
+    TopoView
+  },
   data() {
     return {
       modo: 'temperatura',
@@ -248,6 +352,42 @@ export default {
       const p4 = [lb / 2, 0]
       const p5 = [0, hb * 1.75]
       return `M ${p1[0]},${p1[1]} L ${p2[0]},${p2[1]} L ${p3[0]},${p3[1]} L ${p4[0]},${p4[1]} L ${p5[0]},${p5[1]} Z`
+    },
+
+    // Propriedades computadas para vista de topo
+    larguraSVGTopo() {
+      return 300
+    },
+
+    alturaSVGTopo() {
+      return 300
+    },
+
+    raioSiloTopo() {
+      return 120
+    },
+
+    posicoesCabosTopo() {
+      if (!this.leitura) return []
+      
+      const cabos = Object.keys(this.leitura)
+      const numCabos = cabos.length
+      const centro = { x: this.larguraSVGTopo / 2, y: this.alturaSVGTopo / 2 }
+      const raioCirculo = this.raioSiloTopo * 0.7 // Posicionar cabos a 70% do raio
+      
+      return cabos.map((cabo, index) => {
+        const angulo = (2 * Math.PI * index) / numCabos - Math.PI / 2 // Começar no topo
+        const x = centro.x + raioCirculo * Math.cos(angulo)
+        const y = centro.y + raioCirculo * Math.sin(angulo)
+        
+        return {
+          x,
+          y,
+          pendulo: cabo,
+          label: cabo,
+          index
+        }
+      })
     }
   },
   mounted() {
@@ -704,12 +844,21 @@ export default {
       this.blocosMapaCalor = blocos
     },
 
-    trocarModo() {
+    setModo(novoModo) {
+      if (this.modo === novoModo) return
       this.carregandoModo = true
       setTimeout(() => {
-        this.modo = this.modo === 'temperatura' ? 'mapa' : 'temperatura'
+        this.modo = novoModo
         this.carregandoModo = false
-      }, 600)
+      }, 200)
+    },
+
+    trocarModo() {
+      // Manter compatibilidade com código anterior
+      const modos = ['temperatura', 'mapa', 'topo']
+      const indexAtual = modos.indexOf(this.modo)
+      const proximoIndex = (indexAtual + 1) % modos.length
+      this.setModo(modos[proximoIndex])
     },
 
     carregarConfiguracoesDisponiveis() {
@@ -794,6 +943,35 @@ export default {
         // Fallback - abrir em nova aba se não há roteamento
         window.open('/modelador?tipo=silo&origem=preview', '_blank')
       }
+    },
+
+    // Método para calcular a média de temperatura por pêndulo
+    getMediaTemperaturaPendulo(pendulo) {
+      if (!this.leitura[pendulo]) return 0
+      
+      const sensores = Object.values(this.leitura[pendulo])
+      const temperaturas = sensores
+        .filter(sensor => {
+          const temp = parseFloat(sensor[0])
+          const temGrao = sensor[4]
+          const temFalha = sensor[3]
+          return !temFalha && temGrao && temp !== -1000 && temp !== 0
+        })
+        .map(sensor => parseFloat(sensor[0]))
+      
+      if (temperaturas.length === 0) return 0
+      
+      const soma = temperaturas.reduce((acc, temp) => acc + temp, 0)
+      return soma / temperaturas.length
+    },
+
+    // Método para obter a cor baseada na média de temperatura do pêndulo
+    getCorMediaPendulo(pendulo) {
+      const mediaTemp = this.getMediaTemperaturaPendulo(pendulo)
+      
+      if (mediaTemp === 0) return "#e7e7e7" // Cinza para sem dados
+      
+      return this.corFaixaExata(mediaTemp)
     }
   }
 }

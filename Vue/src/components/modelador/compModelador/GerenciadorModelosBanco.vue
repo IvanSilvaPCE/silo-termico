@@ -722,7 +722,10 @@ export default {
 
     capturarPosicionamentoSilo() {
       try {
-        return this.configSilo?.posicionamento || {}
+        return {
+          // Este método pode ser usado para posicionamentos específicos do silo
+          // Por enquanto retorna objeto vazio, mas mantém estrutura para expansão futura
+        }
       } catch (error) {
         return {}
       }
@@ -730,17 +733,38 @@ export default {
 
     capturarSensoresSilo() {
       try {
-        return this.configSilo?.sensores || {}
+        return {
+          escala_sensores: this.configSilo?.escala_sensores || 16,
+          dist_y_sensores: this.configSilo?.dist_y_sensores || 12
+        }
       } catch (error) {
-        return {}
+        return {
+          escala_sensores: 16,
+          dist_y_sensores: 12
+        }
       }
     },
 
     capturarEstruturaSilo() {
       try {
-        return this.configSilo?.estrutura || {}
+        return {
+          // Aeradores
+          na: this.configSilo?.na || 4,
+          ds: this.configSilo?.ds || 30,
+          dy: this.configSilo?.dy || 0,
+          da: this.configSilo?.da || 35,
+          aerador_rotacao: this.configSilo?.aerador_rotacao || 0,
+          aerador_escala: this.configSilo?.aerador_escala || 1
+        }
       } catch (error) {
-        return {}
+        return {
+          na: 4,
+          ds: 30,
+          dy: 0,
+          da: 35,
+          aerador_rotacao: 0,
+          aerador_escala: 1
+        }
       }
     },
 
@@ -793,11 +817,45 @@ export default {
       }
     },
 
-    // Métodos simplificados para outros dados
-    capturarControlesSilo() { return this.configSilo?.controles || {} },
-    capturarCabosSilo() { return this.configSilo?.cabos || {} },
-    capturarPendulosSilo() { return this.configSilo?.pendulos || {} },
-    capturarParametrosDesenhoSilo() { return this.configSilo?.parametrosDesenho || {} },
+    // Métodos corrigidos para capturar dados reais do configSilo
+    capturarControlesSilo() {
+      return {
+        aeradores_ativo: this.configSilo?.aeradores_ativo || false,
+        animacao_aeradores: this.configSilo?.animacao_aeradores || false,
+        velocidade_animacao: this.configSilo?.velocidade_animacao || 2,
+        efeito_hover: this.configSilo?.efeito_hover || false,
+        modo_responsivo: this.configSilo?.modo_responsivo || false,
+        otimizar_performance: this.configSilo?.otimizar_performance || false
+      }
+    },
+    capturarCabosSilo() {
+      return {
+        pos_x_cabos_uniforme: this.configSilo?.pos_x_cabos_uniforme || 1,
+        pos_x_cabo: this.configSilo?.pos_x_cabo || [],
+        pos_y_cabo: this.configSilo?.pos_y_cabo || [],
+        distancia_cabos: this.configSilo?.distancia_cabos || 30,
+        offset_cabos: this.configSilo?.offset_cabos || 9,
+        altura_cabos: this.configSilo?.altura_cabos || 152
+      }
+    },
+    capturarPendulosSilo() {
+      return {
+        quantidadePendulos: this.configSilo?.quantidadePendulos || 5,
+        sensoresPorPendulo: this.configSilo?.sensoresPorPendulo || {}
+      }
+    },
+    capturarParametrosDesenhoSilo() {
+      return {
+        largura_svg: this.configSilo?.largura_svg || 525,
+        altura_svg: this.configSilo?.altura_svg || 188,
+        margem_interna: this.configSilo?.margem_interna || 10,
+        transparencia_fundo: this.configSilo?.transparencia_fundo || 1,
+        espessura_borda: this.configSilo?.espessura_borda || 1.6,
+        mostrar_sombra: this.configSilo?.mostrar_sombra || false,
+        mostrar_grade: this.configSilo?.mostrar_grade || false,
+        precisao_grid: this.configSilo?.precisao_grid || 1
+      }
+    },
     capturarEstadoModelagemSilo() { return { configurado: this.podeSerSalvo, timestamp: new Date().toISOString() } },
     capturarPosicionamentoArmazem() { return this.configArmazem?.posicionamento || {} },
     capturarSensoresArmazem() { return this.configArmazem?.sensores || {} },

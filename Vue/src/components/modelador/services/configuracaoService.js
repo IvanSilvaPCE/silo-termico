@@ -99,10 +99,10 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
     // 🎯 ESTRUTURA CORRIGIDA: Dados separados por modelo
     modeloEspecifico: {
       quantidadePendulos: config.quantidadePendulos || 3,
-      
+
       // Quantidade de sensores para cada pêndulo
       sensoresPorPendulo: config.sensoresPorPendulo || {},
-      
+
       // Posições individuais de cada pêndulo
       posicoesPendulos: Object.keys(posicoesCabos).reduce((acc, numeroPendulo) => {
         const posicao = posicoesCabos[numeroPendulo]
@@ -117,16 +117,16 @@ const criarEstruturaOtimizadaV6 = (numeroModelo, config, posicoesCabos, dadosSen
         }
         return acc
       }, {}),
-      
+
       // NOVO: Posições manuais dos sensores individuais (drag-and-drop)
       posicoesManualSensores: config.posicoesManualSensores || {},
-      
+
       // NOVO: Posições manuais dos pêndulos (drag-and-drop)
       posicoesManualPendulos: config.posicoesManualPendulos || {},
-      
+
       // Alturas personalizadas dos sensores por pêndulo
       alturasSensores: config.alturasSensores || {},
-      
+
       // Configurações específicas de posicionamento
       configuracaoGlobal: {
         escala_sensores: config.escala_sensores || 16,
@@ -537,16 +537,16 @@ const preservarPosicoesCabos = (dadosSvg) => {
   try {
     const dados = typeof dadosSvg === 'string' ? JSON.parse(dadosSvg) : dadosSvg;
 
+    // 🔧 CRÍTICO: NÃO alterar dados já modelados - apenas garantir estrutura mínima
     if (dados.modelosDefinidos) {
       Object.keys(dados.modelosDefinidos).forEach(modeloKey => {
         const modelo = dados.modelosDefinidos[modeloKey];
 
         if (modelo.configuracao) {
           const config = modelo.configuracao;
-          const quantidadePendulos = modelo.quantidadePendulos || 3;
 
-
-          // Garantir que propriedades básicas existam (sem alterar valores)
+          // APENAS garantir que propriedades obrigatórias existam COM VALORES PADRÃO MÍNIMOS
+          // NÃO sobrescrever valores já configurados pelo usuário
           if (config.escala_sensores === undefined) config.escala_sensores = 16;
           if (config.dist_y_sensores === undefined) config.dist_y_sensores = 12;
           if (config.dist_x_sensores === undefined) config.dist_x_sensores = 0;
@@ -554,79 +554,29 @@ const preservarPosicoesCabos = (dadosSvg) => {
           if (config.posicao_vertical === undefined) config.posicao_vertical = 0;
           if (config.afastamento_vertical_pendulo === undefined) config.afastamento_vertical_pendulo = 0;
 
-          // Preservar dimensões baseadas no fundo se existirem
-          if (!config.dimensoesSvgFundo && config.lb && config.pb) {
+          // APENAS garantir que objetos obrigatórios existam - NÃO alterar conteúdo
+          if (!config.posicoesCabos) config.posicoesCabos = {};
+          if (!config.sensoresPorPendulo) config.sensoresPorPendulo = {};
+          if (!config.posicoesManualPendulos) config.posicoesManualPendulos = {};
+          if (!config.posicoesManualSensores) config.posicoesManualSensores = {};
+
+          // PRESERVAR dimensões já calculadas - NÃO recalcular
+          if (!config.dimensoesSvgFundo && config.lb) {
             config.dimensoesSvgFundo = {
               largura: config.lb,
-              altura: config.pb + 100, // Altura base + margem para topo
-              baseadoEm: 'config_fundo',
-              timestamp: Date.now()
+              altura: (config.pb || 185) + (config.ht || 50) + 50,
+              baseadoEm: 'preservacao_dados_modelados',
+              calculadoEm: new Date().toISOString()
             };
-          }
-
-          // NOVO: Calcular limites do fundo do armazém
-          const limitesFundo = calcularLimitesFundoArmazem(config);
-
-          // IMPORTANTE: Preservar posições individuais dos cabos EXATAMENTE como foram salvas
-          if (!config.posicoesCabos) {
-            config.posicoesCabos = {};
-          }
-
-          // Calcular posições padrão distribuídas dentro do fundo
-          const posicoesDistribuidas = distribuirPendulosDentroDoFundo(quantidadePendulos, limitesFundo);
-
-          // Garantir estrutura para cada cabo, mas SEM alterar posições existentes
-          for (let i = 1; i <= quantidadePendulos; i++) {
-            if (!config.posicoesCabos[i]) {
-              // Usar posição distribuída dentro do fundo como padrão
-              const posicaoPadrao = posicoesDistribuidas[i - 1] || limitesFundo.centro;
-
-              config.posicoesCabos[i] = {
-                x: posicaoPadrao, // Posição horizontal dentro do fundo
-                y: 0, // Posição vertical personalizada
-                offsetX: 0, // Offset adicional X
-                offsetY: 0, // Offset adicional Y
-                altura: 0, // Altura específica do cabo
-                distanciaHorizontal: 0, // Distância horizontal específica
-                numeroSensores: 3, // Número de sensores neste cabo/pêndulo
-                timestampAlteracao: Date.now(),
-                dentroDoFundo: true // Flag indicando que está dentro dos limites
-              };
-            } else {
-              // PRESERVAR posições já salvas, mas VALIDAR se estão dentro do fundo
-              const posicaoExistente = config.posicoesCabos[i];
-
-              // Apenas garantir que campos obrigatórios existam SEM ALTERAR valores existentes
-              if (posicaoExistente.offsetX === undefined) posicaoExistente.offsetX = 0;
-              if (posicaoExistente.offsetY === undefined) posicaoExistente.offsetY = 0;
-              if (posicaoExistente.altura === undefined) posicaoExistente.altura = 0;
-              if (posicaoExistente.distanciaHorizontal === undefined) posicaoExistente.distanciaHorizontal = 0;
-              if (posicaoExistente.numeroSensores === undefined) posicaoExistente.numeroSensores = 3;
-              if (!posicaoExistente.timestampAlteracao) posicaoExistente.timestampAlteracao = Date.now();
-
-              // VALIDAR se a posição está dentro dos limites do fundo
-              const posicaoFinalX = (posicaoExistente.x || 0) + (posicaoExistente.offsetX || 0);
-              const posicaoValidada = validarPosicaoDentroDoFundo(posicaoFinalX, limitesFundo, config.escala_sensores);
-
-              // Se a posição foi ajustada, atualizar
-              if (posicaoValidada !== posicaoFinalX) {
-                // Recalcular x e offsetX para manter a posição dentro do fundo
-                posicaoExistente.x = posicaoValidada;
-                posicaoExistente.offsetX = 0; // Resetar offset para evitar confusão
-                posicaoExistente.timestampAlteracao = Date.now();
-                posicaoExistente.ajustadoParaFundo = true;
-
-              }
-
-              posicaoExistente.dentroDoFundo = true;
-
-            }
           }
         }
       });
     }
+
+    return typeof dadosSvg === 'string' ? JSON.stringify(dados) : dados;
   } catch (error) {
-    console.error('❌ [configuracaoService] Erro ao preservar posições dos cabos:', error);
+    console.error('❌ [configuracaoService] Erro ao preservar estrutura básica:', error);
+    return dadosSvg;
   }
 };
 

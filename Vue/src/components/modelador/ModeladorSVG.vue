@@ -40,6 +40,125 @@
             </div>
           </div>
 
+          <!-- Configuração de Pêndulos para Silo -->
+          <div v-if="tipoAtivo === 'silo'" class="card mb-2">
+            <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                 @click="toggleAcordeon('pendulosSilo')"
+                 role="button" 
+                 tabindex="0"
+                 :aria-expanded="acordeonAberto.pendulosSilo"
+                 @keydown.enter="toggleAcordeon('pendulosSilo')"
+                 @keydown.space.prevent="toggleAcordeon('pendulosSilo')">
+              <div class="d-flex justify-content-between align-items-center text-white">
+                <div class="d-flex align-items-center">
+                  <i class="fa fa-list me-2"></i>
+                  <span class="fw-bold">Configuração de Pêndulos</span>
+                </div>
+                <i :class="['fa', acordeonAberto.pendulosSilo ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+              </div>
+            </div>
+            <div v-show="acordeonAberto.pendulosSilo" class="card-body p-2">
+              <!-- Quantidade de Pêndulos -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold">Quantidade de Pêndulos:</label>
+                <div class="input-group input-group-sm">
+                  <select v-model="configSilo.quantidadePendulos" class="form-select" @change="onQuantidadePendulosSiloChange">
+                    <option v-for="n in 15" :key="n" :value="n">{{ n }} pêndulo{{ n > 1 ? 's' : '' }}</option>
+                  </select>
+                  <button type="button" class="btn btn-outline-secondary" @click="resetSiloField('quantidadePendulos', 5)"
+                    title="Reset para 5 pêndulos">
+                    ×
+                  </button>
+                </div>
+              </div>
+
+              <!-- Controles por Pêndulo -->
+              <div class="mb-3">
+                <label class="form-label small fw-bold mb-2">Sensores por Pêndulo:</label>
+                <div class="row g-2">
+                  <div 
+                    v-for="numeroPendulo in configSilo.quantidadePendulos" 
+                    :key="numeroPendulo"
+                    class="col-12"
+                  >
+                    <div class="d-flex align-items-center justify-content-between p-2 border rounded">
+                      <div class="flex-grow-1">
+                        <strong class="small">Pêndulo {{ numeroPendulo }}</strong>
+                        <div class="text-muted small">
+                          {{ configSilo.sensoresPorPendulo[numeroPendulo] || 5 }} sensor{{ (configSilo.sensoresPorPendulo[numeroPendulo] || 5) > 1 ? 'es' : '' }}
+                        </div>
+                      </div>
+                      
+                      <div class="input-group input-group-sm" style="max-width: 120px;">
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary btn-sm"
+                          @click="alterarSensoresSilo(numeroPendulo, -1)"
+                          :disabled="(configSilo.sensoresPorPendulo[numeroPendulo] || 5) <= 1"
+                          title="Diminuir sensores"
+                        >
+                          -
+                        </button>
+                        
+                        <input 
+                          type="number" 
+                          class="form-control form-control-sm text-center"
+                          :value="configSilo.sensoresPorPendulo[numeroPendulo] || 5"
+                          @change="setSensoresPenduloSilo(numeroPendulo, $event.target.value)"
+                          min="1" 
+                          max="20"
+                        />
+                        
+                        <button 
+                          type="button" 
+                          class="btn btn-outline-secondary btn-sm"
+                          @click="alterarSensoresSilo(numeroPendulo, 1)"
+                          :disabled="(configSilo.sensoresPorPendulo[numeroPendulo] || 5) >= 20"
+                          title="Aumentar sensores"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Controles Globais -->
+              <div class="mb-3">
+                <div class="row g-2">
+                  <div class="col-6">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-success btn-sm w-100"
+                      @click="aplicarSensoresUniformesSilo"
+                    >
+                      <i class="fa fa-bar-chart me-1"></i>Aplicar Uniforme
+                    </button>
+                  </div>
+                  <div class="col-6">
+                    <button 
+                      type="button" 
+                      class="btn btn-outline-warning btn-sm w-100"
+                      @click="resetarSensoresPadraoSilo"
+                    >
+                      <i class="fa fa-refresh me-1"></i>Resetar Padrão
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Resumo -->
+              <div class="alert alert-light p-2">
+                <small class="fw-bold">Resumo:</small><br>
+                <small>
+                  Total: {{ totalSensoresSilo }} sensores distribuídos em {{ configSilo.quantidadePendulos }} pêndulos<br>
+                  Média: {{ mediaSensoresSilo.toFixed(1) }} sensores por pêndulo
+                </small>
+              </div>
+            </div>
+          </div>
+
           <!-- Seções para Armazém -->
           <template v-if="tipoAtivo === 'armazem'">
             <!-- Modelos de Arcos -->
@@ -395,25 +514,59 @@ import NavegacaoArcos from './compModelador/NavegacaoArcos.vue'
 import Armazem from './compModelador/ArmazemSvg.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
 import { configuracaoService } from './services/configuracaoService.js'
+import dadosSilo from './dadosSilo.js'
 
 // Funções factory para configurações padrão que retornam deep copies
 // para evitar mutação compartilhada dos arrays
 function getDefaultSiloConfig() {
   return {
+    // Dimensões básicas
     lb: 200,
     hs: 180,
     hb: 15,
-    eb: 5,
+    eb: 2,
+    // Configurações de sensores
     escala_sensores: 16,
     dist_y_sensores: 12,
+    // Configurações de cabos básicas
     pos_x_cabos_uniforme: 1,
     pos_x_cabo: [50, 25], // Array criado novo a cada chamada
     pos_y_cabo: [160, 160, 160, 160, 160], // Array criado novo a cada chamada
+    // Configurações de aeradores básicas
     aeradores_ativo: false,
     na: 4,
     ds: 30,
     dy: 0,
-    da: 35
+    da: 35,
+    // Configurações avançadas dos aeradores
+    aerador_rotacao: 0,
+    aerador_escala: 1,
+    // Layout e dimensões SVG
+    largura_svg: 525,
+    altura_svg: 188,
+    margem_interna: 10,
+    // Posicionamento de cabos
+    distancia_cabos: 30,
+    offset_cabos: 9,
+    altura_cabos: 152,
+    // Configurações visuais
+    transparencia_fundo: 1,
+    espessura_borda: 1.6,
+    mostrar_sombra: false,
+    mostrar_grade: false,
+    // Animações e efeitos
+    animacao_aeradores: false,
+    velocidade_animacao: 2,
+    efeito_hover: false,
+    // Configurações avançadas
+    precisao_grid: 1,
+    modo_responsivo: false,
+    otimizar_performance: false,
+    // Configurações de pêndulos
+    quantidadePendulos: 5,
+    sensoresPorPendulo: {
+      1: 5, 2: 5, 3: 5, 4: 5, 5: 5
+    }
   }
 }
 
@@ -479,6 +632,9 @@ export default {
     return {
       // Estados para configurações do Silo
       configSilo: getDefaultSiloConfig(),
+      
+      // Layout para geração do SVG do Silo
+      layoutSilo: null,
 
       // Estados para configurações do Armazém
       configArmazem: getDefaultArmazemConfig(),
@@ -577,6 +733,7 @@ export default {
       // Estados para o sistema de acordeon
       acordeonAberto: {
         configuracoes: true,      // Configurações principais (silo/armazém)
+        pendulosSilo: false,      // Configuração de pêndulos (somente silo)
         modelosArcos: false,      // Modelos de arcos (somente armazém)
         dimensoes: false,         // Dimensões básicas (somente armazém)
         telhado: false,          // Configuração do telhado (somente armazém)
@@ -710,6 +867,20 @@ export default {
     dimensoesPersonalizadasParaComponente() {
       // Sempre retornar null para deixar o ArmazemSvg calcular suas próprias dimensões
       return null
+    },
+
+    // Computed properties para silo
+    totalSensoresSilo() {
+      let total = 0
+      for (let i = 1; i <= (this.configSilo.quantidadePendulos || 5); i++) {
+        total += this.configSilo.sensoresPorPendulo[i] || 5
+      }
+      return total
+    },
+    
+    mediaSensoresSilo() {
+      const quantidade = this.configSilo.quantidadePendulos || 5
+      return this.totalSensoresSilo / quantidade
     }
   },
   created() {
@@ -785,6 +956,16 @@ export default {
       if (this.tipoAtivo === 'armazem') {
         this.updateSVG()
       }
+    },
+    // Watcher profundo para configSilo para garantir atualizações em tempo real
+    configSilo: {
+      handler() {
+        if (this.tipoAtivo === 'silo') {
+          this.applyConfigSiloToLayout()
+          this.updateSVG()
+        }
+      },
+      deep: true
     }
   },
   methods: {
@@ -1122,11 +1303,25 @@ export default {
     },
 
     onTipoChange() {
+      // ⚠️ LIMPEZA COMPLETA: Evitar conflitos entre Silo e Armazém
+
+      // 1. Remover TODOS os event listeners antes de qualquer coisa
+      this.removerEventListeners()
+      
+      // 2. Limpar estados de drag-and-drop específicos do Armazém
+      this.limparEstadosDragAndDrop()
+      
+      // 3. Resetar posições manuais que podem interferir
+      this.resetarPosicoesManual()
+      
+      // 4. Limpar configuração preview se aplicada
+      this.limparConfiguracaoPreview()
+
+      // 5. Limpar variáveis de controle específicas
+      this.limparVariaveisControleEspecificas()
 
       // Recarregar modelos do banco quando mudar o tipo
       this.carregarModelosDoBanco()
-      // Limpar configuração preview se aplicada
-      this.limparConfiguracaoPreview()
 
       // Se mudou para armazém e não tem dados, criar dados exemplares
       if (this.tipoAtivo === 'armazem') {
@@ -1137,6 +1332,16 @@ export default {
         if (!this.modelosArcos || Object.keys(this.modelosArcos).length === 0) {
           this.resetarModelosParaPadrao()
         }
+        
+        // Aguardar próximo tick para reestabelecer event listeners específicos do Armazém
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.reestabelecerEventListenersSeguro()
+          }, 100)
+        })
+      } else if (this.tipoAtivo === 'silo') {
+        // Criar dados exemplares para o silo se não existem
+        this.criarDadosExemplaresSilo()
       }
 
       // Forçar atualização do SVG
@@ -1146,7 +1351,75 @@ export default {
     },
 
     onSiloChange() {
+      this.applyConfigSiloToLayout()
       this.updateSVG()
+    },
+
+    // Aplicar configurações do configSilo ao layout usado pelo gerador SVG
+    applyConfigSiloToLayout() {
+      if (!this.layoutSilo) {
+        // Inicializar estrutura de layout completa para o silo
+        this.layoutSilo = {
+          desenho_sensores: {
+            escala_sensores: 16,
+            dist_y_sensores: 12,
+            nome_sensores_direita: 0,
+            nome_cabo_acima: 0,
+            cor_sensores: '#cccccc',
+            cor_texto_sensores: 'black'
+          },
+          aeradores: {
+            na: 4,
+            ds: -4,
+            dy: 0,
+            da: 0,
+            rotacao: 0,
+            escala: 1,
+            cor_aeradores: '#3A78FD',
+            cor_helices: 'white'
+          },
+          estrutura_silo: {
+            lb: 200,
+            hs: 180,
+            hb: 20,
+            eb: 10
+          },
+          pendulos: {
+            quantidadePendulos: 3,
+            sensoresPorPendulo: {}
+          }
+        }
+      }
+
+      // 🔄 SINCRONIZAÇÃO COMPLETA: configSilo -> layoutSilo
+      
+      // Estrutura do silo
+      this.layoutSilo.estrutura_silo.lb = this.configSilo.lb || 200
+      this.layoutSilo.estrutura_silo.hs = this.configSilo.hs || 180
+      this.layoutSilo.estrutura_silo.hb = this.configSilo.hb || 20
+      this.layoutSilo.estrutura_silo.eb = this.configSilo.eb || 10
+      
+      // Pêndulos e sensores
+      this.layoutSilo.pendulos.quantidadePendulos = this.configSilo.quantidadePendulos || 3
+      this.layoutSilo.pendulos.sensoresPorPendulo = this.configSilo.sensoresPorPendulo || {}
+      
+      // Configurações de desenho dos sensores
+      this.layoutSilo.desenho_sensores.escala_sensores = this.configSilo.escala_sensores || 16
+      this.layoutSilo.desenho_sensores.dist_y_sensores = this.configSilo.dist_y_sensores || 12
+      this.layoutSilo.desenho_sensores.nome_sensores_direita = this.configSilo.nome_sensores_direita || 0
+      this.layoutSilo.desenho_sensores.nome_cabo_acima = this.configSilo.nome_cabo_acima || 0
+      
+      // Aeradores (somente se ativos)
+      if (this.configSilo.aeradores_ativo) {
+        this.layoutSilo.aeradores.na = this.configSilo.na || 4
+        this.layoutSilo.aeradores.ds = this.configSilo.ds || -4
+        this.layoutSilo.aeradores.dy = this.configSilo.dy || 0
+        this.layoutSilo.aeradores.da = this.configSilo.da || 0
+        this.layoutSilo.aeradores.rotacao = this.configSilo.aerador_rotacao || 0
+        this.layoutSilo.aeradores.escala = this.configSilo.aerador_escala || 1
+      }
+
+      // DEBUG: Logs removidos após validação bem-sucedida
     },
 
     onArmazemChange() {
@@ -2053,7 +2326,271 @@ export default {
 
     resetSiloField(campo, valor) {
       this.configSilo[campo] = valor
+      // 🔧 SINCRONIZAR configSilo com dadosSilo para atualização em tempo real
+      this.sincronizarConfigSiloComDados()
       this.updateSVG()
+    },
+
+    // 🔧 NOVO MÉTODO: Merge seguro de configuração com defaults para preservar reatividade Vue 2
+    mergeSiloConfigComDefaults(configCarregada) {
+      if (!configCarregada) return getDefaultSiloConfig()
+      
+      const defaults = getDefaultSiloConfig()
+      const configCompleta = { ...defaults }
+      
+      // Helper para parsing robusto de booleans com fallback para default
+      const parseBoolean = (valor, defaultValue) => {
+        if (typeof valor === 'boolean') return valor
+        if (typeof valor === 'number') {
+          return valor === 1 ? true : valor === 0 ? false : defaultValue
+        }
+        if (typeof valor === 'string') {
+          const str = valor.trim().toLowerCase()
+          if (str === 'true' || str === '1') return true
+          if (str === 'false' || str === '0') return false
+          return defaultValue
+        }
+        return defaultValue
+      }
+      
+      // Normalizar e aplicar propriedades carregadas com type safety robusta
+      Object.keys(configCarregada).forEach(key => {
+        if (key in defaults) {
+          const valorCarregado = configCarregada[key]
+          const tipoDefault = typeof defaults[key]
+          
+          // Normalização de tipos robusta
+          if (tipoDefault === 'number' && valorCarregado !== null && valorCarregado !== undefined) {
+            const numeroConvertido = Number(valorCarregado)
+            configCompleta[key] = Number.isFinite(numeroConvertido) ? numeroConvertido : defaults[key]
+          } else if (tipoDefault === 'boolean' && valorCarregado !== null && valorCarregado !== undefined) {
+            configCompleta[key] = parseBoolean(valorCarregado, defaults[key])
+          } else if (valorCarregado !== null && valorCarregado !== undefined) {
+            configCompleta[key] = valorCarregado
+          }
+        }
+      })
+      
+      // SEMPRE garantir backfill completo dos sensores por pêndulo (incondicional)
+      const quantidadePendulos = configCompleta.quantidadePendulos || 5
+      const sensoresCompletos = {}
+      
+      // Backfill: criar todos os índices necessários com defaults
+      for (let i = 1; i <= quantidadePendulos; i++) {
+        sensoresCompletos[i] = defaults.sensoresPorPendulo[i] || 5
+      }
+      
+      // Aplicar valores carregados sobre os defaults (se existirem)
+      if (configCarregada.sensoresPorPendulo) {
+        Object.keys(configCarregada.sensoresPorPendulo).forEach(pendulo => {
+          const valor = Number(configCarregada.sensoresPorPendulo[pendulo])
+          if (Number.isFinite(valor) && valor >= 1) {
+            sensoresCompletos[pendulo] = valor
+          }
+        })
+      }
+      
+      configCompleta.sensoresPorPendulo = sensoresCompletos
+      
+      // Preservar arrays com validação robusta
+      if (Array.isArray(configCarregada.pos_x_cabo)) {
+        configCompleta.pos_x_cabo = configCarregada.pos_x_cabo.map(v => {
+          const n = Number(v)
+          return Number.isFinite(n) ? n : 0
+        })
+      }
+      if (Array.isArray(configCarregada.pos_y_cabo)) {
+        configCompleta.pos_y_cabo = configCarregada.pos_y_cabo.map(v => {
+          const n = Number(v)
+          return Number.isFinite(n) ? n : 0
+        })
+      }
+      
+      return configCompleta
+    },
+
+    // 🔧 NOVO MÉTODO: Sincronizar configSilo com estrutura de dados do preview
+    sincronizarConfigSiloComDados() {
+      try {
+        // Sincronizar dados_layout com configSilo para refletir mudanças em tempo real
+        if (this.dados && this.dados.dados_layout) {
+          // Dimensões do silo
+          this.dados.dados_layout.desenho_corte_silo.lb = this.configSilo.lb || 200
+          this.dados.dados_layout.desenho_corte_silo.hs = this.configSilo.hs || 180
+          this.dados.dados_layout.desenho_corte_silo.hb = this.configSilo.hb || 15
+          this.dados.dados_layout.desenho_corte_silo.eb = this.configSilo.eb || 5
+
+          // Configurações dos sensores
+          this.dados.dados_layout.desenho_sensores.escala_sensores = this.configSilo.escala_sensores || 16
+          this.dados.dados_layout.desenho_sensores.dist_y_sensores = this.configSilo.dist_y_sensores || 12
+
+          // Configurações dos aeradores
+          this.dados.dados_layout.aeradores.na = this.configSilo.na || 4
+          this.dados.dados_layout.aeradores.ds = this.configSilo.ds || -4
+          this.dados.dados_layout.aeradores.dy = this.configSilo.dy || 0
+          this.dados.dados_layout.aeradores.da = this.configSilo.da || 0
+
+          // Dimensões do SVG
+          if (this.dados.dados_layout.tamanho_svg) {
+            this.dados.dados_layout.tamanho_svg[0] = this.configSilo.largura_svg || 525
+            this.dados.dados_layout.tamanho_svg[1] = this.configSilo.altura_svg || 188
+          }
+
+          // Atualizar dimensões locais do SVG se configuradas
+          if (this.configSilo.largura_svg) {
+            this.larguraSVG = this.configSilo.largura_svg
+          }
+          if (this.configSilo.altura_svg) {
+            this.alturaSVG = this.configSilo.altura_svg
+          }
+        } else {
+          // Se não existe dados, criar estrutura base usando dadosSilo importado
+          this.dados = JSON.parse(JSON.stringify(dadosSilo))
+          // Aplicar configurações atuais do configSilo
+          this.sincronizarConfigSiloComDados()
+        }
+
+        console.log('🔧 [ModeladorSVG] Configurações sincronizadas:', {
+          lb: this.dados.dados_layout?.desenho_corte_silo?.lb,
+          hs: this.dados.dados_layout?.desenho_corte_silo?.hs,
+          escala_sensores: this.dados.dados_layout?.desenho_sensores?.escala_sensores,
+          aeradores: this.dados.dados_layout?.aeradores
+        })
+
+      } catch (error) {
+        console.error('❌ [ModeladorSVG] Erro ao sincronizar configurações do silo:', error)
+      }
+    },
+
+    // Métodos para controle de pêndulos e sensores do silo
+    onQuantidadePendulosSiloChange() {
+      const novaQuantidade = parseInt(this.configSilo.quantidadePendulos) || 5
+      
+      // Atualizar configuração de sensores por pêndulo para a nova quantidade
+      const sensoresPorPendulo = {}
+      for (let i = 1; i <= novaQuantidade; i++) {
+        // Manter sensores existentes se já configurados, senão usar 5 como padrão
+        const sensoresExistentes = this.configSilo.sensoresPorPendulo?.[i]
+        sensoresPorPendulo[i] = sensoresExistentes || 5
+      }
+      // Usar $set para garantir reatividade completa do objeto
+      this.$set(this.configSilo, 'sensoresPorPendulo', sensoresPorPendulo)
+      
+      // Criar dados exemplares para visualização
+      this.criarDadosExemplaresSilo()
+    },
+
+    alterarSensoresSilo(numeroPendulo, incremento) {
+      const valorAtual = this.configSilo.sensoresPorPendulo[numeroPendulo] || 5
+      const novoValor = Math.max(1, Math.min(20, valorAtual + incremento))
+      
+      if (!this.configSilo.sensoresPorPendulo) {
+        this.$set(this.configSilo, 'sensoresPorPendulo', {})
+      }
+      
+      // Usar $set para garantir reatividade no Vue 2
+      this.$set(this.configSilo.sensoresPorPendulo, numeroPendulo, novoValor)
+      
+      // Criar dados exemplares para visualização
+      this.criarDadosExemplaresSilo()
+    },
+
+    setSensoresPenduloSilo(numeroPendulo, valor) {
+      const novoValor = parseInt(valor)
+      if (!isNaN(novoValor) && novoValor >= 1 && novoValor <= 20) {
+        if (!this.configSilo.sensoresPorPendulo) {
+          this.$set(this.configSilo, 'sensoresPorPendulo', {})
+        }
+        
+        // Usar $set para garantir reatividade no Vue 2
+        this.$set(this.configSilo.sensoresPorPendulo, numeroPendulo, novoValor)
+        
+        // Criar dados exemplares para visualização
+        this.criarDadosExemplaresSilo()
+      }
+    },
+
+    aplicarSensoresUniformesSilo() {
+      const quantidade = prompt('Digite a quantidade de sensores para aplicar em todos os pêndulos:', '5')
+      const numero = parseInt(quantidade)
+      
+      if (isNaN(numero) || numero < 1 || numero > 20) {
+        this.mostrarToast('Número inválido! Digite um valor entre 1 e 20.', 'error')
+        return
+      }
+      
+      // Aplicar mesmo número de sensores para todos os pêndulos
+      const sensoresUniformes = {}
+      for (let i = 1; i <= this.configSilo.quantidadePendulos; i++) {
+        sensoresUniformes[i] = numero
+      }
+      
+      // Usar $set para garantir reatividade completa do objeto
+      this.$set(this.configSilo, 'sensoresPorPendulo', sensoresUniformes)
+      
+      // Criar dados exemplares para visualização
+      this.criarDadosExemplaresSilo()
+      
+      this.mostrarToast(`Aplicado ${numero} sensores uniformemente para todos os ${this.configSilo.quantidadePendulos} pêndulos!`, 'success')
+    },
+
+    resetarSensoresPadraoSilo() {
+      // Resetar para 5 sensores por pêndulo
+      const sensoresPadrao = {}
+      for (let i = 1; i <= this.configSilo.quantidadePendulos; i++) {
+        sensoresPadrao[i] = 5
+      }
+      
+      // Usar $set para garantir reatividade completa do objeto
+      this.$set(this.configSilo, 'sensoresPorPendulo', sensoresPadrao)
+      
+      // Criar dados exemplares para visualização
+      this.criarDadosExemplaresSilo()
+      
+      this.mostrarToast('Sensores resetados para o padrão (5 sensores por pêndulo)!', 'success')
+    },
+
+    // Criar dados exemplares estáticos para visualização do silo (evita flicker)
+    criarDadosExemplaresSilo() {
+      if (this.tipoAtivo !== 'silo') return
+
+      const quantidadePendulos = this.configSilo.quantidadePendulos || 0
+      const sensoresPorPendulo = this.configSilo.sensoresPorPendulo || {}
+
+      if (quantidadePendulos === 0) return
+
+      // Criar estrutura de dados similar ao armazém
+      const dadosExemploSilo = { leitura: {} }
+
+      // Usar valores de temperatura estáticos baseados na posição para evitar flicker
+      const temperaturasEstaticas = [15.2, 18.7, 22.3, 25.8, 19.1, 16.4, 21.9, 24.5, 17.8, 23.6, 20.2, 26.1, 18.3, 22.7, 25.0, 19.8, 24.2, 21.4, 17.5, 23.9]
+
+      // Gerar dados para cada pêndulo baseado na configuração
+      for (let pendulo = 1; pendulo <= quantidadePendulos; pendulo++) {
+        dadosExemploSilo.leitura[pendulo] = {}
+
+        // Determinar quantidade de sensores para este pêndulo
+        const qtdSensores = sensoresPorPendulo[pendulo] || 5
+
+        // Gerar temperaturas estáticas para cada sensor
+        for (let sensor = 1; sensor <= qtdSensores; sensor++) {
+          // Usar temperatura estática baseada em índice para evitar flicker
+          const indice = ((pendulo - 1) * 20 + (sensor - 1)) % temperaturasEstaticas.length
+          const temperatura = temperaturasEstaticas[indice]
+
+          // Formato: [temp, pontoQuente, preAlarme, falha, nivel]
+          dadosExemploSilo.leitura[pendulo][sensor] = [
+            temperatura,
+            temperatura > 25, // pontoQuente se temperatura > 25°C
+            temperatura > 24, // preAlarme se temperatura > 24°C
+            false, // falha
+            true   // nivel (sensor ativo)
+          ]
+        }
+      }
+
+      // Armazenar dados para uso na renderização
+      this.dados = dadosExemploSilo
     },
 
     resetArmazemField(campo, valor) {
@@ -2065,6 +2602,9 @@ export default {
     resetarPadrao() {
       if (this.tipoAtivo === 'silo') {
         this.configSilo = getDefaultSiloConfig()
+        // Criar dados exemplares para o silo resetado
+        this.criarDadosExemplaresSilo()
+        this.mostrarToast('Configurações do silo resetadas para o padrão!', 'success')
       } else {
         this.resetarModelosParaPadrao()
       }
@@ -2282,8 +2822,8 @@ export default {
       this.resetarEstadoModelos()
 
       if (dados.tipo === 'silo') {
-        // Configuração de silo
-        this.configSilo = { ...dados.configuracaoGlobal }
+        // Configuração de silo com merge seguro para preservar reatividade
+        this.configSilo = this.mergeSiloConfigComDefaults(dados.configuracaoGlobal)
         if (dados.dimensoesSVG) {
           this.larguraSVG = dados.dimensoesSVG.largura
           this.alturaSVG = dados.dimensoesSVG.altura
@@ -2678,8 +3218,8 @@ export default {
     // Método removido - funcionalidade migrada para ArmazemSvg.vue
 
     updateSVG() {
-      // Não atualizar SVG durante drag para evitar sobrescrever posições
-      if (this.isDragging) {
+      // Não bloquear atualizações do silo durante drag - apenas do armazém
+      if (this.isDragging && this.tipoAtivo === 'armazem') {
         return
       }
 
@@ -2702,7 +3242,7 @@ export default {
     calcularDimensoesSVG() {
       if (this.tipoAtivo === 'silo') {
         this.larguraSVG = this.configSilo.lb + (this.configSilo.aeradores_ativo ? this.configSilo.ds * 2 + 68 : 0)
-        this.alturaSVG = this.configSilo.hs + this.configSilo.hb * 1.75
+        this.alturaSVG = this.configSilo.hs + this.configSilo.hb * 1.75 + 80 // Espaço adicional para pêndulos abaixo da base
       } else {
         // Para armazém, não calcular dimensões aqui - deixar o ArmazemSvg gerenciar completamente
         // Apenas manter valores padrão mínimos para compatibilidade
@@ -2751,6 +3291,9 @@ export default {
         svg += this.renderAeradoresSilo()
       }
 
+      // Adicionar pêndulos e sensores
+      svg += this.renderSensoresSilo()
+
       return svg
     },
 
@@ -2762,6 +3305,12 @@ export default {
 
       const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z"
       const angles = [0, 60, 120, 180, 240, 300]
+      
+      // 🔄 USAR VALORES DINÂMICOS DO LAYOUT PARA AERADORES
+      const aeradorEscala = this.layoutSilo?.aeradores?.escala || this.configSilo.aerador_escala || 1
+      const aeradorRotacao = this.layoutSilo?.aeradores?.rotacao || this.configSilo.aerador_rotacao || 0
+      
+      // Aeradores configurados dinamicamente
 
       for (let id = 1; id <= na; id++) {
         let transform = ""
@@ -2771,15 +3320,20 @@ export default {
         else if (id === 4) transform = `translate(${posX}, ${posY - 35 - da})`
         else if (id === 5) transform = `translate(-73, ${posY - 70 - da * 2})`
         else if (id === 6) transform = `translate(${posX}, ${posY - 70 - da * 2})`
+        
+        // Adicionar escala e rotação ao transform
+        const centerX = 70 + 12.5 + 3.5
+        const centerY = 24
+        const transformCompleto = `${transform} rotate(${aeradorRotacao} ${centerX} ${centerY}) scale(${aeradorEscala} ${aeradorEscala})`
 
         aeradores += `
-          <g transform="${transform}">
-            <circle cx="${70 + 12.5 + 3.5}" cy="24" r="10" fill="#c5c5c5" />
+          <g transform="${transformCompleto}">
+            <circle cx="${centerX}" cy="${centerY}" r="10" fill="#c5c5c5" />
             <rect x="${70 + 3.5}" y="2" width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
-            <text x="${70 + 12.5 + 3.5}" y="7" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="6.5" font-family="Arial" fill="white">AE-${id}</text>
+            <text x="${centerX}" y="7" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="6.5" font-family="Arial" fill="white">AE-${id}</text>
             <g>
               ${angles.map(angle =>
-          `<path d="${dBlade}" fill="white" ${angle === 0 ? '' : `transform="rotate(${angle},86.35,24.05)"`} />`
+          `<path d="${dBlade}" fill="white" ${angle === 0 ? '' : `transform="rotate(${angle},${centerX},${centerY})"`} />`
         ).join('')}
             </g>
           </g>
@@ -2787,6 +3341,154 @@ export default {
       }
 
       return aeradores
+    },
+
+    renderSensoresSilo() {
+      let elementos = ''
+
+      // 🔄 USAR VALORES DINÂMICOS DO LAYOUT PARA PÊANDULOS
+      const quantidadePendulos = this.layoutSilo?.pendulos?.quantidadePendulos || this.configSilo.quantidadePendulos || 0
+      const sensoresPorPendulo = this.layoutSilo?.pendulos?.sensoresPorPendulo || this.configSilo.sensoresPorPendulo || {}
+      
+      // Pêndulos configurados dinamicamente
+
+      if (quantidadePendulos === 0) {
+        return elementos // Não renderizar se não há pêndulos configurados
+      }
+
+      // 🔄 USAR VALORES DINÂMICOS DO LAYOUT (NÃO HARDCODED!)
+      const escala_sensores = this.layoutSilo?.desenho_sensores?.escala_sensores || this.configSilo.escala_sensores || 16
+      const dist_y_sensores = this.layoutSilo?.desenho_sensores?.dist_y_sensores || this.configSilo.dist_y_sensores || 12
+      
+      // Valores dinâmicos aplicados com sucesso
+      const transform = this.configSilo.aeradores_ativo ? `translate(${this.configSilo.ds + 34}, 0)` : ""
+      const { lb, hs } = this.configSilo
+
+      // Posicionar pêndulos fora/abaixo da base do silo
+      const margemLateral = 40
+      const larguraUtil = lb - (2 * margemLateral)
+      const yPendulo = hs + 25 // Posição dos pêndulos abaixo da base do silo
+
+      for (let p = 1; p <= quantidadePendulos; p++) {
+        // Calcular posição X do pêndulo
+        let xPendulo
+        if (quantidadePendulos === 1) {
+          xPendulo = lb / 2 // Centro do silo
+        } else {
+          const espacamento = larguraUtil / (quantidadePendulos - 1)
+          xPendulo = margemLateral + ((p - 1) * espacamento)
+        }
+
+        const numSensores = sensoresPorPendulo[p] || 0
+
+        // Renderizar pêndulo
+        elementos += `
+          <g transform="${transform}">
+            <rect
+              id="PenduloSilo_${p}"
+              x="${xPendulo - escala_sensores / 2}"
+              y="${yPendulo}"
+              width="${escala_sensores}"
+              height="${escala_sensores / 2}"
+              rx="2"
+              ry="2"
+              fill="#3A78FD"
+              stroke="none"
+              stroke-width="0"
+              class="pendulo-element"
+            />
+            <text
+              id="TextoPenduloSilo_${p}"
+              x="${xPendulo}"
+              y="${yPendulo + escala_sensores / 4}"
+              text-anchor="middle"
+              dominant-baseline="central"
+              font-weight="bold"
+              font-size="${escala_sensores * 0.4 - 0.5}"
+              font-family="Arial"
+              fill="white"
+              class="pendulo-element"
+            >
+              P${p}
+            </text>
+        `
+
+        // Renderizar sensores do pêndulo
+        for (let s = 1; s <= numSensores; s++) {
+          const ySensor = yPendulo - dist_y_sensores * s - 25
+
+          // Verificar se o sensor está dentro dos limites visíveis do silo
+          if (ySensor > 10) {
+            // Determinar cor e valor do sensor
+            let corSensor = "#ccc"
+            let valorSensor = "0"
+
+            // Usar dados exemplares se disponíveis
+            if (this.dados?.leitura?.[p]?.[s]) {
+              const dadosSensor = this.dados.leitura[p][s]
+              const temp = parseFloat(dadosSensor[0])
+              const falha = dadosSensor[3]
+              const nivel = dadosSensor[4]
+
+              if (!nivel || temp == 0) {
+                corSensor = "#e6e6e6"
+                valorSensor = "0"
+              } else {
+                corSensor = this.corFaixaExata(temp)
+                valorSensor = falha ? "ERRO" : temp.toFixed(1)
+              }
+            }
+
+            elementos += `
+              <rect
+                id="SensorSilo_${p}_${s}"
+                x="${xPendulo - escala_sensores / 2}"
+                y="${ySensor}"
+                width="${escala_sensores}"
+                height="${escala_sensores / 2}"
+                rx="2"
+                ry="2"
+                fill="${corSensor}"
+                stroke="black"
+                stroke-width="1"
+                class="sensor-element"
+              />
+              <text
+                id="ValorSensorSilo_${p}_${s}"
+                x="${xPendulo}"
+                y="${ySensor + escala_sensores / 4}"
+                text-anchor="middle"
+                dominant-baseline="central"
+                font-size="${escala_sensores * 0.4 - 0.5}"
+                font-family="Arial"
+                fill="${corSensor === "#ff2200" ? "white" : "black"}"
+                class="sensor-element"
+              >
+                ${valorSensor}
+              </text>
+              <text
+                id="NomeSensorSilo_${p}_${s}"
+                x="${xPendulo - escala_sensores / 2 - 2}"
+                y="${ySensor + escala_sensores / 4}"
+                text-anchor="end"
+                dominant-baseline="central"
+                font-size="${escala_sensores * 0.4 - 1.5}"
+                font-family="Arial"
+                fill="black"
+                class="sensor-element"
+              >
+                S${s}
+              </text>
+            `
+          }
+        }
+
+        elementos += `
+          </g>
+        `
+      }
+
+      return elementos
     },
 
     // Métodos de renderização removidos - funcionalidade migrada para ArmazemSvg.vue
@@ -3222,7 +3924,7 @@ export default {
         // Carregar configuração de Silo
         this.tipoAtivo = 'silo'
         if (dados.configuracao) {
-          this.configSilo = { ...dados.configuracao }
+          this.configSilo = this.mergeSiloConfigComDefaults(dados.configuracao)
         }
         this.mostrarToast(`Silo "${nome}" carregado do banco!`, 'success')
         this.updateSVG()
@@ -3811,9 +4513,14 @@ export default {
       }, 300)
     },
 
+    // 🎯 FUNÇÃO PRINCIPAL: Converter coordenadas do mouse para coordenadas SVG puras
+    // Esta é a fonte única de verdade para todas as conversões de coordenadas
     converterParaCoordenadaSVG(svg, mouseX, mouseY) {
       const viewBox = svg.getAttribute('viewBox')
-      if (!viewBox) return { x: mouseX, y: mouseY }
+      if (!viewBox) {
+        console.warn('⚠️ SVG sem viewBox - usando coordenadas brutas do mouse')
+        return { x: mouseX, y: mouseY }
+      }
 
       const [minX, minY, width, height] = viewBox.split(' ').map(Number)
       const svgRect = svg.getBoundingClientRect()
@@ -3821,10 +4528,13 @@ export default {
       const scaleX = width / svgRect.width
       const scaleY = height / svgRect.height
 
-      return {
+      // Conversão matemática direta para coordenadas SVG
+      const coordenadaSvg = {
         x: minX + mouseX * scaleX,
         y: minY + mouseY * scaleY
       }
+
+      return coordenadaSvg
     },
 
     moverPenduloCompleto(numeroPendulo, novaX, novaY) {
@@ -3834,15 +4544,19 @@ export default {
     },
 
     moverPenduloCompletoSemUpdate(numeroPendulo, novaX, novaY) {
-      // Salvar posição manual do pêndulo
+      // 🎯 GARANTIR: Salvar posição manual do pêndulo em coordenadas SVG puras
       if (!this.posicoesManualPendulos[numeroPendulo]) {
         this.posicoesManualPendulos[numeroPendulo] = { x: 0, y: 0 }
       }
 
-      // Calcular diferença da posição original
+      // 🎯 CALCULAR: Diferença da posição original (SEMPRE em coordenadas SVG)
       const posicaoOriginal = this.calcularPosicaoOriginalPendulo(numeroPendulo)
-      this.posicoesManualPendulos[numeroPendulo].x = novaX - posicaoOriginal.x
-      this.posicoesManualPendulos[numeroPendulo].y = novaY - posicaoOriginal.y
+      const offsetX = novaX - posicaoOriginal.x
+      const offsetY = novaY - posicaoOriginal.y
+      
+      // 🎯 SALVAR: Offsets em coordenadas SVG puras (sem conversões adicionais)
+      this.posicoesManualPendulos[numeroPendulo].x = offsetX
+      this.posicoesManualPendulos[numeroPendulo].y = offsetY
 
       // Atualizar posições de todos os sensores deste pêndulo junto
       const sensoresCount = this.obterQuantidadeSensoresPendulo(numeroPendulo)
@@ -3869,14 +4583,19 @@ export default {
     moverSensorIndividualSemUpdate(numeroPendulo, numeroSensor, novaX, novaY) {
       const chaveSensor = `${numeroPendulo}-${numeroSensor}`
 
+      // 🎯 GARANTIR: Salvar posição manual do sensor em coordenadas SVG puras
       if (!this.posicoesManualSensores[chaveSensor]) {
         this.posicoesManualSensores[chaveSensor] = { x: 0, y: 0 }
       }
 
-      // Calcular diferença da posição original
+      // 🎯 CALCULAR: Diferença da posição original (SEMPRE em coordenadas SVG)
       const posicaoOriginal = this.calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor)
-      this.posicoesManualSensores[chaveSensor].x = novaX - posicaoOriginal.x
-      this.posicoesManualSensores[chaveSensor].y = novaY - posicaoOriginal.y
+      const offsetX = novaX - posicaoOriginal.x
+      const offsetY = novaY - posicaoOriginal.y
+      
+      // 🎯 SALVAR: Offsets em coordenadas SVG puras (sem conversões adicionais)
+      this.posicoesManualSensores[chaveSensor].x = offsetX
+      this.posicoesManualSensores[chaveSensor].y = offsetY
       this.posicoesManualSensores[chaveSensor].timestampAlteracao = Date.now()
 
 
@@ -3948,14 +4667,16 @@ export default {
       }
     },
 
+    // 🎯 FUNÇÃO FUNDAMENTAL: Calcular posição original do pêndulo em coordenadas SVG puras
+    // Esta função SEMPRE retorna coordenadas SVG (sem dependência de tela/browser)
     calcularPosicaoOriginalPendulo(numeroPendulo) {
-      // 🎯 USAR LIMITES DO FUNDO (área cinza claro) IGUAL ArmazemSvg.vue
+      // 🎯 USAR LIMITES DO FUNDO (área cinza claro) - COORDENADAS SVG PURAS
       const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
 
       // 🎯 CALCULAR LIMITES DO FUNDO com todos os parâmetros (incluindo deslocamentos)
       const limitesFundo = this.calcularLimitesFundoCompleto(config)
 
-      // 🎯 Y: Posição baseada no pb (base do armazém)
+      // 🎯 Y: Posição baseada no pb (base do armazém) - COORDENADAS SVG
       const pb = config.pb || 185
       const posicao_horizontal = config.posicao_horizontal || 0
       const posicao_vertical = config.posicao_vertical || 0
@@ -3975,11 +4696,12 @@ export default {
         xCabo = limitesFundo.xMinimo + ((numeroPendulo - 1) * espacamento)
       }
 
-      // 🎯 APLICAR offset ANTES da validação e VALIDAR posição final considerando escala do sensor
+      // 🎯 APLICAR offset e validar posição final (TUDO em coordenadas SVG)
       const escala_sensores = config.escala_sensores || 16
       const xComOffset = xCabo + posicao_horizontal
       const xFinal = this.validarPosicaoDentroDoFundo(xComOffset, limitesFundo, escala_sensores)
 
+      // 🎯 RETORNAR: Coordenadas SVG puras (mesmo sistema do ArmazemSvg.vue)
       return { x: xFinal, y: yPendulo }
     },
 
@@ -4024,14 +4746,21 @@ export default {
       return posicao;
     },
 
+    // 🎯 FUNÇÃO FUNDAMENTAL: Calcular posição original do sensor em coordenadas SVG puras
+    // Esta função SEMPRE retorna coordenadas SVG (sem dependência de tela/browser)
     calcularPosicaoOriginalSensor(numeroPendulo, numeroSensor) {
+      // 🎯 USAR posição do pêndulo como base (já em coordenadas SVG)
       const posicaoPendulo = this.calcularPosicaoOriginalPendulo(numeroPendulo)
       const config = this.configPreviewAplicada || this.configuracaoAplicada || this.configArmazem
+      
+      // 🎯 PARÂMETROS de espaçamento em coordenadas SVG
       const dist_y_sensores = config.dist_y_sensores || 12
       const afastamento_vertical_pendulo = config.afastamento_vertical_pendulo || 0
 
+      // 🎯 CALCULAR Y do sensor baseado na posição do pêndulo (coordenadas SVG)
       const ySensor = posicaoPendulo.y - dist_y_sensores * numeroSensor - 25 - afastamento_vertical_pendulo
 
+      // 🎯 RETORNAR: Coordenadas SVG puras (mesmo sistema do ArmazemSvg.vue)
       return { x: posicaoPendulo.x, y: ySensor }
     },
 
@@ -4049,14 +4778,15 @@ export default {
       return 1
     },
 
+    // 🎯 FUNÇÃO CRÍTICA: Salvar posições de drag-and-drop em coordenadas SVG puras
+    // Todas as posições salvas devem ser offsets SVG da posição original
     salvarPosicoesNoModelo() {
       if (!this.modeloArcoAtual) {
         console.warn('⚠️ Nenhum modelo selecionado para salvar posições')
         return
       }
 
-
-      // Salvar posições manuais no modelo atual
+      // 🎯 GARANTIR estruturas para posições manuais SVG
       if (!this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos) {
         this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = {}
       }
@@ -4064,9 +4794,15 @@ export default {
         this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = {}
       }
 
+      // 🎯 SALVAR: Copiar offsets SVG calculados (já estão em coordenadas SVG puras)
       this.modelosArcos[this.modeloArcoAtual].posicoesManualPendulos = { ...this.posicoesManualPendulos }
       this.modelosArcos[this.modeloArcoAtual].posicoesManualSensores = { ...this.posicoesManualSensores }
 
+      console.log('💾 [salvarPosicoesNoModelo] Salvando posições SVG:', {
+        pendulos: Object.keys(this.posicoesManualPendulos).length,
+        sensores: Object.keys(this.posicoesManualSensores).length,
+        modeloArco: this.modeloArcoAtual
+      })
 
       // 1. Salvar no preview local (estado atual)
       this.salvarNoPreviewLocal()
@@ -4076,17 +4812,25 @@ export default {
 
       // 3. Salvar no banco de dados
       this.salvarModeloAtualCompleto()
-
     },
 
+    // 🎯 FUNÇÃO DE SALVAMENTO: Salvar posições SVG no preview local
+    // As posições já estão como offsets SVG puros da posição original
     salvarNoPreviewLocal() {
-      // Salvar estado atual no componente para uso imediato
+      // 🎯 ESTADO SVG: Capturar estado atual com coordenadas SVG puras
       const estadoAtual = {
         posicoesManualPendulos: { ...this.posicoesManualPendulos },
         posicoesManualSensores: { ...this.posicoesManualSensores },
         modeloArcoAtual: this.modeloArcoAtual,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        coordenadasTipo: 'SVG_PURAS' // Indicador de que são coordenadas SVG
       }
+
+      console.log('💾 [salvarNoPreviewLocal] Salvando estado SVG local:', {
+        pendulos: Object.keys(estadoAtual.posicoesManualPendulos).length,
+        sensores: Object.keys(estadoAtual.posicoesManualSensores).length,
+        coordenadasTipo: estadoAtual.coordenadasTipo
+      })
 
       // Salvar temporariamente no localStorage para persistir entre recarregamentos
       if (typeof localStorage !== 'undefined') {
@@ -4223,6 +4967,58 @@ export default {
 
 
       return { alturasSensores, posicoesManualSensores }
+    },
+
+    // ✅ MÉTODO AUXILIAR: Limpar estados específicos de drag-and-drop do Armazém
+    limparEstadosDragAndDrop() {
+      // Limpar variáveis de drag específicas do Armazém
+      this.dragAtivo = false
+      this.elementoArrastando = null
+      this.offsetDrag = { x: 0, y: 0 }
+      
+      // Limpar referências DOM para evitar vazamentos de memória
+      if (typeof document !== 'undefined') {
+        // Remover flag global de drag listeners
+        delete document.dragListenersAdded
+        
+        // Remover event listeners globais de movimento
+        document.removeEventListener('mousemove', this.continuarDrag)
+        document.removeEventListener('mouseup', this.finalizarDrag)
+      }
+      
+      // Limpar classes CSS de drag de elementos restantes
+      const elementosComDrag = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
+      elementosComDrag.forEach(el => {
+        el.classList.remove('pendulo-draggable', 'sensor-draggable')
+      })
+    },
+
+    // ✅ MÉTODO AUXILIAR: Limpar variáveis de controle específicas
+    limparVariaveisControleEspecificas() {
+      // Limpar dados de posicionamento manual específicos do Armazém
+      this.posicoesManualPendulos = {}
+      this.posicoesManualSensores = {}
+      
+      // Limpar timeouts pendentes
+      if (this.saveTimeout) {
+        clearTimeout(this.saveTimeout)
+        this.saveTimeout = null
+      }
+      
+      // Limpar localStorage temporário específico do tipo
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('posicoesManualPendulos')
+        localStorage.removeItem('posicoesManualSensores')
+        localStorage.removeItem('modeladorEstadoTemp')
+      }
+      
+      // Resetar variáveis de controle de interface específicas do Armazém
+      this.caboSelecionadoPosicionamento = ''
+      this.posicoesCabos = {}
+      
+      // Limpar seleções e estados temporários
+      this.elementoSelecionado = null
+      this.modoEdicao = false
     }
   }
 }

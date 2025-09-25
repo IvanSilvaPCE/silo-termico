@@ -1,4 +1,3 @@
-
 <template>
   <div class="container-fluid p-0" :style="{
     height: '100vh',
@@ -7,37 +6,114 @@
     justifyContent: 'center',
     padding: '20px'
   }">
-        <div class="card" :style="{
+    <div class="card" :style="{
       maxWidth: '90vw',
       maxHeight: '90vh',
       minHeight: '500px',
       width: '100%'
     }">
-      <div class="card-header bg-primary text-white text-center">
+      <!-- Header com controles -->
+      <div class="card-header text-white text-center" style="background-color: #06335E;">
         <h4 class="mb-0">Preview - Silo</h4>
-        <small class="text-white-50">
-          Aeradores: {{ config.aeradores_ativo ? 'Ativo' : 'Inativo' }}
-        </small>
+        <div class="row align-items-center mt-2">
+          <div class="col-md-4">
+            <small class="text-white-50">
+              {{ getDescricaoConfiguracaoAtual() }}
+            </small>
+          </div>
+          <div class="col-md-8">
+            <div class="d-flex align-items-center flex-wrap gap-2 justify-content-center justify-content-md-end">
+              
+              <select
+                v-model="modeloSelecionadoId"
+                @change="carregarModeloSelecionado"
+                class="form-select form-select-sm"
+                style="min-width: 180px; font-size: 0.8rem;"
+                title="Selecionar modelo de silo salvo"
+                :disabled="carregandoModelos">
+                <option value="">-- Selecionar Modelo --</option>
+                <option v-for="modelo in modelosSilo" :key="modelo.id_svg" :value="modelo.id_svg">
+                  {{ modelo.nm_modelo }}
+                </option>
+              </select>
+              
+              <button
+                @click="carregarModelosSilo"
+                class="btn btn-sm btn-outline-light"
+                :disabled="carregandoModelos"
+                title="Atualizar lista de modelos">
+                <i class="fa fa-refresh" :class="{ 'fa-spin': carregandoModelos }"></i>
+              </button>
+              
+            </div>
+          </div>
+        </div>
+
+        <!-- Informações do modelo carregado -->
+        <div v-if="modeloCarregado" class="row mt-2">
+          <div class="col-12">
+            <div class="d-flex justify-content-center align-items-center gap-2 flex-wrap">
+              <span class="badge text-white" style="background-color: #06335E;">
+                {{ modeloCarregado.nome || 'Modelo Silo' }}
+              </span>
+              <span class="badge bg-secondary text-white">
+                {{ modeloCarregado.versao || '5.0' }}
+              </span>
+              <span class="badge bg-success">
+                Aeradores: {{ configSiloParaComponente.aeradores_ativo ? 'Ativo' : 'Inativo' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Status de carregamento -->
+        <div v-if="carregandoModelos || errorModelos" class="row mt-2">
+          <div class="col-12">
+            <div class="d-flex justify-content-center align-items-center">
+              <span v-if="carregandoModelos" class="badge bg-warning text-dark">
+                🔄 Carregando modelos...
+              </span>
+              <span v-else-if="errorModelos" class="badge bg-danger text-white">
+                ❌ Erro: {{ errorModelos }}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
+      <!-- Área do SVG (Componente Filho) -->
       <div class="card-body text-center d-flex align-items-center justify-content-center p-3" :style="{
         height: 'calc(90vh - 120px)',
         minHeight: '400px'
       }">
-        <div class="svg-container-responsive w-100 h-100">
-          <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
-            width: '100%',
-            height: '100%',
-            maxWidth: '100%',
-            maxHeight: '100%',
-            border: '1px solid #ddd',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '4px',
-            shapeRendering: 'geometricPrecision',
-            textRendering: 'geometricPrecision',
-            imageRendering: 'optimizeQuality'
-          }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" v-html="svgContent">
-          </svg>
+        <SiloSvg
+          :config="configSiloParaComponente"
+          :dados-sensores="dadosSensores"
+          :modelo-atual="modeloAtualParaComponente"
+        />
+      </div>
+
+      <!-- Footer com informações adicionais -->
+      <div v-if="modeloCarregado" class="card-footer bg-light p-2">
+        <div class="row align-items-center">
+          <div class="col-md-6">
+            <div class="d-flex align-items-center justify-content-center justify-content-md-start">
+              <span class="me-2">📊 Configuração:</span>
+              <span class="badge bg-info text-white">
+                {{ configSiloParaComponente.quantidadePendulos || 5 }} Pêndulos
+              </span>
+              <span class="badge bg-secondary text-white ms-1">
+                Sensores: {{ calcularTotalSensores() }}
+              </span>
+            </div>
+          </div>
+          <div class="col-md-6 text-center text-md-end">
+            <div class="d-flex flex-wrap justify-content-center justify-content-md-end align-items-center gap-1">
+              <span class="badge bg-primary text-white">
+                {{ modeloCarregado.descricao || 'Sem descrição' }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -45,11 +121,25 @@
 </template>
 
 <script>
+import { modeloSvgService } from '../services/modeloSvgService.js'
+import SiloSvg from './SiloSvg.vue'
+
 export default {
   name: 'SiloComponente',
+  components: {
+    SiloSvg
+  },
   data() {
     return {
-      config: {
+      // Dados dos modelos carregados
+      modelosSilo: [],
+      modeloCarregado: null,
+      modeloSelecionadoId: '',
+      carregandoModelos: false,
+      errorModelos: null,
+      
+      // Configuração padrão do silo
+      configPadrao: {
         lb: 200,
         hs: 180,
         hb: 15,
@@ -58,134 +148,200 @@ export default {
         na: 4,
         ds: 30,
         dy: 0,
-        da: 35
+        da: 35,
+        escala_sensores: 16,
+        dist_y_sensores: 12,
+        quantidadePendulos: 5,
+        sensoresPorPendulo: {
+          1: 5, 2: 5, 3: 5, 4: 5, 5: 5
+        }
       },
-      larguraSVG: 400,
-      alturaSVG: 300,
-      svgContent: ''
+      
+      // Dados para renderização de sensores (simulados)
+      dadosSensores: null
     }
   },
   computed: {
-    isMobile() {
-      return typeof window !== 'undefined' && window.innerWidth <= 576
+    // Configuração preparada para o componente SiloSvg
+    configSiloParaComponente() {
+      if (this.modeloCarregado?.configuracao) {
+        return {
+          ...this.configPadrao,
+          ...this.modeloCarregado.configuracao
+        }
+      }
+      return this.configPadrao
+    },
+    
+    // Modelo atual preparado para o componente
+    modeloAtualParaComponente() {
+      if (this.modeloCarregado) {
+        return {
+          quantidadePendulos: this.modeloCarregado.quantidadePendulos || 5,
+          sensoresPorPendulo: this.modeloCarregado.sensoresPorPendulo || {},
+          configuracao: this.modeloCarregado.configuracao || {}
+        }
+      }
+      return {
+        quantidadePendulos: 5,
+        sensoresPorPendulo: {},
+        configuracao: {}
+      }
     }
   },
   mounted() {
-    this.updateSVG()
+    this.carregarModelosSilo()
+    this.gerarDadosSensoresSimulados()
   },
   methods: {
-    updateSVG() {
-      this.calcularDimensoesSVG()
-      this.generateSVG()
-    },
-
-    calcularDimensoesSVG() {
-      this.larguraSVG = this.config.lb + (this.config.aeradores_ativo ? this.config.ds * 2 + 68 : 0)
-      this.alturaSVG = this.config.hs + this.config.hb * 1.75
-    },
-
-    generateSVG() {
-      this.svgContent = this.renderSilo()
-    },
-
-    renderSilo() {
-      const { lb, hs, hb, eb } = this.config
-      const p1 = [0, hs]
-      const p2 = [lb, hs]
-      const p3 = [lb, hb * 1.75]
-      const p4 = [lb / 2, 0]
-      const p5 = [0, hb * 1.75]
-      const points = `${p1[0]},${p1[1]} ${p2[0]},${p2[1]} ${p3[0]},${p3[1]} ${p4[0]},${p4[1]} ${p5[0]},${p5[1]}`
-
-      const transformSilo = this.config.aeradores_ativo ? `translate(${this.config.ds + 34}, 0)` : ""
-
-      let svg = `
-        <g transform="${transformSilo}">
-          <polygon fill="#E7E7E7" points="${points}" />
-          <path
-            fill="#999999"
-            d="M71.6612 0.7892c-22.3726,7.3556 -44.7452,14.711 -67.1178,22.0666 -2.8377,0.9516 -4.5433,2.0295 -4.5433,3.0972 0,1.2723 2.1973,2.4833 6.1583,3.5826l65.1098 -26.4989c2.7618,-1.1944 5.9842,-1.6696 9.8636,0l65.35 26.5966c3.6894,-1.0265 5.9182,-2.2416 5.9182,-3.6803 0,-1.0677 -1.7056,-2.1456 -4.5433,-3.0972 -22.3726,-7.3556 -44.7453,-14.711 -67.1179,-22.0666 -2.9444,-1.0554 -5.9663,-1.0486 -9.0776,0z"
-            transform="scale(${lb / 152}, ${hb / 15})"
-          />
-          <ellipse fill="#999999" cx="${lb / 2}" cy="${hs}" rx="${lb / 2}" ry="${hb}" />
-          <ellipse fill="#CCCCCC" cx="${lb / 2}" cy="${hs - eb}" rx="${lb / 2}" ry="${hb}" />
-        </g>
-      `
-
-      if (this.config.aeradores_ativo) {
-        svg += this.renderAeradoresSilo()
-      }
-
-      return svg
-    },
-
-    renderAeradoresSilo() {
-      const { na, ds, dy, da, lb, hs } = this.config
-      const posY = hs + dy - 30
-      const posX = lb + ds * 2 - 31
-      let aeradores = ''
-
-      const dBlade = "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z"
-      const angles = [0, 60, 120, 180, 240, 300]
-
-      for (let id = 1; id <= na; id++) {
-        let transform = ""
-        if (id === 1) transform = `translate(-73, ${posY})`
-        else if (id === 2) transform = `translate(${posX}, ${posY})`
-        else if (id === 3) transform = `translate(-73, ${posY - 35 - da})`
-        else if (id === 4) transform = `translate(${posX}, ${posY - 35 - da})`
-        else if (id === 5) transform = `translate(-73, ${posY - 70 - da * 2})`
-        else if (id === 6) transform = `translate(${posX}, ${posY - 70 - da * 2})`
-
-        aeradores += `
-          <g transform="${transform}">
-            <circle cx="${70 + 12.5 + 3.5}" cy="24" r="10" fill="#c5c5c5" />
-            <rect x="${70 + 3.5}" y="2" width="25" height="10" rx="6.4" ry="5" fill="#3A78FD" />
-            <text x="${70 + 12.5 + 3.5}" y="7" text-anchor="middle" dominant-baseline="central" font-weight="bold" font-size="6.5" font-family="Arial" fill="white">AE-${id}</text>
-            <g>
-              ${angles.map(angle =>
-          `<path d="${dBlade}" fill="white" ${angle === 0 ? '' : `transform="rotate(${angle},86.35,24.05)"`} />`
-        ).join('')}
-            </g>
-          </g>
-        `
-      }
-
-      return aeradores
-    },
-
-    resetarPadrao() {
-      this.config = {
-        lb: 200,
-        hs: 180,
-        hb: 15,
-        eb: 5,
-        aeradores_ativo: false,
-        na: 4,
-        ds: 30,
-        dy: 0,
-        da: 35
-      }
-      this.updateSVG()
-      this.mostrarToast('Configuração resetada para valores padrão!', 'success')
-    },
-
-    salvarConfiguracao() {
-      if (typeof localStorage !== 'undefined') {
-        const configCompleta = {
-          ...this.config,
-          dimensoesSVG: {
-            largura: this.larguraSVG,
-            altura: this.alturaSVG
-          },
-          timestamp: new Date().toISOString(),
-          versao: '1.0',
-          tipo: 'configuracao_silo_componente'
+    async carregarModelosSilo() {
+      this.carregandoModelos = true
+      this.errorModelos = null
+      
+      try {
+        const response = await modeloSvgService.buscarModelos('S') // Filtrar apenas Silos
+        
+        if (response.success && response.status === 200) {
+          this.modelosSilo = response.data || []
+          
+          if (this.modelosSilo.length === 0) {
+            this.errorModelos = 'Nenhum modelo de silo encontrado'
+          }
+        } else {
+          this.errorModelos = response.error || 'Erro ao carregar modelos'
         }
-
-        localStorage.setItem('configSiloComponente', JSON.stringify(configCompleta))
-        this.mostrarToast('Configuração salva com sucesso!', 'success')
+      } catch (error) {
+        this.errorModelos = 'Erro ao conectar com o servidor'
+      } finally {
+        this.carregandoModelos = false
       }
+    },
+    
+    async carregarModeloSelecionado() {
+      if (!this.modeloSelecionadoId) {
+        this.modeloCarregado = null
+        return
+      }
+      
+      const modeloSelecionado = this.modelosSilo.find(m => m.id_svg == this.modeloSelecionadoId)
+      if (!modeloSelecionado) {
+        this.mostrarToast('Modelo não encontrado!', 'error')
+        return
+      }
+      
+      try {
+        await this.processarModeloCarregado(modeloSelecionado)
+      } catch (error) {
+        this.mostrarToast(`Erro ao carregar modelo: ${error.message}`, 'error')
+      }
+    },
+    
+    async processarModeloCarregado(modelo) {
+      try {
+        let dadosSvg
+        if (typeof modelo.dado_svg === 'string') {
+          dadosSvg = JSON.parse(modelo.dado_svg)
+        } else {
+          dadosSvg = modelo.dado_svg
+        }
+        
+        // Processar dados do silo com estrutura v6.0
+        this.modeloCarregado = {
+          nome: modelo.nm_modelo,
+          descricao: modelo.ds_modelo,
+          versao: dadosSvg.versaoConfiguracao || dadosSvg.versao || '6.0',
+          tipo: dadosSvg.tipoEstrutura || 'silo',
+          quantidadePendulos: dadosSvg.quantidadePendulos || dadosSvg.pendulos?.quantidadePendulos || 5,
+          sensoresPorPendulo: dadosSvg.sensoresPorPendulo || dadosSvg.pendulos?.sensoresPorPendulo || {},
+          configuracao: {
+            ...this.configPadrao,
+            // Aplicar dimensões se existirem
+            lb: dadosSvg.lb || dadosSvg.dimensoes?.lb || this.configPadrao.lb,
+            hs: dadosSvg.hs || dadosSvg.dimensoes?.hs || this.configPadrao.hs,
+            hb: dadosSvg.hb || dadosSvg.dimensoes?.hb || this.configPadrao.hb,
+            eb: dadosSvg.eb || dadosSvg.dimensoes?.eb || this.configPadrao.eb,
+            // Aplicar configurações de aeradores
+            aeradores_ativo: dadosSvg.aeradores_ativo || dadosSvg.aeradores?.ativo || false,
+            na: dadosSvg.na || dadosSvg.aeradores?.quantidade || 4,
+            ds: dadosSvg.ds || dadosSvg.aeradores?.deslocamento_superior || 30,
+            dy: dadosSvg.dy || dadosSvg.aeradores?.deslocamento_y || 0,
+            da: dadosSvg.da || dadosSvg.aeradores?.distancia_aeradores || 35,
+            aerador_rotacao: dadosSvg.aerador_rotacao || dadosSvg.aeradores?.rotacao || 0,
+            aerador_escala: dadosSvg.aerador_escala || dadosSvg.aeradores?.escala || 1,
+            // Aplicar configurações de sensores
+            escala_sensores: dadosSvg.escala_sensores || dadosSvg.sensores?.escala_sensores || 16,
+            dist_y_sensores: dadosSvg.dist_y_sensores || dadosSvg.sensores?.dist_y_sensores || 12,
+            posicao_horizontal: dadosSvg.posicao_horizontal || dadosSvg.sensores?.posicao_horizontal || 0,
+            posicao_vertical: dadosSvg.posicao_vertical || dadosSvg.sensores?.posicao_vertical || 0,
+            // Aplicar quantidade de pêndulos e sensores
+            quantidadePendulos: dadosSvg.quantidadePendulos || dadosSvg.pendulos?.quantidadePendulos || 5,
+            sensoresPorPendulo: dadosSvg.sensoresPorPendulo || dadosSvg.pendulos?.sensoresPorPendulo || {},
+            // Aplicar posições manuais se existirem
+            posicoesManualPendulos: dadosSvg.posicoesManualPendulos || {},
+            posicoesManualSensores: dadosSvg.posicoesManualSensores || {},
+            // Aplicar estrutura de posições do modelador se existir
+            pendulos: dadosSvg.pendulos || null,
+            modeloEspecifico: {
+              quantidadePendulos: dadosSvg.quantidadePendulos || dadosSvg.pendulos?.quantidadePendulos || 5,
+              sensoresPorPendulo: dadosSvg.sensoresPorPendulo || dadosSvg.pendulos?.sensoresPorPendulo || {},
+              posicoesManualPendulos: dadosSvg.posicoesManualPendulos || {},
+              posicoesManualSensores: dadosSvg.posicoesManualSensores || {}
+            }
+          }
+        }
+        
+        // Gerar dados de sensores simulados para o modelo carregado
+        this.gerarDadosSensoresSimulados()
+        
+        this.mostrarToast(`Modelo "${modelo.nm_modelo}" carregado com sucesso!`, 'success')
+        
+      } catch (error) {
+        console.error('Erro ao processar modelo:', error)
+        this.mostrarToast(`Erro ao processar modelo: ${error.message}`, 'error')
+      }
+    },
+    
+    gerarDadosSensoresSimulados() {
+      const quantidadePendulos = this.modeloCarregado?.quantidadePendulos || this.configPadrao.quantidadePendulos
+      const sensoresPorPendulo = this.modeloCarregado?.sensoresPorPendulo || this.configPadrao.sensoresPorPendulo
+      
+      const dadosSimulados = {}
+      
+      for (let p = 1; p <= quantidadePendulos; p++) {
+        const numSensores = sensoresPorPendulo[p] || 5
+        dadosSimulados[`P${p}`] = {}
+        
+        for (let s = 1; s <= numSensores; s++) {
+          // Simular leitura de temperatura entre 20-35°C
+          const temperatura = (20 + Math.random() * 15).toFixed(1)
+          dadosSimulados[`P${p}`][s] = {
+            temperatura: parseFloat(temperatura),
+            status: 'ok',
+            timestamp: new Date().toISOString()
+          }
+        }
+      }
+      
+      this.dadosSensores = dadosSimulados
+    },
+    
+    getDescricaoConfiguracaoAtual() {
+      if (this.modeloCarregado) {
+        return `${this.modeloCarregado.nome} - ${this.modeloCarregado.versao}`
+      }
+      return 'Configuração Padrão'
+    },
+    
+    calcularTotalSensores() {
+      const sensoresPorPendulo = this.modeloCarregado?.sensoresPorPendulo || this.configPadrao.sensoresPorPendulo
+      return Object.values(sensoresPorPendulo).reduce((total, sensores) => total + (sensores || 0), 0)
+    },
+    
+    resetarPadrao() {
+      this.modeloCarregado = null
+      this.modeloSelecionadoId = ''
+      this.gerarDadosSensoresSimulados()
+      this.mostrarToast('Voltou para configuração padrão!', 'success')
     },
 
     mostrarToast(mensagem, tipo = 'info') {

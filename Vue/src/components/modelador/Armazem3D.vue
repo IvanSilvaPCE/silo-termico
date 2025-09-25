@@ -187,7 +187,10 @@ export default {
       // Configuração da API
       apiConfig: {
         url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=1&data=2025-08-13%2008:03:47',
-        token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2Nsb3VkLnBjZS1lbmcuY29tLmJyL2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU1MTY3MzAyLCJleHAiOjE3NTUxOTYxMDIsIm5iZiI6MTc1NTE2NzMwMiwianRpIjoibTlOdXlBSzFueDFtSVBNZCIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.kXfVBg1uEyg88qWOLO448qwwd5LgpaF0nf1aFe0Oujo'
+        get token() {
+          const token = localStorage.getItem('token') || ''
+          return token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : 'Bearer [TOKEN_REQUIRED]'
+        }
       },
 
       // Configurações do modelador 3D
@@ -229,11 +232,19 @@ export default {
         this.carregandoDados = true;
         this.erroAPI = null;
 
+        // Obter token dinâmico do localStorage
+        const token = localStorage.getItem('token') || ''
+        const authToken = token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : ''
+
+        if (!authToken || authToken === 'Bearer ') {
+          throw new Error('Token de autenticação não encontrado no localStorage')
+        }
+
         // Fazer chamada à API
         const response = await axios.get(this.apiConfig.url, {
           params: this.apiConfig.params,
           headers: {
-            'Authorization': this.apiConfig.token,
+            'Authorization': authToken,
             'Content-Type': 'application/json'
           },
           timeout: 30000

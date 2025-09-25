@@ -323,25 +323,35 @@ const salvarModelo = async (dadosModelo) => {
       dado_svg: null,
     };
 
-    // dado_svg
+    // dado_svg - PRESERVAR TOTALMENTE os dados modelados
     let dadoSvgProcessado = "";
     if (dadosModelo.dado_svg) {
       if (typeof dadosModelo.dado_svg === "string") {
         try {
-          // IMPORTANTE: Validar JSON sem alterar o conteúdo
-          JSON.parse(dadosModelo.dado_svg);
+          // VALIDAR JSON sem alterar conteúdo
+          const dadosParseados = JSON.parse(dadosModelo.dado_svg);
           dadoSvgProcessado = dadosModelo.dado_svg.trim();
+
+          console.log(`✅ [PROCESSAMENTO] Dados SVG string preservados:`, {
+            tipo: dadosParseados.modelos ? 'v6.0' : 'legado',
+            modelos: dadosParseados.modelos ? Object.keys(dadosParseados.modelos).length : 
+                     dadosParseados.modelosDefinidos ? Object.keys(dadosParseados.modelosDefinidos).length : 0,
+            tamanho: dadoSvgProcessado.length
+          });
         }
         catch {
-          console.warn("⚠️ [PROCESSAMENTO] dado_svg não é JSON válido, usando como string");
+          console.warn("⚠️ [PROCESSAMENTO] dado_svg não é JSON válido, preservando como string");
           dadoSvgProcessado = dadosModelo.dado_svg;
         }
       } else if (typeof dadosModelo.dado_svg === "object") {
-        // CRÍTICO: NÃO alterar o objeto - apenas stringificar
+        // PRESERVAR INTEGRALMENTE o objeto modelado
         dadoSvgProcessado = JSON.stringify(dadosModelo.dado_svg);
-        console.log(`💾 [PROCESSAMENTO] Dados SVG objeto preservado:`, {
-          modelosDefinidos: dadosModelo.dado_svg.modelosDefinidos ? Object.keys(dadosModelo.dado_svg.modelosDefinidos).length : 0,
-          tamanhoTotal: dadoSvgProcessado.length
+
+        console.log(`✅ [PROCESSAMENTO] Dados SVG objeto preservados:`, {
+          tipo: dadosModelo.dado_svg.modelos ? 'v6.0' : 'legado',
+          modelos: dadosModelo.dado_svg.modelos ? Object.keys(dadosModelo.dado_svg.modelos).length : 
+                   dadosModelo.dado_svg.modelosDefinidos ? Object.keys(dadosModelo.dado_svg.modelosDefinidos).length : 0,
+          tamanho: dadoSvgProcessado.length
         });
       } else {
         dadoSvgProcessado = String(dadosModelo.dado_svg);

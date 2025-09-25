@@ -81,21 +81,21 @@
         </div>
 
         <!-- Seção: Aeradores -->
-        <h6 class="mb-3" style="color: #06335E;">💨 Configurações dos Aeradores</h6>
+        <h6 class="mb-3" style="color: #06335E;"><i class="fa fa-fan"></i> Configurações dos Aeradores</h6>
 
         <div class="form-check mb-3">
           <input class="form-check-input" type="checkbox" v-model="configSilo.aeradores_ativo" id="aeradoresAtivo"
             @change="$emit('silo-change')" />
           <label class="form-check-label" for="aeradoresAtivo">
-            Ativar Aeradores
+            <i class="fa fa-power-off me-1"></i> Ativar Aeradores
           </label>
         </div>
 
         <template v-if="configSilo.aeradores_ativo">
           <div class="mb-3">
-            <label class="form-label">Número de Aeradores: {{ configSilo.na }}</label>
+            <label class="form-label"><i class="fa fa-list-ol me-1"></i> Número de Aeradores: {{ configSilo.na }}</label>
             <div class="d-flex align-items-center">
-              <input v-model.number="configSilo.na" type="range" min="1" max="6" class="form-range me-2"
+              <input v-model.number="configSilo.na" type="range" min="1" max="8" class="form-range me-2"
                 @input="$emit('silo-change')" />
               <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'na', 4)"
                 title="Resetar para padrão (4)">
@@ -105,21 +105,21 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Distância Lateral: {{ configSilo.ds }}px</label>
+            <label class="form-label"><i class="fa fa-arrows-h me-1"></i> Distância Horizontal do SVG: {{ configSilo.ds }}px</label>
             <div class="d-flex align-items-center">
-              <input v-model.number="configSilo.ds" type="range" min="20" max="60" class="form-range me-2"
+              <input v-model.number="configSilo.ds" type="range" min="-50" max="100" class="form-range me-2"
                 @input="$emit('silo-change')" />
-              <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'ds', 30)"
-                title="Resetar para padrão (30)">
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'ds', -4)"
+                title="Resetar para padrão (-4)">
                 ×
               </button>
             </div>
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Deslocamento Y: {{ configSilo.dy }}px</label>
+            <label class="form-label"><i class="fa fa-arrows-v me-1"></i> Distância Vertical dos Aeradores: {{ configSilo.dy }}px</label>
             <div class="d-flex align-items-center">
-              <input v-model.number="configSilo.dy" type="range" min="-20" max="20" class="form-range me-2"
+              <input v-model.number="configSilo.dy" type="range" min="-50" max="50" class="form-range me-2"
                 @input="$emit('silo-change')" />
               <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'dy', 0)"
                 title="Resetar para padrão (0)">
@@ -129,17 +129,44 @@
           </div>
 
           <div class="mb-3">
-            <label class="form-label">Distância entre Aeradores: {{ configSilo.da }}px</label>
+            <label class="form-label"><i class="fa fa-expand me-1"></i> Espaçamento entre Aeradores: {{ configSilo.da }}px</label>
             <div class="d-flex align-items-center">
-              <input v-model.number="configSilo.da" type="range" min="20" max="60" class="form-range me-2"
+              <input v-model.number="configSilo.da" type="range" min="10" max="80" class="form-range me-2"
                 @input="$emit('silo-change')" />
-              <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'da', 35)"
-                title="Resetar para padrão (35)">
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'da', 0)"
+                title="Resetar para padrão (0)">
+                ×
+              </button>
+            </div>
+          </div>
+
+          <!-- Novos Controles Criativos dos Aeradores -->
+          <div class="mb-3">
+            <label class="form-label"><i class="fa fa-rotate-right me-1"></i> Rotação dos Aeradores: {{ configSilo.aerador_rotacao || 0 }}°</label>
+            <div class="d-flex align-items-center">
+              <input v-model.number="configSilo.aerador_rotacao" type="range" min="0" max="360" class="form-range me-2"
+                @input="$emit('silo-change')" />
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'aerador_rotacao', 0)"
+                title="Resetar para padrão (0)">
+                ×
+              </button>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label"><i class="fa fa-search-plus me-1"></i> Escala dos Aeradores: {{ (configSilo.aerador_escala || 1).toFixed(1) }}x</label>
+            <div class="d-flex align-items-center">
+              <input v-model.number="configSilo.aerador_escala" type="range" min="0.5" max="2" step="0.1" class="form-range me-2"
+                @input="$emit('silo-change')" />
+              <button type="button" class="btn btn-sm btn-outline-secondary" @click="$emit('reset-field', 'aerador_escala', 1)"
+                title="Resetar para padrão (1)">
                 ×
               </button>
             </div>
           </div>
         </template>
+
+        
       </div>
     </div>
 </template>
