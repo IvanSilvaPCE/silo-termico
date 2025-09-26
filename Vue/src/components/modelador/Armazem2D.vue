@@ -12,6 +12,7 @@
         </div>
 
         <TopoArmazem v-else-if="mostrarTopo" 
+          ref="topoArmazemRef"
           :onArcoSelecionado="handleArcoSelecionadoTopo"
           :arcoAtual="arcoAtual"
           :onFecharTopo="() => mostrarTopo = false" />
@@ -83,56 +84,35 @@
           </div>
         </div>
 
-        <!-- Seletor de Configurações do Armazém -->
-        <div class="row mb-3">
-          <div class="col-12">
-            <div class="card">
-              <div class="card-header bg-info text-white">
-                <h6 class="mb-0">⚙️ Configurações Salvas do Armazém</h6>
-              </div>
-              <div class="card-body">
-                <div class="row align-items-end">
-                  <div class="col-md-8 mb-2">
-                    <label class="form-label">Selecionar Configuração:</label>
-                    <select class="form-select" v-model="configuracaoSelecionada" @change="aplicarConfiguracao">
-                      <option value="">Configuração Padrão</option>
-                      <option v-for="config in configuracoesDisponiveis" :key="config" :value="config">
-                        {{ config }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="col-md-4 mb-2">
-                    <button 
-                      class="btn btn-outline-primary w-100" 
-                      @click="abrirModelador"
-                      title="Abrir modelador para criar/editar configurações"
-                    >
-                      🛠️ Modelador
-                    </button>
-                  </div>
-                </div>
-                <div v-if="configuracoesDisponiveis.length === 0" class="alert alert-info mb-0">
-                  <small>Nenhuma configuração de armazém salva. Use o Modelador para criar configurações personalizadas.</small>
-                </div>
-                <div v-else class="mt-2">
-                  <small class="text-muted">{{ configuracoesDisponiveis.length }} configuração(ões) de armazém disponível(is)</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        
 
-        <div class="d-flex justify-content-center py-2">
-          <button class="btn btn-primary" @click="trocarModo">
-            {{ modo === 'temperatura' ? 'Ver Mapa de Calor' : 'Ver Temperatura' }}
-          </button>
-          <button 
-            class="btn ms-2" 
-            :class="mostrarTopo ? 'btn-success' : 'btn-outline-info'"
-            @click="mostrarTopo = !mostrarTopo"
-          >
-            {{ mostrarTopo ? 'Fechar Topo' : 'Vista de Topo' }}
-          </button>
+        <div class="d-flex justify-content-center py-4">
+          <div class="custom-button-group" role="group" aria-label="Modos de visualização">
+            <button 
+              class="custom-mode-btn" 
+              :class="{ 'active': !mostrarTopo && modo === 'temperatura' }"
+              @click="ativarModolateral"
+            >
+              <i class="fa fa-bar-chart"></i>
+              <span>Lateral</span>
+            </button>
+            <button 
+              class="custom-mode-btn" 
+              :class="{ 'active': !mostrarTopo && modo === 'mapa' }"
+              @click="ativarModoMapaTermico"
+            >
+              <i class="fa fa-fire"></i>
+              <span>Mapa Térmico</span>
+            </button>
+            <button 
+              class="custom-mode-btn" 
+              :class="{ 'active': mostrarTopo }"
+              @click="ativarModoTopo"
+            >
+              <i class="fa fa-circle-o"></i>
+              <span>Topo</span>
+            </button>
+          </div>
         </div>
 
         <!-- Error Display -->
@@ -218,6 +198,28 @@ export default {
       this.$nextTick(() => {
         this.renderizarSVG();
       });
+    },
+    mostrarTopo(novoValor) {
+      if (novoValor) {
+        // Parar carregamento de outros modos quando topo estiver ativo
+        this.carregandoModo = false;
+        
+        // Enviar dados para o componente TopoArmazem quando abrir
+        this.$nextTick(() => {
+          if (this.$refs.topoArmazemRef && this.dadosPortal && this.analiseArcos) {
+            this.$refs.topoArmazemRef.receberDadosExternos(
+              this.dadosPortal,
+              this.analiseArcos,
+              this.layoutsAutomaticos
+            );
+          }
+        });
+      } else {
+        // Quando fechar o topo, re-renderizar o SVG lateral
+        this.$nextTick(() => {
+          this.renderizarSVG();
+        });
+      }
     }
   },
   methods: {
@@ -911,16 +913,52 @@ export default {
       });
     },
 
-    trocarModo() {
+    trocarModo(novoModo = null) {
       this.carregandoModo = true;
+      
       setTimeout(() => {
-        this.modo = this.modo === "temperatura" ? "mapa" : "temperatura";
+        if (novoModo) {
+          this.modo = novoModo;
+        } else {
+          this.modo = this.modo === "temperatura" ? "mapa" : "temperatura";
+        }
         this.carregandoModo = false;
+        
         // Forçar renderização imediata após mudança de modo
         this.$nextTick(() => {
           this.renderizarSVG();
         });
-      }, 100); // Reduzido tempo para resposta mais rápida
+      }, 100);
+    },
+
+    ativarModolateral() {
+      // Ocultar topo se estiver visível
+      if (this.mostrarTopo) {
+        this.mostrarTopo = false;
+      }
+      
+      // Ativar modo lateral (temperatura)
+      this.trocarModo('temperatura');
+    },
+
+    ativarModoMapaTermico() {
+      // Ocultar topo se estiver visível
+      if (this.mostrarTopo) {
+        this.mostrarTopo = false;
+      }
+      
+      // Ativar modo mapa térmico
+      this.trocarModo('mapa');
+    },
+
+    ativarModoTopo() {
+      // Alternar visibilidade do topo
+      this.mostrarTopo = !this.mostrarTopo;
+      
+      // Se estiver mostrando o topo, parar carregamento de outros modos
+      if (this.mostrarTopo) {
+        this.carregandoModo = false;
+      }
     },
 
     mudarArco(novoArco) {
@@ -938,8 +976,16 @@ export default {
     },
 
     handleArcoSelecionadoTopo(numeroArco) {
+      // Mudar para o arco selecionado
       this.mudarArco(numeroArco);
+      
+      // Fechar a visão topo
       this.mostrarTopo = false;
+      
+      // Garantir que o modo lateral esteja ativo após fechar o topo
+      if (this.modo !== 'temperatura' && this.modo !== 'mapa') {
+        this.modo = 'temperatura';
+      }
       
       // Forçar renderização imediata após fechar o topo
       this.$nextTick(() => {
@@ -1281,6 +1327,123 @@ export default {
   height: 2rem;
 }
 
+.custom-button-group {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.custom-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  height: 90px;
+  padding: 16px 24px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #ffffff;
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-weight: 600;
+  color: #495057;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.custom-mode-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.custom-mode-btn:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 35px rgba(0, 123, 255, 0.15),
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: #007bff;
+}
+
+.custom-mode-btn:hover::before {
+  opacity: 1;
+}
+
+.custom-mode-btn:active {
+  transform: translateY(-2px) scale(1.01);
+  transition: all 0.1s ease;
+}
+
+.custom-mode-btn.active {
+  background: linear-gradient(145deg, #007bff 0%, #0056b3 100%);
+  border-color: #0056b3;
+  color: #ffffff;
+  box-shadow: 
+    0 10px 30px rgba(0, 123, 255, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.custom-mode-btn.active::before {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+  opacity: 1;
+}
+
+.custom-mode-btn i {
+  font-size: 26px;
+  margin-bottom: 10px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.custom-mode-btn span {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-transform: uppercase;
+}
+
+.custom-mode-btn:not(.active) i,
+.custom-mode-btn:not(.active) span {
+  color: #495057;
+  opacity: 1;
+  visibility: visible;
+}
+
+.custom-mode-btn:not(.active):hover i,
+.custom-mode-btn:not(.active):hover span {
+  color: #007bff;
+  text-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.custom-mode-btn.active i,
+.custom-mode-btn.active span {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 @media (max-width: 768px) {
   .container-fluid {
     padding: 0.5rem;
@@ -1298,6 +1461,51 @@ export default {
   .btn-sm {
     padding: 0.125rem 0.25rem;
     font-size: 0.7rem;
+  }
+
+  .custom-button-group {
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .custom-mode-btn {
+    min-width: 120px;
+    height: 80px;
+    padding: 12px 18px;
+  }
+
+  .custom-mode-btn i {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .custom-mode-btn span {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 576px) {
+  .custom-button-group {
+    gap: 12px;
+    padding: 8px;
+  }
+
+  .custom-mode-btn {
+    min-width: 100px;
+    height: 70px;
+    padding: 10px 15px;
+    border-radius: 12px;
+  }
+
+  .custom-mode-btn i {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .custom-mode-btn span {
+    font-size: 9px;
+    line-height: 1.1;
   }
 }
 </style>

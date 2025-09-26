@@ -26,6 +26,14 @@ export default {
     arcoAtual: {
       type: Number,
       default: 1
+    },
+    onArcoSelecionado: {
+      type: Function,
+      default: null
+    },
+    onFecharTopo: {
+      type: Function,
+      default: null
     }
   },
   emits: ['fecharTopo', 'arcoSelecionado'],
@@ -42,7 +50,10 @@ export default {
       alturaSVG: 400,
       apiConfig: {
         url: 'https://cloud.pce-eng.com.br/cloud/api/public/api/armazem/buscardado/130?celula=1&leitura=4&data=2025-08-04%2007:02:22',
-        token: 'Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwOi8vbG9jYWxob3N0L2Nsb3VkL2FwaS9wdWJsaWMvYXBpL2xvZ2luIiwiaWF0IjoxNzU0NTY2MjAxLCJleHAiOjE3NTU3NzU4MDEsIm5iZiI6MTc1NDU2NjIwMSwianRpIjoiR3JlVEZ6dE83eWcxTE5aaiIsInN1YiI6IjEzIiwicHJ2IjoiNTg3MDg2M2Q0YTYyZDc5MTQ0M2ZhZjkzNmZjMzY4MDMxZDExMGM0ZiIsInVzZXIiOnsiaWRfdXN1YXJpbyI6MTMsIm5tX3VzdWFyaW8iOiJJdmFuIEphY3F1ZXMiLCJlbWFpbCI6Iml2YW4uc2lsdmFAcGNlLWVuZy5jb20uYnIiLCJ0ZWxlZm9uZSI6bnVsbCwiY2VsdWxhciI6bnVsbCwic3RfdXN1YXJpbyI6IkEiLCJpZF9pbWFnZW0iOjM4LCJsb2dhZG8iOiJTIiwidXN1YXJpb3NfcGVyZmlzIjpbeyJpZF9wZXJmaWwiOjEwLCJubV9wZXJmaWwiOiJBZG1pbmlzdHJhZG9yIGRvIFBvcnRhbCIsImNkX3BlcmZpbCI6IkFETUlOUE9SVEEiLCJ0cmFuc2Fjb2VzIjpbXX1dLCJpbWFnZW0iOnsiaWRfaW1hZ2VtIjozOCwidHBfaW1hZ2VtIjoiVSIsImRzX2ltYWdlbSI6bnVsbCwiY2FtaW5obyI6InVwbG9hZHMvdXN1YXJpb3MvMTcyOTc3MjA3OV9yYl80NzA3LnBuZyIsImV4dGVuc2FvIjoicG5nIn19fQ.GHXrVfXk1nIm4gKbFtIDRS97B5Evet0PQHxvDDtLBGg'
+        get token() {
+          const token = localStorage.getItem('token') || ''
+          return token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : 'Bearer [TOKEN_REQUIRED]'
+        }
       }
     };
   },
@@ -71,10 +82,18 @@ export default {
 
         console.log('=== CARREGANDO DADOS DA API PARA TOPO ===');
 
+        // Obter token dinâmico do localStorage
+        const token = localStorage.getItem('token') || ''
+        const authToken = token ? (token.startsWith('Bearer ') ? token : `Bearer ${token}`) : ''
+
+        if (!authToken || authToken === 'Bearer ') {
+          throw new Error('Token de autenticação não encontrado no localStorage')
+        }
+
         // Carregar dados da API
         const response = await axios.get(this.apiConfig.url, {
           headers: {
-            'Authorization': this.apiConfig.token,
+            'Authorization': authToken,
             'Content-Type': 'application/json'
           },
           timeout: 15000
@@ -919,7 +938,12 @@ export default {
             if (this.layoutTopo && this.layoutTopo[novoArco]) {
               this.celulaSelecionada = this.layoutTopo[novoArco].celula;
             }
-            this.$emit('arcoSelecionado', novoArco);
+            // Usar prop function se disponível, senão emitir evento
+            if (this.onArcoSelecionado) {
+              this.onArcoSelecionado(novoArco);
+            } else {
+              this.$emit('arcoSelecionado', novoArco);
+            }
             this.atualizarVisualizacao();
           } else if (tipo === "cabo") {
             // Encontrar qual arco pertence este cabo
@@ -930,7 +954,12 @@ export default {
                   const novoArco = parseInt(arcoKey);
                   this.arcoSelecionado = novoArco;
                   this.celulaSelecionada = arcoData.celula;
-                  this.$emit('arcoSelecionado', novoArco);
+                  // Usar prop function se disponível, senão emitir evento
+                  if (this.onArcoSelecionado) {
+                    this.onArcoSelecionado(novoArco);
+                  } else {
+                    this.$emit('arcoSelecionado', novoArco);
+                  }
                   this.atualizarVisualizacao();
                 }
               }
@@ -956,8 +985,105 @@ export default {
       }
     },
 
+    // Método para receber dados externos do componente pai
+    receberDadosExternos(dadosPortal, analiseArcos, layoutsAutomaticos) {
+      if (dadosPortal && analiseArcos) {
+        console.log('Recebendo dados externos para TopoArmazem:', {
+          dadosPortal: dadosPortal,
+          analiseArcos: analiseArcos,
+          layoutsAutomaticos: layoutsAutomaticos
+        });
+
+        // Usar dados do componente pai em vez de carregar da API
+        this.dadosAPI = dadosPortal;
+        
+        // Processar dados usando a estrutura já analisada
+        const pendulosProcessados = this.processarPendulosAPI(dadosPortal);
+        const layoutProcessado = this.processarLayoutTopoExistente(layoutsAutomaticos, analiseArcos);
+
+        this.dadosPendulos = pendulosProcessados;
+        this.dadosTopo = pendulosProcessados;
+        this.layoutTopo = layoutProcessado;
+
+        // Calcular dimensões baseadas nos dados reais
+        this.calcularDimensoesDinamicas(layoutProcessado);
+
+        // Re-renderizar
+        this.carregando = false;
+        this.$nextTick(() => {
+          this.criarSVGTopo();
+          this.atualizarVisualizacao();
+        });
+      }
+    },
+
+    processarLayoutTopoExistente(layoutsAutomaticos, analiseArcos) {
+      // Se já existe um layout automático, adaptar para visão topo
+      if (layoutsAutomaticos && analiseArcos) {
+        const layout = {
+          celulas: {
+            tamanho_svg: [this.larguraSVG, this.alturaSVG],
+            fundo: [5, 49, this.larguraSVG - 10, 256]
+          },
+          aeradores: this.gerarAeradoresDefault()
+        };
+
+        // Configurar células dinamicamente baseado no número de arcos
+        const totalArcos = analiseArcos.totalArcos;
+        const numeroCelulas = Math.min(3, Math.max(1, Math.ceil(totalArcos / 10)));
+        const larguraPorCelula = Math.floor((this.larguraSVG - 10) / numeroCelulas);
+
+        for (let i = 1; i <= numeroCelulas; i++) {
+          const xInicio = 5 + (i - 1) * larguraPorCelula;
+          const largura = i === numeroCelulas ? (this.larguraSVG - 10) - xInicio : larguraPorCelula - 3;
+          layout.celulas[i] = [xInicio, 50, largura, 254];
+        }
+
+        // Distribuir pêndulos/arcos pelas células usando dados da análise
+        let contadorPendulo = 0;
+        Object.entries(analiseArcos.arcos).forEach(([numeroArco, arcoInfo]) => {
+          const arcoNum = parseInt(numeroArco);
+          const celula = Math.min(numeroCelulas, Math.ceil(arcoNum / Math.ceil(totalArcos / numeroCelulas)));
+          
+          arcoInfo.pendulos.forEach((pendulo, index) => {
+            contadorPendulo++;
+            const posX = 20 + (contadorPendulo - 1) * 25;
+            let posY = 75 + (contadorPendulo % 4) * 50;
+            posY = Math.max(75, Math.min(275, posY));
+
+            layout[pendulo.numero] = {
+              celula: celula,
+              pos_x: posX,
+              sensores: {
+                [pendulo.numero]: posY
+              }
+            };
+          });
+        });
+
+        return layout;
+      }
+
+      // Fallback para layout padrão
+      return this.layoutTopo || {
+        celulas: {
+          tamanho_svg: [600, 388],
+          fundo: [5, 49, 590, 256],
+          1: [10, 50, 188, 254],
+          2: [207, 50, 186, 254],
+          3: [402, 50, 188, 254]
+        },
+        aeradores: this.gerarAeradoresDefault()
+      };
+    },
+
     fecharTopo() {
-      this.$emit('fecharTopo');
+      // Usar prop function se disponível, senão emitir evento
+      if (this.onFecharTopo) {
+        this.onFecharTopo();
+      } else {
+        this.$emit('fecharTopo');
+      }
     }
   }
 };

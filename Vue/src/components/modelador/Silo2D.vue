@@ -226,41 +226,23 @@
           </div>
         </div>
 
-        <!-- Seletor de Configurações do Silo -->
-        <div class="row mb-3">
+        
+
+        <!-- Navegação de Sensores - Apenas no modo mapa-topo -->
+        <div v-if="modo === 'mapa-topo'" class="row mb-3">
           <div class="col-12">
-            <div class="card">
-              <div class="card-header bg-success text-white">
-                <h6 class="mb-0"><i class="fa fa-cog"></i> Configurações Salvas do Silo</h6>
+            <div class="d-flex justify-content-between align-items-center">
+              <button class="btn btn-outline-primary" @click="navegarSensor('anterior')" :disabled="sensorAtual === 0">
+                <i class="fa fa-chevron-left"></i> Anterior
+              </button>
+              <div class="text-center flex-grow-1">
+                <h6 class="mb-0">
+                  Sensor {{ sensorAtual }} - {{ getNomeSensor(sensorAtual) }} - Média: {{ getMediaSensor(sensorAtual) }}
+                </h6>
               </div>
-              <div class="card-body">
-                <div class="row align-items-end">
-                  <div class="col-md-8 mb-2">
-                    <label class="form-label">Selecionar Configuração:</label>
-                    <select class="form-select" v-model="configuracaoSelecionada" @change="aplicarConfiguracao">
-                      <option value="">Configuração Padrão</option>
-                      <option v-for="config in configuracoesDisponiveis" :key="config" :value="config">
-                        {{ config }}
-                      </option>
-                    </select>
-                  </div>
-                  <div class="col-md-4 mb-2">
-                    <button 
-                      class="btn btn-outline-primary w-100" 
-                      @click="abrirModelador"
-                      title="Abrir modelador para criar/editar configurações"
-                    >
-                      <i class="fa fa-wrench"></i> Modelador
-                    </button>
-                  </div>
-                </div>
-                <div v-if="configuracoesDisponiveis.length === 0" class="alert alert-info mb-0">
-                  <small>Nenhuma configuração de silo salva. Use o Modelador para criar configurações personalizadas.</small>
-                </div>
-                <div v-else class="mt-2">
-                  <small class="text-muted">{{ configuracoesDisponiveis.length }} configuração(ões) de silo disponível(is)</small>
-                </div>
-              </div>
+              <button class="btn btn-outline-primary" @click="navegarSensor('proxima')" :disabled="sensorAtual >= totalSensores - 1">
+                Próxima <i class="fa fa-chevron-right"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -322,7 +304,8 @@ export default {
       blocosMapaCalor: [],
       dBlade: "M87.8719 24.0211c0,0.1159 -0.0131,0.2287 -0.0378,0.3371 2.7914,0.5199 5.9807,0.6695 6.4392,2.7909 0.0127,1.1871 -0.2692,1.9342 -1.3353,3.2209 -1.8235,-3.4167 -3.7636,-4.2185 -5.4164,-5.3813 -0.1853,0.2222 -0.4331,0.3904 -0.7164,0.4775 0.9454,2.6773 2.4105,5.5142 0.8026,6.9719 -1.0217,0.6046 -1.8096,0.734 -3.4571,0.454 2.0472,-3.2874 1.7716,-5.3685 1.9521,-7.3812 -0.2952,-0.0506 -0.5611,-0.1869 -0.7713,-0.3822 -1.846,2.1575 -3.5703,4.8451 -5.6368,4.1814 -1.0345,-0.5825 -1.5405,-1.2002 -2.1218,-2.7669 3.8705,0.1292 5.535,-1.15 7.3682,-2 0.0599,-0.1627 0.0927,-0.3386 0.0927,-0.5221z",
       configuracaoSelecionada: '',
-      configuracoesDisponiveis: []
+      configuracoesDisponiveis: [],
+      sensorAtual: 0
     }
   },
   computed: {
@@ -402,6 +385,18 @@ export default {
           index
         }
       })
+    },
+
+    totalSensores() {
+      if (!this.leitura) return 0
+      let maxSensor = 0
+      Object.values(this.leitura).forEach(sensores => {
+        const sensorNums = Object.keys(sensores).map(k => parseInt(k))
+        if (sensorNums.length > 0) {
+          maxSensor = Math.max(maxSensor, Math.max(...sensorNums))
+        }
+      })
+      return maxSensor + 1
     }
   },
   mounted() {
@@ -986,6 +981,54 @@ export default {
       if (mediaTemp === 0) return "#e7e7e7" // Cinza para sem dados
       
       return this.corFaixaExata(mediaTemp)
+    },
+
+    // Navegação de sensores
+    navegarSensor(direcao) {
+      if (direcao === 'anterior' && this.sensorAtual > 0) {
+        this.sensorAtual--
+      } else if (direcao === 'proxima' && this.sensorAtual < this.totalSensores - 1) {
+        this.sensorAtual++
+      }
+    },
+
+    // Obter nome do sensor baseado no nível
+    getNomeSensor(sensorNum) {
+      const niveis = {
+        0: 'Topo (1º nível)',
+        1: '2º nível',
+        2: '3º nível', 
+        3: '4º nível',
+        4: '5º nível',
+        5: '6º nível',
+        6: '7º nível',
+        7: '8º nível',
+        8: 'Base (9º nível)'
+      }
+      return niveis[sensorNum] || `${sensorNum + 1}º nível`
+    },
+
+    // Calcular média do sensor específico em todos os pêndulos
+    getMediaSensor(sensorNum) {
+      if (!this.leitura) return 'N/A'
+      
+      const temperaturas = []
+      Object.values(this.leitura).forEach(sensores => {
+        if (sensores[sensorNum]) {
+          const temp = parseFloat(sensores[sensorNum][0])
+          const temGrao = sensores[sensorNum][4]
+          const temFalha = sensores[sensorNum][3]
+          
+          if (!temFalha && temGrao && temp !== -1000 && temp !== 0) {
+            temperaturas.push(temp)
+          }
+        }
+      })
+
+      if (temperaturas.length === 0) return 'N/A'
+      
+      const media = temperaturas.reduce((acc, temp) => acc + temp, 0) / temperaturas.length
+      return `${media.toFixed(1)}°C`
     }
   }
 }
@@ -1093,6 +1136,13 @@ export default {
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
   text-transform: uppercase;
+}
+
+.custom-mode-btn:not(.active) i,
+.custom-mode-btn:not(.active) span {
+  color: #495057;
+  opacity: 1;
+  visibility: visible;
 }
 
 .custom-mode-btn:not(.active):hover i,
