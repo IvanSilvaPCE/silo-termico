@@ -55,6 +55,12 @@
               </button>
             </li>
             <li class="nav-item">
+              <button :class="['btn', 'btn-sm', 'me-2', telaAtiva === 'menuarmazem3d' ? 'btn-light' : 'btn-outline-light']"
+                @click="mudarTela('menuarmazem3d')">
+                Menu Armazém 3D
+              </button>
+            </li>
+            <li class="nav-item">
               <button :class="['btn', 'btn-sm', telaAtiva === 'teste3d' ? 'btn-light' : 'btn-outline-light']"
                 @click="mudarTela('teste3d')">
                 Teste 3D
@@ -65,49 +71,9 @@
       </div>
     </nav>
 
-    <!-- Controles específicos para Silo2D -->
-    <div v-if="telaAtiva === 'silo2d'" class="controles-silo2d bg-light border-bottom">
-      <div class="container-fluid">
-        <div class="row align-items-center py-2">
-          <div class="col">
-            <div class="btn-group" role="group" aria-label="Controles de visualização do Silo 2D">
-              <button 
-                :class="['btn', 'btn-sm', modoSilo2D === 'temperatura' ? 'btn-primary' : 'btn-outline-primary']"
-                @click="setModoSilo2D('temperatura')"
-              >
-                <i class="fa fa-bar-chart"></i>
-                Lateral
-              </button>
-              <button 
-                :class="['btn', 'btn-sm', modoSilo2D === 'mapa' ? 'btn-primary' : 'btn-outline-primary']"
-                @click="setModoSilo2D('mapa')"
-              >
-                <i class="fa fa-fire"></i>
-                Mapa Térmico Lateral
-              </button>
-              <button 
-                :class="['btn', 'btn-sm', modoSilo2D === 'topo' ? 'btn-primary' : 'btn-outline-primary']"
-                @click="setModoSilo2D('topo')"
-              >
-                <i class="fa fa-refresh"></i>
-                Topo
-              </button>
-              <button 
-                :class="['btn', 'btn-sm', modoSilo2D === 'topoMapa' ? 'btn-primary' : 'btn-outline-primary']"
-                @click="setModoSilo2D('topoMapa')"
-              >
-                <i class="fa fa-fire"></i>
-                Mapa Térmico Topo
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Conteúdo Principal -->
     <main class="flex-grow-1 overflow-hidden">
-      <component :is="componenteAtivo" :modo="modoSilo2D" @modo-changed="handleModoChanged" />
+      <component :is="componenteAtivo" />
     </main>
   </div>
 </template>
@@ -121,6 +87,7 @@ import Armazem3D from '@/components/modelador/Armazem3D.vue'
 import Teste3D from '@/components/modelador/teste3d/Teste3D.vue'
 import SiloComponente from '@/components/modelador/compModelador/SiloComponente.vue'
 import ArmazemComponente from '@/components/modelador/compModelador/ArmazemComponente.vue'
+import MenuArmazem3D from '@/components/modelador/MenuArmazem3D.vue'
 
 export default {
   name: 'App',
@@ -132,13 +99,13 @@ export default {
     Armazem3D,
     Teste3D,
     SiloComponente,
-    ArmazemComponente
+    ArmazemComponente,
+    MenuArmazem3D
   },
   data() {
     return {
       telaAtiva: 'modelador',
-      showNavbar: false,
-      modoSilo2D: 'temperatura'
+      showNavbar: false
     }
   },
   computed: {
@@ -151,7 +118,8 @@ export default {
         'armazem3d': 'Armazem3D',
         'teste3d': 'Teste3D',
         'silocomp': 'SiloComponente',
-        'armazemcomp': 'ArmazemComponente'
+        'armazemcomp': 'ArmazemComponente',
+        'menuarmazem3d': 'MenuArmazem3D'
       }
       return componentes[this.telaAtiva] || 'ModeladorSVG'
     }
@@ -160,20 +128,9 @@ export default {
     mudarTela(tela) {
       this.telaAtiva = tela
       this.showNavbar = false // Fechar navbar móvel após clique
-      
-      // Reset modo do Silo2D quando mudar de tela
-      if (tela !== 'silo2d') {
-        this.modoSilo2D = 'temperatura'
-      }
     },
     toggleNavbar() {
       this.showNavbar = !this.showNavbar
-    },
-    setModoSilo2D(modo) {
-      this.modoSilo2D = modo
-    },
-    handleModoChanged(novoModo) {
-      this.modoSilo2D = novoModo
     }
   }
 }

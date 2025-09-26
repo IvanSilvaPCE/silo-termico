@@ -21,10 +21,13 @@
             overflow: 'auto'
           }">
             <!-- Vista de Topo Separada -->
-            <TopoView v-if="modo === 'topo' && dados && leitura" :dados="dados" :leitura="leitura" />
+            <TopoView v-if="(modo === 'topo' || modo === 'mapa-topo') && dados && leitura" 
+                      :dados="dados" 
+                      :leitura="leitura" 
+                      :modoMapaCalor="modo === 'mapa-topo'" />
             
             <!-- SVG das outras vistas -->
-            <svg v-else-if="dados" width="100%" height="auto" :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
+            <svg v-else-if="dados && (modo === 'temperatura' || modo === 'mapa')" width="100%" height="auto" :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
               maxWidth: '100%',
               maxHeight: modo === 'temperatura' ? '70vh' : '85vh',
               height: 'auto',
@@ -196,7 +199,7 @@
               </g>
 
               <!-- Aeradores (apenas nos modos lateral e mapa) -->
-              <g v-if="layout.aeradores && layout.aeradores.na > 0 && modo !== 'topo'">
+              <g v-if="layout.aeradores && layout.aeradores.na > 0 && (modo === 'temperatura' || modo === 'mapa')">
                 <g v-for="id in layout.aeradores.na" :key="`aerador-${id}`" :id="`aerador_${id}`"
                   :transform="getTransformAerador(id)">
                   <circle :id="`fundo_aerador_${id}`" :cx="70 + 12.5 + 3.5" cy="24" r="10" :fill="getCorAerador(id)" />
@@ -262,28 +265,39 @@
           </div>
         </div>
 
-        <div class="d-flex justify-content-center py-2">
-          <div class="btn-group" role="group" aria-label="Modos de visualização">
+        <div class="d-flex justify-content-center py-4">
+          <div class="custom-button-group" role="group" aria-label="Modos de visualização">
             <button 
-              class="btn" 
-              :class="modo === 'temperatura' ? 'btn-primary' : 'btn-outline-primary'"
+              class="custom-mode-btn" 
+              :class="{ 'active': modo === 'temperatura' }"
               @click="setModo('temperatura')"
             >
-              <i class="fa fa-bar-chart"></i> Lateral
+              <i class="fa fa-bar-chart"></i>
+              <span>Lateral</span>
             </button>
             <button 
-              class="btn" 
-              :class="modo === 'mapa' ? 'btn-primary' : 'btn-outline-primary'"
+              class="custom-mode-btn" 
+              :class="{ 'active': modo === 'mapa' }"
               @click="setModo('mapa')"
             >
-              <i class="fa fa-fire"></i> Mapa Térmico
+              <i class="fa fa-fire"></i>
+              <span>Mapa Térmico Lateral</span>
             </button>
             <button 
-              class="btn" 
-              :class="modo === 'topo' ? 'btn-primary' : 'btn-outline-primary'"
+              class="custom-mode-btn" 
+              :class="{ 'active': modo === 'topo' }"
               @click="setModo('topo')"
             >
-              <i class="fa fa-refresh"></i> Topo
+              <i class="fa fa-circle-o"></i>
+              <span>Topo</span>
+            </button>
+            <button 
+              class="custom-mode-btn" 
+              :class="{ 'active': modo === 'mapa-topo' }"
+              @click="setModo('mapa-topo')"
+            >
+              <i class="fa fa-bullseye"></i>
+              <span>Mapa Térmico Topo</span>
             </button>
           </div>
         </div>
@@ -983,6 +997,116 @@ export default {
   max-height: calc(100vh - 140px);
 }
 
+.custom-button-group {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 16px;
+}
+
+.custom-mode-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 140px;
+  height: 90px;
+  padding: 16px 24px;
+  background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%);
+  border: 2px solid #ffffff;
+  border-radius: 16px;
+  box-shadow: 
+    0 8px 25px rgba(0, 0, 0, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  font-family: 'Segoe UI', 'Roboto', 'Arial', sans-serif;
+  font-weight: 600;
+  color: #495057;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+}
+
+.custom-mode-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.custom-mode-btn:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 
+    0 12px 35px rgba(0, 123, 255, 0.15),
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  border-color: #007bff;
+}
+
+.custom-mode-btn:hover::before {
+  opacity: 1;
+}
+
+.custom-mode-btn:active {
+  transform: translateY(-2px) scale(1.01);
+  transition: all 0.1s ease;
+}
+
+.custom-mode-btn.active {
+  background: linear-gradient(145deg, #007bff 0%, #0056b3 100%);
+  border-color: #0056b3;
+  color: #ffffff;
+  box-shadow: 
+    0 10px 30px rgba(0, 123, 255, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.custom-mode-btn.active::before {
+  background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 100%);
+  opacity: 1;
+}
+
+.custom-mode-btn i {
+  font-size: 26px;
+  margin-bottom: 10px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.custom-mode-btn span {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.3;
+  letter-spacing: 0.5px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-transform: uppercase;
+}
+
+.custom-mode-btn:not(.active):hover i,
+.custom-mode-btn:not(.active):hover span {
+  color: #007bff;
+  text-shadow: 0 2px 4px rgba(0, 123, 255, 0.3);
+}
+
+.custom-mode-btn.active i,
+.custom-mode-btn.active span {
+  color: #ffffff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
 @media (max-width: 768px) {
   .fs-4 {
     font-size: 1.1rem !important;
@@ -991,6 +1115,51 @@ export default {
   .svg-container {
     min-height: 300px;
     max-height: 400px;
+  }
+
+  .custom-button-group {
+    gap: 16px;
+    padding: 12px;
+  }
+
+  .custom-mode-btn {
+    min-width: 120px;
+    height: 80px;
+    padding: 12px 18px;
+  }
+
+  .custom-mode-btn i {
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  .custom-mode-btn span {
+    font-size: 10px;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 576px) {
+  .custom-button-group {
+    gap: 12px;
+    padding: 8px;
+  }
+
+  .custom-mode-btn {
+    min-width: 100px;
+    height: 70px;
+    padding: 10px 15px;
+    border-radius: 12px;
+  }
+
+  .custom-mode-btn i {
+    font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .custom-mode-btn span {
+    font-size: 9px;
+    line-height: 1.1;
   }
 }
 </style>
