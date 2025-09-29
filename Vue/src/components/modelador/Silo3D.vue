@@ -125,6 +125,7 @@ export default {
       aeradorHélices: [],
       textSprites: [],
       cabos3D: [],
+      escadaGroup: null,
       raycaster: null,
       mouse: null,
       isMouseDown: false,
@@ -279,6 +280,9 @@ export default {
 
       // Build silo structure
       this.buildSiloStructure(numCabos, alturaSilo, raioSilo);
+
+      // Build ladders near pendulum 1
+      this.buildLadders(alturaSilo, raioSilo);
 
       // Build level
       this.buildNivelGrao(alturaSilo, raioSilo);
@@ -494,6 +498,200 @@ export default {
       cap.position.y = alturaSilo + alturaTopo + 0.06; // Mais acima para ficar bem no topo
       cap.castShadow = true;
       this.scene.add(cap);
+    },
+
+    buildLadders(alturaSilo, raioSilo) {
+      if (!this.dados?.leitura) return;
+
+      // Remover escada anterior se existir
+      if (this.escadaGroup) {
+        this.scene.remove(this.escadaGroup);
+        this.disposeGroup(this.escadaGroup);
+        this.escadaGroup = null;
+      }
+
+      const leitura = this.dados.leitura;
+      
+      // Encontrar diretamente a posição do P1 usando a mesma lógica de calculateCablePositionsByLevels
+      const cabosPositions = this.calculateCablePositionsByLevels(leitura, raioSilo);
+      
+      // Mapear posições por nome do pêndulo usando a mesma ordem de calculateCablePositionsByLevels
+      const positionMap = {};
+      const sequenciaPendulos = this.dados?.dados_layout?.sequencia_pendulos || Object.keys(leitura);
+      
+      // Usar a sequência original para garantir consistência
+      const pendulosOrdenados = [];
+      if (Array.isArray(sequenciaPendulos)) {
+        sequenciaPendulos.forEach(numeroPendulo => {
+          const chavePendulo = `P${numeroPendulo}`;
+          if (leitura[chavePendulo]) {
+            pendulosOrdenados.push(chavePendulo);
+          }
+        });
+      } else {
+        // Fallback para Object.keys se não tiver sequência
+        pendulosOrdenados.push(...Object.keys(leitura));
+      }
+      
+      pendulosOrdenados.forEach((pendulo, index) => {
+        positionMap[pendulo] = cabosPositions[index];
+      });
+      
+      let posicaoP1 = positionMap['P1'];
+      
+      // Se não encontrou P1, usar o primeiro cabo disponível
+      if (!posicaoP1 && pendulosOrdenados.length > 0) {
+        const primeiroPendulo = pendulosOrdenados[0];
+        posicaoP1 = positionMap[primeiroPendulo];
+      }
+
+      if (!posicaoP1) return;
+
+      // Posicionar a escada encostada na lateral do silo, próxima ao P1
+      const anguloP1 = Math.atan2(posicaoP1[2], posicaoP1[0]);
+      const profundidadeDegrau = 0.25;
+      const distanciaDoSilo = raioSilo + (profundidadeDegrau / 2) + 0.01; // Mais preciso
+      
+      const posicaoEscada = {
+        x: Math.cos(anguloP1) * distanciaDoSilo,
+        z: Math.sin(anguloP1) * distanciaDoSilo,
+        angulo: anguloP1
+      };
+
+      this.createSiloLadder(posicaoEscada, alturaSilo, raioSilo);
+    },
+
+    disposeGroup(group) {
+      group.traverse((child) => {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach(material => {
+              if (material.map) material.map.dispose();
+              material.dispose();
+            });
+          } else {
+            if (child.material.map) child.material.map.dispose();
+            child.material.dispose();
+          }
+        }
+      });
+    },
+
+    createSiloLadder(posicao, alturaSilo, raioSilo) {
+      this.escadaGroup = new THREE.Group();
+      
+      // === ESTRUTURA PRINCIPAL DA ESCADA ===
+      const larguraEscada = 0.8;
+      const alturaTotal = alturaSilo + 0.5; // Um pouco acima do silo
+      const numeroDegraus = Math.floor(alturaTotal / 0.25); // Degrau a cada 25cm
+      
+      // Materiais reutilizáveis
+      const materialEstrutura = new THREE.MeshStandardMaterial({
+        color: 0x666666,
+        metalness: 0.8,
+        roughness: 0.3
+      });
+
+      const materialDegrau = new THREE.MeshStandardMaterial({
+        color: 0x555555,
+        metalness: 0.6,
+        roughness: 0.4
+      });
+
+      // Geometrias reutilizáveis
+      const longarinaGeometry = new THREE.BoxGeometry(0.08, alturaTotal, 0.12);
+      const degrauGeometry = new THREE.BoxGeometry(larguraEscada - 0.08, 0.04, 0.25);
+      const suporteGeometry = new THREE.BoxGeometry(0.03, 0.15, 0.03);
+      const corrimaoGeometry = new THREE.CylinderGeometry(0.025, 0.025, alturaTotal + 0.2, 12);
+      const parafusoGeometry = new THREE.CylinderGeometry(0.01, 0.01, 0.05, 8);
+
+      // === LONGARINAS LATERAIS (suportes principais) ===
+      // Longarina esquerda
+      const longarinaEsq = new THREE.Mesh(longarinaGeometry, materialEstrutura);
+      longarinaEsq.position.set(-larguraEscada/2 + 0.04, alturaTotal/2, 0);
+      longarinaEsq.castShadow = true;
+      this.escadaGroup.add(longarinaEsq);
+      
+      // Longarina direita
+      const longarinaDir = new THREE.Mesh(longarinaGeometry, materialEstrutura);
+      longarinaDir.position.set(larguraEscada/2 - 0.04, alturaTotal/2, 0);
+      longarinaDir.castShadow = true;
+      this.escadaGroup.add(longarinaDir);
+
+      // === DEGRAUS ===
+      for (let i = 0; i < numeroDegraus; i++) {
+        const alturaDegrau = (i + 1) * (alturaTotal / numeroDegraus);
+        
+        // Degrau principal (reutilizando geometria)
+        const degrau = new THREE.Mesh(degrauGeometry, materialDegrau);
+        degrau.position.set(0, alturaDegrau, 0);
+        degrau.castShadow = true;
+        degrau.receiveShadow = true;
+        this.escadaGroup.add(degrau);
+
+        // Suportes do degrau (reutilizando geometria)
+        const suporteEsq = new THREE.Mesh(suporteGeometry, materialEstrutura);
+        suporteEsq.position.set(-larguraEscada/2 + 0.04, alturaDegrau - 0.1, 0);
+        this.escadaGroup.add(suporteEsq);
+        
+        const suporteDir = new THREE.Mesh(suporteGeometry, materialEstrutura);
+        suporteDir.position.set(larguraEscada/2 - 0.04, alturaDegrau - 0.1, 0);
+        this.escadaGroup.add(suporteDir);
+      }
+
+      // === CORRIMÕES ===
+      // Corrimão esquerdo (reutilizando geometria)
+      const corrimaoEsq = new THREE.Mesh(corrimaoGeometry, materialEstrutura);
+      corrimaoEsq.position.set(-larguraEscada/2 - 0.05, (alturaTotal + 0.2)/2, 0);
+      corrimaoEsq.castShadow = true;
+      this.escadaGroup.add(corrimaoEsq);
+      
+      // Corrimão direito (reutilizando geometria)
+      const corrimaoDir = new THREE.Mesh(corrimaoGeometry, materialEstrutura);
+      corrimaoDir.position.set(larguraEscada/2 + 0.05, (alturaTotal + 0.2)/2, 0);
+      corrimaoDir.castShadow = true;
+      this.escadaGroup.add(corrimaoDir);
+
+      // === BASE DE FIXAÇÃO ===
+      const baseGeometry = new THREE.BoxGeometry(larguraEscada + 0.2, 0.15, 0.4);
+      const baseMaterial = new THREE.MeshStandardMaterial({
+        color: 0x777777,
+        metalness: 0.3,
+        roughness: 0.7
+      });
+      const base = new THREE.Mesh(baseGeometry, baseMaterial);
+      base.position.set(0, 0.075, 0);
+      base.castShadow = true;
+      base.receiveShadow = true;
+      this.escadaGroup.add(base);
+
+      // === PARAFUSOS DE FIXAÇÃO ===
+      for (let i = 0; i < 4; i++) {
+        const x = (i % 2 === 0) ? -larguraEscada/2 : larguraEscada/2;
+        const z = (i < 2) ? -0.15 : 0.15;
+        
+        const parafuso = new THREE.Mesh(parafusoGeometry, materialEstrutura);
+        parafuso.position.set(x, 0.025, z);
+        this.escadaGroup.add(parafuso);
+      }
+
+      // === PLACA DE SEGURANÇA ===
+      const placaGeometry = new THREE.BoxGeometry(0.3, 0.15, 0.01);
+      const placaMaterial = new THREE.MeshStandardMaterial({
+        color: 0xFFD700, // Amarelo de segurança
+        metalness: 0.1,
+        roughness: 0.8
+      });
+      const placa = new THREE.Mesh(placaGeometry, placaMaterial);
+      placa.position.set(0, 1.5, -0.2);
+      this.escadaGroup.add(placa);
+
+      // === POSICIONAMENTO E ORIENTAÇÃO FINAL ===
+      this.escadaGroup.position.set(posicao.x, 0, posicao.z);
+      this.escadaGroup.rotation.y = posicao.angulo + Math.PI; // Escada virada para o silo
+      
+      this.scene.add(this.escadaGroup);
     },
 
     buildNivelGrao(alturaSilo, raioSilo) {
@@ -1482,6 +1680,7 @@ export default {
 
         this.setupLighting(raioSilo, alturaSilo);
         this.buildSiloStructure(numCabos, alturaSilo, raioSilo);
+        this.buildLadders(alturaSilo, raioSilo);
         this.buildNivelGrao(alturaSilo, raioSilo);
         this.buildSensorsAndCables(alturaSilo, raioSilo);
         this.buildAerators(raioSilo);
@@ -1758,6 +1957,13 @@ export default {
     cleanup() {
       if (this.animationId) {
         cancelAnimationFrame(this.animationId);
+      }
+
+      // Limpar escada se existir
+      if (this.escadaGroup) {
+        this.scene.remove(this.escadaGroup);
+        this.disposeGroup(this.escadaGroup);
+        this.escadaGroup = null;
       }
 
       if (this.renderer) {
