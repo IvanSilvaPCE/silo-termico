@@ -418,13 +418,19 @@ export default {
 
     prepararDadosParaSalvar() {
       if (this.tipoAtivo === 'silo') {
+        // 🔧 CORREÇÃO: Capturar dados dos pêndulos primeiro para garantir dados atualizados
+        const dadosPendulos = this.capturarPendulosSilo()
+        
         const dadosCompletos = {
           ...this.configSilo,
+          // 🔧 CRÍTICO: Sobrescrever com dados atualizados dos pêndulos para evitar conflitos
+          quantidadePendulos: dadosPendulos.quantidadePendulos,
+          sensoresPorPendulo: dadosPendulos.sensoresPorPendulo,
           dimensoes: this.capturarDimensoesSilo(),
           controles: this.capturarControlesSilo(),
           sensores: this.capturarSensoresSilo(),
           cabos: this.capturarCabosSilo(),
-          pendulos: this.capturarPendulosSilo(),
+          pendulos: dadosPendulos,
           estrutura: this.capturarEstruturaSilo(),
           posicionamento: this.capturarPosicionamentoSilo(),
           parametrosDesenho: this.capturarParametrosDesenhoSilo(),

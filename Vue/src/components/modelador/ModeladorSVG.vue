@@ -17,6 +17,9 @@
           <!-- Seletor de Tipo -->
           <SeletorTipo v-model="tipoAtivo" @input="onTipoChange" />
 
+          <!-- Seletor de Visão -->
+          <SeletorVisao v-model="visaoAtiva" @input="onVisaoChange" />
+
           <!-- Configurações para Silo -->
           <div v-if="tipoAtivo === 'silo'" class="card mb-2">
             <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
@@ -159,6 +162,29 @@
             </div>
           </div>
 
+          <!-- Controles da Lateral do Silo (apenas quando visão lateral estiver ativa) -->
+          <div v-if="tipoAtivo === 'silo' && visaoAtiva === 'lateral'" class="card mb-2">
+            <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                 @click="toggleAcordeon('siloLateral')"
+                 role="button" 
+                 tabindex="0"
+                 :aria-expanded="acordeonAberto.siloLateral"
+                 @keydown.enter="toggleAcordeon('siloLateral')"
+                 @keydown.space.prevent="toggleAcordeon('siloLateral')">
+              <div class="d-flex justify-content-between align-items-center text-white">
+                <div class="d-flex align-items-center">
+                  <i class="fa fa-sliders me-2"></i>
+                  <span class="fw-bold">Controles da Lateral do Silo</span>
+                </div>
+                <i :class="['fa', acordeonAberto.siloLateral ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+              </div>
+            </div>
+            <div v-show="acordeonAberto.siloLateral">
+              <ControlesSiloLateral :config-silo="configSilo" @silo-change="onSiloChange"
+                @reset-field="resetSiloField" />
+            </div>
+          </div>
+
           <!-- Seções para Armazém -->
           <template v-if="tipoAtivo === 'armazem'">
             <!-- Modelos de Arcos -->
@@ -284,6 +310,28 @@
                   @aplicar-sensores-uniformes="onAplicarSensoresUniformes" />
               </div>
             </div>
+
+            <!-- Controles da Lateral do Armazém (apenas quando visão lateral estiver ativa) -->
+            <div v-if="visaoAtiva === 'lateral'" class="accordion-item mb-2">
+              <div class="card-header p-2" style="background-color: #06335E; cursor: pointer;" 
+                   @click="toggleAcordeon('armazemLateral')"
+                   role="button" 
+                   tabindex="0"
+                   :aria-expanded="acordeonAberto.armazemLateral"
+                   @keydown.enter="toggleAcordeon('armazemLateral')"
+                   @keydown.space.prevent="toggleAcordeon('armazemLateral')">
+                <div class="d-flex justify-content-between align-items-center text-white">
+                  <div class="d-flex align-items-center">
+                    <i class="fa fa-sliders me-2"></i>
+                    <span class="fw-bold">Controles da Lateral do Armazém</span>
+                  </div>
+                  <i :class="['fa', acordeonAberto.armazemLateral ? 'fa-chevron-up' : 'fa-chevron-down']"></i>
+                </div>
+              </div>
+              <div v-show="acordeonAberto.armazemLateral">
+                <ControlesArmazemLateral :config-armazem="configArmazem" @armazem-change="onArmazemChange" />
+              </div>
+            </div>
           </template>
 
           <!-- Controles -->
@@ -376,7 +424,7 @@
                   </small>
                   <!-- Componente de Imagem de Fundo -->
                   <ImagemFundo :container-dimensions="containerDimensions" :imagem-inicial="imagemFundoData"
-                    :tipo-ativo="tipoAtivo" @imagem-mudou="onImagemFundoMudou" @mostrar-toast="mostrarToast" />
+                    :tipo-ativo="tipoAtivo" @imagem-mudou="onImagemFundoMudou" @opacidade-svg-mudou="onOpacidadeSvgMudou" @mostrar-toast="mostrarToast" />
                 </div>
               </div>
             </div>
@@ -389,42 +437,53 @@
               paddingTop: '30px'
             }">
               <div class="svg-container-responsive w-100 position-relative">
-                <!-- Renderização condicional baseada no tipo -->
-                <template v-if="tipoAtivo === 'silo'">
-                  <!-- Container da imagem de fundo para Silo -->
+                <!-- Renderização condicional baseada na visão e tipo -->
+                
+                <!-- Visão de Topo do Silo -->
+                <template v-if="tipoAtivo === 'silo' && visaoAtiva === 'topo'">
                   <ImagemFundoContainer :imagem-fundo-data="imagemFundoData" />
-
-                  <!-- SVG Silo com transparência se houver imagem de fundo -->
-                  <svg :viewBox="`0 0 ${larguraSVG} ${alturaSVG}`" :style="{
-                    width: '100%',
-                    height: 'auto',
-                    maxWidth: '100%',
-                    maxHeight: isMobile ? '60vh' : 'calc(100vh - 320px)',
-                    minHeight: isMobile ? '200px' : '250px',
-                    border: '1px solid #ddd',
-                    backgroundColor: imagemFundoData.url ? 'transparent' : '#f8f9fa',
-                    borderRadius: '4px',
-                    shapeRendering: 'geometricPrecision',
-                    textRendering: 'geometricPrecision',
-                    imageRendering: 'optimizeQuality',
-                    position: 'relative',
-                    zIndex: 2,
-                    opacity: imagemFundoData.url ? 0.85 : 1
-                  }" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg"
-                    v-html="svgContentComFundo">
-                  </svg>
+                  <SiloTopoSvg 
+                    :config="configSilo" 
+                    :imagem-fundo="imagemFundoData"
+                    :opacidades-svg="opacidadesSvg"
+                    :is-mobile="isMobile"
+                    @posicoes-atualizadas="onPosicoesAtualizadas"
+                  />
+                </template>
+                
+                <!-- Visão Lateral do Silo -->
+                <template v-else-if="tipoAtivo === 'silo' && visaoAtiva === 'lateral'">
+                  <ImagemFundoContainer :imagem-fundo-data="imagemFundoData" />
+                  <SiloLateralSvg
+                    :config="configSilo"
+                    :dados-sensores="dados"
+                    :imagem-fundo="imagemFundoData"
+                    :opacidades-svg="opacidadesSvg"
+                    :is-mobile="isMobile"
+                  />
                 </template>
 
-                <!-- Componente Armazem para Armazém -->
-                <template v-else>
-                  <!-- Container da imagem de fundo para Armazém -->
+                <!-- Visão de Topo do Armazém -->
+                <template v-else-if="tipoAtivo === 'armazem' && visaoAtiva === 'topo'">
                   <ImagemFundoContainer :imagem-fundo-data="imagemFundoData" />
+                  <ArmazemTopoSvg 
+                    :config="{ modelosArcos }"
+                    :modelo-atual="modeloArcoAtual"
+                    :quantidade-modelos="quantidadeModelosArcos"
+                    :imagem-fundo="imagemFundoData"
+                    :opacidades-svg="opacidadesSvg"
+                    :is-mobile="isMobile"
+                    @posicoes-atualizadas="onPosicoesAtualizadas"
+                  />
+                </template>
 
-                  <!-- ArmazemSvg com transparência se houver imagem de fundo -->
+                <!-- Visão Lateral do Armazém -->
+                <template v-else-if="tipoAtivo === 'armazem' && visaoAtiva === 'lateral'">
+                  <ImagemFundoContainer :imagem-fundo-data="imagemFundoData" />
                   <div :style="{
                     position: 'relative',
                     zIndex: 2,
-                    opacity: imagemFundoData.url ? imagemFundoData.opacity : 1,
+                    opacity: imagemFundoData.url ? opacidadesSvg.geral : 1,
                     transition: 'opacity 0.3s ease-in-out',
                     width: '100%',
                     height: '100%',
@@ -497,7 +556,10 @@
 <script>
 import LayoutManager from './utils/layoutManager.js'
 import SeletorTipo from './compModelador/SeletorTipo.vue'
+import SeletorVisao from './compModelador/SeletorVisao.vue'
 import ControlesSilo from './compModelador/ControlesSilo.vue'
+import ControlesSiloLateral from './compModelador/ControlesSiloLateral.vue'
+import ControlesArmazemLateral from './compModelador/ControlesArmazemLateral.vue'
 import ModelosArcos from './compModelador/ModelosArcos.vue'
 import PosicionamentoCabos from './compModelador/PosicionamentoCabos.vue'
 import DimensoesBasicas from './compModelador/DimensoesBasicas.vue'
@@ -512,6 +574,9 @@ import ImagemFundo from './compModelador/ImagemFundo.vue'
 import ImagemFundoContainer from './compModelador/ImagemFundoContainer.vue'
 import NavegacaoArcos from './compModelador/NavegacaoArcos.vue'
 import Armazem from './compModelador/ArmazemSvg.vue'
+import SiloTopoSvg from './compModelador/SiloTopoSvg.vue'
+import SiloLateralSvg from './compModelador/SiloLateralSvg.vue'
+import ArmazemTopoSvg from './compModelador/ArmazemTopoSvg.vue'
 import { modeloSvgService } from './services/modeloSvgService.js'
 import { configuracaoService } from './services/configuracaoService.js'
 import dadosSilo from './dadosSilo.js'
@@ -612,7 +677,10 @@ export default {
   name: 'ModeladorSVG',
   components: {
     SeletorTipo,
+    SeletorVisao,
     ControlesSilo,
+    ControlesSiloLateral,
+    ControlesArmazemLateral,
     ModelosArcos,
     PosicionamentoCabos,
     DimensoesBasicas,
@@ -626,7 +694,10 @@ export default {
     ImagemFundo,
     ImagemFundoContainer,
     NavegacaoArcos,
-    Armazem
+    Armazem,
+    SiloTopoSvg,
+    SiloLateralSvg,
+    ArmazemTopoSvg
   },
   data() {
     return {
@@ -669,6 +740,7 @@ export default {
       layoutsAutomaticos: null,
 
       tipoAtivo: 'silo',
+      visaoAtiva: 'lateral',
       nomeConfiguracao: '',
       larguraSVG: 400,
       alturaSVG: 300,
@@ -726,6 +798,13 @@ export default {
         }
       },
 
+      // Opacidades do SVG separadas da imagem de fundo
+      opacidadesSvg: {
+        geral: 1.0,
+        pendulos: 1.0,
+        estrutura: 1.0
+      },
+
       // Estados para edição de modelos do banco
       modoEdicaoModeloBanco: false,
       modeloBancoEmEdicao: null,
@@ -734,11 +813,13 @@ export default {
       acordeonAberto: {
         configuracoes: true,      // Configurações principais (silo/armazém)
         pendulosSilo: false,      // Configuração de pêndulos (somente silo)
+        siloLateral: false,       // Controles da lateral do silo (somente visão lateral)
         modelosArcos: false,      // Modelos de arcos (somente armazém)
         dimensoes: false,         // Dimensões básicas (somente armazém)
         telhado: false,          // Configuração do telhado (somente armazém)
         fundo: false,            // Configuração do fundo (somente armazém)
         sensores: false,         // Configuração dos sensores (somente armazém)
+        armazemLateral: false,   // Controles da lateral do armazém (somente visão lateral)
         controles: false,        // Botões de controle
         gerenciamento: false     // Gerenciadores de configurações
       }
@@ -1350,6 +1431,13 @@ export default {
       })
     },
 
+    onVisaoChange() {
+      // Atualizar visualização quando mudar entre lateral e topo
+      this.$nextTick(() => {
+        this.updateSVG()
+      })
+    },
+
     onSiloChange() {
       this.applyConfigSiloToLayout()
       this.updateSVG()
@@ -1537,6 +1625,9 @@ export default {
       this.modeloArcoAtual = novoModelo
 
       if (this.modeloArcoAtual) {
+        // 🔧 CORREÇÃO DO BUG: Limpar posições manuais conflitantes ao selecionar modelo
+        this.limparPosicoesManualConflitantes()
+        
         // Carregar configuração do modelo selecionado (sem resetar para padrão)
         this.carregarConfiguracaoModelo(this.modeloArcoAtual)
 
@@ -2466,15 +2557,25 @@ export default {
     onQuantidadePendulosSiloChange() {
       const novaQuantidade = parseInt(this.configSilo.quantidadePendulos) || 5
       
-      // Atualizar configuração de sensores por pêndulo para a nova quantidade
+      // 🔧 PRESERVAR VALORES EXISTENTES: Não sobrescrever configurações carregadas
+      const sensoresExistentes = this.configSilo.sensoresPorPendulo || {}
       const sensoresPorPendulo = {}
+      
+      // Preservar valores existentes e adicionar apenas novos pêndulos com padrão
       for (let i = 1; i <= novaQuantidade; i++) {
-        // Manter sensores existentes se já configurados, senão usar 5 como padrão
-        const sensoresExistentes = this.configSilo.sensoresPorPendulo?.[i]
-        sensoresPorPendulo[i] = sensoresExistentes || 5
+        if (sensoresExistentes[i] !== undefined) {
+          // Manter valor já configurado (carregado do banco ou definido pelo usuário)
+          sensoresPorPendulo[i] = sensoresExistentes[i]
+        } else {
+          // Só usar padrão para pêndulos realmente novos
+          sensoresPorPendulo[i] = 5
+        }
       }
+      
       // Usar $set para garantir reatividade completa do objeto
       this.$set(this.configSilo, 'sensoresPorPendulo', sensoresPorPendulo)
+      
+      console.log('🔧 [QuantidadePendulos] Valores preservados:', sensoresPorPendulo)
       
       // Criar dados exemplares para visualização
       this.criarDadosExemplaresSilo()
@@ -3226,15 +3327,12 @@ export default {
       this.calcularDimensoesSVG()
       this.generateSVG()
 
-      // 🔧 SOLUÇÃO ROBUSTA: Sempre reestabelecer event listeners após regeneração do SVG
-      // Centralizada aqui para cobrir TODOS os cenários de regeneração de SVG
+      // Reestabelecer event listeners para armazém após regeneração do SVG
       if (this.tipoAtivo === 'armazem') {
         this.$nextTick(() => {
-          // IDEMPOTENTE: Sempre remove listeners existentes antes de adicionar novos
-          // Isso evita listeners duplicados e garante estado limpo
           setTimeout(() => {
-            this.reestabelecerEventListenersSeguro()
-          }, 50) // Delay ligeiramente maior para garantir renderização completa
+            this.adicionarEventListeners()
+          }, 200) // Delay maior para garantir renderização completa do ArmazemSvg
         })
       }
     },
@@ -3923,9 +4021,36 @@ export default {
       if (tipo === 'S') {
         // Carregar configuração de Silo
         this.tipoAtivo = 'silo'
-        if (dados.configuracao) {
-          this.configSilo = this.mergeSiloConfigComDefaults(dados.configuracao)
+        
+        // 🔧 CORREÇÃO CRÍTICA: Normalizar e preservar sensoresPorPendulo do banco
+        let dadosParaNormalizar = dados.configuracao || dados
+        
+        // Extrair sensores do nível raiz OU de pendulos (dados duplicados no banco)
+        const sensoresCarregados = dadosParaNormalizar.sensoresPorPendulo || 
+                                   dadosParaNormalizar.pendulos?.sensoresPorPendulo || {}
+        
+        const quantidadeCarregada = dadosParaNormalizar.quantidadePendulos ?? 
+                                   dadosParaNormalizar.pendulos?.quantidadePendulos ?? 
+                                   (Object.keys(sensoresCarregados).length || 5)
+
+        // Garantir que sensoresPorPendulo seja mapeado para o nível superior
+        if (Object.keys(sensoresCarregados).length > 0) {
+          dadosParaNormalizar = {
+            ...dadosParaNormalizar,
+            quantidadePendulos: quantidadeCarregada,
+            sensoresPorPendulo: { ...sensoresCarregados }
+          }
+          console.log('🔧 [CarregarSilo] Mapeamento preservado:', {
+            quantidade: quantidadeCarregada,
+            sensores: sensoresCarregados
+          })
         }
+        
+        this.configSilo = this.mergeSiloConfigComDefaults(dadosParaNormalizar)
+        
+        // Verificação de integridade após carregamento
+        console.log('✅ [CarregarSilo] configSilo.sensoresPorPendulo final:', this.configSilo.sensoresPorPendulo)
+        
         this.mostrarToast(`Silo "${nome}" carregado do banco!`, 'success')
         this.updateSVG()
       } else if (tipo === 'A') {
@@ -4054,6 +4179,11 @@ export default {
       this.imagemFundoData = { ...novaImagemData }
       // Salvar também na storage por tipo
       this.imagensFundoPorTipo[this.tipoAtivo] = { ...novaImagemData }
+    },
+
+    onOpacidadeSvgMudou(novasOpacidades) {
+      // Atualizar opacidades do SVG quando o componente filho emitir mudanças
+      this.opacidadesSvg = { ...novasOpacidades }
     },
 
     // MÉTODOS PARA COMUNICAÇÃO COM COMPONENTE ARMAZEM SVG
@@ -4200,25 +4330,29 @@ export default {
       if (this.tipoAtivo !== 'armazem') return
 
       this.$nextTick(() => {
-        // Remover listeners existentes primeiro
-        this.removerEventListeners()
-
-        // Aguardar um pouco para garantir que o SVG foi completamente renderizado
+        // Aguardar renderização completa do SVG
         setTimeout(() => {
-          // Adicionar listeners para TODOS os elementos dos pêndulos (fundo + texto)
-          this.adicionarListenersPendulos()
-
-          // Adicionar listeners para TODOS os elementos dos sensores (fundo + texto + nome)
-          this.adicionarListenersSensores()
-
-          // Listeners globais para movimento e release (apenas se não existirem)
-          if (!document.dragListenersAdded) {
-            document.addEventListener('mousemove', this.continuarDrag)
-            document.addEventListener('mouseup', this.finalizarDrag)
-            document.dragListenersAdded = true
+          // Verificar se o SVG existe antes de adicionar listeners
+          const svgContainer = document.querySelector('.svg-container-responsive svg')
+          if (!svgContainer) {
+            console.warn('⚠️ SVG não encontrado para adicionar event listeners')
+            return
           }
 
-        }, 50)
+          // Remover listeners existentes primeiro para evitar duplicação
+          this.removerEventListeners()
+
+          // Adicionar listeners para elementos dos pêndulos
+          this.adicionarListenersPendulos()
+
+          // Adicionar listeners para elementos dos sensores
+          this.adicionarListenersSensores()
+
+          // Adicionar listeners globais se ainda não existirem
+          this.garantirListenersGlobais()
+
+          console.log('✅ Event listeners de drag and drop adicionados com sucesso')
+        }, 100) // Aumentar delay para garantir renderização
       })
     },
 
@@ -4226,33 +4360,35 @@ export default {
     reestabelecerEventListenersSeguro(retryCount = 0) {
       if (this.tipoAtivo !== 'armazem') return
 
-      const MAX_RETRIES = 5
+      const MAX_RETRIES = 3
 
-      // 1. SEMPRE remover listeners existentes primeiro (idempotência)
-      this.removerEventListeners()
+      console.log(`🔄 Tentativa ${retryCount + 1} de reestabelecer event listeners`)
 
-      // 2. Aguardar um único ciclo do Vue para garantir que DOM foi atualizado
+      // Aguardar renderização completa
       this.$nextTick(() => {
-        // 3. Verificar se container SVG existe e está pronto
-        const svgContainer = document.querySelector('.svg-container-responsive svg')
-        const elementosSVG = svgContainer ? svgContainer.querySelectorAll('[id^="C"]') : []
+        setTimeout(() => {
+          // Verificar se SVG existe e tem elementos
+          const svgContainer = document.querySelector('.svg-container-responsive svg')
+          const elementosSVG = svgContainer ? svgContainer.querySelectorAll('[id^="C"]') : []
 
-        if (!svgContainer || elementosSVG.length === 0) {
-          // SVG ainda não foi renderizado, tentar novamente com limite
-          if (retryCount < MAX_RETRIES) {
-            setTimeout(() => this.reestabelecerEventListenersSeguro(retryCount + 1), 50)
-          } else {
-            console.warn('⚠️ [reestabelecerEventListenersSeguro] Max retries reached - SVG elements not found')
+          if (!svgContainer || elementosSVG.length === 0) {
+            if (retryCount < MAX_RETRIES) {
+              console.warn(`⚠️ SVG não pronto, tentativa ${retryCount + 1}/${MAX_RETRIES + 1}`)
+              setTimeout(() => this.reestabelecerEventListenersSeguro(retryCount + 1), 100)
+            } else {
+              console.error('❌ Não foi possível encontrar elementos SVG após múltiplas tentativas')
+            }
+            return
           }
-          return
-        }
 
-        // 4. Adicionar listeners de forma segura
-        this.adicionarListenersPendulos()
-        this.adicionarListenersSensores()
+          // Remover listeners existentes
+          this.removerEventListeners()
 
-        // 5. Gerenciar listeners globais de forma idempotente
-        this.garantirListenersGlobais()
+          // Adicionar novos listeners
+          this.adicionarEventListeners()
+
+          console.log('✅ Event listeners reestabelecidos com sucesso')
+        }, 150) // Delay maior para garantir renderização
       })
     },
 
@@ -4272,80 +4408,135 @@ export default {
     },
 
     adicionarListenersPendulos() {
-      // Capturar tanto o fundo (rect) quanto o texto dos pêndulos
-      const elementosPendulos = document.querySelectorAll('[id^="C"]:not([id*="S"]), [id^="TC"]:not([id*="S"])')
+      // Buscar elementos de pêndulos no SVG
+      const svgContainer = document.querySelector('.svg-container-responsive svg')
+      if (!svgContainer) return
+
+      // Procurar por elementos que começam com 'C' seguido de número (sem 'S' para sensor)
+      const elementosPendulos = svgContainer.querySelectorAll('[id^="C"]:not([id*="S"])')
+      
+      console.log(`🎯 Encontrados ${elementosPendulos.length} elementos de pêndulos para adicionar listeners`)
 
       elementosPendulos.forEach(elemento => {
         const id = elemento.id
 
-        // Verificar se é elemento de pêndulo (C1, C2... ou TC1, TC2...)
-        const matchPendulo = id.match(/^(T?C)(\d+)$/)
+        // Verificar se é elemento de pêndulo (C1, C2, C3...)
+        const matchPendulo = id.match(/^C(\d+)$/)
         if (matchPendulo) {
-          const numeroPendulo = parseInt(matchPendulo[2])
+          const numeroPendulo = parseInt(matchPendulo[1])
 
+          // Configurar elemento como arrastável
           elemento.style.cursor = 'grab'
+          elemento.style.userSelect = 'none'
+          elemento.setAttribute('title', `Clique e arraste para mover o pêndulo ${numeroPendulo}`)
+          
+          // Adicionar event listener
           elemento.addEventListener('mousedown', (e) => this.iniciarDragPendulo(e, numeroPendulo))
-          elemento.setAttribute('title', `Clique e arraste para mover o pêndulo ${numeroPendulo} inteiro`)
-
+          
           // Adicionar classe para identificação
+          elemento.classList.add('pendulo-draggable')
+          
+          console.log(`✅ Listener adicionado ao pêndulo ${numeroPendulo}`)
+        }
+      })
+
+      // Também adicionar listeners aos textos dos pêndulos
+      const textosPendulos = svgContainer.querySelectorAll('[id^="TC"]:not([id*="S"])')
+      textosPendulos.forEach(elemento => {
+        const id = elemento.id
+        const matchTexto = id.match(/^TC(\d+)$/)
+        if (matchTexto) {
+          const numeroPendulo = parseInt(matchTexto[1])
+          
+          elemento.style.cursor = 'grab'
+          elemento.style.userSelect = 'none'
+          elemento.addEventListener('mousedown', (e) => this.iniciarDragPendulo(e, numeroPendulo))
           elemento.classList.add('pendulo-draggable')
         }
       })
     },
 
     adicionarListenersSensores() {
-      // Capturar fundo, texto e nome dos sensores
-      const elementosSensores = document.querySelectorAll('[id^="C"][id*="S"], [id^="TC"][id*="S"], [id^="TIND"]')
+      // Buscar elementos de sensores no SVG
+      const svgContainer = document.querySelector('.svg-container-responsive svg')
+      if (!svgContainer) return
+
+      // Procurar por elementos que contêm 'S' (sensores)
+      const elementosSensores = svgContainer.querySelectorAll('[id*="S"]')
+      
+      console.log(`🎯 Encontrados ${elementosSensores.length} elementos de sensores para adicionar listeners`)
 
       elementosSensores.forEach(elemento => {
         const id = elemento.id
         let numeroPendulo, numeroSensor
 
-        // Identificar pêndulo e sensor dos diferentes elementos
-        let matchSensor = id.match(/^C(\d+)S(\d+)$/)  // C1S2 (fundo)
+        // Identificar diferentes tipos de elementos de sensor
+        let matchSensor = id.match(/^C(\d+)S(\d+)$/)  // C1S2 (fundo do sensor)
         if (!matchSensor) {
-          matchSensor = id.match(/^TC(\d+)S(\d+)$/)   // TC1S2 (texto valor)
+          matchSensor = id.match(/^TC(\d+)S(\d+)$/)   // TC1S2 (texto valor do sensor)
         }
         if (!matchSensor) {
-          matchSensor = id.match(/^TIND(\d+)S(\d+)$/) // TIND1S2 (texto nome)
+          matchSensor = id.match(/^TIND(\d+)S(\d+)$/) // TIND1S2 (texto nome do sensor)
         }
 
         if (matchSensor) {
           numeroPendulo = parseInt(matchSensor[1])
           numeroSensor = parseInt(matchSensor[2])
 
+          // Configurar elemento como arrastável
           elemento.style.cursor = 'grab'
+          elemento.style.userSelect = 'none'
+          elemento.setAttribute('title', `Clique e arraste para mover o sensor ${numeroSensor} do pêndulo ${numeroPendulo}`)
+          
+          // Adicionar event listener
           elemento.addEventListener('mousedown', (e) => this.iniciarDragSensor(e, numeroPendulo, numeroSensor))
-          elemento.setAttribute('title', `Clique e arraste para mover apenas o sensor ${numeroSensor} do pêndulo ${numeroPendulo}`)
-
+          
           // Adicionar classe para identificação
           elemento.classList.add('sensor-draggable')
+          
+          console.log(`✅ Listener adicionado ao sensor ${numeroPendulo}-${numeroSensor}`)
         }
       })
     },
 
     removerEventListeners() {
-      // Remover listeners de todos os elementos arrastáveis
-      const elementosArrastaveis = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
-      elementosArrastaveis.forEach(elemento => {
-        // Remover todos os event listeners mousedown
-        const novoElemento = elemento.cloneNode(true)
-        if (elemento.parentNode) {
-          elemento.parentNode.replaceChild(novoElemento, elemento)
+      try {
+        // Remover listeners globais específicos desta instância
+        if (this._globalsAdded) {
+          document.removeEventListener('mousemove', this.continuarDrag)
+          document.removeEventListener('mouseup', this.finalizarDrag)
+          this._globalsAdded = false
         }
-      })
 
-      // Remover classes antigas
-      const elementosComClasse = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
-      elementosComClasse.forEach(elemento => {
-        elemento.classList.remove('pendulo-draggable', 'sensor-draggable')
-      })
+        // Limpar flag global
+        delete document.dragListenersAdded
 
-      // 🔧 Remover listeners globais específicos desta instância
-      if (this._globalsAdded) {
-        document.removeEventListener('mousemove', this.continuarDrag)
-        document.removeEventListener('mouseup', this.finalizarDrag)
-        this._globalsAdded = false
+        // Remover listeners de elementos específicos através de clonagem
+        const elementosArrastaveis = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
+        elementosArrastaveis.forEach(elemento => {
+          // Clonar elemento para remover todos os listeners
+          const novoElemento = elemento.cloneNode(true)
+          if (elemento.parentNode) {
+            elemento.parentNode.replaceChild(novoElemento, elemento)
+          }
+        })
+
+        // Limpar classes de elementos que ainda possam existir
+        const elementosComClasse = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
+        elementosComClasse.forEach(elemento => {
+          elemento.classList.remove('pendulo-draggable', 'sensor-draggable')
+          elemento.style.cursor = ''
+          elemento.style.userSelect = ''
+        })
+
+        // Resetar estado de drag
+        this.isDragging = false
+        this.dragElement = null
+        this.dragType = null
+
+        console.log('🗑️ Event listeners removidos com sucesso')
+      } catch (error) {
+        console.error('❌ Erro ao remover event listeners:', error)
       }
     },
 
@@ -4971,26 +5162,66 @@ export default {
 
     // ✅ MÉTODO AUXILIAR: Limpar estados específicos de drag-and-drop do Armazém
     limparEstadosDragAndDrop() {
-      // Limpar variáveis de drag específicas do Armazém
-      this.dragAtivo = false
-      this.elementoArrastando = null
-      this.offsetDrag = { x: 0, y: 0 }
-      
-      // Limpar referências DOM para evitar vazamentos de memória
-      if (typeof document !== 'undefined') {
-        // Remover flag global de drag listeners
-        delete document.dragListenersAdded
+      try {
+        console.log('🧹 [limparEstadosDragAndDrop] Iniciando limpeza completa...')
         
-        // Remover event listeners globais de movimento
-        document.removeEventListener('mousemove', this.continuarDrag)
-        document.removeEventListener('mouseup', this.finalizarDrag)
+        // 🔧 LIMPAR variáveis de drag específicas do Armazém
+        this.dragAtivo = false
+        this.elementoArrastando = null
+        this.offsetDrag = { x: 0, y: 0 }
+        
+        // 🔧 LIMPAR referências DOM para evitar vazamentos de memória
+        if (typeof document !== 'undefined') {
+          // Remover TODOS os event listeners globais relacionados ao drag
+          document.removeEventListener('mousemove', this.continuarDrag)
+          document.removeEventListener('mouseup', this.finalizarDrag)
+          document.removeEventListener('touchmove', this.continuarDrag)
+          document.removeEventListener('touchend', this.finalizarDrag)
+          
+          // Remover event listeners específicos de elementos sensores/pêndulos
+          const elementosSensor = document.querySelectorAll('[id^="TC"], [id^="pendulo_"], [id^="TIND"], [id^="NomeSensorSilo_"]')
+          elementosSensor.forEach(elemento => {
+            // Clonar e substituir elemento para remover TODOS os listeners
+            const novoElemento = elemento.cloneNode(true)
+            if (elemento.parentNode) {
+              elemento.parentNode.replaceChild(novoElemento, elemento)
+            }
+          })
+          
+          // Remover flag global de drag listeners
+          delete document.dragListenersAdded
+        }
+        
+        // 🔧 LIMPAR classes CSS de drag de TODOS os elementos possíveis
+        const seletoresLimpeza = [
+          '.pendulo-draggable', 
+          '.sensor-draggable', 
+          '.elemento-arrastavel',
+          '.dragging',
+          '.drag-active'
+        ]
+        
+        seletoresLimpeza.forEach(seletor => {
+          const elementos = document.querySelectorAll(seletor)
+          elementos.forEach(el => {
+            el.classList.remove('pendulo-draggable', 'sensor-draggable', 'elemento-arrastavel', 'dragging', 'drag-active')
+            // Remover também quaisquer transformações CSS que possam ter ficado
+            el.style.transform = ''
+            el.style.position = ''
+            el.style.zIndex = ''
+          })
+        })
+        
+        // 🔧 LIMPAR timeouts relacionados ao drag and drop
+        if (this.dragTimeout) {
+          clearTimeout(this.dragTimeout)
+          this.dragTimeout = null
+        }
+        
+        console.log('✅ [limparEstadosDragAndDrop] Limpeza completa finalizada')
+      } catch (error) {
+        console.error('❌ [limparEstadosDragAndDrop] Erro durante limpeza:', error)
       }
-      
-      // Limpar classes CSS de drag de elementos restantes
-      const elementosComDrag = document.querySelectorAll('.pendulo-draggable, .sensor-draggable')
-      elementosComDrag.forEach(el => {
-        el.classList.remove('pendulo-draggable', 'sensor-draggable')
-      })
     },
 
     // ✅ MÉTODO AUXILIAR: Limpar variáveis de controle específicas
@@ -5019,6 +5250,204 @@ export default {
       // Limpar seleções e estados temporários
       this.elementoSelecionado = null
       this.modoEdicao = false
+    },
+
+    // ✅ MÉTODO CRÍTICO: Reestabelecer event listeners de forma segura após mudança de modelo
+    reestabelecerEventListenersSeguro() {
+      // 🔧 CORREÇÃO DO BUG: Primeiro remover listeners existentes para evitar duplicação
+      this.removerEventListeners()
+      
+      // 🎯 AGUARDAR que o DOM seja atualizado antes de adicionar novos listeners
+      this.$nextTick(() => {
+        setTimeout(() => {
+          try {
+            // 🔧 REESTABELECER EVENT LISTENERS apenas se estiver no modo armazém
+            if (this.tipoAtivo === 'armazem') {
+              this.configurarEventListenersArmazem()
+            }
+            
+            console.log('✅ [reestabelecerEventListenersSeguro] Event listeners reestabelecidos com sucesso')
+          } catch (error) {
+            console.error('❌ [reestabelecerEventListenersSeguro] Erro ao reestabelecer listeners:', error)
+          }
+        }, 50) // Delay menor para melhor responsividade
+      })
+    },
+
+    // ✅ MÉTODO AUXILIAR: Remover todos os event listeners existentes
+    removerEventListeners() {
+      try {
+        // Remover event listeners globais de document
+        if (typeof document !== 'undefined') {
+          // Remover listeners de mouse para drag and drop
+          document.removeEventListener('mousemove', this.continuarDrag)
+          document.removeEventListener('mouseup', this.finalizarDrag)
+          document.removeEventListener('touchmove', this.continuarDrag)
+          document.removeEventListener('touchend', this.finalizarDrag)
+          
+          // Remover flag de listeners adicionados
+          delete document.dragListenersAdded
+        }
+        
+        // Limpar referências de elementos DOM
+        this.elementoArrastando = null
+        this.offsetDrag = { x: 0, y: 0 }
+        this.dragAtivo = false
+        
+        console.log('🗑️ [removerEventListeners] Event listeners removidos com sucesso')
+      } catch (error) {
+        console.error('❌ [removerEventListeners] Erro ao remover listeners:', error)
+      }
+    },
+
+    // ✅ MÉTODO AUXILIAR: Configurar event listeners específicos do armazém (modo compatibilidade)
+    configurarEventListenersArmazem() {
+      try {
+        console.log('🎯 [configurarEventListenersArmazem] Verificando compatibilidade com sistema existente...')
+        
+        // Apenas verificar se há elementos de sensores sem adicionar listeners
+        // (deixar que o sistema existente gerencie os event listeners)
+        const elementosSensor = document.querySelectorAll('[id^="TC"], [id^="pendulo_"]')
+        
+        // Apenas adicionar classes visuais se necessário, sem modificar event listeners
+        elementosSensor.forEach(elemento => {
+          // Verificar se já tem classe de draggable
+          if (!elemento.classList.contains('sensor-draggable') && !elemento.draggable) {
+            elemento.classList.add('sensor-draggable')
+          }
+        })
+        
+        console.log('✅ [configurarEventListenersArmazem] Compatibilidade verificada para', elementosSensor.length, 'elementos')
+      } catch (error) {
+        console.error('❌ [configurarEventListenersArmazem] Erro ao verificar compatibilidade:', error)
+      }
+    },
+
+    // ✅ MÉTODO AUXILIAR: Limpar configuração de preview
+    limparConfiguracaoPreview() {
+      try {
+        // Limpar dados específicos do preview
+        this.dadosVindosDoPreview = false
+        this.configPreviewAplicada = null
+        
+        // Limpar localStorage relacionado ao preview
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('configPreviewTemp')
+          localStorage.removeItem('dadosPreviewArmazem')
+          localStorage.removeItem('timestampPreview')
+        }
+        
+        console.log('🧹 [limparConfiguracaoPreview] Configuração de preview limpa')
+      } catch (error) {
+        console.error('❌ [limparConfiguracaoPreview] Erro ao limpar preview:', error)
+      }
+    },
+
+    // ✅ MÉTODO CRÍTICO: Limpar posições manuais conflitantes ao selecionar modelo
+    limparPosicoesManualConflitantes() {
+      try {
+        console.log('🔧 [limparPosicoesManualConflitantes] Limpando posições conflitantes...')
+        
+        // 🎯 GUARDAR posições atuais se existirem para possível restauração
+        const posicoesBackup = {
+          pendulos: { ...this.posicoesManualPendulos },
+          sensores: { ...this.posicoesManualSensores },
+          timestamp: Date.now()
+        }
+        
+        // 🔧 LIMPAR posições manuais globais que podem conflitar com o modelo específico
+        this.posicoesManualPendulos = {}
+        this.posicoesManualSensores = {}
+        
+        // 🔧 LIMPAR localStorage temporário que pode ter posições conflitantes
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem('posicoesManualTemp')
+          localStorage.removeItem('posicoesConflitantes')
+          
+          // Salvar backup por segurança (por 1 hora)
+          localStorage.setItem('posicoesBackupTemp', JSON.stringify(posicoesBackup))
+        }
+        
+        // 🔧 FORÇAR limpeza completa do estado de drag and drop
+        this.limparEstadosDragAndDrop()
+        
+        // 🔧 CARREGAR posições específicas do modelo se existirem
+        if (this.modeloArcoAtual && this.modelosArcos[this.modeloArcoAtual]) {
+          const modeloAtual = this.modelosArcos[this.modeloArcoAtual]
+          
+          // Carregar posições salvas específicas do modelo
+          if (modeloAtual.posicoesManualPendulos) {
+            this.posicoesManualPendulos = { ...modeloAtual.posicoesManualPendulos }
+          }
+          
+          if (modeloAtual.posicoesManualSensores) {
+            this.posicoesManualSensores = { ...modeloAtual.posicoesManualSensores }
+          }
+          
+          console.log('✅ [limparPosicoesManualConflitantes] Posições do modelo carregadas:', {
+            pendulos: Object.keys(this.posicoesManualPendulos).length,
+            sensores: Object.keys(this.posicoesManualSensores).length
+          })
+        }
+        
+        console.log('✅ [limparPosicoesManualConflitantes] Limpeza de conflitos finalizada')
+      } catch (error) {
+        console.error('❌ [limparPosicoesManualConflitantes] Erro durante limpeza:', error)
+      }
+    },
+
+    // ✅ MÉTODO DE COMUNICAÇÃO: Receber posições atualizadas do componente Armazem
+    onPosicoesAtualizadas(dadosPosicoes) {
+      try {
+        console.log('📍 [onPosicoesAtualizadas] Recebendo posições:', dadosPosicoes)
+        
+        // 🎯 ATUALIZAR posições manuais dos sensores
+        if (dadosPosicoes.sensores) {
+          this.posicoesManualSensores = { ...this.posicoesManualSensores, ...dadosPosicoes.sensores }
+        }
+        
+        // 🎯 ATUALIZAR posições manuais dos pêndulos
+        if (dadosPosicoes.pendulos) {
+          this.posicoesManualPendulos = { ...this.posicoesManualPendulos, ...dadosPosicoes.pendulos }
+        }
+        
+        // 🎯 SALVAR no modelo atual se estiver selecionado
+        if (this.modeloArcoAtual) {
+          this.salvarPosicoesNoModelo()
+        }
+        
+        // 🎯 FORÇAR atualização do SVG
+        this.updateSVG()
+        
+        console.log('✅ [onPosicoesAtualizadas] Posições atualizadas com sucesso')
+      } catch (error) {
+        console.error('❌ [onPosicoesAtualizadas] Erro ao atualizar posições:', error)
+      }
+    },
+
+    // ✅ MÉTODO DE DEBUGGING: Verificar se drag and drop está funcionando
+    verificarDragAndDrop() {
+      console.log('🔍 [verificarDragAndDrop] Verificando estado do drag and drop...')
+      
+      // Verificar se há elementos draggable no DOM
+      const elementosDraggable = document.querySelectorAll('[draggable="true"], .draggable, .sensor-draggable, .pendulo-draggable')
+      console.log('📌 Elementos draggable encontrados:', elementosDraggable.length)
+      
+      // Verificar event listeners
+      const elementosSensor = document.querySelectorAll('[id^="TC"], [id^="pendulo_"]')
+      console.log('🎯 Elementos de sensor/pêndulo encontrados:', elementosSensor.length)
+      
+      // Verificar se há listeners de mouse
+      elementosSensor.forEach((elemento, index) => {
+        if (index < 3) { // Apenas os primeiros 3 para não fazer spam
+          console.log('🖱️ Elemento:', elemento.id, 'Listeners:', elemento.cloneNode(true))
+        }
+      })
+      
+      return {
+        elementosDraggable: elementosDraggable.length,
+        elementosSensor: elementosSensor.length
+      }
     }
   }
 }

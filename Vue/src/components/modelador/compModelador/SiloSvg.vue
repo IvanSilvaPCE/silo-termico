@@ -104,7 +104,11 @@ export default {
 
     calcularDimensoesSVG() {
       this.larguraSVG = this.configComputada.lb + (this.configComputada.aeradores_ativo ? this.configComputada.ds * 2 + 68 : 0)
-      this.alturaSVG = this.configComputada.hs + this.configComputada.hb * 1.75
+      
+      // Calcular altura dinâmica baseada no máximo de sensores
+      const maxSensores = Math.max(...Object.values(this.configComputada.sensoresPorPendulo || {}))
+      const alturaExtra = Math.max(0, (maxSensores - 5) * this.configComputada.dist_y_sensores)
+      this.alturaSVG = this.configComputada.hs + this.configComputada.hb * 1.75 + alturaExtra
     },
 
     generateSVG() {
@@ -265,8 +269,8 @@ export default {
         for (let s = 1; s <= numSensores; s++) {
           const ySensor = yPenduloNormalizado - dist_y_sensores * s - 35
 
-          // Verificar se o sensor está dentro dos limites visíveis
-          if (ySensor > 20) {
+          // Verificar se o sensor está dentro dos limites visíveis (ajustado para permitir mais sensores)
+          if (ySensor > -50) {
             let xSensorFinal = xCaboNormalizado  // Partir da posição normalizada do cabo
             let ySensorFinal = ySensor
 
